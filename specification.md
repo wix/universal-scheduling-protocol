@@ -68,18 +68,19 @@ The financial infrastructure that processes payments. USP delegates all payment 
 
 ```mermaid
 graph BT
-    subgraph UCP ["UCP — Payment (optional)"]
-        direction LR
-        P2[Platform / Agent] -- "create_checkout\n(usp_booking metadata)" --> B2[Business]
-        P2 -- "submit_checkout\n(payment token)" --> B2
-        B2 -- "process token" --> PSP[Payment Service Provider]
-    end
 
     subgraph USP ["USP — Scheduling"]
         direction LR
         P[Platform / Agent] -- "discover services\n(catalog + availability hint)" --> B[Business]
         P -- "query availability\n(slots)" --> B
         P -- "hold slot → create booking" --> B
+    end
+    
+    subgraph UCP ["UCP — Payment (optional)"]
+        direction LR
+        P2[Platform / Agent] -- "create_checkout\n(usp_booking metadata)" --> B2[Business]
+        P2 -- "submit_checkout\n(payment token)" --> B2
+        B2 -- "process token" --> PSP[Payment Service Provider]
     end
 
     USP -. "booking requires payment\n(status: requires_action)" .-> UCP
