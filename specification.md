@@ -75,7 +75,7 @@ graph BT
         P -- "query availability\n(slots)" --> B
         P -- "hold slot → create booking" --> B
     end
-    
+
     subgraph UCP ["UCP — Payment (optional)"]
         direction LR
         P2[Platform / Agent] -- "create_checkout\n(usp_booking metadata)" --> B2[Business]
@@ -103,11 +103,11 @@ USP is built on three constructs, consistent with UCP's architecture:
 
 ### Key Goals
 
-- **Interoperability:** A standard language for platforms, businesses, and payment providers to transact time-based services without custom integrations.
 - **Discovery:** Platforms dynamically discover what services a business offers, what availability exists, and what policies apply -- all machine-readable.
 - **Agentic Scheduling:** AI agents can autonomously discover, evaluate, and book services on behalf of users, with `continue_url` handoff when human interaction is required.
-- **Separation of Concerns:** USP handles scheduling; UCP handles payment. Neither protocol reinvents what the other provides.
+- **Interoperability:** A standard language for platforms, businesses, and payment providers to transact time-based services without custom integrations.
 - **Real-Time Coordination:** Slot holds prevent double-booking. Availability is computed dynamically from schedules, resources, and existing bookings.
+- **Separation of Concerns:** USP handles scheduling; UCP handles payment. Neither protocol reinvents what the other provides.
 
 ### USP vs UCP: Division of Responsibility
 
@@ -557,7 +557,7 @@ The booking capability defines the **lifecycle of a service booking** from creat
 | Status | Description |
 |--------|-------------|
 | `pending` | Awaiting confirmation. Transient for `auto` mode. |
-| `requires_action` | Buyer input needed (payment, intake form). Inspect `messages`, use `continue_url`. |
+| `requires_action` | Buyer input needed (payment). Inspect `messages`, use `continue_url`. |
 | `confirmed` | Booking confirmed. Service will proceed at scheduled time. |
 | `in_progress` | Service is currently being delivered. |
 | `completed` | Service delivered. Terminal. |
@@ -610,7 +610,7 @@ The booking capability defines the **lifecycle of a service booking** from creat
 
 **Get Booking** -- `GET /bookings/{booking_id}`
 
-**Update Booking** -- `PUT /bookings/{booking_id}` (mutable fields: buyer, intake_responses, notes)
+**Update Booking** -- `PUT /bookings/{booking_id}` (mutable fields: buyer, notes)
 
 **Confirm Booking** -- `POST /bookings/{booking_id}/confirm` (business-initiated, for `manual` mode)
 
