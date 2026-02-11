@@ -487,9 +487,11 @@ Response:
 }
 ```
 
-#### Granularity: `day`
+#### Granularity: `day` (optional)
 
-Returns a lightweight day-level summary: whether each day has any availability, and optionally how much. Designed for calendar views and caching over wider date ranges.
+Returns a lightweight day-level summary: whether each day has any availability, and optionally how much. Designed for traditional (non-AI) calendar views and caching over wider date ranges.
+
+> **Note:** For AI agents, the [Availability Hint](#availability-hint) on the service entity often provides sufficient signal to skip day-level queries entirely and go straight to slot-level for specific days. Day-level granularity remains useful for traditional UI platforms that need structured data to render calendar date pickers.
 
 ```json
 {
@@ -540,21 +542,38 @@ Response:
 
 ### Caching Strategy
 
-Availability data has an inverse relationship between freshness and usefulness: near-term slots are the most actionable but change the fastest, while far-out days are stable but less immediately useful. Platforms **SHOULD** use a tiered caching strategy:
+Availability data has an inverse relationship between freshness and usefulness: near-term slots are the most actionable but change the fastest, while far-out days are stable but less immediately useful. Platforms **SHOULD** use a tiered caching strategy.
+
+#### Primary Path (Agentic Platforms)
+
+The primary path is optimized for AI agents, which are USP's primary consumers. The [Availability Hint](#availability-hint) on the service entity provides enough signal for agents to skip day-level queries entirely and go straight to slot-level for targeted days:
 
 | Tier | Granularity | Date Range | Recommended TTL | Use Case |
 |------|-------------|------------|-----------------|----------|
 | **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Availability Hint](#availability-hint). |
+| **Select** | `slot` | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
+| **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
+
+```mermaid
+graph TD
+    H["1. Availability Hint (catalog-cached, 1-6hr)"] -- "Agent narrows date range" --> S
+    S["2. Slot Query (slot-level, short cache)"] --> D["Agent picks a slot"]
+    D --> E["3. Hold Slot (real-time)"]
+    E --> F["4. Create Booking"]
+```
+
+#### Secondary Path (Traditional UI Platforms)
+
+Traditional platforms with calendar-based UIs **MAY** use day-level granularity as an intermediate tier. This provides structured `{date, available, slots_remaining}` data that calendar widgets can render directly without natural-language parsing:
+
+| Tier | Granularity | Date Range | Recommended TTL | Use Case |
+|------|-------------|------------|-----------------|----------|
 | **Browse** | `day` | Next 2-4 weeks | 5-15 minutes | Calendar view: "which days have openings?" |
 | **Select** | `slot` | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
 | **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
 
-This creates a natural funnel that balances user experience with data freshness:
-
 ```mermaid
 graph TD
-    H["0. Availability Hint (catalog-cached, 1-6hr)"] --> A
-    H -- "Agent narrows date range" --> A
     A["1. Calendar View (day-level, cached)"] --> B["User picks a day"]
     B --> C["2. Time Picker (slot-level, short cache)"]
     C --> D["User picks a slot"]
@@ -562,16 +581,16 @@ graph TD
     E --> F["4. Create Booking"]
 ```
 
-**Why this works:**
+#### Why this works
 
 - **Availability hints are virtually free.** They are served as part of the service catalog (already cached at 1-24 hour TTL) and require zero additional API calls. For AI agents, the natural-language summary provides enough signal to skip entire date ranges or filter out fully-booked businesses before making any availability query. See the [Agent Use Cases](#agent-use-cases) table for the full set of scenarios where hints reduce API fan-out.
-- **Day-level data is cheap and stable.** A day goes from "available" to "unavailable" only when the *last* slot is booked -- a rare event for days further out. For a service with 16 slots per day, the day-level answer remains "yes" even after 15 bookings. Caching this at 5-15 minute TTL is safe.
-- **Slot-level data is expensive but scoped.** The platform only fetches full slots for 1-2 days the user actually drills into, not the entire booking window. A 30-60 second TTL avoids hammering the API on every scroll while keeping data reasonably fresh.
+- **Slot-level data is expensive but scoped.** The platform only fetches full slots for 1-2 days the agent or user actually drills into, not the entire booking window. A 30-60 second TTL avoids hammering the API on every scroll while keeping data reasonably fresh.
+- **Day-level data is cheap and stable (when used).** A day goes from "available" to "unavailable" only when the *last* slot is booked -- a rare event for days further out. For a service with 16 slots per day, the day-level answer remains "yes" even after 15 bookings. Caching this at 5-15 minute TTL is safe. For traditional UI platforms that cannot leverage the availability hint, day-level queries remain a useful intermediate tier.
 - **Holds are the safety net.** Even with slightly stale slot data, the hold operation is always real-time. If a displayed slot has been booked since the cache was populated, the hold fails with `slot_unavailable` and the platform re-queries. No false bookings.
 
-> **Note:** The data volume difference is significant. For a business with 5 appointment services, 15-minute intervals across 8 working hours, and a 14-day booking window: slot-level returns ~2,240 objects; day-level returns ~70. That's a **97% reduction** in payload size, API load, and cache storage.
+> **Note:** The data volume difference between day-level and slot-level is significant. For a business with 5 appointment services, 15-minute intervals across 8 working hours, and a 14-day booking window: slot-level returns ~2,240 objects; day-level returns ~70. That's a **97% reduction** in payload size. However, when using the availability hint, agents typically query slot-level for only 1-2 days, reducing the effective payload to ~32 objects -- making the day-level intermediary unnecessary for most agentic workflows.
 
-Businesses **MUST** support `granularity: slot`. Support for `granularity: day` is **RECOMMENDED**. If a business does not support day-level queries, it **MUST** return an error with code `granularity_unsupported`, and the platform **SHOULD** fall back to slot-level queries over narrower date ranges.
+Businesses **MUST** support `granularity: slot`. Support for `granularity: day` is **OPTIONAL**. If a business does not support day-level queries, it **MUST** return an error with code `granularity_unsupported`, and the platform **SHOULD** fall back to slot-level queries over narrower date ranges.
 
 ### Hold and Release Operations
 
