@@ -420,28 +420,22 @@ The availability capability lets platforms **query when services are available**
 
 **Query Availability** -- `POST /availability/query`
 
-The `granularity` parameter controls the level of detail returned:
+Returns available time slots for a service within a date range. Use the [Availability Hint](#availability-hint) on the service entity to narrow the date range before querying.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `service_id` | string | **Yes** | The service to query |
 | `start_date` | string | **Yes** | Start of range (RFC 3339 date or datetime) |
 | `end_date` | string | **Yes** | End of range (RFC 3339 date or datetime) |
-| `granularity` | string | No | `slot` (default) or `day`. See Availability Granularity below. |
 | `timezone` | string | No | IANA timezone. Defaults to business timezone. |
 | `resource_id` | string | No | Preferred resource (e.g., specific staff member) |
 | `party_size` | integer | No | Number of participants. Default: 1. |
-
-#### Granularity: `slot` (default)
-
-Returns full time slot objects. Use for displaying bookable times when the user has selected a specific day or narrow date range.
 
 ```json
 {
   "service_id": "svc_haircut_001",
   "start_date": "2026-03-15",
   "end_date": "2026-03-16",
-  "granularity": "slot",
   "timezone": "America/New_York",
   "resource_id": "staff_jane"
 }
@@ -456,7 +450,6 @@ Response:
     "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
   },
   "service_id": "svc_haircut_001",
-  "granularity": "slot",
   "slots": [
     {
       "id": "slot_20260315_0900",
@@ -487,72 +480,17 @@ Response:
 }
 ```
 
-#### Granularity: `day` (optional)
-
-Returns a lightweight day-level summary: whether each day has any availability, and optionally how much. Designed for traditional (non-AI) calendar views and caching over wider date ranges.
-
-> **Note:** For AI agents, the [Availability Hint](#availability-hint) on the service entity often provides sufficient signal to skip day-level queries entirely and go straight to slot-level for specific days. Day-level granularity remains useful for traditional UI platforms that need structured data to render calendar date pickers.
-
-```json
-{
-  "service_id": "svc_haircut_001",
-  "start_date": "2026-03-15",
-  "end_date": "2026-03-28",
-  "granularity": "day",
-  "timezone": "America/New_York"
-}
-```
-
-Response:
-
-```json
-{
-  "usp": {
-    "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
-  },
-  "service_id": "svc_haircut_001",
-  "granularity": "day",
-  "days": [
-    {"date": "2026-03-15", "available": true,  "slots_remaining": 8},
-    {"date": "2026-03-16", "available": true,  "slots_remaining": 12},
-    {"date": "2026-03-17", "available": false, "slots_remaining": 0},
-    {"date": "2026-03-18", "available": true,  "slots_remaining": 3},
-    {"date": "2026-03-19", "available": true,  "slots_remaining": 15},
-    {"date": "2026-03-20", "available": true,  "slots_remaining": 14},
-    {"date": "2026-03-21", "available": false, "slots_remaining": 0},
-    {"date": "2026-03-22", "available": true,  "slots_remaining": 10},
-    {"date": "2026-03-23", "available": true,  "slots_remaining": 6},
-    {"date": "2026-03-24", "available": true,  "slots_remaining": 16},
-    {"date": "2026-03-25", "available": true,  "slots_remaining": 16},
-    {"date": "2026-03-26", "available": true,  "slots_remaining": 15},
-    {"date": "2026-03-27", "available": true,  "slots_remaining": 16},
-    {"date": "2026-03-28", "available": false, "slots_remaining": 0}
-  ]
-}
-```
-
-**Day Summary:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `date` | string | **Yes** | Date in `YYYY-MM-DD` format |
-| `available` | boolean | **Yes** | Whether at least one slot is available on this day |
-| `slots_remaining` | integer | No | Approximate number of available slots. Helps platforms display "limited" indicators without fetching full slots. |
-
 ### Caching Strategy
 
-Availability data has an inverse relationship between freshness and usefulness: near-term slots are the most actionable but change the fastest, while far-out days are stable but less immediately useful. Platforms **SHOULD** use a tiered caching strategy.
+Availability data has an inverse relationship between freshness and usefulness: near-term slots are the most actionable but change the fastest, while far-out availability is stable but less immediately useful. Platforms **SHOULD** use a tiered caching strategy:
 
-#### Primary Path (Agentic Platforms)
-
-The primary path is optimized for AI agents, which are USP's primary consumers. The [Availability Hint](#availability-hint) on the service entity provides enough signal for agents to skip day-level queries entirely and go straight to slot-level for targeted days:
-
-| Tier | Granularity | Date Range | Recommended TTL | Use Case |
-|------|-------------|------------|-----------------|----------|
+| Tier | Source | Date Range | Recommended TTL | Use Case |
+|------|--------|------------|-----------------|----------|
 | **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Availability Hint](#availability-hint). |
-| **Select** | `slot` | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
+| **Select** | `slot` query | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
 | **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
+
+This creates a natural funnel that balances user experience with data freshness:
 
 ```mermaid
 graph TD
@@ -562,35 +500,11 @@ graph TD
     E --> F["4. Create Booking"]
 ```
 
-#### Secondary Path (Traditional UI Platforms)
-
-Traditional platforms with calendar-based UIs **MAY** use day-level granularity as an intermediate tier. This provides structured `{date, available, slots_remaining}` data that calendar widgets can render directly without natural-language parsing:
-
-| Tier | Granularity | Date Range | Recommended TTL | Use Case |
-|------|-------------|------------|-----------------|----------|
-| **Browse** | `day` | Next 2-4 weeks | 5-15 minutes | Calendar view: "which days have openings?" |
-| **Select** | `slot` | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
-| **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
-
-```mermaid
-graph TD
-    A["1. Calendar View (day-level, cached)"] --> B["User picks a day"]
-    B --> C["2. Time Picker (slot-level, short cache)"]
-    C --> D["User picks a slot"]
-    D --> E["3. Hold Slot (real-time)"]
-    E --> F["4. Create Booking"]
-```
-
-#### Why this works
+**Why this works:**
 
 - **Availability hints are virtually free.** They are served as part of the service catalog (already cached at 1-24 hour TTL) and require zero additional API calls. For AI agents, the natural-language summary provides enough signal to skip entire date ranges or filter out fully-booked businesses before making any availability query. See the [Agent Use Cases](#agent-use-cases) table for the full set of scenarios where hints reduce API fan-out.
-- **Slot-level data is expensive but scoped.** The platform only fetches full slots for 1-2 days the agent or user actually drills into, not the entire booking window. A 30-60 second TTL avoids hammering the API on every scroll while keeping data reasonably fresh.
-- **Day-level data is cheap and stable (when used).** A day goes from "available" to "unavailable" only when the *last* slot is booked -- a rare event for days further out. For a service with 16 slots per day, the day-level answer remains "yes" even after 15 bookings. Caching this at 5-15 minute TTL is safe. For traditional UI platforms that cannot leverage the availability hint, day-level queries remain a useful intermediate tier.
+- **Slot-level data is expensive but scoped.** The platform only fetches full slots for 1-2 days the agent actually drills into, not the entire booking window. Agents using the availability hint typically query only 1-2 targeted days, keeping payloads small (~32 objects for a typical service). A 30-60 second TTL avoids hammering the API while keeping data reasonably fresh.
 - **Holds are the safety net.** Even with slightly stale slot data, the hold operation is always real-time. If a displayed slot has been booked since the cache was populated, the hold fails with `slot_unavailable` and the platform re-queries. No false bookings.
-
-> **Note:** The data volume difference between day-level and slot-level is significant. For a business with 5 appointment services, 15-minute intervals across 8 working hours, and a 14-day booking window: slot-level returns ~2,240 objects; day-level returns ~70. That's a **97% reduction** in payload size. However, when using the availability hint, agents typically query slot-level for only 1-2 days, reducing the effective payload to ~32 objects -- making the day-level intermediary unnecessary for most agentic workflows.
-
-Businesses **MUST** support `granularity: slot`. Support for `granularity: day` is **OPTIONAL**. If a business does not support day-level queries, it **MUST** return an error with code `granularity_unsupported`, and the platform **SHOULD** fall back to slot-level queries over narrower date ranges.
 
 ### Hold and Release Operations
 
