@@ -235,6 +235,50 @@ Availability and booking, by contrast, are real-time operations and **MUST NOT**
 | `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling policies (see below) |
 | `capacity` | object | No | `{min, max, waitlist}` -- required for `group` and `reservation` types |
 | `images` | Array\[object\] | No | `{url, alt, type}` -- service images |
+| `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery (see below) |
+
+### Availability Hint
+
+An optional, lightweight summary of a service's near-term availability. The hint is designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before hitting the real-time availability API. It is cached alongside catalog data and serves as "Tier 0" of the availability funnel (see [Section 5 -- Caching Strategy](#caching-strategy)).
+
+The hint captures the same information a receptionist would give over the phone: a natural-language snapshot of when the business is open, busy, or booked out. Businesses **SHOULD** regenerate this field every 1-6 hours, or whenever availability changes significantly (e.g., a day transitions from available to fully booked).
+
+> **Important:** The availability hint is an **approximation**. Platforms **MUST NOT** use it as a substitute for real-time availability queries. It is strictly a guide for narrowing the date range and reducing unnecessary API calls. The structured availability API (day-level and slot-level) remains the source of truth.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `summary` | string | **Yes** | Natural-language description of near-term availability. Aimed at AI agents. Example: *"Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning."* |
+| `generated_at` | string | **Yes** | RFC 3339 timestamp of when this hint was generated. Platforms can use this to assess freshness and decide how much weight to give the hint. |
+| `next_available_date` | string | No | `YYYY-MM-DD` date of the next day with known availability. This single structured field is usable by both AI agents and traditional programmatic platforms. |
+
+#### Agent Use Cases
+
+The availability hint is particularly valuable for AI agents that orchestrate scheduling on behalf of users. The following table summarizes the key use cases and how the hint helps in each:
+
+| # | Use Case | Agent Scenario | How the Hint Helps |
+|---|----------|---------------|-------------------|
+| 1 | **First-available search** | "Book me a haircut as soon as possible." | `next_available_date` lets the agent jump directly to the first opening instead of scanning day-by-day from today. |
+| 2 | **Multi-business comparison** | "Find me a massage therapist available this Thursday." | The agent reads hints from multiple businesses' cached catalogs and filters out those marked as booked -- without making any availability API calls. |
+| 3 | **Flexible date negotiation** | "I'm flexible -- find me a good time next week." | The `summary` names specific days with openings, so the agent can propose smart options conversationally before querying slot-level. |
+| 4 | **Proactive rescheduling** | A booking is canceled; the agent helps the user rebook. | The agent reads the hint from the cached catalog and immediately suggests alternate days, enabling a faster rescheduling flow. |
+| 5 | **Availability-aware recommendations** | "I want to book a yoga class this weekend." | The agent ranks services not just by relevance but by likelihood of availability, avoiding the pattern of recommending a class only to discover it's full. |
+| 6 | **Smart date range scoping** | Agent builds a calendar view for the user. | The hint identifies fully-booked periods, so the agent only queries day-level for the remaining open range -- reducing payload size and API load. |
+| 7 | **Long-horizon search** | "Book me with Dr. Smith -- I don't care when." | The hint says "booked solid for 3 weeks, next opening around April 1," letting the agent set expectations and target a narrow query window across a large booking horizon. |
+| 8 | **Multi-service bundling** | "Haircut and color treatment back-to-back." | Hints for each service reveal overlapping open days, so the agent intersects constraints from the hints before querying -- reducing API fan-out. |
+| 9 | **Off-peak targeting** | "When is the cheapest time to book?" | The hint identifies low-demand windows (e.g., midweek mornings), which the agent can infer as likely off-peak pricing for services with `variable` pricing models. |
+| 10 | **Background pre-qualification** | Agent compiles a daily briefing of scheduling options. | Hints from the user's preferred businesses are read entirely from the cached catalog -- zero availability API calls -- to produce a summary like "Your salon has openings Tuesday; your dentist is booked until April." |
+
+```json
+{
+  "id": "svc_haircut_001",
+  "name": "Women's Haircut & Style",
+  "availability_hint": {
+    "summary": "Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning. Thursday is filling up fast.",
+    "generated_at": "2026-03-11T08:00:00-04:00",
+    "next_available_date": "2026-03-17"
+  }
+}
+```
 
 ### Duration
 
@@ -326,6 +370,11 @@ Machine-readable policies that enable agents to make informed decisions.
         "booking_window": {"min_advance": "PT2H", "max_advance": "P60D", "slot_interval": "PT30M"},
         "confirmation_mode": "auto",
         "payment_timing": "at_service"
+      },
+      "availability_hint": {
+        "summary": "Fully booked this week. Next week we have good availability Tuesday afternoon and all day Wednesday. Thursday is filling up.",
+        "generated_at": "2026-03-11T08:00:00-04:00",
+        "next_available_date": "2026-03-17"
       }
     }
   ],
@@ -495,6 +544,7 @@ Availability data has an inverse relationship between freshness and usefulness: 
 
 | Tier | Granularity | Date Range | Recommended TTL | Use Case |
 |------|-------------|------------|-----------------|----------|
+| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Availability Hint](#availability-hint). |
 | **Browse** | `day` | Next 2-4 weeks | 5-15 minutes | Calendar view: "which days have openings?" |
 | **Select** | `slot` | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
 | **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
@@ -503,6 +553,8 @@ This creates a natural funnel that balances user experience with data freshness:
 
 ```mermaid
 graph TD
+    H["0. Availability Hint (catalog-cached, 1-6hr)"] --> A
+    H -- "Agent narrows date range" --> A
     A["1. Calendar View (day-level, cached)"] --> B["User picks a day"]
     B --> C["2. Time Picker (slot-level, short cache)"]
     C --> D["User picks a slot"]
@@ -512,6 +564,7 @@ graph TD
 
 **Why this works:**
 
+- **Availability hints are virtually free.** They are served as part of the service catalog (already cached at 1-24 hour TTL) and require zero additional API calls. For AI agents, the natural-language summary provides enough signal to skip entire date ranges or filter out fully-booked businesses before making any availability query. See the [Agent Use Cases](#agent-use-cases) table for the full set of scenarios where hints reduce API fan-out.
 - **Day-level data is cheap and stable.** A day goes from "available" to "unavailable" only when the *last* slot is booked -- a rare event for days further out. For a service with 16 slots per day, the day-level answer remains "yes" even after 15 bookings. Caching this at 5-15 minute TTL is safe.
 - **Slot-level data is expensive but scoped.** The platform only fetches full slots for 1-2 days the user actually drills into, not the entire booking window. A 30-60 second TTL avoids hammering the API on every scroll while keeping data reasonably fresh.
 - **Holds are the safety net.** Even with slightly stale slot data, the hold operation is always real-time. If a displayed slot has been booked since the cache was populated, the hold fails with `slot_unavailable` and the platform re-queries. No false bookings.
