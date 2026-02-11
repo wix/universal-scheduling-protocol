@@ -72,7 +72,6 @@ graph LR
     P -- "UCP: create_checkout, submit_checkout" --> B
     P -- "payment token" --> PSP[Payment Service Provider]
     B -- "process token" --> PSP
-    CP[Credential Provider] -- "payment credentials" --> P
 ```
 
 The platform uses **USP** for the scheduling lifecycle (service catalog, availability, booking) and **UCP** for the payment lifecycle (checkout, payment). The two protocols share a common business endpoint and are linked via `usp_booking` metadata.
