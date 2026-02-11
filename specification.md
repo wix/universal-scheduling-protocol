@@ -67,14 +67,28 @@ The financial infrastructure that processes payments. USP delegates all payment 
 ### High-Level Architecture
 
 ```mermaid
-graph LR
-    P[Platform / Agent] -- "USP: discover, availability, booking" --> B[Business]
-    P -- "UCP: create_checkout, submit_checkout" --> B
-    P -- "payment token" --> PSP[Payment Service Provider]
-    B -- "process token" --> PSP
+graph BT
+    subgraph UCP ["UCP — Payment (optional)"]
+        direction LR
+        P2[Platform / Agent] -- "create_checkout\n(usp_booking metadata)" --> B2[Business]
+        P2 -- "submit_checkout\n(payment token)" --> B2
+        B2 -- "process token" --> PSP[Payment Service Provider]
+    end
+
+    subgraph USP ["USP — Scheduling"]
+        direction LR
+        P[Platform / Agent] -- "discover services\n(catalog + availability hint)" --> B[Business]
+        P -- "query availability\n(slots)" --> B
+        P -- "hold slot → create booking" --> B
+    end
+
+    USP -. "booking requires payment\n(status: requires_action)" .-> UCP
+    UCP -. "payment confirmed\n(booking.confirmed)" .-> USP
 ```
 
-The platform uses **USP** for the scheduling lifecycle (service catalog, availability, booking) and **UCP** for the payment lifecycle (checkout, payment). The two protocols share a common business endpoint and are linked via `usp_booking` metadata.
+USP operates **standalone** for the full scheduling lifecycle: service discovery, availability hints, slot queries, holds, and bookings. No payment infrastructure is required for services with `payment_timing: at_service` or `free`.
+
+When payment is required (`at_booking` or `deposit_required`), USP integrates with UCP. The two protocols share a common business endpoint and are linked via `usp_booking` metadata. USP signals that payment is needed; UCP handles the checkout and payment flow; the business links the completed payment back to the USP booking.
 
 ### Core Constructs
 
