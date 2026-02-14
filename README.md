@@ -10,13 +10,16 @@ USP is a **companion protocol** to the [Universal Commerce Protocol (UCP)](https
 
 ## Problem
 
-No standard defines how an AI agent or consumer platform can:
+Existing scheduling standards -- iCalendar ([RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)), CalDAV Scheduling ([RFC 6638](https://www.rfc-editor.org/rfc/rfc6638)), [schema.org/Service](https://schema.org/Service), [Open Booking API](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) -- address parts of the service scheduling lifecycle but are **fragmented**, lack **native payment integration**, and were not designed for **autonomous AI agent orchestration**. No single open standard unifies:
 
-1. **Discover** what services a business offers (types, pricing, policies)
-2. **Query** real-time availability (open time slots, capacity, resources)
-3. **Book** a time-based service through a standardized lifecycle (create, confirm, reschedule, cancel)
+1. **Service discovery** -- types, pricing, policies, and availability hints for AI reasoning
+2. **Real-time availability** -- time slots, capacity, resource scheduling, and slot holds
+3. **Booking lifecycle** -- create, confirm, reschedule, cancel, and waitlist management
+4. **Payment coordination** -- bridging scheduling with a standardized checkout/payment flow
 
-USP solves this for four verticals: **appointments**, **group sessions**, **reservations**, and **rentals**.
+in a way that is both machine-readable and interoperable with modern commerce protocols.
+
+USP solves this with core support for **appointments**, **group sessions**, **reservations**, and **rentals**, with an extensible vertical model for additional service types.
 
 ## Specification
 
@@ -34,19 +37,17 @@ The full protocol is defined in a single document:
 | Availability | `dev.usp.services.availability` | [Section 5](specification.md#5-availability) |
 | Booking | `dev.usp.services.booking` | [Section 6](specification.md#6-booking) |
 | UCP Payment Integration | (extends booking) | [Section 7](specification.md#7-payment-integration-with-ucp) |
+| Waitlist | `dev.usp.services.waitlist` (extends booking) | [Section 9](specification.md#9-waitlist-extension) |
 
-### Detailed Reference (extended spec)
+### Transport Bindings
 
-The `specification/` directory contains the extended reference with full field tables, JSON Schemas, and transport bindings for implementers:
+USP supports multiple transport bindings. See [Section 10](specification.md#10-transport-bindings) of the specification.
 
-| Document | Description |
-|----------|-------------|
-| [Service Catalog](specification/service-catalog.md) | Full service catalog schema and operations |
-| [Availability](specification/availability.md) | Availability queries, slot holds, opening hours |
-| [Booking](specification/booking.md) | Booking lifecycle, all operations, webhooks |
-| [Checkout Integration](specification/checkout-integration.md) | UCP payment orchestration flows |
-| [REST Binding](specification/transport-rest.md) | HTTP/OpenAPI transport mapping |
-| [MCP Binding](specification/transport-mcp.md) | JSON-RPC/OpenRPC transport for AI agents |
+| Binding | Description |
+|---------|-------------|
+| REST | HTTP/OpenAPI 3.x transport (primary) |
+| MCP | JSON-RPC/OpenRPC transport for AI agents |
+| A2A | Agent-to-Agent protocol for autonomous agent interactions |
 
 ## Key Design Principles
 
