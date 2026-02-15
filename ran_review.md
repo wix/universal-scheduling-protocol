@@ -615,3 +615,698 @@ would give it operational meaning.
 | 5.7 | Cross-Ref Link | Low | Add Markdown anchor link to "Line Item Mapping" reference. |
 | 5.8 | Service Bindings | High | Add MCP and A2A binding details, or mark as planned and remove references to non-existent files. |
 | 5.9 | Waitlist | Medium | Define a waitlist extension with join/offer/accept lifecycle and cancellation fee waiver policy. |
+
+---
+
+## 6. USP vs. UCP: Comparative Analysis
+
+This section compares USP against UCP based on a thorough read of the full
+UCP specification (overview, cart, checkout, order, fulfillment, discount,
+buyer consent, AP2 mandates, identity linking, embedded checkout, payment
+handler guide, tokenization guide, and all transport bindings) and the full
+UCP documentation (core concepts, roadmap, schema authoring, UCP and AP2).
+
+### 6.1 The Services Construct: Copied, Not Inherited
+
+USP Section 2.4 defines three core constructs — **Capabilities**, **Extensions**,
+and **Services** — and explicitly states they are "consistent with UCP's architecture."
+In practice, the `Services` construct was copied verbatim from UCP rather than
+inherited or referenced.
+
+**UCP's Services (from `overview.md`):**
+
+```json
+"services": {
+  "dev.ucp.shopping": [
+    {
+      "version": "2026-01-11",
+      "spec": "https://ucp.dev/specification/overview",
+      "transport": "rest",
+      "endpoint": "https://business.example.com/ucp/v1",
+      "schema": "https://ucp.dev/services/shopping/openapi.json"
+    },
+    {
+      "version": "2026-01-11",
+      "transport": "mcp",
+      "endpoint": "https://business.example.com/ucp/mcp",
+      "schema": "https://ucp.dev/services/shopping/mcp.openrpc.json"
+    }
+  ]
+}
+```
+
+**USP's Services (from Section 3.1):**
+
+```json
+"services": {
+  "dev.usp.services": {
+    "version": "2026-02-09",
+    "spec": "https://usp.dev/specification",
+    "rest": {
+      "schema": "https://usp.dev/services/rest.openapi.json",
+      "endpoint": "https://business.example.com/usp/v1"
+    },
+    "mcp": {
+      "schema": "https://usp.dev/services/mcp.openrpc.json",
+      "endpoint": "https://business.example.com/usp/mcp"
+    }
+  }
+}
+```
+
+**Issue:** The concept is identical — transport bindings with schema URLs and
+endpoints — but the wire formats are **structurally incompatible**:
+
+| Aspect | UCP | USP |
+|--------|-----|-----|
+| Transport selection | Array of objects with `transport` discriminator | Flat object with transport keys (`rest`, `mcp`) |
+| Multiple transports | Separate array entries | Sibling keys on same object |
+| A2A transport | Defined with `endpoint` pointing to Agent Card | Not present in the service definition (only in A2A transport binding section) |
+| Embedded transport | Defined (`"transport": "embedded"`) | Not supported |
+
+If USP is truly a "companion protocol," the service definition format **SHOULD**
+be structurally identical to UCP's. As it stands, the same business needs to
+expose two different discovery documents with two incompatible service schemas.
+
+**Recommendation:** Either (a) align the USP service definition format exactly
+with UCP's array-of-transport-objects pattern, or (b) define a shared base
+service schema that both protocols import. Option (b) is stronger because it
+prevents future drift.
+
+### 6.2 Capability Format Inconsistency
+
+UCP and USP use different wire formats for the same concept (capabilities in
+profiles and responses):
+
+**UCP (registry pattern — object keyed by name):**
+
+```json
+"capabilities": {
+  "dev.ucp.shopping.checkout": [{"version": "2026-01-11"}],
+  "dev.ucp.shopping.fulfillment": [{"version": "2026-01-11", "extends": "dev.ucp.shopping.checkout"}]
+}
+```
+
+**USP (array pattern):**
+
+```json
+"capabilities": [
+  {"name": "dev.usp.services.catalog", "version": "2026-02-09"},
+  {"name": "dev.usp.services.booking", "version": "2026-02-09"}
+]
+```
+
+This inconsistency extends to response metadata. A platform implementing both
+protocols must handle two different capability negotiation wire formats for
+what is conceptually the same operation.
+
+UCP's registry pattern (object keyed by name) is the more recent design and
+is documented in the UCP Schema Authoring Guide as the canonical approach. USP
+should adopt the same format.
+
+### 6.3 Error Handling Model Divergence
+
+UCP and USP use fundamentally different error models:
+
+**UCP:** Errors are conveyed via a `messages` array on the response object,
+each with `type` (`error`, `warning`, `info`), `code`, `content`, `path`, and
+`severity` (`recoverable`, `requires_buyer_input`, `requires_buyer_review`).
+Business outcomes (including errors like out-of-stock) return HTTP 200 with
+the UCP envelope. Protocol errors use HTTP status codes.
+
+**USP:** Errors are conveyed via a separate `error` object (`code`, `message`)
+for failure cases, returning standard HTTP error status codes (404, 409, 422).
+Bookings also have a `messages` array, but with a different severity model
+(`requires_buyer_input`, `informational`, `actionable`).
+
+| Aspect | UCP | USP |
+|--------|-----|-----|
+| Business error HTTP status | 200 (with messages) | 404/409/422 |
+| Error container | `messages[]` array | `error` object |
+| Severity values | `recoverable`, `requires_buyer_input`, `requires_buyer_review` | `requires_buyer_input`, `informational`, `actionable` |
+| Path support | Yes (`$.buyer.email`) | Not specified |
+
+This means a platform implementing both protocols needs two completely different
+error handling codepaths. If USP intends to be a companion protocol, it should
+use UCP's error model (messages array, HTTP 200 for business outcomes,
+matching severity values).
+
+### 6.4 Factual Error: `submit_checkout` Does Not Exist in UCP
+
+USP repeatedly references `submit_checkout` as a UCP operation:
+
+- Section 2.1.4: "The platform acquires a payment token from the PSP and submits it via UCP's `submit_checkout`."
+- Section 2.6 table: "`create_checkout`, `update_checkout`, `submit_checkout`"
+- Section 7.2 flow: "Platform calls `submit_checkout`"
+- Section 8.1 sequence diagram: Step 8 is `submit_checkout`
+- Section 8.3: Step 8 references `submit_checkout`
+
+**UCP calls this operation `complete_checkout`**, not `submit_checkout`. The
+UCP Checkout Capability specification defines five operations: `Create Checkout`,
+`Get Checkout`, `Update Checkout`, `Complete Checkout`, and `Cancel Checkout`.
+The REST binding maps Complete Checkout to `POST /checkout-sessions/{id}/complete`.
+The MCP binding maps it to the `complete_checkout` tool.
+
+There is no `submit_checkout` anywhere in UCP. Every reference to this
+operation in USP is incorrect.
+
+### 6.5 Companion Protocol vs. UCP Extension: The Core Positioning Question
+
+This is the most consequential question: **should USP's commerce-related
+parts be modeled as a UCP extension rather than a separate companion protocol?**
+
+#### 6.5.1 How UCP Extensions Work
+
+UCP has a mature, well-defined extension system (see UCP `overview.md` — Schema
+Composition section):
+
+1. Extensions declare parent capabilities via the `extends` field.
+2. Extension schemas use `allOf` composition with `$defs` keyed by the
+   parent capability's full name.
+3. Extensions can add new fields to existing objects (e.g., `discount` adds
+   a `discounts` object to checkout; `fulfillment` adds a `fulfillment` object
+   to checkout).
+4. Multi-parent extensions are supported (e.g., discount extends both checkout
+   and cart).
+5. Platforms resolve composed schemas client-side by fetching base + extension
+   schemas.
+
+Existing UCP extensions include:
+- `dev.ucp.shopping.fulfillment` (extends checkout — adds shipping/pickup)
+- `dev.ucp.shopping.discount` (extends checkout — adds discount codes)
+- `dev.ucp.shopping.buyer_consent` (extends checkout — adds consent fields)
+- `dev.ucp.shopping.ap2_mandate` (extends checkout — adds cryptographic
+  mandates)
+- `dev.ucp.shopping.cart` (standalone capability, with cart-to-checkout
+  conversion)
+
+#### 6.5.2 What the USP–UCP Bridge Currently Looks Like
+
+When a USP booking requires payment, the current flow is:
+
+1. **[USP]** Platform calls `create_booking` → Business returns booking with
+   `status: requires_action`.
+2. **[UCP]** Platform must now separately:
+   a. Discover the business's UCP endpoint (`/.well-known/ucp`)
+   b. Negotiate UCP capabilities
+   c. Call `create_checkout` with manually constructed line items + a
+      non-standard `usp_booking` metadata object
+   d. Call `update_checkout` with fulfillment info
+   e. Acquire a payment token from the PSP via UCP's payment handler
+   f. Call `complete_checkout` with the token
+3. **[USP]** Business internally links the UCP order back to the USP booking
+   via `usp_booking.booking_id`.
+4. **[USP]** Business sends `booking.confirmed` webhook.
+
+**Problems with this approach:**
+
+| Problem | Description |
+|---------|-------------|
+| **Protocol switching complexity** | The platform must implement two complete protocol stacks with different wire formats, error models, and negotiation patterns. For a single booking-with-payment flow, the platform makes ~6 API calls across two protocols. |
+| **Non-standard bridging** | The `usp_booking` metadata is an ad-hoc field injected into UCP's `create_checkout` request. UCP has no schema for this. It's not discoverable, not validated, and not part of any capability negotiation. |
+| **Dual discovery burden** | Businesses must publish and maintain both `/.well-known/usp` and `/.well-known/ucp`. Platforms must discover, fetch, and negotiate with both endpoints independently. |
+| **Line item mapping is fragile** | USP Section 7.3 defines a manual mapping: `item.id` = `booking.service_id`, `item.price` = `booking.payment.amount / booking.party_size`. This is an implicit contract not enforced by any schema. If UCP or USP evolves, this mapping silently breaks. |
+| **No atomicity** | The USP booking and UCP checkout are separate resources with separate lifecycles. If the UCP checkout fails after the USP booking was created, the platform must manually clean up the dangling USP booking. There's no transactional guarantee. |
+| **Redundant buyer data** | The buyer's identity is sent twice — once in the USP `create_booking` request and again in the UCP `create_checkout` request. These must match, but nothing enforces that. |
+
+#### 6.5.3 How a UCP Extension Model Would Work
+
+Instead of USP being a fully separate companion protocol, the **commerce-
+related parts** of USP could be modeled as a UCP extension. Concretely:
+
+**New USP capabilities under `dev.usp.services.*`:**
+
+| Capability | Type | Description |
+|------------|------|-------------|
+| `dev.usp.services.catalog` | Standalone | Service catalog (discovery, listing, feed). Same as current USP catalog. |
+| `dev.usp.services.availability` | Standalone | Availability queries and slot holds. Same as current USP availability. |
+| `dev.usp.services.scheduling` | Standalone | Booking lifecycle (create, confirm, cancel, get). Operates independently for non-commerce (free) services. This is the core domain capability that manages bookings regardless of whether payment is involved. |
+| `dev.usp.services.bookings` | Extension (`extends: dev.ucp.shopping.checkout`) | Wires the booking context (slot, service_id, hold_id, booking status) into UCP checkout for paid services. Analogous to how `fulfillment` adds shipping/pickup context to checkout. |
+
+The `dev.usp.services.bookings` extension would add a `booking` object
+to checkout, analogous to how `fulfillment` adds a `fulfillment` object:
+
+```json
+{
+  "dev.usp.services.bookings": [{
+    "version": "2026-02-09",
+    "spec": "https://usp.dev/specification/bookings",
+    "schema": "https://usp.dev/schemas/services/bookings.json",
+    "extends": "dev.ucp.shopping.checkout"
+  }]
+}
+```
+
+The checkout response with the bookings extension would look like:
+
+```json
+{
+  "ucp": {
+    "version": "2026-01-11",
+    "capabilities": {
+      "dev.ucp.shopping.checkout": [{"version": "2026-01-11"}],
+      "dev.usp.services.bookings": [{"version": "2026-02-09"}]
+    },
+    "payment_handlers": { "..." : "..." }
+  },
+  "id": "chk_abc123",
+  "status": "incomplete",
+  "line_items": [
+    {
+      "id": "li_1",
+      "item": {"id": "svc_massage_001", "title": "Deep Tissue Massage", "price": 12000},
+      "quantity": 1
+    }
+  ],
+  "booking": {
+    "booking_id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "slot": {
+      "id": "slot_20260316_1400",
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "hold_id": "hold_xyz789",
+    "resources": [{"id": "staff_jane", "type": "staff", "name": "Jane Smith"}],
+    "booking_status": "requires_action",
+    "confirmation_mode": "auto"
+  },
+  "totals": [ "..." ]
+}
+```
+
+**Benefits of this model:**
+
+Each benefit below directly resolves one or more of the problems identified in
+Section 6.5.2:
+
+| Benefit | Description | Resolves (6.5.2) |
+|---------|-------------|-------------------|
+| **Single protocol for payment** | No protocol switching. The `create_checkout` call already carries the booking context via the `dev.usp.services.bookings` extension. `complete_checkout` atomically finalizes both payment and booking. Platforms implement one protocol stack, one wire format, and one error model. | Protocol switching complexity |
+| **Dramatically fewer API calls** | The current bridge model requires **~6 API calls across two protocols**: `create_booking` (USP), discover `/.well-known/ucp`, negotiate UCP capabilities, `create_checkout`, `update_checkout`, acquire payment token, `complete_checkout`. Under the extension model, the entire flow is **~3–4 calls within a single protocol**: `create_checkout` (with booking context), acquire payment token, `complete_checkout`. The separate USP booking creation, UCP discovery, and UCP capability negotiation steps are eliminated entirely. | Protocol switching complexity |
+| **`usp_booking` metadata eliminated** | The `booking` object is a first-class, schema-validated, discoverable extension field — not an ad-hoc metadata injection. It participates in capability negotiation and schema composition like every other UCP extension. | Non-standard bridging |
+| **Single discovery endpoint** | Business publishes `/.well-known/ucp` with shopping, scheduling, and bookings capabilities. Platform discovers and negotiates everything in one pass. No need to maintain or query a separate `/.well-known/usp` endpoint. | Dual discovery burden |
+| **Schema composition** | The bookings extension schema is validated alongside checkout via UCP's `allOf` composition. Service-to-line-item mapping is enforced by the composed schema, not by an implicit, undocumented contract. | Fragile line-item mapping |
+| **Atomicity** | A single `complete_checkout` call finalizes both payment and booking confirmation. If payment fails, no dangling USP booking is created. If booking fails, the checkout fails atomically. There is no cross-protocol cleanup to orchestrate. | No atomicity |
+| **Buyer data sent once** | The buyer's identity is part of the UCP checkout — it is provided once and applies to both payment and booking. No redundant submissions, no risk of mismatch between USP and UCP buyer objects. | Redundant buyer data |
+| **UCP's payment architecture is inherited** | Payment handlers, AP2 mandates, buyer consent, embedded checkout — all "just work" for service bookings without USP re-specifying or bridging to them. | Protocol switching complexity, Non-standard bridging |
+| **Consistent error model** | Uses UCP's `messages[]` array with `severity` and `path` for all errors, including booking-specific ones. Platforms do not need to translate between two incompatible error models. | Protocol switching complexity |
+| **Inherited non-scheduling infrastructure** | A viable, state-of-the-art scheduling protocol must still support identity linking, transport layer bindings, webhook signature verification, consent management, embedded UI, versioning, and namespace governance. Maintaining all of these independently is a massive undertaking. As a UCP extension, USP inherits all of this infrastructure for free — its maintainers can focus exclusively on the core scheduling domain (catalog, availability, booking lifecycle). This is likely to have a direct impact on adoption and utility: it is always better to ride on the shoulders of giants than to rebuild the giant from scratch. | Protocol switching complexity, Dual discovery burden |
+
+**What stays standalone (not a UCP extension):**
+
+- `dev.usp.services.catalog` — service catalog, listing, feed. Pure discovery
+  with no payment involvement.
+- `dev.usp.services.availability` — slot queries, holds. Also no payment
+  involvement.
+- `dev.usp.services.scheduling` — booking lifecycle (create, confirm, cancel,
+  get). This is the core domain capability. For free services it operates
+  entirely on its own. For paid services, the `dev.usp.services.bookings`
+  extension wires it into UCP checkout.
+- `dev.usp.services.waitlist` — waitlist management. Extends the scheduling
+  capability.
+
+#### 6.5.4 The Non-Commerce Case
+
+The four-capability split cleanly separates the non-commerce and commerce
+cases. When a service has `requires_payment: false`:
+
+- The business publishes `dev.usp.services.catalog`,
+  `dev.usp.services.availability`, and `dev.usp.services.scheduling`
+  capabilities but does **not** publish `dev.ucp.shopping.checkout` or
+  `dev.usp.services.bookings`.
+- The `dev.usp.services.scheduling` capability provides the full booking
+  lifecycle (create, confirm, cancel, get) via its own API endpoints —
+  no UCP checkout is involved.
+- Platforms discover and use scheduling exactly the same way they would
+  any other standalone UCP capability.
+
+When a service has `requires_payment: true`:
+
+- The business additionally publishes `dev.ucp.shopping.checkout` and
+  `dev.usp.services.bookings`.
+- The `dev.usp.services.bookings` extension adds a `booking` object to
+  the UCP checkout, carrying the slot, service, hold, and booking status.
+- `complete_checkout` atomically finalizes both payment and booking.
+
+This mirrors how UCP's `cart` capability can operate independently from
+checkout (as a pre-purchase exploration tool), while `checkout` composes
+cart items into a payment flow when commerce is involved.
+
+#### 6.5.5 Recommendation
+
+**Model USP as four capabilities under the `dev.usp.services` namespace:
+`dev.usp.services.catalog` (standalone), `dev.usp.services.availability`
+(standalone), `dev.usp.services.scheduling` (standalone), and
+`dev.usp.services.bookings` (extension of `dev.ucp.shopping.checkout`).** USP
+maintains governance independence via its own `dev.usp` namespace while
+leveraging UCP's extension architecture — cross-namespace extension is a
+supported UCP pattern.
+
+This:
+1. Eliminates the `usp_booking` metadata hack.
+2. Gives businesses a single discovery endpoint.
+3. Gives platforms a single protocol stack with one error model.
+4. Leverages UCP's payment handlers, AP2 mandates, and embedded checkout
+   automatically.
+5. Preserves USP's standalone capabilities (catalog, availability, scheduling,
+   waitlist) for the non-commerce case.
+6. Cleanly separates the domain concern (scheduling) from the commerce
+   concern (bookings) — the same booking lifecycle capability works for both
+   free and paid services, with the bookings extension adding payment
+   integration only when needed.
+
+If the USP team prefers to keep USP as a separate protocol (for governance
+or branding reasons), it should at minimum:
+- Adopt UCP's wire formats exactly (registry pattern for capabilities, array
+  pattern for services, messages array for errors).
+- Define `usp_booking` as a formal UCP extension schema rather than ad-hoc
+  metadata.
+- Use `complete_checkout` (not `submit_checkout`) throughout.
+
+#### 6.5.6 Updated Summary of Recommendations (USP as UCP Extension)
+
+Section 5 provides a summary of recommendations assuming USP remains a
+standalone companion protocol. If USP is instead modeled as a UCP extension
+(as recommended in 6.5.5), many of those recommendations are either
+automatically resolved or significantly simplified. The table below maps
+each Section 5 recommendation to its status under the extension model:
+
+| Original # | Category | Original Recommendation | Status Under Extension Model |
+|-------------|----------|-------------------------|------------------------------|
+| 1 | RFC Format | Add Abstract, ToC, Terminology, IANA Considerations, formal References, and Authors sections. | **Still applies.** These are document-quality improvements independent of architectural model. The scheduling and bookings capability specifications should follow RFC conventions. |
+| 2 | Problem Statement | Rewrite to acknowledge existing standards and articulate USP's unique value proposition. | **Simplified.** The value proposition becomes clearer: USP is not a new protocol — it is a set of scheduling capabilities within an established commerce protocol. The problem statement only needs to explain why scheduling requires domain-specific capabilities beyond what UCP's checkout provides. |
+| 3 | Verticals | Expand verticals or define an extension mechanism. Add "Relationship to Other Standards" subsection. | **Still applies.** Vertical coverage is a domain concern, not an architectural one. The extension mechanism, however, is inherited from UCP (sub-extensions of `dev.usp.services.scheduling` or `dev.usp.services.bookings`). |
+| 4 | Commerce vs. Non-Commerce | Add explicit operational modes, make payment fields conditional, provide non-commerce end-to-end example. | **Largely resolved.** The four-capability model inherently separates the two: commerce bookings publish `dev.usp.services.bookings` (which extends checkout) alongside scheduling; non-commerce bookings use `dev.usp.services.catalog`, `dev.usp.services.availability`, and `dev.usp.services.scheduling` standalone. The operational mode is determined by which capabilities the business publishes — specifically, whether `dev.usp.services.bookings` is present. |
+| 5.1 | Catalog Feed | Replace polling-based caching advice with a proper feed endpoint. | **Simplified.** UCP already defines a catalog feed model. The `dev.usp.services.catalog` capability can follow the same pattern, inheriting UCP's cursor-based pagination, `If-None-Match` support, and incremental sync semantics. |
+| 5.2 | Validation Rules | Define legal argument value combinations and enforce via JSON Schema constraints. | **Simplified.** UCP's `allOf` schema composition provides a validation framework. Scheduling-specific constraints are defined in the extension schema and validated alongside checkout constraints by the same toolchain. |
+| 5.3 | Field Descriptions | Expand all schema field descriptions with semantics and usage guidance. | **Still applies.** Documentation quality is independent of architecture. |
+| 5.4 | Request/Response Labels | Add consistent "Request:" and "Response:" labels to all operation JSON snippets. | **Still applies.** Documentation quality is independent of architecture. |
+| 5.5 | Hold Placement | Move Hold and Release Operations before Caching Strategy. | **Still applies.** Section ordering is a documentation concern. |
+| 5.6 | Status Bug | Change `pending` to `requires_action` in the Booking Payment text. | **Resolved.** Under the extension model, there is no separate booking status driving payment. The UCP checkout status (`incomplete` → `ready_for_complete` → `complete`) drives the entire flow, with booking status embedded in the `booking` object of the `dev.usp.services.bookings` extension. |
+| 5.7 | Cross-Ref Link | Add Markdown anchor link to "Line Item Mapping" reference. | **Resolved.** There is no separate line-item mapping section. Line items are part of the checkout, and the scheduling context is an extension field — not a manually mapped metadata injection. |
+| 5.8 | Service Bindings | Add MCP and A2A binding details, or mark as planned. | **Simplified.** UCP already defines transport bindings. The bookings extension inherits them. Binding details specific to the standalone capabilities (catalog, availability, scheduling) are much smaller in scope. |
+| 5.9 | Waitlist | Define a waitlist extension with join/offer/accept lifecycle and cancellation fee waiver policy. | **Still applies.** Waitlist is a domain extension (`dev.usp.services.waitlist`) that extends `dev.usp.services.scheduling`. Its lifecycle is scheduling-specific and must still be fully specified. |
+
+**Summary:** Of the 12 original recommendations, 3 are fully resolved by the
+extension model (commerce vs. non-commerce separation, the status bug, and the
+line-item mapping cross-reference), 5 are significantly simplified (problem
+statement, catalog feed, validation rules, service bindings, and verticals
+extension mechanism), and 4 remain unchanged (RFC format, field descriptions,
+request/response labels, hold placement, and waitlist). No recommendation
+becomes harder under the extension model.
+
+### 6.6 Missing Capabilities in USP That UCP Provides
+
+USP does not address several capabilities that UCP provides out of the box.
+If USP were a UCP extension, these would be inherited for free:
+
+| UCP Capability | What It Provides | USP Gap |
+|----------------|-----------------|---------|
+| **Identity Linking** (`dev.ucp.common.identity_linking`) | OAuth 2.0-based account linking so platforms can act on behalf of users at a business. Scoped tokens, revocation, RISC profile. | USP has **no identity/authentication model at all**. There is no way for a platform to authenticate as a specific buyer at a business. Section 11.6 says "USP does not prescribe a specific authentication mechanism" and lists options, but defines nothing. For commerce (bookings tied to accounts, loyalty, member pricing), identity linking is essential. |
+| **Order Management** (`dev.ucp.shopping.order`) | Post-checkout lifecycle: order tracking, fulfillment events, expectations, adjustments (refunds, returns, disputes). Webhook-based event streaming with signature verification. | USP has no post-booking lifecycle beyond `completed` and `no_show`. There is no structured way to handle: refund tracking, dispute resolution, adjustment logging, or service delivery events. The `cancellation` object captures some of this, but it's limited to the cancel case. |
+| **AP2 Mandates** (`dev.ucp.shopping.ap2_mandate`) | Cryptographic proof of checkout agreement — business signs the checkout, platform signs the mandate. Prevents tampering and replay. | USP has no cryptographic integrity for the booking agreement. For high-value bookings (medical procedures, equipment rentals), there's no way to prove what was agreed upon. If USP were a UCP extension, AP2 mandates would protect service bookings automatically. |
+| **Embedded Checkout** (ECP) | Allows a host to embed the business's checkout UI, with delegation for payment and fulfillment. Supports dark/light themes, MessageChannel, delegation negotiation. | USP has `continue_url` but no embedded scheduling UI protocol. A platform cannot embed the business's booking interface within its own app. |
+| **Buyer Consent** (`dev.ucp.shopping.buyer_consent`) | Structured consent categories (analytics, marketing, data sale) transmitted at checkout. | USP has no consent mechanism. GDPR/CCPA compliance for service bookings (which often involve health data, location data) is left entirely to ad-hoc implementation. |
+| **Discount** (`dev.ucp.shopping.discount`) | Discount codes, automatic discounts, allocation breakdown, stacking. | USP has no discount or promotional pricing mechanism. Many service businesses offer discount codes, referral credits, or loyalty discounts. |
+| **Webhook Signature Verification** | Detailed spec: detached JWT (RFC 7797), `signing_keys` in profile, key rotation with multiple keys, `kid` claim for key identification. | USP says webhooks "SHOULD be signed" (Section 11.3) but provides no detail. No signing algorithm, no key format, no key rotation protocol, no verification algorithm. |
+
+### 6.7 Contradictions Between USP and UCP
+
+| # | USP Says | UCP Actually Says | Impact |
+|---|----------|-------------------|--------|
+| 1 | Operation is called `submit_checkout` (Sections 2.1.4, 2.6, 7.2, 8.1, 8.3) | Operation is `complete_checkout` (`POST /checkout-sessions/{id}/complete`) | Implementers following USP will call a non-existent UCP endpoint. Must be corrected. |
+| 2 | UCP checkout status `ready_for_complete` is referenced in Section 7.2 | UCP uses `ready_for_complete` (correct). However, USP also references `status: pending` as the trigger for UCP checkout creation (Section 7.1 text), which contradicts its own booking lifecycle where `requires_action` is the correct trigger. | Confusion about which booking status triggers UCP checkout. The text in Section 7.1 still says "the platform creates a UCP checkout session when `status` is `pending`." Should be `requires_action`. |
+| 3 | USP capabilities use arrays: `"capabilities": [{"name": "...", ...}]` | UCP capabilities use registries: `"capabilities": {"dev.ucp.shopping.checkout": [{...}]}` | A platform implementing both must handle two different capability formats. Breaks the "consistent with UCP" claim. |
+| 4 | USP services use a flat object with transport keys (`"rest": {...}`, `"mcp": {...}`) | UCP services use an array of objects with `"transport"` discriminator | Same business, two incompatible service discovery formats. |
+| 5 | USP errors use HTTP status codes for business outcomes (404, 409, 422) | UCP returns HTTP 200 for business outcomes with `messages[]` array | A platform that uses UCP's error handling pattern will miss USP errors and vice versa. |
+| 6 | USP `messages[].severity` values: `requires_buyer_input`, `informational`, `actionable` | UCP `messages[].severity` values: `recoverable`, `requires_buyer_input`, `requires_buyer_review` | Only `requires_buyer_input` overlaps. The others are incompatible. |
+| 7 | USP specifies `messages[].message` for human-readable text | UCP uses `messages[].content` for the same purpose | Field name mismatch on an otherwise identical concept. |
+
+### 6.8 Unnecessary Overlaps
+
+The following constructs are duplicated between USP and UCP where USP could
+have directly imported or referenced UCP's definitions:
+
+| Construct | In USP | In UCP | Could USP Reuse UCP's? |
+|-----------|--------|--------|------------------------|
+| **Services** (transport bindings) | Section 2.4 / 3.1 | `overview.md` — Services section | **Yes.** Same concept, different wire format. USP should import UCP's service schema. |
+| **Capabilities** (feature declaration) | Section 2.4 / 3.3 | `overview.md` — Capabilities section | **Yes.** Same concept, different wire format. USP should use UCP's registry pattern. |
+| **Extensions** (optional modules) | Section 2.4 | `overview.md` — Extensions section | **Yes.** USP describes extensions but doesn't define the schema composition (`allOf`, `$defs`) that makes UCP extensions actually work. |
+| **Namespace governance** | Section 3.2 | `overview.md` — Namespace Governance | **Yes.** Identical rules. Should be a shared reference. |
+| **Capability negotiation** | Section 3.3 | `overview.md` — Negotiation Protocol | **Partially.** Same server-selects model, but USP omits many details UCP includes (intersection algorithm, orphaned extension pruning, error codes). |
+| **Platform profile advertisement** | `USP-Agent` header | `UCP-Agent` header | **Partially.** Same concept but different header names, preventing a unified implementation. |
+| **`continue_url`** | Section 6.2 (booking) | `checkout.md` — Continue URL section | **Yes.** Same concept for buyer handoff. |
+| **Buyer object** | `{first_name, last_name, email, phone_number}` | `buyer` entity in checkout | **Almost.** Similar fields but USP's buyer is simpler (no `consent`, no structured address). |
+
+### 6.9 Summary of Recommendations
+
+| # | Category | Priority | Recommendation |
+|---|----------|----------|----------------|
+| 6.1 | Services construct | **High** | Align USP's service definition wire format with UCP's array-of-transport-objects pattern, or define a shared base schema. |
+| 6.2 | Capability format | **High** | Adopt UCP's registry pattern (`object keyed by name`) instead of arrays for capabilities in profiles and responses. |
+| 6.3 | Error model | **High** | Adopt UCP's error model: HTTP 200 for business outcomes with `messages[]`, matching severity values, and `content` (not `message`). |
+| 6.4 | `submit_checkout` | **Critical** | Replace all references to `submit_checkout` with `complete_checkout`. This is a factual error. |
+| 6.5 | Extension vs. companion | **High** | Model USP as four capabilities under `dev.usp.services`: `catalog` (standalone), `availability` (standalone), `scheduling` (standalone — booking lifecycle), and `bookings` (extension of `dev.ucp.shopping.checkout` — wires booking into payment). USP maintains governance via its own namespace. Alternatively, at minimum, define `usp_booking` as a formal UCP extension schema. |
+| 6.6 | Missing capabilities | **Medium** | Add identity linking, webhook signature spec, and consent mechanism. Consider post-booking lifecycle (equivalent to UCP's Order capability). |
+| 6.7 | Contradictions | **High** | Fix all 7 contradictions identified above, especially the wire format inconsistencies that break the "consistent with UCP" positioning. |
+| 6.8 | Overlaps | **Medium** | Import shared constructs (namespace governance, negotiation, service definitions) from UCP by reference rather than re-specifying them with incompatible formats. |
+| 6.10 | Payment architecture depth | **High** | USP's payment bridge ignores UCP's Trust Triangle, PCI-DSS scope guidance, SCA/3DS challenge flow, risk signals, and payment handler filtering. These are inherited for free under an extension model. |
+| 6.11 | Versioning | **High** | Define a versioning strategy (format, negotiation, backwards-compatibility rules). USP currently has none. |
+| 6.12 | Embedded scheduling UI | **Medium** | Consider an embedded scheduling protocol analogous to UCP's ECP — would enable in-app booking UIs with delegation for payment and address. |
+| 6.13 | Operational completeness | **Medium** | Add idempotency specification, glossary of terms, and formal transport error code mappings. |
+
+### 6.10 Payment Architecture Depth: What USP's Bridge Model Misses
+
+The initial analysis (Section 6.5) argued that USP's companion-protocol bridge
+to UCP for payments introduces unnecessary complexity. After a complete read of
+UCP's Payment Architecture section (overview.md — previously truncated), the
+gap is even wider than initially assessed. UCP's payment system is a deeply
+engineered, multi-participant security architecture that USP's lightweight
+bridge cannot leverage.
+
+#### 6.10.1 The Trust Triangle
+
+UCP defines a "Trust-by-Design" philosophy with three relationships:
+
+1. **Business ↔ Payment Credential Provider:** Pre-existing legal and technical
+   relationship. The business holds API keys and a contract with the provider.
+2. **Platform ↔ Payment Credential Provider:** The platform interacts with the
+   provider's interface to tokenize data but is not the owner of funds.
+3. **Platform ↔ Business:** The platform passes the result (token or mandate)
+   to the business to finalize the order.
+
+**USP impact:** USP's payment bridge (Section 7) never acknowledges this trust
+model. When a USP booking requires payment, the spec says the platform "creates
+a UCP checkout session" and "acquires a payment token from the PSP." But it
+doesn't explain how the platform discovers which payment credential provider to
+use, how the trust relationship is established, or how the business's handler
+configuration drives the acquisition flow. The entire 3-step lifecycle
+(Negotiation → Acquisition → Completion) that UCP defines is glossed over with
+a single sentence.
+
+#### 6.10.2 Payment Handler Framework
+
+UCP's Payment Handler Guide (773 lines) defines a comprehensive framework with
+5 core concepts:
+
+| Concept | UCP Definition | USP Coverage |
+|---------|---------------|--------------|
+| **Participants** | Defines actors (Business, Platform, Tokenizer, PSP) with explicit roles | Not addressed |
+| **Prerequisites** | Onboarding, identity establishment, `PaymentIdentity` schema | Not addressed |
+| **Handler Declaration** | 3 variants (business_schema, platform_schema, response_schema) with JSON Schema `$defs` | Not addressed |
+| **Instrument Acquisition** | Protocol for platform to acquire checkout instrument with binding context | Single sentence in Section 7.2 |
+| **Processing** | Steps for business/PSP to process received instrument, error mapping | Not addressed |
+
+UCP also provides 3 concrete payment handler examples:
+
+- **Processor Tokenizer** (`com.example.processor_tokenizer`): Business or PSP
+  hosts `/tokenize` endpoint. No detokenization needed — internal resolution.
+- **Platform Tokenizer** (`com.example.platform_tokenizer`): Platform generates
+  tokens and exposes `/detokenize` for businesses/PSPs to call back.
+- **Encrypted Credential** (`com.example.encrypted_credential`): Platform
+  encrypts credentials with business's public key. Zero runtime round-trips.
+
+These patterns cover different security/compliance trade-offs. USP's bridge
+model cannot express which pattern is in use or how the platform should behave
+differently for each.
+
+#### 6.10.3 PCI-DSS Scope Management
+
+UCP dedicates a full subsection to PCI-DSS scope for each participant:
+
+- **Platforms** can avoid PCI scope by using opaque credentials (tokens,
+  encrypted payloads) and never accessing raw payment data.
+- **Businesses** minimize scope by using provider-hosted tokenization or wallet
+  providers.
+- **Payment Credential Providers** are typically PCI-DSS Level 1 certified.
+
+USP has no guidance on PCI-DSS scope for service bookings. For verticals like
+healthcare (where payment data intersects with health data) or equipment rental
+(where deposits may be large), this is a material gap.
+
+#### 6.10.4 Risk Signals and SCA/3DS Challenges
+
+UCP supports two mechanisms that USP ignores:
+
+**Risk Signals:** The platform MAY include risk assessment data in the
+`complete_checkout` call:
+
+```json
+{
+  "risk_signals": {
+    "session_id": "abc_123_xyz",
+    "score": 0.95
+  }
+}
+```
+
+USP has no mechanism for platforms to pass fraud/risk signals during the
+booking-payment flow.
+
+**SCA/3DS Challenges:** When a payment requires Strong Customer Authentication,
+UCP returns:
+
+```json
+{
+  "status": "requires_escalation",
+  "messages": [{
+    "type": "error",
+    "code": "requires_3ds",
+    "content": "bank requires verification.",
+    "severity": "requires_buyer_input"
+  }],
+  "continue_url": "https://psp.com/challenge/123"
+}
+```
+
+The platform MUST open the `continue_url` in a WebView/Window for the user to
+complete the bank check, then retry. USP's payment bridge makes no mention of
+how SCA challenges are handled during a booking payment — a critical omission
+for European bookings under PSD2.
+
+#### 6.10.5 Dynamic Payment Handler Filtering
+
+UCP requires: "Businesses **MUST** filter the `handlers` list based on the
+context of the cart (e.g., removing Buy Now Pay Later for subscription items,
+or filtering regional methods based on shipping address)."
+
+For service bookings, handler filtering should consider:
+- Service type (e.g., no BNPL for same-day appointments)
+- Deposit vs. full payment (different handlers may apply)
+- Geographic restrictions based on service location
+
+USP's bridge has no mechanism for the business to dynamically filter handlers
+based on the booking context.
+
+### 6.11 Versioning: A Complete Gap
+
+UCP defines a comprehensive versioning strategy (overview.md):
+
+| Aspect | UCP | USP |
+|--------|-----|-----|
+| **Version format** | `YYYY-MM-DD` date-based | Version date exists (`2026-02-09`) but format is not formally specified |
+| **Version negotiation** | Platform ≤ Business → process; Platform > Business → `version_unsupported` error | Not defined |
+| **Backwards compatibility rules** | Explicit lists of breaking vs. non-breaking changes | Not defined |
+| **Independent component versioning** | Protocol versions independently from capabilities; `dev.ucp.*` vs `com.{vendor}.*` | Not defined |
+| **Version in responses** | `ucp.version` in every response confirms the version used | `usp.version` exists but negotiation logic is absent |
+
+For USP to be a viable standard, it **MUST** define:
+
+1. A version format and its semantics.
+2. How platforms and businesses negotiate compatible versions.
+3. What constitutes a breaking change to USP's schemas and operations.
+4. How USP capability versions relate to the protocol version.
+
+Without this, implementers have no guidance on forward/backward compatibility,
+and any schema change could silently break existing integrations.
+
+### 6.12 Embedded Scheduling UI: A Missing Modality
+
+UCP's Embedded Checkout Protocol (ECP, 1391 lines) is a sophisticated protocol
+enabling a host to embed a business's checkout UI while maintaining delegation
+control over payment and fulfillment. Key features:
+
+- **W3C Payment Request API alignment** — familiar patterns for web developers
+- **Delegation negotiation** — host requests delegations via `ec_delegate` URL
+  parameter; business accepts/rejects in `ec.ready` handshake; narrowing chain:
+  `config.delegate ⊇ ec_delegate ⊇ ec.ready delegate`
+- **JSON-RPC 2.0 messaging** — structured bidirectional communication:
+  - Core: `ec.ready`, `ec.start`, `ec.complete`
+  - State changes: `ec.line_items.change`, `ec.buyer.change`, `ec.payment.change`
+  - Delegation requests: `ec.payment.credential_request`,
+    `ec.fulfillment.address_change_request`
+- **Communication channels** — `MessageChannel` for web hosts, injected globals
+  for native hosts (`window.EmbeddedCheckoutProtocolConsumer`)
+- **Security** — CSP directives, iframe sandbox attributes, credentialless
+  iframes, prevention of unsolicited payment requests
+
+USP's `continue_url` only supports a redirect-based flow (open in browser/
+WebView). An **Embedded Scheduling Protocol (ESP)** analogous to ECP would
+enable platforms to embed a business's scheduling UI with delegation for:
+
+| ECP Delegation | Analogous ESP Delegation |
+|----------------|--------------------------|
+| `payment.credential` — host provides payment token | `scheduling.slot_selection` — host provides native date/time picker |
+| `payment.instruments_change` — host shows payment method selection | `scheduling.resource_selection` — host shows staff/room picker |
+| `fulfillment.address_change` — host shows address picker | `scheduling.party_details` — host provides participant info |
+
+This would enable rich in-app booking experiences (e.g., an AI agent rendering
+a native calendar widget for slot selection while the business's embedded UI
+handles service-specific questions).
+
+### 6.13 Operational Completeness Gaps
+
+Several operational concerns that UCP specifies but USP omits:
+
+#### 6.13.1 Idempotency
+
+UCP's REST binding defines `Idempotency-Key` header semantics:
+- State-modifying operations SHOULD support idempotency.
+- Server MUST store the key with the result for at least 24 hours.
+- Server MUST return cached result for duplicate keys.
+- Server MUST return `409 Conflict` if key is reused with different parameters.
+
+USP has no idempotency specification. For booking operations (which involve
+real-world resource allocation), idempotency is critical. Network retries
+without idempotency keys could create duplicate bookings.
+
+#### 6.13.2 Glossary of Terms
+
+UCP provides a formal glossary defining 12 core terms: AP2, A2A, Capability,
+Credential Provider, Extension, Profile, Business, MCP, UCP, PSP, Platform,
+VDC.
+
+USP has no glossary. Terms like "hold," "slot," "booking," "capability,"
+"service vertical," and "confirmation mode" are used throughout but never
+formally defined. This was noted in Section 1 of this review (RFC Format
+Deviations) and is reinforced by the UCP comparison — a companion protocol
+should share terminology definitions with its parent.
+
+#### 6.13.3 Transport Error Code Mapping
+
+UCP provides explicit error code mapping across transports:
+
+| Error | REST | MCP |
+|-------|------|-----|
+| Invalid profile URL | 400 | -32001 |
+| Profile unreachable | 424 | -32001 |
+| Profile malformed | 422 | -32001 |
+| Authentication required | 401 | -32000 |
+| Rate limit | 429 | -32000 |
+| Server error | 500 | -32603 |
+
+USP claims three transport bindings (REST, MCP, A2A) but provides no error
+code mapping across them (as noted in Section 5.8 of this review). UCP's
+mapping table should be adopted as the baseline for USP's transport bindings.
+
+#### 6.13.4 UCP's Roadmap Confirms the Overlap Trajectory
+
+The UCP README's "What's Next" section explicitly lists expanding UCP into
+**Services** verticals as a planned direction. This directly validates the
+concern raised in Section 6.5 — if UCP itself plans to cover services, USP's
+separate-protocol approach risks being superseded by UCP's native services
+capabilities. This makes it even more strategic for USP to position itself
+**within** UCP's extension system rather than alongside it.
