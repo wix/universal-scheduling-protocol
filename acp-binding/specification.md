@@ -629,36 +629,45 @@ Post-booking management (get, cancel, reschedule) uses USP's bookings capability
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174. https://www.rfc-editor.org/rfc/rfc8174
 - **[RFC 7009]** Lodderstedt, T., "OAuth 2.0 Token Revocation", RFC 7009. https://www.rfc-editor.org/rfc/rfc7009
 
-### Section References into USP Specification
-
-The following shorthand references are used throughout this document:
-
-- [USP-1.1]: [USP Specification, Section 1.1 — Conventions](../extension/specification.md#11-conventions)
-- [USP-1.3]: [USP Specification, Section 1.3 — Service Verticals](../extension/specification.md#13-service-verticals)
-- [USP-3.4]: [USP Specification, Section 3.4 — Versioning](../extension/specification.md#34-versioning)
-- [USP-4]: [USP Specification, Section 4 — Service Catalog](../extension/specification.md#4-service-catalog)
-- [USP-4.7]: [USP Specification, Section 4.7 — Service Policies](../extension/specification.md#47-service-policies)
-- [USP-5]: [USP Specification, Section 5 — Availability](../extension/specification.md#5-availability)
-- [USP-6]: [USP Specification, Section 6 — Bookings](../extension/specification.md#6-bookings)
-- [USP-6.3]: [USP Specification, Section 6.3 — Booking Operations](../extension/specification.md#63-operations)
-- [USP-7]: [USP Specification, Section 7 — Paid Bookings Extension](../extension/specification.md#7-paid-bookings-extension)
-- [USP-7.2]: [USP Specification, Section 7.2 — Booking Object in Checkout](../extension/specification.md#72-booking-object-in-checkout)
-- [USP-7.4]: [USP Specification, Section 7.4 — Deposit and Refund Rules](../extension/specification.md#74-deposit-and-refund-rules)
-- [USP-7.5.5]: [USP Specification, Section 7.5.5 — Dynamic Payment Handler Filtering](../extension/specification.md#755-dynamic-payment-handler-filtering)
-- [USP-8.1]: [USP Specification, Section 8.1 — Full Flow (Paid Service)](../extension/specification.md#81-full-flow-paid-service)
-- [USP-9]: [USP Specification, Section 9 — Waitlist Extension](../extension/specification.md#9-waitlist-extension)
-- [USP-10.1.1]: [USP Specification, Section 10.1.1 — Idempotency](../extension/specification.md#1011-idempotency)
-- [USP-10.2]: [USP Specification, Section 10.2 — MCP Binding](../extension/specification.md#102-mcp-binding)
-- [USP-10.3]: [USP Specification, Section 10.3 — A2A Binding](../extension/specification.md#103-a2a-binding)
-- [USP-10.4]: [USP Specification, Section 10.4 — Error Code Mapping](../extension/specification.md#104-error-code-mapping)
-- [USP-10.5]: [USP Specification, Section 10.5 — Embedded Scheduling Protocol (ESP)](../extension/specification.md#105-embedded-scheduling-protocol-esp)
-- [USP-11]: [USP Specification, Section 11 — Security](../extension/specification.md#11-security)
-- [USP-11.3]: [USP Specification, Section 11.3 — Webhook Security](../extension/specification.md#113-webhook-security)
-- [USP-11.7]: [USP Specification, Section 11.7 — Identity Linking](../extension/specification.md#117-identity-linking)
-- [USP-11.8]: [USP Specification, Section 11.8 — Buyer Consent](../extension/specification.md#118-buyer-consent)
-
 ---
 
 ## Authors' Addresses
 
 *To be determined.*
+
+<!-- Reference link definitions -->
+
+[ACP]: https://agenticcommerce.dev/
+[ACP-Extensions]: https://agenticcommerce.dev/rfcs/extensions/
+[UCP]: https://ucp.dev/latest/specification/overview/
+[USP]: ../extension/specification.md
+[RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119
+[RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174
+[RFC 7009]: https://www.rfc-editor.org/rfc/rfc7009
+
+<!-- Section references into USP Specification -->
+
+[USP-1.1]: ../extension/specification.md#11-conventions
+[USP-1.3]: ../extension/specification.md#13-service-verticals
+[USP-3.4]: ../extension/specification.md#34-versioning
+[USP-4]: ../extension/specification.md#4-service-catalog
+[USP-4.7]: ../extension/specification.md#47-service-policies
+[USP-5]: ../extension/specification.md#5-availability
+[USP-6]: ../extension/specification.md#6-bookings
+[USP-6.3]: ../extension/specification.md#63-operations
+[USP-7]: ../extension/specification.md#7-paid-bookings-extension
+[USP-7.2]: ../extension/specification.md#72-booking-object-in-checkout
+[USP-7.4]: ../extension/specification.md#74-deposit-and-refund-rules
+[USP-7.5.5]: ../extension/specification.md#755-dynamic-payment-handler-filtering
+[USP-8.1]: ../extension/specification.md#81-full-flow-paid-service
+[USP-8.2]: ../extension/specification.md#82-non-commerce-flow-free-service
+[USP-9]: ../extension/specification.md#9-waitlist-extension
+[USP-10.1.1]: ../extension/specification.md#1011-idempotency
+[USP-10.2]: ../extension/specification.md#102-mcp-binding
+[USP-10.3]: ../extension/specification.md#103-a2a-binding
+[USP-10.4]: ../extension/specification.md#104-error-code-mapping
+[USP-10.5]: ../extension/specification.md#105-embedded-scheduling-protocol-esp
+[USP-11]: ../extension/specification.md#11-security
+[USP-11.3]: ../extension/specification.md#113-webhook-security
+[USP-11.7]: ../extension/specification.md#117-identity-linking
+[USP-11.8]: ../extension/specification.md#118-buyer-consent
