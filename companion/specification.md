@@ -42,6 +42,7 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
   - [3.1 Business Profile](#31-business-profile)
   - [3.2 Namespace Governance](#32-namespace-governance)
   - [3.3 Capability Negotiation](#33-capability-negotiation)
+  - [3.4 Versioning](#34-versioning)
 - [4. Service Catalog](#4-service-catalog)
   - [4.1 Service Catalog Feed](#41-service-catalog-feed)
   - [4.2 Catalog Caching and Indexing](#42-catalog-caching-and-indexing)
@@ -63,11 +64,17 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
   - [6.2 Booking Schema](#62-booking-schema)
   - [6.3 Operations](#63-operations)
   - [6.4 Webhooks](#64-webhooks)
+  - [6.5 Post-Booking Lifecycle](#65-post-booking-lifecycle)
 - [7. Payment Integration with UCP](#7-payment-integration-with-ucp)
   - [7.1 Booking Payment](#71-booking-payment)
   - [7.2 How USP Connects to the UCP Checkout Flow](#72-how-usp-connects-to-the-ucp-checkout-flow)
   - [7.3 Line Item Mapping (USP to UCP)](#73-line-item-mapping-usp-to-ucp)
   - [7.4 Deposit and Refund Rules](#74-deposit-and-refund-rules)
+  - [7.5 Trust Triangle](#75-trust-triangle)
+  - [7.6 Payment Handler Framework](#76-payment-handler-framework)
+  - [7.7 PCI-DSS Scope Guidance](#77-pci-dss-scope-guidance)
+  - [7.8 Risk Signals and SCA/3DS Challenges](#78-risk-signals-and-sca3ds-challenges)
+  - [7.9 Dynamic Payment Handler Filtering](#79-dynamic-payment-handler-filtering)
 - [8. End-to-End Flows](#8-end-to-end-flows)
   - [8.1 Full Flow (with Payment)](#81-full-flow-with-payment)
   - [8.2 Non-Commerce Flow (Free Service)](#82-non-commerce-flow-free-service)
@@ -83,7 +90,16 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
   - [10.2 MCP Binding](#102-mcp-binding)
   - [10.3 A2A Binding](#103-a2a-binding)
   - [10.4 Error Code Mapping](#104-error-code-mapping)
+  - [10.5 Embedded Scheduling Protocol (ESP)](#105-embedded-scheduling-protocol-esp)
 - [11. Security](#11-security)
+  - [11.1 Transport Security](#111-transport-security)
+  - [11.2 Rate Limiting](#112-rate-limiting)
+  - [11.3 Webhook Security](#113-webhook-security)
+  - [11.4 Hold Abuse Prevention](#114-hold-abuse-prevention)
+  - [11.5 Data Privacy](#115-data-privacy)
+  - [11.6 Authentication and Authorization](#116-authentication-and-authorization)
+  - [11.7 Identity Linking](#117-identity-linking)
+  - [11.8 Buyer Consent](#118-buyer-consent)
 - [12. Operation Reference](#12-operation-reference)
 - [13. IANA Considerations](#13-iana-considerations)
 - [14. References](#14-references)
@@ -206,7 +222,7 @@ A trusted entity that securely manages user payment instruments and identity. US
 
 #### 2.1.4 Payment Service Provider (PSP)
 
-The financial infrastructure that processes payments. USP delegates all payment processing to UCP, which in turn interacts with the PSP. The platform acquires a payment token from the PSP and submits it via UCP's `submit_checkout`.
+The financial infrastructure that processes payments. USP delegates all payment processing to UCP, which in turn interacts with the PSP. The platform acquires a payment token from the PSP and submits it via UCP's `complete_checkout`.
 
 - **Examples:** Stripe, Adyen, PayPal, Braintree.
 
@@ -254,7 +270,7 @@ graph BT
     subgraph UCP ["UCP — Payment (optional)"]
         direction LR
         P2[Platform / Agent] -- "create_checkout\n(usp_booking metadata)" --> B2[Business]
-        P2 -- "submit_checkout\n(payment token)" --> B2
+        P2 -- "complete_checkout\n(payment token)" --> B2
         B2 -- "process token" --> PSP[Payment Service Provider]
     end
 
@@ -272,9 +288,9 @@ USP is built on three constructs, consistent with UCP's architecture:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports. Each capability has a namespace, schema, and version. | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.booking` |
-| **Extensions** | Optional modules that augment a capability via the `extends` field. | Waitlist management (extends booking), vendor-specific loyalty (extends booking) |
-| **Services** | Transport layers for exchanging data. USP is transport-agnostic with specific bindings. | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card). See [Section 10](#10-transport-bindings). |
+| **Capabilities** | Standalone features a business supports, declared using a registry pattern (object keyed by capability name), consistent with UCP's capability format. Each capability has a namespace, schema, and version. | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.booking` |
+| **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base capability schemas, consistent with UCP's extension model. | Waitlist management (extends booking), vendor-specific loyalty (extends booking) |
+| **Services** | Transport layers for exchanging data. USP is transport-agnostic with specific bindings. Each service is an array of transport objects with a `transport` discriminator field, consistent with UCP's service definition format. | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card). See [Section 10](#10-transport-bindings). |
 
 ### 2.5 Key Goals
 
@@ -291,7 +307,7 @@ USP is built on three constructs, consistent with UCP's architecture:
 | Service discovery | Service catalog, categories, pricing, policies | Product catalog, inventory |
 | Availability | Time slots, capacity, resource scheduling, holds | N/A |
 | Booking lifecycle | Create, confirm, reschedule, cancel, no-show | N/A |
-| Checkout & payment | Delegates to UCP | `create_checkout`, `update_checkout`, `submit_checkout` |
+| Checkout & payment | Delegates to UCP | `create_checkout`, `update_checkout`, `complete_checkout` |
 | Payment handlers | N/A (uses UCP's) | Handler definitions, token acquisition, PSP processing |
 | Order management | N/A | Order lifecycle, fulfillment |
 | Identity | Shared `buyer` object | Identity linking capability |
@@ -311,39 +327,28 @@ Businesses publish their USP profile at `/.well-known/usp`:
   "usp": {
     "version": "2026-02-09",
     "services": {
-      "dev.usp.services": {
-        "version": "2026-02-09",
-        "spec": "https://usp.dev/specification",
-        "rest": {
-          "schema": "https://usp.dev/services/rest.openapi.json",
-          "endpoint": "https://business.example.com/usp/v1"
+      "dev.usp.services": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification",
+          "transport": "rest",
+          "endpoint": "https://business.example.com/usp/v1",
+          "schema": "https://usp.dev/services/rest.openapi.json"
         },
-        "mcp": {
-          "schema": "https://usp.dev/services/mcp.openrpc.json",
-          "endpoint": "https://business.example.com/usp/mcp"
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification",
+          "transport": "mcp",
+          "endpoint": "https://business.example.com/usp/mcp",
+          "schema": "https://usp.dev/services/mcp.openrpc.json"
         }
-      }
+      ]
     },
-    "capabilities": [
-      {
-        "name": "dev.usp.services.catalog",
-        "version": "2026-02-09",
-        "spec": "https://usp.dev/specification#4-service-catalog",
-        "schema": "https://usp.dev/schemas/services/catalog.json"
-      },
-      {
-        "name": "dev.usp.services.availability",
-        "version": "2026-02-09",
-        "spec": "https://usp.dev/specification#5-availability",
-        "schema": "https://usp.dev/schemas/services/availability.json"
-      },
-      {
-        "name": "dev.usp.services.booking",
-        "version": "2026-02-09",
-        "spec": "https://usp.dev/specification#6-booking",
-        "schema": "https://usp.dev/schemas/services/booking.json"
-      }
-    ],
+    "capabilities": {
+      "dev.usp.services.catalog": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#4-service-catalog", "schema": "https://usp.dev/schemas/services/catalog.json"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#5-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
+      "dev.usp.services.booking": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#6-booking", "schema": "https://usp.dev/schemas/services/booking.json"}]
+    },
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",
@@ -357,35 +362,95 @@ A business **MAY** publish both `/.well-known/ucp` and `/.well-known/usp`. The p
 
 ### 3.2 Namespace Governance
 
-Capability names use reverse-domain notation, consistent with UCP:
+USP adopts UCP's namespace governance rules (see [UCP Specification — Namespace Governance](https://ucp.dev/latest/specification/overview/#namespace-governance)). Capability names use reverse-domain notation:
 
 ```
 {reverse-domain}.{service}.{capability}
 ```
 
-The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use their own domain (e.g., `com.wix.services.courses`).
+The `dev.usp.*` namespace is governed by the USP body. The `dev.ucp.*` namespace is governed by the UCP body. Vendors **MUST** use their own domain (e.g., `com.wix.services.courses`). The namespace rules are shared between USP and UCP to ensure that a business publishing both protocols uses a single, consistent governance model.
 
 ### 3.3 Capability Negotiation
 
-USP uses the same **server-selects** negotiation as UCP:
+USP uses the same **server-selects** negotiation model as UCP (see [UCP Specification — Negotiation Protocol](https://ucp.dev/latest/specification/overview/#negotiation-protocol)):
 
 1. Platform advertises its profile URI via the `USP-Agent` header (REST) or `_meta.usp.profile` (MCP).
-2. Business fetches the platform profile, computes the capability intersection, and responds using only shared capabilities.
+2. Business fetches the platform profile, computes the capability intersection, and responds using only shared capabilities. If a capability depends on an extension that the platform does not support, the business **MUST** prune the orphaned extension from the response.
 3. Every response **MUST** include a `usp` metadata object declaring the active version and capabilities.
+4. If the intersection is empty (no shared capabilities), the business **MUST** return a `version_unsupported` error.
 
 ```json
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [
-      {"name": "dev.usp.services.catalog", "version": "2026-02-09"},
-      {"name": "dev.usp.services.availability", "version": "2026-02-09"},
-      {"name": "dev.usp.services.booking", "version": "2026-02-09"}
-    ]
+    "capabilities": {
+      "dev.usp.services.catalog": [{"version": "2026-02-09"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09"}],
+      "dev.usp.services.booking": [{"version": "2026-02-09"}]
+    }
   },
   ...
 }
 ```
+
+### 3.4 Versioning
+
+USP uses date-based versioning, consistent with UCP's versioning strategy.
+
+#### 3.4.1 Version Format
+
+USP protocol versions use the `YYYY-MM-DD` format (e.g., `2026-02-09`). This format applies to:
+
+- The protocol version (`usp.version` in every response)
+- Capability versions (the `version` field within each capability entry)
+- Service transport binding versions
+
+Protocol versions and capability versions are independent. A new capability version does not require a new protocol version, and vice versa.
+
+#### 3.4.2 Version Negotiation
+
+When a platform sends a request, the business **MUST** compare the platform's advertised version (from the platform profile) with its own supported version:
+
+| Condition | Behavior |
+|-----------|----------|
+| Platform version ≤ Business version | Business processes the request using the platform's version semantics. |
+| Platform version > Business version | Business **MUST** return a `version_unsupported` error with a `messages[]` entry indicating the latest supported version. |
+
+Every USP response **MUST** include the `usp.version` field confirming which version was used to process the request. This allows platforms to detect version mismatches and adapt.
+
+#### 3.4.3 Backwards Compatibility
+
+The following changes are **non-breaking** and **MUST NOT** require a new protocol version:
+
+- Adding new optional fields to request or response schemas
+- Adding new capability namespaces
+- Adding new values to open enumerations (e.g., new service verticals)
+- Adding new error codes to the `messages[]` model
+- Adding new webhook event types
+
+The following changes are **breaking** and **MUST** require a new protocol version:
+
+- Removing or renaming existing fields
+- Changing the type of an existing field
+- Changing the semantics of an existing field
+- Removing values from enumerations
+- Changing the structure of the `usp` metadata object
+- Changing the capability negotiation protocol
+
+#### 3.4.4 Capability Versioning
+
+Capabilities are versioned independently from the protocol. A capability version indicates the schema version for that capability's operations. When a business supports multiple versions of a capability, it declares them in the capabilities registry:
+
+```json
+"capabilities": {
+  "dev.usp.services.catalog": [
+    {"version": "2026-02-09"},
+    {"version": "2026-06-15"}
+  ]
+}
+```
+
+The business selects the highest mutually supported version during negotiation.
 
 ---
 
@@ -415,7 +480,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.catalog", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.catalog": [{"version": "2026-02-09"}]}
   },
   "items": [
     {
@@ -665,7 +730,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.catalog", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.catalog": [{"version": "2026-02-09"}]}
   },
   "services": [
     {
@@ -722,7 +787,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.catalog", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.catalog": [{"version": "2026-02-09"}]}
   },
   "service": {
     "id": "svc_haircut_001",
@@ -824,7 +889,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.availability": [{"version": "2026-02-09"}]}
   },
   "service_id": "svc_haircut_001",
   "slots": [
@@ -877,7 +942,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.availability": [{"version": "2026-02-09"}]}
   },
   "hold": {
     "id": "hold_abc123",
@@ -890,15 +955,19 @@ Response:
 }
 ```
 
-If the slot is no longer available, the business **MUST** return an error:
+If the slot is no longer available, the business **MUST** return HTTP 200 with a `messages` array indicating the error (consistent with UCP's error model where business outcomes always return HTTP 200):
 
 ```json
 {
-  "usp": {"version": "2026-02-09", "capabilities": []},
-  "error": {
-    "code": "slot_unavailable",
-    "message": "The requested slot is no longer available."
-  }
+  "usp": {"version": "2026-02-09", "capabilities": {}},
+  "messages": [
+    {
+      "type": "error",
+      "code": "slot_unavailable",
+      "content": "The requested slot is no longer available.",
+      "severity": "recoverable"
+    }
+  ]
 }
 ```
 
@@ -918,7 +987,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.availability": [{"version": "2026-02-09"}]}
   },
   "hold": {
     "id": "hold_abc123",
@@ -995,15 +1064,15 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `service_id` | string | **Yes** | The booked service. |
 | `service_name` | string | **Yes** | Service display name, captured at booking time. This is a snapshot -- it does not change if the service name is later updated. |
 | `slot` | object | **Yes** | `{id, start, end, duration}` -- the booked time slot. |
-| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` -- the person receiving the service. |
+| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` -- the person receiving the service. Corresponds to UCP's `buyer` entity in checkout. |
 | `party_size` | integer | **Yes** | Total number of attendees. For `appointment` types, this is typically `1`. For `group` and `reservation` types, this reflects the number of spots booked. |
 | `resources` | Array\[object\] | No | `{id, type, name}` -- the specific resources assigned to this booking (e.g., which stylist, which room). |
 | `location` | object | No | `{id, name}` -- the specific location for this booking. |
 | `status` | string | **Yes** | Current booking status. See [Section 6.1](#61-booking-status-lifecycle). |
 | `confirmation_mode` | string | **Yes** | `auto` or `manual`. Reflects the service's confirmation policy at booking time. |
 | `payment` | BookingPayment | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 7.1](#71-booking-payment). |
-| `messages` | Array\[Message\] | No | Messages providing context about the booking state. Each message has: `type` (`error`, `warning`, `info`), `code` (machine-readable code, e.g., `payment_required`, `confirmation_pending`, `reschedule_limit_reached`), `message` (human-readable text), `severity` (`requires_buyer_input`: buyer must take action, `informational`: no action required, `actionable`: action is recommended but not required). |
-| `continue_url` | string | Conditional | Business UI handoff URL. **MUST** be provided when `status` is `requires_action`. The platform **SHOULD** redirect or present this URL to the buyer to complete the required action (e.g., payment, form completion). |
+| `messages` | Array\[Message\] | No | Messages providing context about the booking state, consistent with UCP's message model. Each message has: `type` (`error`, `warning`, `info`), `code` (machine-readable code, e.g., `payment_required`, `confirmation_pending`, `reschedule_limit_reached`), `content` (human-readable text), `severity` (`requires_buyer_input`: buyer must take action before the operation can proceed, `recoverable`: the system can recover without buyer intervention, `requires_buyer_review`: buyer should review but the operation is not blocked), `path` (optional JSON Pointer to the field that triggered the message, e.g., `$.buyer.email`). |
+| `continue_url` | string | Conditional | Business UI handoff URL, analogous to UCP's `continue_url` in checkout. **MUST** be provided when `status` is `requires_action`. The platform **SHOULD** redirect or present this URL to the buyer to complete the required action (e.g., payment, form completion). |
 | `notes` | string | No | Buyer-provided special requests or notes (e.g., "First time visit", "Allergic to latex"). |
 | `cancellation` | object | No | `{reason, canceled_by, fee, refund_amount, canceled_at}` -- present when the booking has been canceled. `canceled_by`: `buyer` or `business`. `fee`: cancellation fee charged in minor currency units. `refund_amount`: amount refunded in minor currency units. |
 | `created_at` | string | **Yes** | RFC 3339 timestamp of when the booking was created. |
@@ -1041,7 +1110,7 @@ Response (service with `requires_payment: true`, `payment_timing: at_service`):
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}
   },
   "booking": {
     "id": "bkg_789ghi",
@@ -1083,7 +1152,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}
   },
   "booking": {
     "id": "bkg_789ghi",
@@ -1135,12 +1204,12 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}
   },
   "booking": {
     "id": "bkg_789ghi",
     "status": "confirmed",
-    "messages": [{"type": "info", "code": "business_confirmed", "message": "Confirmed! See you on Tuesday.", "severity": "informational"}],
+    "messages": [{"type": "info", "code": "business_confirmed", "content": "Confirmed! See you on Tuesday.", "severity": "recoverable"}],
     "updated_at": "2026-03-14T23:00:00Z"
   }
 }
@@ -1165,7 +1234,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}
   },
   "booking": {
     "id": "bkg_789ghi",
@@ -1201,7 +1270,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}
   },
   "booking": {
     "id": "bkg_789ghi",
@@ -1224,6 +1293,46 @@ Businesses **SHOULD** notify platforms of state changes via webhooks. Webhook pa
 | `booking.reminder` | Upcoming appointment reminder (e.g., 24 hours before) |
 | `booking.completed` | Service has been delivered |
 | `booking.no_show` | Client did not attend within the grace period |
+| `booking.refund_issued` | A full or partial refund has been issued |
+| `booking.dispute_opened` | A dispute or chargeback has been opened for this booking |
+| `booking.dispute_resolved` | A dispute has been resolved |
+
+### 6.5 Post-Booking Lifecycle
+
+After a booking reaches a terminal state (`completed`, `no_show`, `canceled`), additional lifecycle events may occur. USP defines the following post-booking operations, analogous to UCP's Order capability:
+
+#### 6.5.1 Refund Tracking
+
+When a refund is issued (due to cancellation, service failure, or dispute), the booking's `payment` object **MUST** be updated:
+
+| `payment.status` | Description |
+|-------------------|-------------|
+| `refunded` | Full refund issued. `refund_amount` equals `amount` (or `deposit_amount` for deposit bookings). |
+| `partially_refunded` | Partial refund issued. `refund_amount` is less than the collected amount (e.g., cancellation fee withheld). |
+
+The business **MUST** send a `booking.refund_issued` webhook when a refund is processed.
+
+#### 6.5.2 Dispute Resolution
+
+When a payment dispute (chargeback) is opened against a booking, the business **SHOULD** update the booking with dispute information and notify the platform:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dispute.status` | string | `opened`, `under_review`, `resolved_buyer`, `resolved_business` |
+| `dispute.reason` | string | Machine-readable reason code (e.g., `service_not_provided`, `quality_issue`, `unauthorized`) |
+| `dispute.opened_at` | string | RFC 3339 timestamp of when the dispute was opened |
+| `dispute.resolved_at` | string | RFC 3339 timestamp of when the dispute was resolved |
+
+#### 6.5.3 Service Delivery Events
+
+For complex services (e.g., multi-step healthcare, ongoing rentals), businesses **MAY** emit intermediate delivery events:
+
+| Event | Trigger |
+|-------|---------|
+| `booking.service_started` | The service delivery has begun (e.g., rental pickup, appointment check-in) |
+| `booking.service_updated` | Service details changed during delivery (e.g., extended rental, additional treatment) |
+
+These events are informational and do not change the booking's primary status.
 
 ---
 
@@ -1274,8 +1383,8 @@ sequenceDiagram
     B-->>P: update_checkout response (status: ready_for_complete)
     P->>PSP: request for payment token
     PSP-->>P: payment token in response
-    P->>B: submit_checkout (payment_data with token from PSP)
-    B-->>P: submit_checkout response (order_id, permalink URL)
+    P->>B: complete_checkout (payment_data with token from PSP)
+    B-->>P: complete_checkout response (order_id, permalink URL)
     B->>PSP: request to process payment token
     PSP-->>B: payment processed
     end
@@ -1297,7 +1406,7 @@ sequenceDiagram
 
 4. **[UCP] Platform requests a payment token from the Payment Service Provider.** Using the payment handler configuration from the UCP checkout response, the platform requests a payment token directly from the PSP. The PSP returns an opaque token.
 
-5. **[UCP] Platform calls `submit_checkout`.** The platform sends the `submit_checkout` request to the business's UCP endpoint with `payment_data` containing the token from the PSP and any additional risk signals. The business returns the full checkout object with a populated `order_id` and permalink URL.
+5. **[UCP] Platform calls `complete_checkout`.** The platform sends the `complete_checkout` request to the business's UCP endpoint (`POST /checkout-sessions/{id}/complete`) with `payment_data` containing the token from the PSP and any additional risk signals. The business returns the full checkout object with a populated `order_id` and permalink URL.
 
 6. **[UCP] Business processes the payment token with the PSP (server-side).** The business sends the token to the Payment Service Provider for processing. The PSP charges the buyer and confirms the payment. This step is invisible to the platform.
 
@@ -1347,6 +1456,99 @@ The `create_checkout` request **MUST** include `usp_booking` metadata so the bus
 | Cancellation (late) | -- | Refund = collected - cancellation fee. |
 | Business-initiated cancel | -- | Full refund. No fees. |
 
+### 7.5 Trust Triangle
+
+USP's payment bridge inherits UCP's "Trust-by-Design" philosophy, which defines three trust relationships between participants:
+
+1. **Business ↔ Payment Credential Provider (PSP):** A pre-existing legal and technical relationship. The business holds API keys and a contract with the provider. The business configures which payment handlers are available and under what conditions.
+2. **Platform ↔ Payment Credential Provider:** The platform interacts with the provider's interface to tokenize payment data but is not the owner of funds. The platform **MUST** use the handler configuration returned by the business's UCP checkout to determine which PSP to interact with and how.
+3. **Platform ↔ Business:** The platform passes the resulting token or mandate to the business via `complete_checkout`. The business processes the token server-side with the PSP.
+
+When a USP booking requires payment, the platform **MUST** follow UCP's three-step lifecycle:
+
+| Phase | Description |
+|-------|-------------|
+| **Negotiation** | Platform calls `create_checkout`. Business returns available payment handlers with their configuration (handler type, schema, endpoint). |
+| **Acquisition** | Platform uses the handler configuration to acquire a payment credential (token, encrypted payload, or mandate) from the PSP. |
+| **Completion** | Platform calls `complete_checkout` with `payment_data` containing the acquired credential. Business processes the credential with the PSP server-side. |
+
+### 7.6 Payment Handler Framework
+
+UCP defines three payment handler patterns. The business declares which patterns it supports in the checkout response. The platform **MUST** implement the acquisition flow for each handler type it encounters:
+
+| Handler Pattern | Description | Platform Responsibility |
+|----------------|-------------|------------------------|
+| **Processor Tokenizer** | Business or PSP hosts a `/tokenize` endpoint. Token resolves internally — no detokenization needed. | Platform sends raw payment data to the tokenizer endpoint and receives an opaque token. |
+| **Platform Tokenizer** | Platform generates tokens and exposes a `/detokenize` callback. Business or PSP calls back to detokenize. | Platform tokenizes payment data locally. **MUST** expose a detokenize endpoint for the business/PSP. |
+| **Encrypted Credential** | Platform encrypts payment credentials with the business's public key. Zero runtime round-trips for tokenization. | Platform encrypts credentials using the business's public key from the handler config. |
+
+The handler configuration is returned in the `create_checkout` response under the `handlers` array. Each handler includes a `type`, `schema` (JSON Schema for the expected `payment_data` shape), and any handler-specific configuration (endpoint URLs, public keys, etc.).
+
+### 7.7 PCI-DSS Scope Guidance
+
+For service bookings that involve payment, USP participants **SHOULD** consider PCI-DSS scope:
+
+| Participant | PCI-DSS Guidance |
+|-------------|-----------------|
+| **Platforms** | Platforms can minimize PCI scope by using opaque credentials (tokens, encrypted payloads) and never accessing raw payment data. Platforms that use the Processor Tokenizer or Encrypted Credential patterns and never handle raw card data are typically out of PCI-DSS scope. |
+| **Businesses** | Businesses minimize scope by using provider-hosted tokenization or wallet providers. The PSP processes raw payment data on the business's behalf. |
+| **Payment Credential Providers** | PSPs are typically PCI-DSS Level 1 certified and handle all sensitive payment data processing. |
+
+For healthcare verticals (where payment data may intersect with health data) and high-value rentals (where deposits may be large), businesses **SHOULD** use the Processor Tokenizer or Encrypted Credential patterns to minimize platform exposure to sensitive data.
+
+### 7.8 Risk Signals and SCA/3DS Challenges
+
+#### 7.8.1 Risk Signals
+
+The platform **MAY** include risk assessment data in the `complete_checkout` call to aid the business and PSP in fraud detection:
+
+```json
+{
+  "payment_data": {
+    "token": "tok_abc123",
+    "risk_signals": {
+      "session_id": "abc_123_xyz",
+      "score": 0.95
+    }
+  }
+}
+```
+
+Businesses **MAY** use risk signals to adjust payment processing behavior (e.g., triggering additional verification for low-confidence scores). The `risk_signals` object is passed through to the PSP as-is.
+
+#### 7.8.2 SCA/3DS Challenge Flow
+
+When a payment requires Strong Customer Authentication (SCA) under PSD2 or a 3D Secure challenge, the UCP checkout response returns a `requires_escalation` status:
+
+```json
+{
+  "status": "requires_escalation",
+  "messages": [{
+    "type": "error",
+    "code": "requires_3ds",
+    "content": "Bank requires additional verification.",
+    "severity": "requires_buyer_input"
+  }],
+  "continue_url": "https://psp.com/challenge/123"
+}
+```
+
+The platform **MUST** open the `continue_url` in a WebView or browser window for the buyer to complete the bank verification. After the challenge completes, the platform retries the `complete_checkout` call. This flow is critical for European bookings under PSD2.
+
+### 7.9 Dynamic Payment Handler Filtering
+
+Businesses **MUST** filter the `handlers` list in the `create_checkout` response based on the booking context. Filtering criteria for service bookings include:
+
+| Criterion | Example |
+|-----------|---------|
+| **Service type** | No Buy Now Pay Later (BNPL) for same-day appointments |
+| **Payment timing** | Different handler sets for deposits vs. full payment |
+| **Geographic restrictions** | Regional payment methods based on service location |
+| **Booking value** | Minimum/maximum thresholds for specific handlers |
+| **Service vertical** | Healthcare bookings may require specific compliant handlers |
+
+The business performs filtering before returning the checkout response. The platform selects from the filtered set.
+
 ---
 
 ## 8. End-to-End Flows
@@ -1384,7 +1586,7 @@ sequenceDiagram
     B-->>P: checkout (status: ready_for_complete)
     P->>PSP: 7. request payment token
     PSP-->>P: payment token
-    P->>B: 8. submit_checkout (payment_data with token)
+    P->>B: 8. complete_checkout (payment_data with token)
     B-->>P: checkout (order_id)
     B->>PSP: process payment token
     PSP-->>B: payment processed
@@ -1514,7 +1716,7 @@ Response:
 
 ```json
 {
-  "usp": {"version": "2026-02-09", "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]},
+  "usp": {"version": "2026-02-09", "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}},
   "booking": {
     "id": "bkg_free_001",
     "service_id": "svc_yoga_free",
@@ -1558,7 +1760,7 @@ Response (requires payment):
 
 ```json
 {
-  "usp": {"version": "2026-02-09", "capabilities": [{"name": "dev.usp.services.booking", "version": "2026-02-09"}]},
+  "usp": {"version": "2026-02-09", "capabilities": {"dev.usp.services.booking": [{"version": "2026-02-09"}]}},
   "booking": {
     "id": "bkg_456def",
     "service_id": "svc_massage_001",
@@ -1568,7 +1770,7 @@ Response (requires payment):
     "party_size": 1,
     "status": "requires_action",
     "confirmation_mode": "auto",
-    "messages": [{"type": "error", "code": "payment_required", "message": "A 50% deposit ($60.00) is required.", "severity": "requires_buyer_input"}],
+    "messages": [{"type": "error", "code": "payment_required", "content": "A 50% deposit ($60.00) is required.", "severity": "requires_buyer_input"}],
     "payment": {
       "status": "pending",
       "timing": "deposit_required",
@@ -1610,7 +1812,7 @@ Note: the `item.price` is `6000` (the deposit amount), not the full `12000`, bec
 
 **[UCP] Step 7** -- Platform requests a payment token from the PSP using the handler config from the checkout response.
 
-**[UCP] Step 8** -- Platform calls `submit_checkout` with the payment token. Business processes payment with PSP. Checkout completes with `order_id`.
+**[UCP] Step 8** -- Platform calls `complete_checkout` with the payment token. Business processes payment with PSP. Checkout completes with `order_id`.
 
 **[USP] Step 9** -- Business links the UCP order to booking `bkg_456def` via `usp_booking` metadata. Booking transitions to `confirmed` with `payment.status: deposit_paid`. Platform receives webhook.
 
@@ -1684,7 +1886,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.waitlist", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.waitlist": [{"version": "2026-02-09"}]}
   },
   "waitlist_entry": {
     "id": "wl_001",
@@ -1715,7 +1917,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.waitlist", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.waitlist": [{"version": "2026-02-09"}]}
   },
   "waitlist_entry": {
     "id": "wl_001",
@@ -1742,7 +1944,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.waitlist", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.waitlist": [{"version": "2026-02-09"}]}
   },
   "waitlist_entry": {
     "id": "wl_001",
@@ -1769,7 +1971,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.waitlist", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.waitlist": [{"version": "2026-02-09"}]}
   },
   "waitlist_entry": {
     "id": "wl_001",
@@ -1801,7 +2003,7 @@ Response:
 {
   "usp": {
     "version": "2026-02-09",
-    "capabilities": [{"name": "dev.usp.services.waitlist", "version": "2026-02-09"}]
+    "capabilities": {"dev.usp.services.waitlist": [{"version": "2026-02-09"}]}
   },
   "waitlist_entry": {
     "id": "wl_001",
@@ -1874,16 +2076,42 @@ Content-Type: application/json
 {"filters": {"type": "appointment"}}
 ```
 
-- **Error responses:** HTTP status codes are used per standard REST conventions:
+- **Error responses:** Consistent with UCP's error model, USP distinguishes between **protocol errors** and **business outcome errors**:
+
+  **Business outcome errors** (e.g., slot unavailable, hold expired, capacity exceeded, booking not found) return **HTTP 200** with a `messages[]` array on the response object. Each message has `type` (`error`, `warning`, `info`), `code`, `content`, `severity`, and an optional `path` field. This ensures that platforms implementing both USP and UCP use a single error-handling codepath.
+
+  **Protocol errors** (e.g., malformed requests, authentication failures) use standard HTTP status codes:
 
 | HTTP Status | USP Meaning |
 |-------------|-------------|
-| `200 OK` | Operation succeeded |
-| `400 Bad Request` | Invalid request (malformed JSON, missing required fields) |
-| `404 Not Found` | Resource not found (service, booking, hold) |
-| `409 Conflict` | Conflict (e.g., slot already booked, hold expired) |
-| `422 Unprocessable Entity` | Validation error (e.g., illegal field combination, booking window violated) |
-| `429 Too Many Requests` | Rate limited; retry after `Retry-After` header |
+| `200 OK` | Operation succeeded, or business outcome error (check `messages[]` array for errors) |
+| `400 Bad Request` | Protocol error: malformed JSON, missing required fields, invalid profile URL |
+| `401 Unauthorized` | Protocol error: authentication required or invalid credentials |
+| `422 Unprocessable Entity` | Protocol error: request is syntactically valid but structurally invalid (e.g., unknown fields) |
+| `424 Failed Dependency` | Protocol error: business profile unreachable |
+| `429 Too Many Requests` | Protocol error: rate limited; retry after `Retry-After` header |
+| `500 Internal Server Error` | Protocol error: unexpected server failure |
+
+#### 10.1.1 Idempotency
+
+State-modifying operations (booking creation, cancellation, rescheduling, hold creation) **SHOULD** support idempotency via the `Idempotency-Key` header, consistent with UCP's REST binding:
+
+- The platform **SHOULD** send an `Idempotency-Key` header (UUID v4 recommended) with all state-modifying requests.
+- The business **MUST** store the idempotency key with the operation result for at least 24 hours.
+- If the business receives a request with a previously seen `Idempotency-Key` and the same parameters, it **MUST** return the cached result without re-executing the operation.
+- If the business receives a request with a previously seen `Idempotency-Key` but different parameters, it **MUST** return `409 Conflict`.
+
+```
+POST /bookings HTTP/1.1
+Host: business.example.com
+USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
+```
+
+Idempotency is critical for booking operations where network retries could create duplicate reservations. For read-only operations (`GET`, `POST /services/list`, `POST /availability/query`), idempotency keys are not required.
 
 ### 10.2 MCP Binding
 
@@ -1946,7 +2174,7 @@ The `_meta.usp.profile` field carries the platform's profile URI, equivalent to 
   "result": {
     "usp": {
       "version": "2026-02-09",
-      "capabilities": [{"name": "dev.usp.services.availability", "version": "2026-02-09"}]
+      "capabilities": {"dev.usp.services.availability": [{"version": "2026-02-09"}]}
     },
     "service_id": "svc_haircut_001",
     "slots": [
@@ -2006,7 +2234,11 @@ A USP-capable business publishes an Agent Card that declares scheduling skills:
   ],
   "usp": {
     "profile_url": "https://business.example.com/.well-known/usp",
-    "capabilities": ["dev.usp.services.catalog", "dev.usp.services.availability", "dev.usp.services.booking"]
+    "capabilities": {
+      "dev.usp.services.catalog": [{"version": "2026-02-09"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09"}],
+      "dev.usp.services.booking": [{"version": "2026-02-09"}]
+    }
   }
 }
 ```
@@ -2040,19 +2272,77 @@ In A2A context, `continue_url` is used as a fallback when the business agent can
 
 USP defines the following error codes, which are transport-independent. Each transport maps these to its native error representation:
 
-| USP Error Code | Description | REST Status | JSON-RPC Code |
+**Business outcome errors** are returned via `messages[]` in an HTTP 200 response. The following codes are used in the `code` field of each message:
+
+| USP Error Code | Description | REST Status | JSON-RPC Code | Severity |
+|----------------|-------------|-------------|---------------|----------|
+| `slot_unavailable` | The requested slot is no longer available | `200 OK` (with `messages[]`) | `-32001` | `recoverable` |
+| `hold_expired` | The hold has expired | `200 OK` (with `messages[]`) | `-32002` | `recoverable` |
+| `booking_not_found` | The booking ID does not exist | `200 OK` (with `messages[]`) | `-32003` | `recoverable` |
+| `validation_error` | Request fields are invalid or violate constraints | `200 OK` (with `messages[]`) | `-32004` | `requires_buyer_input` |
+| `booking_window_violated` | Booking is outside the allowed advance window | `200 OK` (with `messages[]`) | `-32005` | `requires_buyer_input` |
+| `capacity_exceeded` | Not enough capacity for the requested party size | `200 OK` (with `messages[]`) | `-32006` | `recoverable` |
+| `reschedule_limit_reached` | Maximum number of reschedules exceeded | `200 OK` (with `messages[]`) | `-32007` | `requires_buyer_review` |
+| `cancellation_not_allowed` | Cancellation is not permitted at this time | `200 OK` (with `messages[]`) | `-32008` | `requires_buyer_review` |
+| `payment_required` | Payment must be completed before confirmation | `200 OK` (with `messages[]`) | `-32009` | `requires_buyer_input` |
+
+**Protocol errors** use standard HTTP status codes and JSON-RPC error codes:
+
+| Protocol Error | Description | REST Status | JSON-RPC Code |
 |----------------|-------------|-------------|---------------|
-| `slot_unavailable` | The requested slot is no longer available | `409 Conflict` | `-32001` |
-| `hold_expired` | The hold has expired | `409 Conflict` | `-32002` |
-| `booking_not_found` | The booking ID does not exist | `404 Not Found` | `-32003` |
-| `validation_error` | Request fields are invalid or violate constraints | `422 Unprocessable Entity` | `-32004` |
-| `booking_window_violated` | Booking is outside the allowed advance window | `422 Unprocessable Entity` | `-32005` |
-| `capacity_exceeded` | Not enough capacity for the requested party size | `409 Conflict` | `-32006` |
-| `reschedule_limit_reached` | Maximum number of reschedules exceeded | `422 Unprocessable Entity` | `-32007` |
-| `cancellation_not_allowed` | Cancellation is not permitted at this time | `422 Unprocessable Entity` | `-32008` |
-| `payment_required` | Payment must be completed before confirmation | `402 Payment Required` | `-32009` |
-| `rate_limited` | Too many requests | `429 Too Many Requests` | `-32010` |
+| `invalid_request` | Malformed JSON, missing required fields, or invalid profile URL | `400 Bad Request` | `-32001` |
+| `profile_unreachable` | Business profile could not be fetched | `424 Failed Dependency` | `-32001` |
+| `profile_malformed` | Business profile is not valid JSON or does not conform to the schema | `422 Unprocessable Entity` | `-32001` |
+| `authentication_required` | Authentication credentials are missing or invalid | `401 Unauthorized` | `-32000` |
+| `rate_limited` | Too many requests | `429 Too Many Requests` | `-32000` |
 | `version_unsupported` | The requested USP version is not supported | `400 Bad Request` | `-32011` |
+| `server_error` | Unexpected server failure | `500 Internal Server Error` | `-32603` |
+
+---
+
+### 10.5 Embedded Scheduling Protocol (ESP)
+
+Analogous to UCP's Embedded Checkout Protocol (ECP), the Embedded Scheduling Protocol enables a host application to embed a business's scheduling UI within its own interface while maintaining delegation control over payment, participant details, and slot selection.
+
+#### 10.5.1 Overview
+
+ESP is an **optional** transport modality where the business provides an embeddable scheduling interface (via iframe or WebView) and the host platform provides delegated capabilities. This enables rich in-app booking experiences — for example, an AI agent rendering a native calendar widget for slot selection while the business's embedded UI handles service-specific questions.
+
+#### 10.5.2 Communication Model
+
+ESP uses JSON-RPC 2.0 messaging over `MessageChannel` (web) or injected globals (native):
+
+| Message | Direction | Description |
+|---------|-----------|-------------|
+| `esp.ready` | Business → Host | Business signals the embedded UI is ready. Includes accepted delegations. |
+| `esp.start` | Host → Business | Host initiates the scheduling flow with context (buyer info, preferences). |
+| `esp.slot_selection.request` | Business → Host | Business requests the host to provide slot selection UI. |
+| `esp.slot_selection.response` | Host → Business | Host returns the selected slot. |
+| `esp.party_details.request` | Business → Host | Business requests participant details from the host. |
+| `esp.party_details.response` | Host → Business | Host returns participant information. |
+| `esp.payment.credential_request` | Business → Host | Business requests payment credential (delegates to UCP flow). |
+| `esp.payment.credential_response` | Host → Business | Host returns the payment credential. |
+| `esp.complete` | Business → Host | Booking is complete. Includes the booking object. |
+
+#### 10.5.3 Delegation Negotiation
+
+The host requests delegations via an `esp_delegate` URL parameter when loading the embedded UI. The business accepts or rejects delegations in the `esp.ready` handshake:
+
+| Delegation | Description |
+|-----------|-------------|
+| `scheduling.slot_selection` | Host provides a native date/time picker instead of the business's slot UI |
+| `scheduling.resource_selection` | Host provides a staff/room picker |
+| `scheduling.party_details` | Host provides participant information form |
+| `payment.credential` | Host handles payment credential acquisition (via UCP) |
+
+Delegation narrowing follows the same chain as UCP's ECP: `config.delegate ⊇ esp_delegate ⊇ esp.ready delegate`.
+
+#### 10.5.4 Security
+
+- ESP iframes **MUST** use the `sandbox` attribute with appropriate permissions.
+- Business **MUST** set Content-Security-Policy headers restricting the embed context.
+- The host **MUST NOT** initiate unsolicited payment requests.
+- All ESP messages **MUST** be validated against the expected JSON-RPC schema before processing.
 
 ---
 
@@ -2073,7 +2363,52 @@ Businesses **SHOULD** implement rate limiting on all endpoints and **MUST** retu
 
 ### 11.3 Webhook Security
 
-Webhook payloads **SHOULD** be signed using JSON Web Signature (JWS) with keys published in the business profile's `signing_keys` array. Platforms **MUST** verify webhook signatures before processing events.
+Webhook payloads **MUST** be signed to ensure integrity and authenticity. USP adopts the same detached JWS mechanism as UCP:
+
+#### 11.3.1 Signing Algorithm
+
+Businesses **MUST** sign webhook payloads using a detached JSON Web Signature (JWS, [RFC 7797]) with the following requirements:
+
+- **Algorithm:** `ES256` (ECDSA using P-256 and SHA-256) is **RECOMMENDED**. `RS256` **MAY** be used for backwards compatibility.
+- **Payload encoding:** Detached — the JWS payload is the raw webhook body bytes. The JWS Compact Serialization is sent in the `USP-Signature` HTTP header with the payload component left empty (e.g., `eyJhbG....<empty>..signature`).
+- **Key ID:** The JWS header **MUST** include a `kid` (Key ID) claim that matches a key in the business profile's `signing_keys` array.
+
+#### 11.3.2 Signing Keys in Business Profile
+
+The business profile **MUST** include a `signing_keys` array containing one or more public keys in JWK format:
+
+```json
+{
+  "signing_keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "..."
+    },
+    {
+      "kid": "usp-webhook-key-2026-01",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "..."
+    }
+  ]
+}
+```
+
+Multiple keys **MUST** be supported for key rotation. The business **SHOULD** publish the new key before transitioning to it, allowing platforms to cache both keys. Old keys **SHOULD** be retained for at least 24 hours after rotation.
+
+#### 11.3.3 Verification Algorithm
+
+Platforms **MUST** verify webhook signatures before processing events:
+
+1. Extract the `USP-Signature` header value (detached JWS Compact Serialization).
+2. Parse the JWS header to obtain the `kid` claim.
+3. Look up the corresponding public key from the business profile's `signing_keys` array.
+4. Verify the JWS signature using the raw request body as the detached payload.
+5. If verification fails, the platform **MUST** reject the webhook and **SHOULD** return `401 Unauthorized`.
 
 ### 11.4 Hold Abuse Prevention
 
@@ -2092,11 +2427,67 @@ Businesses **MUST** implement safeguards against hold abuse:
 
 ### 11.6 Authentication and Authorization
 
-USP does not prescribe a specific authentication mechanism. Businesses and platforms **SHOULD** use one of the following:
+USP does not prescribe a single authentication mechanism. Businesses and platforms **SHOULD** use one of the following:
 
-- **API keys:** For platform-to-business authentication. Keys **SHOULD** be rotated periodically.
-- **OAuth 2.0:** For delegated access, especially when platforms act on behalf of specific buyers. Compatible with UCP's identity linking capability.
+- **API keys:** For platform-to-business authentication. Keys **SHOULD** be rotated periodically and transmitted via the `Authorization: Bearer <key>` header.
+- **OAuth 2.0:** For delegated access, especially when platforms act on behalf of specific buyers. Compatible with UCP's identity linking capability (see [Section 11.7](#117-identity-linking)).
 - **Mutual TLS (mTLS):** For high-security environments requiring certificate-based authentication.
+
+### 11.7 Identity Linking
+
+For bookings tied to user accounts (e.g., loyalty programs, member pricing, returning client history), platforms need a way to authenticate as a specific buyer at a business. USP adopts UCP's identity linking model:
+
+#### 11.7.1 Overview
+
+Identity linking uses OAuth 2.0 authorization code flow to establish a scoped, revocable relationship between a platform and a buyer's account at a business. Once linked, the platform can act on behalf of the buyer for scheduling operations.
+
+#### 11.7.2 Linking Flow
+
+1. **Authorization Request:** Platform redirects the buyer to the business's authorization endpoint with `scope=usp:booking usp:history` (or other defined scopes).
+2. **Buyer Consent:** The buyer authenticates at the business and grants the requested scopes.
+3. **Token Exchange:** The business returns an authorization code. The platform exchanges it for an `access_token` and `refresh_token`.
+4. **Authenticated Requests:** The platform includes the `access_token` in subsequent USP requests via the `Authorization: Bearer <token>` header. The business links the request to the buyer's account.
+
+#### 11.7.3 Scopes
+
+| Scope | Description |
+|-------|-------------|
+| `usp:booking` | Create, view, and manage bookings on behalf of the linked buyer |
+| `usp:history` | View the buyer's booking history at this business |
+| `usp:preferences` | Access the buyer's saved preferences (preferred resources, times) |
+| `usp:loyalty` | Access loyalty/rewards information for the linked buyer |
+
+Businesses **MAY** define additional custom scopes using their vendor namespace.
+
+#### 11.7.4 Revocation
+
+Buyers **MUST** be able to revoke linked access at any time. Businesses **MUST** support token revocation per [RFC 7009]. Platforms **SHOULD** implement RISC (Risk and Incident Sharing and Coordination) event streams to be notified of revocations.
+
+### 11.8 Buyer Consent
+
+For service bookings that involve personal data (contact information, health details, location data), businesses **MUST** provide a mechanism for capturing and transmitting buyer consent. USP defines the following consent categories, consistent with UCP's buyer consent model:
+
+| Category | Description |
+|----------|-------------|
+| `analytics` | Consent for the business to use booking data for analytics and service improvement |
+| `marketing` | Consent for the business to send marketing communications to the buyer |
+| `data_sharing` | Consent for the business to share buyer data with third parties (e.g., insurance providers, referral partners) |
+| `health_data` | Consent for processing health-related data (applicable to healthcare verticals). **MUST** comply with HIPAA/GDPR as applicable. |
+
+Consent is transmitted in the `create_booking` request as an optional `consent` object:
+
+```json
+{
+  "buyer": {"first_name": "Alice", "last_name": "Williams", "email": "alice@example.com"},
+  "consent": {
+    "analytics": true,
+    "marketing": false,
+    "data_sharing": false
+  }
+}
+```
+
+Businesses **MUST** respect the consent selections and **MUST NOT** assume consent for categories not explicitly granted. Consent decisions **SHOULD** be stored with the booking record for audit purposes.
 
 ---
 
@@ -2122,7 +2513,7 @@ USP does not prescribe a specific authentication mechanism. Businesses and platf
 | Accept Waitlist Offer | `POST` | `/waitlist/{entry_id}/accept` | waitlist |
 | Decline Waitlist Offer | `POST` | `/waitlist/{entry_id}/decline` | waitlist |
 
-Payment operations (`create_checkout`, `update_checkout`, `submit_checkout`) are handled by UCP. See [Section 7](#7-payment-integration-with-ucp).
+Payment operations (`create_checkout`, `update_checkout`, `complete_checkout`) are handled by UCP. See [Section 7](#7-payment-integration-with-ucp).
 
 ---
 
@@ -2148,6 +2539,8 @@ If USP advances to Standards Track, future versions may request IANA registratio
 - **[RFC 3339]** Klyne, G. and C. Newman, "Date and Time on the Internet: Timestamps", RFC 3339, DOI 10.17487/RFC3339, July 2002. https://www.rfc-editor.org/rfc/rfc3339
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May 2017. https://www.rfc-editor.org/rfc/rfc8174
 - **[RFC 8615]** Nottingham, M., "Well-Known Uniform Resource Identifiers (URIs)", RFC 8615, DOI 10.17487/RFC8615, May 2019. https://www.rfc-editor.org/rfc/rfc8615
+- **[RFC 7009]** Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth 2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009, August 2013. https://www.rfc-editor.org/rfc/rfc7009
+- **[RFC 7797]** Jones, M., "JSON Web Signature (JWS) Unencoded Payload Option", RFC 7797, DOI 10.17487/RFC7797, February 2016. https://www.rfc-editor.org/rfc/rfc7797
 - **[RFC 8941]** Nottingham, M. and P-H. Kamp, "Structured Field Values for HTTP", RFC 8941, DOI 10.17487/RFC8941, February 2021. https://www.rfc-editor.org/rfc/rfc8941
 - **[ISO 8601]** International Organization for Standardization, "Date and time -- Representations for information interchange", ISO 8601:2019. https://www.iso.org/standard/70907.html
 - **[UCP]** Universal Commerce Protocol, "UCP Specification", Version 2026-01-11. https://ucp.dev/latest/specification/overview/
