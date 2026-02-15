@@ -2656,3 +2656,9 @@ Note: Since USP operates within UCP's ecosystem, the `/.well-known/ucp` well-kno
 ## Authors' Addresses
 
 *To be determined.*
+
+[UCP]: https://ucp.dev/latest/specification/overview/
+[RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119
+[RFC 3339]: https://www.rfc-editor.org/rfc/rfc3339
+[RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174
+[ISO 8601]: https://www.iso.org/standard/70907.html
