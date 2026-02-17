@@ -1,0 +1,655 @@
+{
+  "openrpc": "1.3.2",
+  "info": {
+    "title": "Universal Scheduling Protocol (USP) MCP API",
+    "version": "2026-02-09",
+    "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. Each method maps to a corresponding REST operation.",
+    "contact": {
+      "url": "https://usp.dev"
+    },
+    "license": {
+      "name": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "servers": [
+    {
+      "name": "default",
+      "url": "https://business.example.com/usp/mcp"
+    }
+  ],
+  "methods": [
+    {
+      "name": "usp_services_list",
+      "summary": "List Services",
+      "description": "Returns a filtered, paginated list of services from the business catalog. Maps to POST /services/list.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": false,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "type": "object",
+                "properties": {
+                  "profile": { "type": "string", "format": "uri", "description": "Platform profile URI for capability negotiation" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "filters",
+          "required": false,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "category_id": { "type": "string" },
+              "location_id": { "type": "string" }
+            }
+          }
+        },
+        {
+          "name": "pagination",
+          "required": false,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "limit": { "type": "integer", "default": 20 },
+              "cursor": { "type": ["string", "null"] }
+            }
+          }
+        }
+      ],
+      "result": {
+        "name": "ListServicesResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "services", "pagination"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "services": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } },
+            "pagination": { "$ref": "#/components/schemas/Pagination" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_services_get",
+      "summary": "Get Service",
+      "description": "Returns the full service object for a single service. Maps to GET /services/{service_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "service_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "GetServiceResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "service"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "service": { "$ref": "#/components/schemas/Service" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_services_feed",
+      "summary": "Service Feed",
+      "description": "Returns a paginated, chronologically ordered list of service records for incremental sync. Maps to GET /services/feed.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "cursor", "required": false, "schema": { "type": ["string", "null"] } },
+        { "name": "limit", "required": false, "schema": { "type": "integer", "default": 50 } },
+        { "name": "location_id", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "ServiceFeedResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "items", "pagination", "feed_meta"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "items": { "type": "array", "items": { "type": "object" } },
+            "pagination": { "type": "object", "properties": { "next_cursor": {}, "has_more": { "type": "boolean" } } },
+            "feed_meta": { "type": "object", "properties": { "feed_generated_at": {}, "total_services": {}, "feed_status": {} } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_services_feed_subscribe",
+      "summary": "Create Feed Subscription",
+      "description": "Register for push-based catalog change notifications. Maps to POST /services/feed/subscriptions.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "callback_url", "required": true, "schema": { "type": "string", "format": "uri" } },
+        { "name": "categories", "required": false, "schema": { "type": "array", "items": { "type": "string" } } },
+        { "name": "events", "required": false, "schema": { "type": "array", "items": { "type": "string" } } }
+      ],
+      "result": {
+        "name": "FeedSubscriptionResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "subscription"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "subscription": { "$ref": "#/components/schemas/FeedSubscription" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_availability_query",
+      "summary": "Query Availability",
+      "description": "Returns available time slots for a service within a date range. Maps to POST /availability/query.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "service_id", "required": true, "schema": { "type": "string" } },
+        { "name": "start_date", "required": true, "schema": { "type": "string" } },
+        { "name": "end_date", "required": true, "schema": { "type": "string" } },
+        { "name": "timezone", "required": false, "schema": { "type": "string" } },
+        { "name": "resource_id", "required": false, "schema": { "type": "string" } },
+        { "name": "party_size", "required": false, "schema": { "type": "integer", "default": 1 } },
+        { "name": "location_id", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "QueryAvailabilityResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "service_id", "slots"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "service_id": { "type": "string" },
+            "slots": { "type": "array", "items": { "$ref": "#/components/schemas/TimeSlot" } },
+            "opening_hours": { "type": "array" },
+            "pagination": { "$ref": "#/components/schemas/Pagination" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_availability_hold",
+      "summary": "Hold Slot",
+      "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "slot_id", "required": true, "schema": { "type": "string" } },
+        { "name": "service_id", "required": true, "schema": { "type": "string" } },
+        { "name": "spots", "required": false, "schema": { "type": "integer", "default": 1 } }
+      ],
+      "result": {
+        "name": "HoldSlotResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "hold": { "$ref": "#/components/schemas/Hold" },
+            "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_availability_release",
+      "summary": "Release Slot",
+      "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "hold_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "ReleaseSlotResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "hold"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "hold": { "$ref": "#/components/schemas/Hold" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_create",
+      "summary": "Create Booking",
+      "description": "Creates a new booking for a service at a specific time slot. Maps to POST /bookings.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "service_id", "required": true, "schema": { "type": "string" } },
+        { "name": "slot_id", "required": true, "schema": { "type": "string" } },
+        { "name": "hold_id", "required": false, "schema": { "type": "string" } },
+        { "name": "buyer", "required": true, "schema": { "$ref": "#/components/schemas/Buyer" } },
+        { "name": "party_size", "required": false, "schema": { "type": "integer", "default": 1 } },
+        { "name": "resource_id", "required": false, "schema": { "type": "string" } },
+        { "name": "notes", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "CreateBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" },
+            "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_get",
+      "summary": "Get Booking",
+      "description": "Returns the current state of a booking. Maps to GET /bookings/{booking_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "GetBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_update",
+      "summary": "Update Booking",
+      "description": "Updates mutable fields (buyer, notes) on a booking. Maps to PUT /bookings/{booking_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } },
+        { "name": "buyer", "required": false, "schema": { "$ref": "#/components/schemas/Buyer" } },
+        { "name": "notes", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "UpdateBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_confirm",
+      "summary": "Confirm Booking",
+      "description": "Business-initiated confirmation for manual mode bookings. Maps to POST /bookings/{booking_id}/confirm.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "ConfirmBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_cancel",
+      "summary": "Cancel Booking",
+      "description": "Cancels a booking. Maps to POST /bookings/{booking_id}/cancel.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } },
+        { "name": "reason", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "CancelBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" },
+            "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_reschedule",
+      "summary": "Reschedule Booking",
+      "description": "Moves a booking to a different time slot. Maps to POST /bookings/{booking_id}/reschedule.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } },
+        { "name": "slot_id", "required": true, "schema": { "type": "string" } },
+        { "name": "hold_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "RescheduleBookingResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" },
+            "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_bookings_confirm_payment",
+      "summary": "Confirm Payment",
+      "description": "Callback after payment succeeds. Maps to POST /bookings/{booking_id}/confirm-payment.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "booking_id", "required": true, "schema": { "type": "string" } },
+        {
+          "name": "payment_result",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "required": ["status", "transaction_id", "amount_paid", "currency"],
+            "properties": {
+              "status": { "type": "string", "enum": ["paid", "deposit_paid"] },
+              "provider": { "type": "string" },
+              "transaction_id": { "type": "string" },
+              "amount_paid": { "type": "integer" },
+              "currency": { "type": "string" },
+              "order_reference": { "type": "string" }
+            }
+          }
+        }
+      ],
+      "result": {
+        "name": "ConfirmPaymentResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "booking"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "booking": { "$ref": "#/components/schemas/Booking" },
+            "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_waitlist_join",
+      "summary": "Join Waitlist",
+      "description": "Join the waitlist for a service/slot. Maps to POST /waitlist.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "service_id", "required": true, "schema": { "type": "string" } },
+        { "name": "slot_id", "required": false, "schema": { "type": "string" } },
+        { "name": "buyer", "required": true, "schema": { "$ref": "#/components/schemas/Buyer" } },
+        { "name": "preferred_slots", "required": false, "schema": { "type": "array", "items": { "type": "object" } } }
+      ],
+      "result": {
+        "name": "JoinWaitlistResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "entry"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "entry": { "$ref": "#/components/schemas/WaitlistEntry" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_waitlist_get",
+      "summary": "Get Waitlist Entry",
+      "description": "Get waitlist entry status. Maps to GET /waitlist/{entry_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "entry_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "GetWaitlistEntryResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp", "entry"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "entry": { "$ref": "#/components/schemas/WaitlistEntry" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_waitlist_leave",
+      "summary": "Leave Waitlist",
+      "description": "Leave the waitlist. Maps to DELETE /waitlist/{entry_id}.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "entry_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "LeaveWaitlistResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "entry": { "type": "object", "properties": { "id": {}, "status": { "enum": ["removed"] } } }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_waitlist_accept",
+      "summary": "Accept Waitlist Offer",
+      "description": "Accept an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/accept.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "entry_id", "required": true, "schema": { "type": "string" } },
+        { "name": "hold_id", "required": false, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "AcceptWaitlistOfferResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "entry": { "$ref": "#/components/schemas/WaitlistEntry" },
+            "booking": { "$ref": "#/components/schemas/Booking" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    },
+    {
+      "name": "usp_waitlist_decline",
+      "summary": "Decline Waitlist Offer",
+      "description": "Decline an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/decline.",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
+        { "name": "entry_id", "required": true, "schema": { "type": "string" } }
+      ],
+      "result": {
+        "name": "DeclineWaitlistOfferResult",
+        "schema": {
+          "type": "object",
+          "required": ["usp"],
+          "properties": {
+            "usp": { "$ref": "#/components/schemas/USPMeta" },
+            "entry": { "$ref": "#/components/schemas/WaitlistEntry" }
+          }
+        }
+      },
+      "errors": [{ "$ref": "#/components/errors/USPError" }]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "USPMeta": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "version": { "type": "string" },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "object", "properties": { "version": { "type": "string" } } }
+            }
+          }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "duration": { "type": "object" },
+          "pricing": { "type": "object" },
+          "channel": { "type": "object" },
+          "policies": { "type": "object" }
+        }
+      },
+      "FeedSubscription": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "callback_url": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "paused", "canceled"] },
+          "created_at": { "type": "string" }
+        }
+      },
+      "TimeSlot": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "start": { "type": "string" },
+          "end": { "type": "string" },
+          "duration": { "type": "string" },
+          "state": { "type": "string", "enum": ["available", "limited", "waitlist"] }
+        }
+      },
+      "Hold": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "slot_id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "spots": { "type": "integer" },
+          "expires_at": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "expired", "released", "converted"] }
+        }
+      },
+      "Buyer": {
+        "type": "object",
+        "required": ["first_name", "last_name", "email"],
+        "properties": {
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone_number": { "type": "string" }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "service_name": { "type": "string" },
+          "slot": { "type": "object" },
+          "buyer": { "$ref": "#/components/schemas/Buyer" },
+          "party_size": { "type": "integer" },
+          "status": { "type": "string" },
+          "confirmation_mode": { "type": "string" }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["error", "warning", "info"] },
+          "code": { "type": "string" },
+          "content": { "type": "string" },
+          "severity": { "type": "string" }
+        }
+      },
+      "WaitlistEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "buyer": { "$ref": "#/components/schemas/Buyer" },
+          "status": { "type": "string", "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"] },
+          "position": { "type": "integer" },
+          "offered_slot": { "type": "object" },
+          "offer_expires_at": { "type": "string" },
+          "created_at": { "type": "string" }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "cursor": { "type": ["string", "null"] },
+          "has_more": { "type": "boolean" }
+        }
+      }
+    },
+    "errors": {
+      "USPError": {
+        "code": -32001,
+        "message": "USP business outcome or protocol error",
+        "data": {
+          "type": "object",
+          "description": "May include code (slot_unavailable, hold_expired, booking_not_found, validation_error, etc.), messages array, and severity"
+        }
+      }
+    }
+  }
+}
