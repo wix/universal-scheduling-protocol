@@ -10,7 +10,7 @@
 
 The Universal Scheduling Protocol (USP) is an open standard that enables consumer platforms and AI agents to discover, check availability of, and book time-based services from businesses. USP supports both **paid** and **free** agentic scheduling through two deployment modes.
 
-USP defines three core capabilities -- service catalog, availability, and booking -- along with optional extensions for waitlist management. It supports REST, MCP, A2A, and ESP transport bindings and references IETF standards directly for cross-cutting concerns (security, authorization, error format, idempotency, webhook verification).
+USP defines three core capabilities - service catalog, availability, and booking - along with optional extensions for waitlist management. It supports REST, MCP, A2A, and ESP transport bindings and references IETF standards directly for cross-cutting concerns (security, authorization, error format, idempotency, webhook verification).
 
 USP offers two deployment modes: **UCP-Native Mode** for platforms that already support the [Universal Commerce Protocol (UCP)][UCP], where scheduling capabilities register directly in the UCP profile and paid bookings use atomic checkout; and **Standalone Mode** for platforms that want a self-contained scheduling protocol with generic payment handoff. Both modes share the same domain core (service catalog, availability, booking lifecycle) and the same transport bindings. The mode determines only how discovery, payment, and infrastructure are handled.
 
@@ -118,7 +118,7 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
 
 The Universal Scheduling Protocol (USP) is an open standard that enables consumer platforms and AI agents to **discover**, **check availability of**, and **book** time-based services from businesses.
 
-USP defines the complete scheduling domain -- service catalog, availability, holds, and bookings -- with two deployment modes: UCP-Native Mode (Section 6) for platforms using the Universal Commerce Protocol, and Standalone Mode (Section 7) for self-contained deployments. Cross-cutting concerns (security, authorization, error format, idempotency, webhook verification) reference IETF standards directly.
+USP defines the complete scheduling domain - service catalog, availability, holds, and bookings - with two deployment modes: UCP-Native Mode (Section 6) for platforms using the Universal Commerce Protocol, and Standalone Mode (Section 7) for self-contained deployments. Cross-cutting concerns (security, authorization, error format, idempotency, webhook verification) reference IETF standards directly.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These keywords **MUST** only carry their special meaning when they appear in all capitals, as shown here.
 
@@ -142,7 +142,7 @@ The following terms are used throughout this document:
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See Section 6 (UCP-Native Mode) or Section 7.6 (Standalone Mode payment integration). |
 | **Extension** | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability. |
 | **Hold** | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry. |
-| **Payment Context** | A universal handoff object returned by USP when a booking requires payment. Contains amount, currency, line items, and expiry -- everything a checkout system needs to process payment. |
+| **Payment Context** | A universal handoff object returned by USP when a booking requires payment. Contains amount, currency, line items, and expiry - everything a checkout system needs to process payment. |
 | **Platform** | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from discovery through booking and payment. |
 | **Service** | A time-based offering provided by a business (e.g., a haircut, yoga class, restaurant table, car rental). Each service has a type, duration, pricing, and policies. |
 | **Slot** | A specific, bookable time window for a service. Slots are computed dynamically from the business's schedule, resources, and existing bookings. Also referred to as "time slot." |
@@ -201,17 +201,21 @@ USP builds upon and complements several existing standards. This section clarifi
 | **RFC 6749** (OAuth 2.0) [RFC 6749] | USP uses OAuth 2.0 for authorization and identity linking. See [Section 9.6](#96-authentication-and-authorization). |
 | **RFC 9421** (HTTP Message Signatures) [RFC 9421] | USP uses HTTP Message Signatures for webhook integrity verification. See [Section 9.3](#93-webhook-security). |
 
-### 1.5 Deployment Modes and Implementation Guide
+### 1.5 Deployment Modes
 
-USP supports two deployment modes. An implementer chooses one mode based on existing infrastructure and follows the corresponding implementation stages. Both modes share the same domain core (Sections 1-5) for service catalog, availability, and booking lifecycle.
+USP supports two deployment modes. An implementer of USP chooses one mode 
+based on their existing infrastructure and follows the implementation stages 
+associated with that deployment mode.
+Both modes share the same domain core (Sections 1-5) for service catalog, 
+availability, and booking lifecycle.
 
 #### 1.5.1 Choosing a Deployment Mode
 
-| If your platform... | Choose | Read |
-|---------------------|--------|------|
-| Already supports [UCP][UCP] | **UCP-Native Mode** (Section 6) | Sections 1-6, 8.1-8.5, 9.1, optionally 10, 11-13 |
-| Does not support UCP, or wants a standalone scheduling protocol | **Standalone Mode** (Section 7) | Sections 1-5, 7, 8 (all), 9 (all), optionally 10, 11-13 |
-| Only offers free services | Either mode (for discovery only) | Sections 1-5, mode section (skip payment), 8-9, 11-13 |
+| If your platform...                                             | Choose                                | Read                                                                                  |
+|-----------------------------------------------------------------|---------------------------------------|---------------------------------------------------------------------------------------|
+| Already supports [UCP][UCP]                                     | **UCP-Native Mode** (Section 6)       | Sections 1-6, 8.1-8.5, 9.1, optionally 10, 11-13                                      |
+| Does not support UCP, or wants a standalone scheduling protocol | **Standalone Mode** (Section 7)       | Sections 1-5, 7, 8 (all), 9 (all), optionally 10, 11-13                               |
+| Only offers free services                                       | Either <br/>mode (for discovery only) | Sections 1-5, chosen deployment mode's section (without the payment part), 8-9, 11-13 |
 
 #### 1.5.2 UCP-Native Implementation Stages
 
@@ -222,9 +226,9 @@ If your platform supports UCP, follow these steps to add USP scheduling capabili
 3. **Implement availability.** Expose availability query and optional hold mechanism. See Section 4.
 4. **Implement booking lifecycle.** Expose create, get, update, confirm, cancel, and reschedule booking operations. See Section 5.
 5. **If offering paid services:** Add the `paid_bookings` extension to your UCP checkout schema (Section 6.4) and implement the checkout flow (Section 6.5).
-6. **If offering free services only:** Follow Section 6.6 -- no checkout integration needed.
-7. **Implement USP-specific transport details** for your chosen binding (Sections 8.1-8.5). **Skip Section 8.6** -- UCP provides your transport infrastructure.
-8. **Implement USP-specific security requirements** (Section 9.1). **Skip Section 9.2** -- UCP provides your security infrastructure.
+6. **If offering free services only:** Follow Section 6.6 - no checkout integration needed.
+7. **Implement USP-specific transport details** for your chosen binding (Sections 8.1-8.5). **Skip Section 8.6** - UCP provides your transport infrastructure.
+8. **Implement USP-specific security requirements** (Section 9.1). **Skip Section 9.2** - UCP provides your security infrastructure.
 9. **Optional:** Implement the waitlist extension (Section 10).
 10. **Verify** against end-to-end flows (Section 6.7).
 
@@ -237,7 +241,7 @@ If your platform does not use UCP, follow these steps:
 3. **Implement service catalog.** Expose the service catalog API (list services, get service, feed). See Section 3.
 4. **Implement availability.** Expose availability query and optional hold mechanism. See Section 4.
 5. **Implement booking lifecycle.** Expose create, get, update, confirm, cancel, and reschedule booking operations. See Section 5.
-6. **If offering paid services:** Implement payment integration (Section 7.6) -- choose the generic payment flow (Section 7.6.4) and/or the ACP booking extension (Section 7.6.6).
+6. **If offering paid services:** Implement payment integration (Section 7.6) - choose the generic payment flow (Section 7.6.4) and/or the ACP booking extension (Section 7.6.6).
 7. **If offering free services only:** Skip Section 7.6 entirely.
 8. **Implement transport binding** for your chosen transport (Sections 8.1-8.5) **and** transport infrastructure (Section 8.6).
 9. **Implement security requirements** (Section 9.1) **and** security infrastructure (Section 9.2).
@@ -322,7 +326,7 @@ The entity offering time-based services. In USP, the business owns the schedule,
 
 #### 2.1.3 Credential Provider (CP)
 
-A trusted entity that securely manages user payment instruments and identity. USP does not interact with credential providers directly -- this interaction occurs within the checkout system used for payment.
+A trusted entity that securely manages user payment instruments and identity. USP does not interact with credential providers directly - this interaction occurs within the checkout system used for payment.
 
 - **Examples:** Google Wallet, Apple Pay, digital identity providers.
 
@@ -369,27 +373,27 @@ USP supports two deployment modes. Both share the same scheduling layer (catalog
 graph TD
     subgraph USP ["USP — Scheduling (shared)"]
         direction LR
-        P[Platform / Agent] -- "catalog + availability + booking" --> B[Business]
+        P[Platform / Agent] - "catalog + availability + booking" --> B[Business]
     end
 
     subgraph UCP_Mode ["UCP-Native Mode"]
         direction LR
-        P1[Platform] -- "create_checkout\n(booking extension)" --> UCP[UCP Checkout]
-        UCP -- "complete_checkout\n(atomic: payment + booking)" --> PSP1[PSP]
+        P1[Platform] - "create_checkout\n(booking extension)" --> UCP[UCP Checkout]
+        UCP - "complete_checkout\n(atomic: payment + booking)" --> PSP1[PSP]
     end
 
     subgraph Standalone_Mode ["Standalone Mode"]
         direction LR
-        P2[Platform] -- "payment_context" --> CS[Checkout System]
-        CS -- "process payment" --> PSP2[PSP]
-        P2 -- "confirm-payment" --> B2[Business]
+        P2[Platform] - "payment_context" --> CS[Checkout System]
+        CS - "process payment" --> PSP2[PSP]
+        P2 - "confirm-payment" --> B2[Business]
     end
 
-    USP -- "paid booking\n(UCP platform)" --> UCP_Mode
-    USP -- "paid booking\n(non-UCP platform)" --> Standalone_Mode
+    USP - "paid booking\n(UCP platform)" --> UCP_Mode
+    USP - "paid booking\n(non-UCP platform)" --> Standalone_Mode
 ```
 
-**UCP-Native Mode** (Section 6): Platforms that already support UCP register USP scheduling capabilities directly in their `/.well-known/ucp` profile. Paid bookings use UCP's atomic checkout -- `complete_checkout` finalizes both payment and booking in a single operation. Infrastructure (discovery, negotiation, security, error handling) is inherited from UCP.
+**UCP-Native Mode** (Section 6): Platforms that already support UCP register USP scheduling capabilities directly in their `/.well-known/ucp` profile. Paid bookings use UCP's atomic checkout - `complete_checkout` finalizes both payment and booking in a single operation. Infrastructure (discovery, negotiation, security, error handling) is inherited from UCP.
 
 **Standalone Mode** (Section 7): Platforms that do not use UCP discover businesses via `/.well-known/usp` and use USP's own infrastructure. For paid bookings, the business returns a `payment_context` object that any checkout system can process. The platform calls `confirm-payment` after payment succeeds.
 
@@ -462,13 +466,13 @@ This model is appropriate when a central entity manages all locations and wants 
 
 **Capability:** `dev.usp.services.catalog`
 
-The catalog enables platforms to **discover what services a business offers** -- types, pricing, policies, resources, and delivery channels.
+The catalog enables platforms to **discover what services a business offers** - types, pricing, policies, resources, and delivery channels.
 
 ### 3.1 Service Catalog Feed
 
-Businesses **SHOULD** publish a service catalog feed for aggregators and indexing platforms. The feed enables incremental synchronization -- aggregators maintain a cursor and fetch only changed records since their last sync, rather than re-fetching the entire catalog.
+Businesses **SHOULD** publish a service catalog feed for aggregators and indexing platforms. The feed enables incremental synchronization - aggregators maintain a cursor and fetch only changed records since their last sync, rather than re-fetching the entire catalog.
 
-**Feed Endpoint** -- `GET /services/feed`
+**Feed Endpoint** - `GET /services/feed`
 
 The feed returns a paginated, chronologically ordered list of service records, sorted by `modified_at` ascending. This design follows the Realtime Paged Data Exchange (RPDE) pattern used by [OpenActive] and is analogous to product feeds in commerce platforms.
 
@@ -532,12 +536,12 @@ The `List Services` operation ([Section 3.10](#310-operations)) remains availabl
 
 ### 3.2 Catalog Caching and Indexing
 
-Service catalog data is relatively static -- services, pricing, and policies change infrequently compared to real-time availability. Platforms and aggregators **SHOULD** cache catalog data rather than querying it on every user interaction.
+Service catalog data is relatively static - services, pricing, and policies change infrequently compared to real-time availability. Platforms and aggregators **SHOULD** cache catalog data rather than querying it on every user interaction.
 
 **Recommended caching strategies:**
 
 - **Merchant aggregators** (e.g., Google Merchant Center): Catalog data **SHOULD** be indexed by consuming the service catalog feed ([Section 3.1](#31-service-catalog-feed)) via incremental cursor-based synchronization. This enables pre-indexed service discovery and search across businesses without real-time API calls. Aggregators **SHOULD** synchronize at least once per hour for high-frequency businesses and once per day for low-frequency businesses.
-- **Web crawlers and structured data**: Businesses **SHOULD** additionally expose service catalog data as [schema.org/Service](https://schema.org/Service) structured data on their website, enabling search engines and discovery platforms to index services through standard web scraping. This is complementary to the API -- the structured data provides discoverability, while the USP API provides the programmatic booking flow.
+- **Web crawlers and structured data**: Businesses **SHOULD** additionally expose service catalog data as [schema.org/Service](https://schema.org/Service) structured data on their website, enabling search engines and discovery platforms to index services through standard web scraping. This is complementary to the API - the structured data provides discoverability, while the USP API provides the programmatic booking flow.
 - **Platform-level caching**: Platforms **SHOULD** cache catalog responses according to HTTP `Cache-Control` headers. Platforms **SHOULD** refresh cached catalog data at intervals between 1 and 24 hours, depending on the business vertical and rate of change.
 
 Availability and booking, by contrast, are real-time operations and **MUST NOT** be served from stale caches.
@@ -575,15 +579,15 @@ The service object represents a bookable offering from a business. Each service 
 | `name` | string | **Yes** | Human-readable display name for the service (e.g., "Women's Haircut & Style"). |
 | `description` | string | No | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents. |
 | `type` | string | **Yes** | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#9-service-verticals). |
-| `category` | object | No | `{id, name, parent_id}` -- business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization. |
+| `category` | object | No | `{id, name, parent_id}` - business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization. |
 | `duration` | Duration | **Yes** | Duration configuration. See [Section 3.5](#35-duration). |
 | `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Section 3.6](#36-pricing). |
 | `locations` | Array\[Location\] | No | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`. |
 | `resources` | Array\[ResourceRequirement\] | No | Required staff, rooms, or equipment. See [Section 3.8](#38-resource-requirement). |
 | `channel` | object | **Yes** | Delivery channel for the service. See channel types below. |
 | `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling, and payment policies. See [Section 3.7](#37-service-policies). |
-| `capacity` | object | No | `{min, max, waitlist}` -- **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full. |
-| `images` | Array\[object\] | No | `{url, alt, type}` -- service images. `type` is one of `hero`, `gallery`, or `thumbnail`. |
+| `capacity` | object | No | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full. |
+| `images` | Array\[object\] | No | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`. |
 | `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.4](#34-availability-hint). |
 
 **Channel types:**
@@ -597,7 +601,7 @@ The service object represents a bookable offering from a business. Each service 
 
 ### 3.4 Availability Hint
 
-An optional, lightweight summary of a service's near-term availability. The hint is designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before hitting the real-time availability API. It is cached alongside catalog data and serves as "Tier 0" of the availability funnel (see [Section 4.4 -- Caching Strategy](#34-caching-strategy)).
+An optional, lightweight summary of a service's near-term availability. The hint is designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before hitting the real-time availability API. It is cached alongside catalog data and serves as "Tier 0" of the availability funnel (see [Section 4.4 - Caching Strategy](#34-caching-strategy)).
 
 The hint captures the same information a receptionist would give over the phone: a natural-language snapshot of when the business is open, busy, or booked out. Businesses **SHOULD** regenerate this field every 1-6 hours, or whenever availability changes significantly (e.g., a day transitions from available to fully booked).
 
@@ -616,15 +620,15 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 | # | Use Case | Agent Scenario | How the Hint Helps |
 |---|----------|---------------|-------------------|
 | 1 | **First-available search** | "Book me a haircut as soon as possible." | `next_available_date` lets the agent jump directly to the first opening instead of scanning day-by-day from today. |
-| 2 | **Multi-business comparison** | "Find me a massage therapist available this Thursday." | The agent reads hints from multiple businesses' cached catalogs and filters out those marked as booked -- without making any availability API calls. |
-| 3 | **Flexible date negotiation** | "I'm flexible -- find me a good time next week." | The `summary` names specific days with openings, so the agent can propose smart options conversationally before querying slot-level. |
+| 2 | **Multi-business comparison** | "Find me a massage therapist available this Thursday." | The agent reads hints from multiple businesses' cached catalogs and filters out those marked as booked - without making any availability API calls. |
+| 3 | **Flexible date negotiation** | "I'm flexible - find me a good time next week." | The `summary` names specific days with openings, so the agent can propose smart options conversationally before querying slot-level. |
 | 4 | **Proactive rescheduling** | A booking is canceled; the agent helps the user rebook. | The agent reads the hint from the cached catalog and immediately suggests alternate days, enabling a faster rescheduling flow. |
 | 5 | **Availability-aware recommendations** | "I want to book a yoga class this weekend." | The agent ranks services not just by relevance but by likelihood of availability, avoiding the pattern of recommending a class only to discover it's full. |
-| 6 | **Smart date range scoping** | Agent builds a calendar view for the user. | The hint identifies fully-booked periods, so the agent only queries day-level for the remaining open range -- reducing payload size and API load. |
-| 7 | **Long-horizon search** | "Book me with Dr. Smith -- I don't care when." | The hint says "booked solid for 3 weeks, next opening around April 1," letting the agent set expectations and target a narrow query window across a large booking horizon. |
-| 8 | **Multi-service bundling** | "Haircut and color treatment back-to-back." | Hints for each service reveal overlapping open days, so the agent intersects constraints from the hints before querying -- reducing API fan-out. |
+| 6 | **Smart date range scoping** | Agent builds a calendar view for the user. | The hint identifies fully-booked periods, so the agent only queries day-level for the remaining open range - reducing payload size and API load. |
+| 7 | **Long-horizon search** | "Book me with Dr. Smith - I don't care when." | The hint says "booked solid for 3 weeks, next opening around April 1," letting the agent set expectations and target a narrow query window across a large booking horizon. |
+| 8 | **Multi-service bundling** | "Haircut and color treatment back-to-back." | Hints for each service reveal overlapping open days, so the agent intersects constraints from the hints before querying - reducing API fan-out. |
 | 9 | **Off-peak targeting** | "When is the cheapest time to book?" | The hint identifies low-demand windows (e.g., midweek mornings), which the agent can infer as likely off-peak pricing for services with `variable` pricing models. |
-| 10 | **Background pre-qualification** | Agent compiles a daily briefing of scheduling options. | Hints from the user's preferred businesses are read entirely from the cached catalog -- zero availability API calls -- to produce a summary like "Your salon has openings Tuesday; your dentist is booked until April." |
+| 10 | **Background pre-qualification** | Agent compiles a daily briefing of scheduling options. | Hints from the user's preferred businesses are read entirely from the cached catalog - zero availability API calls - to produce a summary like "Your salon has openings Tuesday; your dentist is booked until April." |
 
 ```json
 {
@@ -657,7 +661,7 @@ The duration object defines how long a service takes. Either a fixed duration or
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `fixed` | string | Conditional | ISO 8601 duration. **REQUIRED** if `range` is not present. The exact duration of the service. |
-| `range` | object | Conditional | **REQUIRED** if `fixed` is not present. `{min, max, step}` -- all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
+| `range` | object | Conditional | **REQUIRED** if `fixed` is not present. `{min, max, step}` - all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
 | `buffer_before` | string | No | ISO 8601 duration. Non-bookable prep time before the service (e.g., room setup). This time is blocked on the schedule but not visible to the buyer. |
 | `buffer_after` | string | No | ISO 8601 duration. Non-bookable cleanup time after the service (e.g., sanitization between clients). |
 
@@ -670,7 +674,7 @@ The pricing object defines how a service is priced. The combination of `model` a
 | `model` | string | **Yes** | The pricing model. See pricing model values below. |
 | `amount` | integer | Conditional | Price in minor currency units (e.g., `7500` = $75.00). **REQUIRED** when `model` is `fixed`, `hourly`, or `per_person`. **MUST NOT** be present when `model` is `free`. **MAY** be absent when `model` is `variable` (price is determined at slot query time). |
 | `currency` | string | **Yes** | ISO 4217 currency code (e.g., `USD`, `EUR`, `GBP`). **REQUIRED** even when `model` is `free` (to establish the business's operating currency). |
-| `deposit` | object | No | `{type, value, refundable}` -- **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
+| `deposit` | object | No | `{type, value, refundable}` - **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
 
 **Pricing model values:**
 
@@ -705,7 +709,7 @@ The resource requirement defines what staff, rooms, or equipment are needed for 
 | `type` | string | **Yes** | The kind of resource. `staff`: a person providing the service (e.g., stylist, therapist, instructor). `room`: a physical space (e.g., treatment room, studio, court). `equipment`: a piece of equipment (e.g., camera, projector, vehicle). `other`: any resource that does not fit the above categories. |
 | `name` | string | No | Human-readable label for this resource type (e.g., "Stylist", "Treatment Room"). Displayed to the buyer when `selectable` is `true`. |
 | `selectable` | boolean | No | Whether the buyer can choose a specific resource during booking. Default: `false`. When `true`, the `options` array **MUST** be populated. When `false`, the business assigns the resource automatically. |
-| `options` | Array\[Resource\] | No | `{id, name, description, image_url}` -- the available resource instances. **REQUIRED** when `selectable` is `true`. Each option represents a specific resource the buyer can choose (e.g., a specific stylist or a specific room). |
+| `options` | Array\[Resource\] | No | `{id, name, description, image_url}` - the available resource instances. **REQUIRED** when `selectable` is `true`. Each option represents a specific resource the buyer can choose (e.g., a specific stylist or a specific room). |
 
 ### 3.9 Validation Rules
 
@@ -746,7 +750,7 @@ The following constraints define legal combinations of `requires_payment`, `paym
 
 ### 3.10 Operations
 
-#### 3.10.1 List Services -- `POST /services/list`
+#### 3.10.1 List Services - `POST /services/list`
 
 Returns a filtered, paginated list of services from the business catalog. Designed for interactive use by platforms and AI agents.
 
@@ -806,7 +810,7 @@ Response:
 }
 ```
 
-#### 3.10.2 Feed Subscriptions -- `POST /services/feed/subscriptions`
+#### 3.10.2 Feed Subscriptions - `POST /services/feed/subscriptions`
 
 Platforms and aggregators **MAY** register for push-based catalog change notifications by creating a feed subscription. This formalizes the producer-consumer relationship between a feed producer (business) and a feed consumer (platform/aggregator).
 
@@ -862,7 +866,7 @@ Response:
 
 Businesses that support feed subscriptions **SHOULD** declare the `dev.usp.services.catalog.subscriptions` capability in their profile.
 
-#### 3.10.3 Get Service -- `GET /services/{service_id}`
+#### 3.10.3 Get Service - `GET /services/{service_id}`
 
 Returns the full service object for a single service.
 
@@ -921,10 +925,10 @@ A time slot represents a specific, bookable window for a service. Slots are comp
 | `end` | string | **Yes** | RFC 3339 end time of the slot. |
 | `duration` | string | **Yes** | ISO 8601 duration of the slot (e.g., `PT60M`). |
 | `state` | string | **Yes** | The availability state of the slot. See state values below. |
-| `capacity` | object | No | `{total, remaining, held}` -- present for `group` and `reservation` types. `total`: maximum number of spots. `remaining`: spots still available. `held`: spots currently in active holds. |
-| `resources` | Array\[object\] | No | `{id, type, name}` -- resources available for this slot (e.g., which staff members or rooms are free). |
-| `location` | object | No | `{id, name}` -- the specific location for this slot, when a service is offered at multiple locations. |
-| `pricing` | object | No | `{amount, currency, label}` -- slot-specific pricing that overrides the service-level pricing. Used for peak/off-peak pricing, demand-based pricing, or promotional rates. `label` is an optional human-readable note (e.g., "Peak hour rate"). |
+| `capacity` | object | No | `{total, remaining, held}` - present for `group` and `reservation` types. `total`: maximum number of spots. `remaining`: spots still available. `held`: spots currently in active holds. |
+| `resources` | Array\[object\] | No | `{id, type, name}` - resources available for this slot (e.g., which staff members or rooms are free). |
+| `location` | object | No | `{id, name}` - the specific location for this slot, when a service is offered at multiple locations. |
+| `pricing` | object | No | `{amount, currency, label}` - slot-specific pricing that overrides the service-level pricing. Used for peak/off-peak pricing, demand-based pricing, or promotional rates. `label` is an optional human-readable note (e.g., "Peak hour rate"). |
 
 **Slot state values:**
 
@@ -949,7 +953,7 @@ A hold is a temporary reservation of a time slot that prevents double-booking du
 
 ### 4.3 Operations
 
-#### 4.3.1 Query Availability -- `POST /availability/query`
+#### 4.3.1 Query Availability - `POST /availability/query`
 
 Returns available time slots for a service within a date range. Use the [Availability Hint](#34-availability-hint) on the service entity to narrow the date range before querying.
 
@@ -1013,7 +1017,7 @@ Response:
 }
 ```
 
-#### 4.3.2 Hold Slot -- `POST /availability/holds`
+#### 4.3.2 Hold Slot - `POST /availability/holds`
 
 Creates a temporary hold on a time slot to prevent double-booking while the buyer completes the booking flow.
 
@@ -1062,7 +1066,7 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 }
 ```
 
-#### 4.3.3 Release Slot -- `DELETE /availability/holds/{hold_id}`
+#### 4.3.3 Release Slot - `DELETE /availability/holds/{hold_id}`
 
 Explicitly releases a hold before it expires. This frees the slot for other buyers.
 
@@ -1101,7 +1105,7 @@ This creates a natural funnel that balances user experience with data freshness:
 
 ```mermaid
 graph TD
-    H["1. Availability Hint (catalog-cached, 1-6hr)"] -- "Agent narrows date range" --> S
+    H["1. Availability Hint (catalog-cached, 1-6hr)"] - "Agent narrows date range" --> S
     S["2. Slot Query (slot-level, short cache)"] --> D["Agent picks a slot"]
     D --> E["3. Hold Slot (real-time)"]
     E --> F["4. Create Booking"]
@@ -1131,7 +1135,7 @@ The bookings capability defines the **lifecycle of a service booking** from crea
 
 | Status | Description |
 |--------|-------------|
-| `pending` | Booking has been created and is awaiting confirmation. For `auto` confirmation mode, this state is transient -- the booking moves to `confirmed` immediately (or to `requires_action` if payment is needed). For `manual` mode, the booking remains in `pending` until the business explicitly confirms it. |
+| `pending` | Booking has been created and is awaiting confirmation. For `auto` confirmation mode, this state is transient - the booking moves to `confirmed` immediately (or to `requires_action` if payment is needed). For `manual` mode, the booking remains in `pending` until the business explicitly confirms it. |
 | `requires_action` | Buyer input is needed before the booking can be confirmed. Inspect the `messages` array for details (e.g., `payment_required`). The booking response includes `payment_context` for payment processing, or `continue_url` for browser-based handoff. This status is used when `payment_timing` is `at_booking` or `deposit_required`. |
 | `confirmed` | The booking is confirmed and the service will proceed at the scheduled time. This is reached after auto-confirmation, manual business approval, or successful payment completion (via `confirm-payment` or webhook). |
 | `in_progress` | The service is currently being delivered. Transitioned by the business when the appointment/session begins. |
@@ -1149,12 +1153,12 @@ The booking object represents a scheduled service instance for a specific buyer 
 |-------|------|----------|-------------|
 | `id` | string | **Yes** | Unique booking identifier, generated by the business. |
 | `service_id` | string | **Yes** | The booked service. |
-| `service_name` | string | **Yes** | Service display name, captured at booking time. This is a snapshot -- it does not change if the service name is later updated. |
-| `slot` | object | **Yes** | `{id, start, end, duration}` -- the booked time slot. |
-| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` -- the person receiving the service. |
+| `service_name` | string | **Yes** | Service display name, captured at booking time. This is a snapshot - it does not change if the service name is later updated. |
+| `slot` | object | **Yes** | `{id, start, end, duration}` - the booked time slot. |
+| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` - the person receiving the service. |
 | `party_size` | integer | **Yes** | Total number of attendees. For `appointment` types, this is typically `1`. For `group` and `reservation` types, this reflects the number of spots booked. |
-| `resources` | Array\[object\] | No | `{id, type, name}` -- the specific resources assigned to this booking (e.g., which stylist, which room). |
-| `location` | object | No | `{id, name}` -- the specific location for this booking. |
+| `resources` | Array\[object\] | No | `{id, type, name}` - the specific resources assigned to this booking (e.g., which stylist, which room). |
+| `location` | object | No | `{id, name}` - the specific location for this booking. |
 | `status` | string | **Yes** | Current booking status. See [Section 5.1](#31-booking-status-lifecycle). |
 | `confirmation_mode` | string | **Yes** | `auto` or `manual`. Reflects the service's confirmation policy at booking time. |
 | `payment` | BookingPayment | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See Section 7.6.1 (Standalone Mode). |
@@ -1162,14 +1166,14 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `messages` | Array\[Message\] | No | Messages providing context about the booking state. Each message has: `type` (`error`, `warning`, `info`), `code` (machine-readable code), `content` (human-readable text), `severity` (`requires_buyer_input`, `recoverable`, `requires_buyer_review`), `path` (optional JSON Pointer). |
 | `continue_url` | string | Conditional | Business UI handoff URL. **MUST** be provided when `status` is `requires_action`. The platform **SHOULD** redirect or present this URL to the buyer to complete the required action. |
 | `notes` | string | No | Buyer-provided special requests or notes. |
-| `cancellation` | object | No | `{reason, canceled_by, fee, refund_amount, canceled_at}` -- present when the booking has been canceled. |
+| `cancellation` | object | No | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled. |
 | `created_at` | string | **Yes** | RFC 3339 timestamp of when the booking was created. |
 | `updated_at` | string | **Yes** | RFC 3339 timestamp of the last status change or modification. |
 | `expires_at` | string | No | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. If not resolved by this time, the booking transitions to `canceled`. |
 
 ### 5.3 Operations
 
-#### 5.3.1 Create Booking -- `POST /bookings`
+#### 5.3.1 Create Booking - `POST /bookings`
 
 Creates a new booking for a service at a specific time slot. The platform **SHOULD** hold the slot before creating the booking to prevent race conditions.
 
@@ -1286,27 +1290,27 @@ Response (free service, `requires_payment: false`):
 }
 ```
 
-#### 5.3.2 Get Booking -- `GET /bookings/{booking_id}`
+#### 5.3.2 Get Booking - `GET /bookings/{booking_id}`
 
 Returns the current state of a booking. Same structure as the booking object above.
 
-#### 5.3.3 Update Booking -- `PUT /bookings/{booking_id}`
+#### 5.3.3 Update Booking - `PUT /bookings/{booking_id}`
 
 Updates mutable fields on a booking. Only `buyer` and `notes` are mutable after creation.
 
-#### 5.3.4 Confirm Booking -- `POST /bookings/{booking_id}/confirm`
+#### 5.3.4 Confirm Booking - `POST /bookings/{booking_id}/confirm`
 
 Business-initiated confirmation for bookings with `confirmation_mode: manual`. Transitions the booking from `pending` to `confirmed`.
 
-#### 5.3.5 Cancel Booking -- `POST /bookings/{booking_id}/cancel`
+#### 5.3.5 Cancel Booking - `POST /bookings/{booking_id}/cancel`
 
 Cancels a booking. Cancellation fees are applied per the service's cancellation policy.
 
-#### 5.3.6 Reschedule Booking -- `POST /bookings/{booking_id}/reschedule`
+#### 5.3.6 Reschedule Booking - `POST /bookings/{booking_id}/reschedule`
 
 Moves a booking to a different time slot. The platform **SHOULD** hold the new slot before rescheduling. Rescheduling limits and fees are governed by the service's rescheduling policy.
 
-#### 5.3.7 Confirm Payment -- `POST /bookings/{booking_id}/confirm-payment`
+#### 5.3.7 Confirm Payment - `POST /bookings/{booking_id}/confirm-payment`
 
 The universal callback that the platform calls after payment succeeds. This transitions the booking from `requires_action` to `confirmed`.
 
@@ -1410,7 +1414,7 @@ The webhook payload for catalog change events **MUST** include the `service_id` 
 }
 ```
 
-Platforms receiving catalog webhooks **SHOULD** update their cached catalog data accordingly. Catalog webhooks are complementary to -- not a replacement for -- the feed endpoint. Platforms that rely solely on polling **MAY** ignore catalog webhooks.
+Platforms receiving catalog webhooks **SHOULD** update their cached catalog data accordingly. Catalog webhooks are complementary to - not a replacement for - the feed endpoint. Platforms that rely solely on polling **MAY** ignore catalog webhooks.
 
 ### 5.5 Post-Booking Lifecycle
 
@@ -1465,7 +1469,7 @@ Use UCP-Native Mode when:
 - You want atomic payment-plus-booking confirmation (no two-phase `confirm-payment`)
 - You want to inherit UCP's infrastructure (negotiation, versioning, error model, security)
 
-In this mode, there is no `/.well-known/usp` profile. All capabilities -- shopping, services, scheduling -- are registered in the UCP profile. The scheduling domain (Sections 3-5) works identically; only the discovery and payment paths differ from Standalone Mode.
+In this mode, there is no `/.well-known/usp` profile. All capabilities - shopping, services, scheduling - are registered in the UCP profile. The scheduling domain (Sections 3-5) works identically; only the discovery and payment paths differ from Standalone Mode.
 
 ### 6.2 Profile Registration in /.well-known/ucp
 
@@ -1552,13 +1556,13 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 | Authentication | UCP OAuth 2.0 support | UCP Auth |
 | Rate Limiting | UCP rate limiting framework | UCP Rate Limiting |
 
-> **Reading guidance:** In UCP-Native Mode, read Sections 8.1-8.5 and 9.1 for USP-specific details (error codes, method mappings, webhook payload schemas). **Skip Sections 8.6 and 9.2** -- these are infrastructure requirements for Standalone Mode that UCP already provides.
+> **Reading guidance:** In UCP-Native Mode, read Sections 8.1-8.5 and 9.1 for USP-specific details (error codes, method mappings, webhook payload schemas). **Skip Sections 8.6 and 9.2** - these are infrastructure requirements for Standalone Mode that UCP already provides.
 
 ### 6.4 Paid Bookings Extension Schema
 
 **Capability:** `dev.usp.services.paid_bookings` (extends `dev.ucp.shopping.checkout`)
 
-The paid bookings extension adds a `booking` object to the UCP checkout. This object carries the scheduling context -- the slot, service, hold, resources, and booking status -- as a first-class, schema-validated extension field.
+The paid bookings extension adds a `booking` object to the UCP checkout. This object carries the scheduling context - the slot, service, hold, resources, and booking status - as a first-class, schema-validated extension field.
 
 The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.shopping.checkout`, consistent with UCP's schema composition model. See `schemas/services/paid_bookings.json`.
 
@@ -1650,9 +1654,9 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 | `booking_id` | string | **Yes** (response only) | Unique booking identifier, generated by the business when the checkout is created. |
 | `service_id` | string | **Yes** | The service being booked. |
 | `service_type` | string | **Yes** | The service vertical (e.g., `appointment`, `group`, `reservation`, `rental`). |
-| `slot` | object | **Yes** | `{id, start, end, duration}` -- the booked time slot. |
+| `slot` | object | **Yes** | `{id, start, end, duration}` - the booked time slot. |
 | `hold_id` | string | No | The hold ID if a slot was held. |
-| `resources` | Array\[object\] | No | `{id, type, name}` -- requested resources. |
+| `resources` | Array\[object\] | No | `{id, type, name}` - requested resources. |
 | `party_size` | integer | No | Number of participants. Default: 1. |
 | `confirmation_mode` | string | No | `auto` or `manual`. |
 | `booking_status` | string | **Yes** (response only) | `pending` while checkout is incomplete; `confirmed` when `complete_checkout` succeeds. |
@@ -1752,7 +1756,7 @@ sequenceDiagram
 3. **[USP] Hold the slot** via `POST /availability/holds`.
 4. **[UCP] Create checkout** with the booking extension.
 5. **[UCP] Acquire payment token** from the PSP.
-6. **[UCP] Complete checkout** -- atomic payment + booking confirmation.
+6. **[UCP] Complete checkout** - atomic payment + booking confirmation.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
 
 ---
@@ -1813,7 +1817,7 @@ Businesses publish their USP profile at `/.well-known/usp`:
 }
 ```
 
-The `checkout_systems` field is an **OPTIONAL** array that declares which checkout systems the business has integrated for paid bookings. Platforms use this field during discovery or onboarding to determine compatibility -- it is not consulted per-transaction.
+The `checkout_systems` field is an **OPTIONAL** array that declares which checkout systems the business has integrated for paid bookings. Platforms use this field during discovery or onboarding to determine compatibility - it is not consulted per-transaction.
 
 | Value | Description |
 |-------|-------------|
@@ -1879,7 +1883,7 @@ The USP discovery model assumes platforms already know a business's domain and c
 
 A USP registry is a centralized or federated directory that maintains a searchable list of USP-enabled businesses. Registries enable platforms to discover businesses by location, vertical, category, or keyword.
 
-#### 7.5.1 Business Registration -- `POST /registry/businesses`
+#### 7.5.1 Business Registration - `POST /registry/businesses`
 
 ```json
 {
@@ -1897,7 +1901,7 @@ A USP registry is a centralized or federated directory that maintains a searchab
 
 The registry **MUST** validate that the `usp_profile_url` is reachable and returns a valid USP profile before accepting the registration.
 
-#### 7.5.2 Business Search -- `POST /registry/search`
+#### 7.5.2 Business Search - `POST /registry/search`
 
 ```json
 {
@@ -2065,9 +2069,9 @@ USP defines `dev.usp.services.booking` as a proper ACP extension using ACP's nat
 | `at_booking` | Full amount | Payment must complete before booking confirms. |
 | `deposit_required` | Deposit amount | Deposit collected now; remainder at service time. |
 | `at_service` | 0 | No upfront payment; collected in person. |
-| Cancellation (free window) | -- | Full refund of collected amount. |
-| Cancellation (late) | -- | Refund = collected - cancellation fee. |
-| Business-initiated cancel | -- | Full refund. No fees. |
+| Cancellation (free window) | - | Full refund of collected amount. |
+| Cancellation (late) | - | Refund = collected - cancellation fee. |
+| Business-initiated cancel | - | Full refund. No fees. |
 
 For deposit bookings, the `payment_context.amount_due` reflects the deposit amount (not the full service price). The full service price is carried in `payment.amount` for informational purposes.
 
@@ -2525,7 +2529,7 @@ ESP iframes **MUST** use the `sandbox` attribute with the following minimum valu
 ></iframe>
 ```
 
-The business **MUST** set Content-Security-Policy headers restricting the embedded page's capabilities. The host **MUST** use `MessageChannel` for communication -- direct `postMessage` to `window.parent` is not permitted.
+The business **MUST** set Content-Security-Policy headers restricting the embedded page's capabilities. The host **MUST** use `MessageChannel` for communication - direct `postMessage` to `window.parent` is not permitted.
 
 All ESP messages **MUST** be validated against the expected JSON-RPC schema before processing.
 
@@ -2718,10 +2722,10 @@ The waitlist entry tracks a buyer's position and preferences.
 | `id` | string | **Yes** | Unique waitlist entry identifier. |
 | `service_id` | string | **Yes** | The service the buyer is waitlisted for. |
 | `buyer` | Buyer | **Yes** | The buyer requesting the slot. |
-| `preferred_slots` | Array\[object\] | No | `{start_date, end_date, time_of_day}` -- preferred time windows. If omitted, the buyer accepts any available slot. |
+| `preferred_slots` | Array\[object\] | No | `{start_date, end_date, time_of_day}` - preferred time windows. If omitted, the buyer accepts any available slot. |
 | `status` | string | **Yes** | Current waitlist status. See [Section 10.1.2](#1012-waitlist-lifecycle). |
 | `position` | integer | **Yes** | Current position in the waitlist queue (1-based). |
-| `offered_slot` | object | No | `{slot_id, start, end}` -- the slot being offered to this buyer. Present when `status` is `offered`. |
+| `offered_slot` | object | No | `{slot_id, start, end}` - the slot being offered to this buyer. Present when `status` is `offered`. |
 | `offer_expires_at` | string | No | RFC 3339 expiration time for the current offer. Present when `status` is `offered`. |
 | `created_at` | string | **Yes** | RFC 3339 timestamp of when the entry was created. |
 
@@ -2827,7 +2831,7 @@ If USP advances to Standards Track, future versions may request IANA registratio
 - **[RFC 9449]** Fett, D., Campbell, B., Bradley, J., Lodderstedt, T., Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449, September 2023. https://www.rfc-editor.org/rfc/rfc9449
 - **[RFC 9457]** Nottingham, M., Wilde, E., and S. Dalal, "Problem Details for HTTP APIs", RFC 9457, DOI 10.17487/RFC9457, July 2023. https://www.rfc-editor.org/rfc/rfc9457
 - **[RFC 9530]** Polli, R. and L. Pardue, "Digest Fields", RFC 9530, DOI 10.17487/RFC9530, February 2024. https://www.rfc-editor.org/rfc/rfc9530
-- **[ISO 8601]** International Organization for Standardization, "Date and time -- Representations for information interchange", ISO 8601:2019. https://www.iso.org/standard/70907.html
+- **[ISO 8601]** International Organization for Standardization, "Date and time - Representations for information interchange", ISO 8601:2019. https://www.iso.org/standard/70907.html
 - **[draft-ietf-httpapi-idempotency-key-header]** Dalal, S. and J. Desrosiers, "The Idempotency-Key HTTP Header Field", Internet-Draft. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 - **[draft-ietf-httpapi-ratelimit-headers]** Polli, R. and A. Martinez, "RateLimit Fields for HTTP", Internet-Draft. https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/
 

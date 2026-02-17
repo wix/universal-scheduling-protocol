@@ -8,7 +8,7 @@
 
 The Universal Scheduling Protocol (USP) is an open standard that enables consumer platforms and AI agents to **discover**, **check availability of**, and **book** time-based services from businesses. USP supports both **paid** and **free** agentic scheduling through two deployment modes.
 
-USP defines the complete scheduling domain -- service catalog, availability, holds, and bookings -- as the shared core. Two deployment modes determine how discovery, payment, and infrastructure are handled:
+USP defines the complete scheduling domain - service catalog, availability, holds, and bookings - as the shared core. Two deployment modes determine how discovery, payment, and infrastructure are handled:
 
 - **UCP-Native Mode**: For platforms that already support the [Universal Commerce Protocol (UCP)](https://ucp.dev). Scheduling capabilities register directly in `/.well-known/ucp`. Paid bookings use UCP's atomic checkout. Infrastructure is inherited from UCP.
 - **Standalone Mode**: For platforms that want a self-contained scheduling protocol. Businesses publish `/.well-known/usp`. Payment uses a generic `payment_context` + `confirm-payment` handoff that works with any checkout system, with a first-class [ACP](https://agenticcommerce.dev/) extension available.
@@ -17,13 +17,13 @@ Both modes share the same scheduling operations and transport bindings. The mode
 
 ## Problem
 
-Existing scheduling standards -- iCalendar ([RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)), iTIP ([RFC 5546](https://www.rfc-editor.org/rfc/rfc5546)), CalDAV Scheduling ([RFC 6638](https://www.rfc-editor.org/rfc/rfc6638)), [schema.org/Service](https://schema.org/Service), [Open Booking API](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) -- address parts of the service scheduling lifecycle but are **fragmented**, lack **native payment integration**, and were not designed for **autonomous AI agent orchestration**. No single open standard unifies:
+Existing scheduling standards - iCalendar ([RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)), iTIP ([RFC 5546](https://www.rfc-editor.org/rfc/rfc5546)), CalDAV Scheduling ([RFC 6638](https://www.rfc-editor.org/rfc/rfc6638)), [schema.org/Service](https://schema.org/Service), [Open Booking API](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) - address parts of the service scheduling lifecycle but are **fragmented**, lack **native payment integration**, and were not designed for **autonomous AI agent orchestration**. No single open standard unifies:
 
-1. **Service discovery** -- types, pricing, policies, and availability hints for AI reasoning
-2. **Real-time availability** -- time slots, capacity, resource scheduling, and slot holds
-3. **Booking lifecycle** -- create, confirm, reschedule, cancel, waitlist management, and post-booking events
-4. **Payment coordination** -- flexible payment paths for different commerce protocols
-5. **Identity and consent** -- account linking, buyer consent management, and privacy compliance
+1. **Service discovery** - types, pricing, policies, and availability hints for AI reasoning
+2. **Real-time availability** - time slots, capacity, resource scheduling, and slot holds
+3. **Booking lifecycle** - create, confirm, reschedule, cancel, waitlist management, and post-booking events
+4. **Payment coordination** - flexible payment paths for different commerce protocols
+5. **Identity and consent** - account linking, buyer consent management, and privacy compliance
 
 in a way that is both machine-readable and interoperable with modern commerce protocols.
 
@@ -38,14 +38,15 @@ USP solves this with core support for **appointments**, **group sessions**, **re
 
 ### Implementor Quick Start
 
-**Which mode are you?**
+Everyone starts with the **domain core (Sections 1-5)** - these define the 
+scheduling capabilities shared by both modes. After the domain core, read the 
+section for your deployment mode (6 or 7) according to the following table, then 
+shared infrastructure (8-9), and optionally extensions (10).
 
-| If your platform... | Choose | Start here |
-|---------------------|--------|------------|
+| If your platform...  | Choose              | Mode section                                    |
+|----------------------|---------------------|-------------------------------------------------|
 | Already supports UCP | **UCP-Native Mode** | [Section 6](specification.md#6-ucp-native-mode) |
 | Does not support UCP | **Standalone Mode** | [Section 7](specification.md#7-standalone-mode) |
-
-The specification is organized so you can read linearly. The domain core (Sections 1-5) applies to everyone. Then read the section for your deployment mode (6 or 7), shared infrastructure (8-9), and optionally extensions (10).
 
 ```mermaid
 graph TD
@@ -87,7 +88,8 @@ graph TD
     S10 --> S11
 ```
 
-For detailed step-by-step implementation stages for each mode, see [Section 1.5: Deployment Modes and Implementation Guide](specification.md#15-deployment-modes-and-implementation-guide) in the specification.
+For detailed step-by-step implementation stages for each deployment mode, see 
+[Section 1.5: Deployment Modes and Implementation Guide](specification.md#15-deployment-modes-and-implementation-guide) in the specification.
 
 ### Capabilities
 
