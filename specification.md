@@ -137,13 +137,14 @@ The following terms are used throughout this document:
 |------|------------|
 | **Booking** | A confirmed or pending reservation of a specific service at a specific time for a specific buyer. A booking has a lifecycle (create, confirm, reschedule, cancel, complete). |
 | **Business** | The entity offering time-based services. The business owns the schedule, resources, and booking policies. For payment purposes, the business is the Merchant of Record. |
-| **Buyer** | The end user receiving the service. Represented by a `buyer` object containing identity fields (name, email, phone). |
+| **Buyer** | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). The buyer is the primary contact for booking management, payment, and notifications. When no separate `recipient` is specified, the buyer is also the person receiving the service. |
 | **Capability** | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL. |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See Section 6 (UCP-Native Mode) or Section 7.6 (Standalone Mode payment integration). |
 | **Extension** | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability. |
 | **Hold** | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry. |
 | **Payment Context** | A universal handoff object returned by USP when a booking requires payment. Contains amount, currency, line items, and expiry - everything a checkout system needs to process payment. |
 | **Platform** | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from discovery through booking and payment. |
+| **Recipient** | The person receiving the service, when different from the buyer. Represented by an optional `recipient` object on the booking with the same identity fields as `buyer`. When absent, the buyer is the recipient. |
 | **Service** | A time-based offering provided by a business (e.g., a haircut, yoga class, restaurant table, car rental). Each service has a type, duration, pricing, and policies. |
 | **Slot** | A specific, bookable time window for a service. Slots are computed dynamically from the business's schedule, resources, and existing bookings. Also referred to as "time slot." |
 | **Vertical** | A classification of service type that determines the scheduling semantics (e.g., `appointment`, `group`, `reservation`, `rental`). See [Section 1.3](#9-service-verticals). |
@@ -1155,7 +1156,8 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `service_id` | string | **Yes** | The booked service. |
 | `service_name` | string | **Yes** | Service display name, captured at booking time. This is a snapshot - it does not change if the service name is later updated. |
 | `slot` | object | **Yes** | `{id, start, end, duration}` - the booked time slot. |
-| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` - the person receiving the service. |
+| `buyer` | Buyer | **Yes** | `{first_name, last_name, email, phone_number}` - the person making and paying for the booking. When no `recipient` is provided, the buyer is also the person receiving the service. |
+| `recipient` | Buyer | No | `{first_name, last_name, email, phone_number}` - the person receiving the service, when different from the buyer (e.g., a parent booking for a child, an assistant booking for their employer, or a gift booking). When absent, the buyer is the recipient. Same schema as `buyer`; not all fields are required — `first_name` and `last_name` **SHOULD** be provided at minimum. |
 | `party_size` | integer | **Yes** | Total number of attendees. For `appointment` types, this is typically `1`. For `group` and `reservation` types, this reflects the number of spots booked. |
 | `resources` | Array\[object\] | No | `{id, type, name}` - the specific resources assigned to this booking (e.g., which stylist, which room). |
 | `location` | object | No | `{id, name}` - the specific location for this booking. |
@@ -1175,7 +1177,7 @@ The booking object represents a scheduled service instance for a specific buyer 
 
 #### 5.3.1 Create Booking - `POST /bookings`
 
-Creates a new booking for a service at a specific time slot. The platform **SHOULD** hold the slot before creating the booking to prevent race conditions.
+Creates a new booking for a service at a specific time slot. The platform **SHOULD** hold the slot before creating the booking to prevent race conditions. When the person receiving the service is different from the buyer, the platform **SHOULD** include a `recipient` object.
 
 Request:
 
@@ -1193,6 +1195,29 @@ Request:
   "party_size": 1,
   "resource_id": "staff_jane",
   "notes": "First time visit"
+}
+```
+
+Request (booking on behalf of another person):
+
+```json
+{
+  "service_id": "svc_haircut_kids",
+  "slot_id": "slot_20260316_1600",
+  "hold_id": "hold_abc456",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "recipient": {
+    "first_name": "Max",
+    "last_name": "Williams"
+  },
+  "party_size": 1,
+  "resource_id": "staff_tom",
+  "notes": "He is 7 years old"
 }
 ```
 
@@ -1296,7 +1321,7 @@ Returns the current state of a booking. Same structure as the booking object abo
 
 #### 5.3.3 Update Booking - `PUT /bookings/{booking_id}`
 
-Updates mutable fields on a booking. Only `buyer` and `notes` are mutable after creation.
+Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are mutable after creation.
 
 #### 5.3.4 Confirm Booking - `POST /bookings/{booking_id}/confirm`
 
@@ -2418,7 +2443,7 @@ The following shows a complete booking flow through A2A task chaining between a 
 1. **Platform agent → Business agent:** Task `usp/services/list` with filters. Business agent returns the service catalog.
 2. **Platform agent → Business agent:** Task `usp/availability/query` with the selected service and date range. Business agent returns available slots.
 3. **Platform agent → Business agent:** Task `usp/availability/hold` with the selected slot. Business agent returns the hold.
-4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, hold, and buyer. Business agent returns the booking.
+4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, hold, buyer, and optional recipient. Business agent returns the booking.
 5. *(If payment required)* Platform agent processes payment through the configured checkout system.
 6. **Platform agent → Business agent:** Task `usp/bookings/confirm-payment` with the payment result.
 
@@ -2499,6 +2524,7 @@ ESP uses JSON-RPC 2.0 messaging over `MessageChannel` (web) or injected globals 
   "method": "esp.start",
   "params": {
     "buyer": {"first_name": "Alice", "email": "alice@example.com"},
+    "recipient": {"first_name": "Max", "last_name": "Williams"},
     "preferences": {"date": "2026-03-16", "time_of_day": "afternoon"},
     "accepted_delegations": ["slot_selection", "payment"]
   }
@@ -2512,7 +2538,7 @@ When the business sends `esp.ready`, it declares which delegations it supports v
 | Delegation | Description |
 |------------|-------------|
 | `slot_selection` | Host provides the time slot picker UI. Business requests slot via `esp.slot_selection.request`. |
-| `party_details` | Host provides participant details. Business requests via `esp.party_details.request`. |
+| `party_details` | Host provides participant details, including buyer and optional recipient information. Business requests via `esp.party_details.request`. |
 | `payment` | Host handles payment credential acquisition. Business requests via `esp.payment.credential_request`. |
 
 If a delegation is not accepted, the business handles that step internally within its embedded UI.
@@ -2537,7 +2563,7 @@ All ESP messages **MUST** be validated against the expected JSON-RPC schema befo
 
 1. Host embeds business scheduling iframe with `sandbox` attributes.
 2. Business sends `esp.ready` with `delegations: ["slot_selection", "payment"]`.
-3. Host sends `esp.start` with buyer context and `accepted_delegations: ["slot_selection", "payment"]`.
+3. Host sends `esp.start` with buyer context, optional recipient, and `accepted_delegations: ["slot_selection", "payment"]`.
 4. Business displays services/availability. When buyer selects a service, business sends `esp.slot_selection.request`.
 5. Host displays slot picker in its own UI. User selects a slot. Host sends `esp.slot_selection.response` with the selected slot.
 6. Business creates a pending booking. Business sends `esp.payment.credential_request` with amount and currency.

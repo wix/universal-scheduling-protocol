@@ -389,7 +389,7 @@
               "schema": {
                 "type": "object",
                 "required": ["service_id", "slot_id", "buyer"],
-                "properties": { "service_id": {}, "slot_id": {}, "hold_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "party_size": { "default": 1 }, "resource_id": {}, "notes": {}, "consent": { "type": "object", "properties": { "analytics": {}, "marketing": {}, "data_sharing": {}, "health_data": {} } } }
+                "properties": { "service_id": {}, "slot_id": {}, "hold_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." }, "party_size": { "default": 1 }, "resource_id": {}, "notes": {}, "consent": { "type": "object", "properties": { "analytics": {}, "marketing": {}, "data_sharing": {}, "health_data": {} } } }
               }
             }
           }
@@ -455,7 +455,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "buyer": { "$ref": "#/components/schemas/Buyer" }, "notes": {} }
+                "properties": { "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer." }, "notes": {} }
               }
             }
           }
@@ -895,7 +895,7 @@
       "Booking": {
         "type": "object",
         "required": ["id", "service_id", "service_name", "slot", "buyer", "party_size", "status", "confirmation_mode", "created_at", "updated_at"],
-        "properties": { "id": {}, "service_id": {}, "service_name": {}, "slot": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "party_size": {}, "status": {}, "confirmation_mode": {}, "payment": {}, "payment_context": {}, "messages": {}, "continue_url": {}, "notes": {}, "created_at": {}, "updated_at": {}, "expires_at": {} }
+        "properties": { "id": {}, "service_id": {}, "service_name": {}, "slot": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." }, "party_size": {}, "status": {}, "confirmation_mode": {}, "payment": {}, "payment_context": {}, "messages": {}, "continue_url": {}, "notes": {}, "created_at": {}, "updated_at": {}, "expires_at": {} }
       },
       "Message": {
         "type": "object",
