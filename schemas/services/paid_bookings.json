@@ -73,6 +73,16 @@
         "notes": {
           "type": "string",
           "description": "Buyer-provided special requests."
+        },
+        "recipient": {
+          "type": "object",
+          "description": "The person receiving the service, when different from the buyer. Same schema as Buyer. When absent, the buyer is the recipient.",
+          "properties": {
+            "first_name": { "type": "string" },
+            "last_name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "phone_number": { "type": "string" }
+          }
         }
       }
     },
