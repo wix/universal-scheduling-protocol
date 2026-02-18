@@ -8,17 +8,17 @@
 
 The Universal Scheduling Protocol (USP) is an open standard for discovering, querying availability of, and booking time-based services between consumer platforms, AI agents, and service businesses.
 
-USP is a **companion protocol** to the [Universal Commerce Protocol (UCP)](https://ucp.dev). UCP handles product commerce -- checkout, payment, fulfillment, and order management for goods. USP fills the gap for **service commerce**: appointments, group sessions, reservations, and rentals. Payment is delegated to UCP's payment architecture rather than reinvented.
+USP is a **companion protocol** to the [Universal Commerce Protocol (UCP)](https://ucp.dev). UCP handles product commerce - checkout, payment, fulfillment, and order management for goods. USP fills the gap for **service commerce**: appointments, group sessions, reservations, and rentals. Payment is delegated to UCP's payment architecture rather than reinvented.
 
 ## Problem
 
-Existing scheduling standards -- iCalendar ([RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)), iTIP ([RFC 5546](https://www.rfc-editor.org/rfc/rfc5546)), CalDAV Scheduling ([RFC 6638](https://www.rfc-editor.org/rfc/rfc6638)), [schema.org/Service](https://schema.org/Service), [Open Booking API](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) -- address parts of the service scheduling lifecycle but are **fragmented**, lack **native payment integration**, and were not designed for **autonomous AI agent orchestration**. No single open standard unifies:
+Existing scheduling standards - iCalendar ([RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)), iTIP ([RFC 5546](https://www.rfc-editor.org/rfc/rfc5546)), CalDAV Scheduling ([RFC 6638](https://www.rfc-editor.org/rfc/rfc6638)), [schema.org/Service](https://schema.org/Service), [Open Booking API](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) - address parts of the service scheduling lifecycle but are **fragmented**, lack **native payment integration**, and were not designed for **autonomous AI agent orchestration**. No single open standard unifies:
 
-1. **Service discovery** -- types, pricing, policies, and availability hints for AI reasoning
-2. **Real-time availability** -- time slots, capacity, resource scheduling, and slot holds
-3. **Booking lifecycle** -- create, confirm, reschedule, cancel, waitlist management, and post-booking events
-4. **Payment coordination** -- bridging scheduling with a standardized checkout/payment flow (including trust triangle, PCI-DSS scope, SCA/3DS challenges)
-5. **Identity and consent** -- account linking, buyer consent management, and privacy compliance
+1. **Service discovery** - types, pricing, policies, and availability hints for AI reasoning
+2. **Real-time availability** - time slots, capacity, resource scheduling, and slot holds
+3. **Booking lifecycle** - create, confirm, reschedule, cancel, waitlist management, and post-booking events
+4. **Payment coordination** - bridging scheduling with a standardized checkout/payment flow (including trust triangle, PCI-DSS scope, SCA/3DS challenges)
+5. **Identity and consent** - account linking, buyer consent management, and privacy compliance
 
 in a way that is both machine-readable and interoperable with modern commerce protocols.
 
@@ -61,11 +61,11 @@ USP supports multiple transport bindings. See [Section 10](specification.md#10-t
 
 USP delegates payment to UCP and inherits its full payment architecture:
 
-- **Trust Triangle** -- three-party trust model between business, platform, and payment credential provider
-- **Payment Handler Framework** -- processor tokenizer, platform tokenizer, and encrypted credential patterns
-- **PCI-DSS Scope Guidance** -- minimizing sensitive data exposure across participants
-- **SCA/3DS Challenge Flow** -- handling Strong Customer Authentication for European bookings
-- **Dynamic Handler Filtering** -- context-aware payment method selection based on booking attributes
+- **Trust Triangle** - three-party trust model between business, platform, and payment credential provider
+- **Payment Handler Framework** - processor tokenizer, platform tokenizer, and encrypted credential patterns
+- **PCI-DSS Scope Guidance** - minimizing sensitive data exposure across participants
+- **SCA/3DS Challenge Flow** - handling Strong Customer Authentication for European bookings
+- **Dynamic Handler Filtering** - context-aware payment method selection based on booking attributes
 
 See [Sections 7.5–7.9](specification.md#75-trust-triangle) of the specification.
 
