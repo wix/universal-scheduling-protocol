@@ -239,6 +239,7 @@
         { "name": "slot_id", "required": true, "schema": { "type": "string" } },
         { "name": "hold_id", "required": false, "schema": { "type": "string" } },
         { "name": "buyer", "required": true, "schema": { "$ref": "#/components/schemas/Buyer" } },
+        { "name": "recipient", "required": false, "schema": { "$ref": "#/components/schemas/Buyer" }, "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." },
         { "name": "party_size", "required": false, "schema": { "type": "integer", "default": 1 } },
         { "name": "resource_id", "required": false, "schema": { "type": "string" } },
         { "name": "notes", "required": false, "schema": { "type": "string" } }
@@ -282,12 +283,13 @@
     {
       "name": "usp_bookings_update",
       "summary": "Update Booking",
-      "description": "Updates mutable fields (buyer, notes) on a booking. Maps to PUT /bookings/{booking_id}.",
+      "description": "Updates mutable fields (buyer, recipient, notes) on a booking. Maps to PUT /bookings/{booking_id}.",
       "paramStructure": "by-name",
       "params": [
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
         { "name": "booking_id", "required": true, "schema": { "type": "string" } },
         { "name": "buyer", "required": false, "schema": { "$ref": "#/components/schemas/Buyer" } },
+        { "name": "recipient", "required": false, "schema": { "$ref": "#/components/schemas/Buyer" }, "description": "The person receiving the service, when different from the buyer." },
         { "name": "notes", "required": false, "schema": { "type": "string" } }
       ],
       "result": {
@@ -606,6 +608,7 @@
           "service_name": { "type": "string" },
           "slot": { "type": "object" },
           "buyer": { "$ref": "#/components/schemas/Buyer" },
+          "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." },
           "party_size": { "type": "integer" },
           "status": { "type": "string" },
           "confirmation_mode": { "type": "string" }
