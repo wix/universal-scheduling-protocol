@@ -1,0 +1,953 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Universal Scheduling Protocol (USP) REST API",
+    "version": "2026-02-09",
+    "description": "The Universal Scheduling Protocol (USP) enables consumer platforms and AI agents to discover, check availability of, and book time-based services from businesses. This OpenAPI specification defines the REST binding for all USP operations.",
+    "contact": { "url": "https://usp.dev" },
+    "license": { "name": "Apache-2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0" }
+  },
+  "servers": [{ "url": "https://business.example.com/usp/v1", "description": "Business USP endpoint (from /.well-known/usp)" }],
+  "tags": [
+    { "name": "Services", "description": "Service catalog operations" },
+    { "name": "Availability", "description": "Availability and hold operations" },
+    { "name": "Bookings", "description": "Booking lifecycle operations" },
+    { "name": "Waitlist", "description": "Waitlist management operations" },
+    { "name": "Registry", "description": "Discovery registry operations (optional)" }
+  ],
+  "paths": {
+    "/services/list": {
+      "post": {
+        "tags": ["Services"],
+        "summary": "List Services",
+        "operationId": "listServices",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filters": { "type": "object", "properties": { "type": {}, "category_id": {}, "location_id": {} } },
+                  "pagination": { "$ref": "#/components/schemas/PaginationRequest" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["services", "pagination"], "properties": { "services": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
+          "424": { "$ref": "#/components/responses/FailedDependency" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/{service_id}": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get Service",
+        "operationId": "getService",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Service details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["service"], "properties": { "service": { "$ref": "#/components/schemas/Service" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/feed": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Service Feed",
+        "operationId": "getServiceFeed",
+        "parameters": [
+          { "$ref": "#/components/parameters/USP-Agent" },
+          { "name": "cursor", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "location_id", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    {
+                      "type": "object",
+                      "required": ["items", "pagination", "feed_meta"],
+                      "properties": {
+                        "items": { "type": "array", "items": { "type": "object", "required": ["state", "modified_at", "data"], "properties": { "state": { "enum": ["updated", "deleted"] }, "modified_at": { "type": "string", "format": "date-time" }, "data": {} } } },
+                        "pagination": { "type": "object", "required": ["next_cursor", "has_more"], "properties": { "next_cursor": {}, "has_more": { "type": "boolean" } } },
+                        "feed_meta": { "type": "object", "required": ["feed_generated_at", "total_services", "feed_status"], "properties": { "feed_generated_at": { "type": "string", "format": "date-time" }, "total_services": { "type": "integer" }, "feed_status": { "enum": ["healthy", "degraded", "rebuilding"] } } }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/feed/subscriptions": {
+      "post": {
+        "tags": ["Services"],
+        "summary": "Create Feed Subscription",
+        "operationId": "createFeedSubscription",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["callback_url"],
+                "properties": { "callback_url": { "type": "string", "format": "uri" }, "categories": { "type": "array", "items": { "type": "string" } }, "events": { "type": "array", "items": { "type": "string", "enum": ["service.created", "service.updated", "service.deleted", "service.suspended"] } } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/feed/subscriptions/{subscription_id}": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get Feed Subscription",
+        "operationId": "getFeedSubscription",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Subscription details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Services"],
+        "summary": "Cancel Feed Subscription",
+        "operationId": "cancelFeedSubscription",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Subscription canceled", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/feed/subscriptions/{subscription_id}/pause": {
+      "post": {
+        "tags": ["Services"],
+        "summary": "Pause Feed Subscription",
+        "operationId": "pauseFeedSubscription",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Subscription paused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/services/feed/subscriptions/{subscription_id}/resume": {
+      "post": {
+        "tags": ["Services"],
+        "summary": "Resume Feed Subscription",
+        "operationId": "resumeFeedSubscription",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Subscription resumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/availability/query": {
+      "post": {
+        "tags": ["Availability"],
+        "summary": "Query Availability",
+        "operationId": "queryAvailability",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["service_id", "start_date", "end_date"],
+                "properties": { "service_id": {}, "start_date": {}, "end_date": {}, "timezone": {}, "resource_id": {}, "party_size": { "default": 1 }, "location_id": {} }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["service_id", "slots"], "properties": { "service_id": {}, "slots": { "type": "array", "items": { "$ref": "#/components/schemas/TimeSlot" } }, "opening_hours": {}, "pagination": { "$ref": "#/components/schemas/Pagination" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/availability/holds": {
+      "post": {
+        "tags": ["Availability"],
+        "summary": "Hold Slot",
+        "operationId": "holdSlot",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["slot_id", "service_id"],
+                "properties": { "slot_id": {}, "service_id": {}, "spots": { "default": 1 } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hold created or business outcome error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "properties": { "hold": { "$ref": "#/components/schemas/Hold" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/availability/holds/{hold_id}": {
+      "delete": {
+        "tags": ["Availability"],
+        "summary": "Release Slot",
+        "operationId": "releaseSlot",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "hold_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Hold released",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["hold"], "properties": { "hold": { "$ref": "#/components/schemas/Hold" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Create Booking",
+        "operationId": "createBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["service_id", "slot_id", "buyer"],
+                "properties": { "service_id": {}, "slot_id": {}, "hold_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "party_size": { "default": 1 }, "resource_id": {}, "notes": {}, "consent": { "type": "object", "properties": { "analytics": {}, "marketing": {}, "data_sharing": {}, "health_data": {} } } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings/{booking_id}": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Get Booking",
+        "operationId": "getBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Booking details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "put": {
+        "tags": ["Bookings"],
+        "summary": "Update Booking",
+        "operationId": "updateBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "buyer": { "$ref": "#/components/schemas/Buyer" }, "notes": {} }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings/{booking_id}/confirm": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Confirm Booking",
+        "operationId": "confirmBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Booking confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings/{booking_id}/cancel": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Cancel Booking",
+        "operationId": "cancelBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "reason": {} } } } } },
+        "responses": {
+          "200": {
+            "description": "Booking canceled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings/{booking_id}/reschedule": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Reschedule Booking",
+        "operationId": "rescheduleBooking",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["slot_id", "hold_id"],
+                "properties": { "slot_id": {}, "hold_id": {} }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking rescheduled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/bookings/{booking_id}/confirm-payment": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Confirm Payment",
+        "operationId": "confirmPayment",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["payment_result"],
+                "properties": {
+                  "payment_result": {
+                    "type": "object",
+                    "required": ["status", "transaction_id", "amount_paid", "currency"],
+                    "properties": { "status": { "enum": ["paid", "deposit_paid"] }, "provider": {}, "transaction_id": {}, "amount_paid": {}, "currency": {}, "order_reference": {} }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/waitlist": {
+      "post": {
+        "tags": ["Waitlist"],
+        "summary": "Join Waitlist",
+        "operationId": "joinWaitlist",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["service_id", "buyer"],
+                "properties": { "service_id": {}, "slot_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "preferred_slots": { "type": "array" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waitlist entry created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["entry"], "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/waitlist/{entry_id}": {
+      "get": {
+        "tags": ["Waitlist"],
+        "summary": "Get Waitlist Entry",
+        "operationId": "getWaitlistEntry",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Waitlist entry details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["entry"], "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Waitlist"],
+        "summary": "Leave Waitlist",
+        "operationId": "leaveWaitlist",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Left waitlist", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/waitlist/{entry_id}/accept": {
+      "post": {
+        "tags": ["Waitlist"],
+        "summary": "Accept Waitlist Offer",
+        "operationId": "acceptWaitlistOffer",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "hold_id": {} } } } } },
+        "responses": {
+          "200": {
+            "description": "Offer accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" }, "booking": { "$ref": "#/components/schemas/Booking" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/waitlist/{entry_id}/decline": {
+      "post": {
+        "tags": ["Waitlist"],
+        "summary": "Decline Waitlist Offer",
+        "operationId": "declineWaitlistOffer",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Offer declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/registry/businesses": {
+      "post": {
+        "tags": ["Registry"],
+        "summary": "Register Business",
+        "operationId": "registerBusiness",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["usp_profile_url", "name"],
+                "properties": { "usp_profile_url": { "type": "string", "format": "uri" }, "name": {}, "verticals": { "type": "array" }, "categories": { "type": "array" }, "location": {}, "timezone": {} }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Business registered", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/registry/search": {
+      "post": {
+        "tags": ["Registry"],
+        "summary": "Search Businesses",
+        "operationId": "searchBusinesses",
+        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "location": {}, "verticals": { "type": "array" }, "categories": { "type": "array" }, "query": {}, "pagination": { "$ref": "#/components/schemas/PaginationRequest" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    { "type": "object", "required": ["businesses", "pagination"], "properties": { "businesses": { "type": "array" }, "pagination": {} } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "USP-Agent": {
+        "name": "USP-Agent",
+        "in": "header",
+        "description": "Platform profile URI for capability negotiation. RFC 8941 Dictionary Structured Field: profile=\"https://agent.example/profiles/scheduling-agent.json\"",
+        "schema": { "type": "string", "example": "profile=\"https://agent.example/profiles/scheduling-agent.json\"" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "description": "UUID v4 for idempotency of state-modifying operations.",
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "schemas": {
+      "USPEnvelope": {
+        "type": "object",
+        "required": ["usp"],
+        "properties": {
+          "usp": {
+            "type": "object",
+            "required": ["version"],
+            "properties": { "version": { "type": "string" }, "capabilities": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "object", "properties": { "version": {} } } } }
+          }
+        }
+      },
+      "PaginationRequest": { "type": "object", "properties": { "limit": { "type": "integer", "default": 20 }, "cursor": { "type": ["string", "null"] } } },
+      "Pagination": { "type": "object", "properties": { "cursor": { "type": ["string", "null"] }, "has_more": { "type": "boolean" } } },
+      "Service": {
+        "type": "object",
+        "required": ["id", "name", "type", "duration", "pricing", "channel", "policies"],
+        "properties": { "id": {}, "name": {}, "description": {}, "type": {}, "duration": {}, "pricing": {}, "channel": {}, "policies": {}, "capacity": {}, "availability_hint": {} }
+      },
+      "FeedSubscription": {
+        "type": "object",
+        "required": ["id", "callback_url", "status", "created_at"],
+        "properties": { "id": {}, "callback_url": {}, "categories": {}, "events": {}, "status": { "enum": ["active", "paused", "canceled"] }, "created_at": {} }
+      },
+      "TimeSlot": {
+        "type": "object",
+        "required": ["id", "service_id", "start", "end", "duration", "state"],
+        "properties": { "id": {}, "service_id": {}, "start": {}, "end": {}, "duration": {}, "state": { "enum": ["available", "limited", "waitlist"] }, "capacity": {}, "resources": {}, "location": {}, "pricing": {} }
+      },
+      "Hold": {
+        "type": "object",
+        "required": ["id", "slot_id", "service_id", "expires_at", "status"],
+        "properties": { "id": {}, "slot_id": {}, "service_id": {}, "spots": {}, "expires_at": {}, "status": { "enum": ["active", "expired", "released", "converted"] } }
+      },
+      "Buyer": {
+        "type": "object",
+        "required": ["first_name", "last_name", "email"],
+        "properties": { "first_name": {}, "last_name": {}, "email": {}, "phone_number": {} }
+      },
+      "Booking": {
+        "type": "object",
+        "required": ["id", "service_id", "service_name", "slot", "buyer", "party_size", "status", "confirmation_mode", "created_at", "updated_at"],
+        "properties": { "id": {}, "service_id": {}, "service_name": {}, "slot": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "party_size": {}, "status": {}, "confirmation_mode": {}, "payment": {}, "payment_context": {}, "messages": {}, "continue_url": {}, "notes": {}, "created_at": {}, "updated_at": {}, "expires_at": {} }
+      },
+      "Message": {
+        "type": "object",
+        "properties": { "type": { "enum": ["error", "warning", "info"] }, "code": {}, "content": {}, "severity": { "enum": ["requires_buyer_input", "recoverable", "requires_buyer_review"] }, "path": {} }
+      },
+      "WaitlistEntry": {
+        "type": "object",
+        "required": ["id", "service_id", "buyer", "status", "position", "created_at"],
+        "properties": { "id": {}, "service_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "status": { "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"] }, "position": {}, "offered_slot": {}, "offer_expires_at": {}, "created_at": {} }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "RFC 9457 Problem Details",
+        "required": ["type", "title", "status"],
+        "properties": { "type": { "type": "string", "format": "uri-reference" }, "title": {}, "status": { "type": "integer" }, "detail": {}, "instance": {}, "errors": {} }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Protocol error: malformed request",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/invalid_request", "title": "Bad Request", "status": 400, "detail": "Malformed JSON or missing required fields" } } }
+      },
+      "Unauthorized": {
+        "description": "Protocol error: authentication required",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/authentication_required", "title": "Unauthorized", "status": 401, "detail": "Authentication credentials are missing or invalid" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/booking_not_found", "title": "Not Found", "status": 404, "detail": "The requested resource does not exist" } } }
+      },
+      "Conflict": {
+        "description": "Idempotency key conflict",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/idempotency_conflict", "title": "Conflict", "status": 409, "detail": "Idempotency key was previously used with different parameters" } } }
+      },
+      "UnprocessableEntity": {
+        "description": "Validation error",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/validation_error", "title": "Unprocessable Entity", "status": 422, "detail": "Request fields are invalid" } } }
+      },
+      "FailedDependency": {
+        "description": "Profile unreachable",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/profile_unreachable", "title": "Failed Dependency", "status": 424, "detail": "Business profile could not be fetched" } } }
+      },
+      "TooManyRequests": {
+        "description": "Rate limited",
+        "headers": { "Retry-After": { "schema": { "type": "integer" } } },
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/rate_limited", "title": "Too Many Requests", "status": 429, "detail": "Rate limit exceeded" } } }
+      },
+      "InternalServerError": {
+        "description": "Server error",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/server_error", "title": "Internal Server Error", "status": 500, "detail": "An unexpected error occurred" } } }
+      }
+    }
+  }
+}
+}

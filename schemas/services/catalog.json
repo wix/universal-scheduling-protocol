@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usp.dev/schemas/services/catalog.json",
+  "title": "USP Service Catalog",
+  "description": "Service catalog schema for the Universal Scheduling Protocol. Defines the Service object and related types for discoverable, bookable offerings.",
+  "$defs": {
+    "Service": {
+      "type": "object",
+      "title": "Service",
+      "description": "A bookable offering from a business. Each service has a type (vertical), duration, pricing, policies, and optional resource requirements.",
+      "required": ["id", "name", "type", "duration", "pricing", "channel", "policies"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique service identifier, scoped to the business. Opaque to the platform."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable display name for the service (e.g., \"Women's Haircut & Style\")."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description providing details about what the service includes, what to expect, and any prerequisites."
+        },
+        "type": {
+          "type": "string",
+          "description": "The service vertical. MUST be one of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses)."
+        },
+        "category": {
+          "type": "object",
+          "description": "Business-defined classification for organizing services (e.g., \"Beauty > Hair\").",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "parent_id": { "type": "string" }
+          }
+        },
+        "duration": {
+          "$ref": "#/$defs/Duration",
+          "description": "Duration configuration."
+        },
+        "pricing": {
+          "$ref": "#/$defs/Pricing",
+          "description": "Pricing model and amounts."
+        },
+        "locations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Location" },
+          "description": "Physical or virtual locations where the service is offered."
+        },
+        "resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ResourceRequirement" },
+          "description": "Required staff, rooms, or equipment."
+        },
+        "channel": {
+          "$ref": "#/$defs/Channel",
+          "description": "Delivery channel for the service."
+        },
+        "policies": {
+          "$ref": "#/$defs/ServicePolicies",
+          "description": "Booking, cancellation, rescheduling, and payment policies."
+        },
+        "capacity": {
+          "type": "object",
+          "description": "REQUIRED for group and reservation types. min: minimum party size. max: maximum participants per slot. waitlist: whether waitlist is enabled when slots are full.",
+          "properties": {
+            "min": { "type": "integer" },
+            "max": { "type": "integer" },
+            "waitlist": { "type": "boolean" }
+          }
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "alt": { "type": "string" },
+              "type": { "type": "string", "enum": ["hero", "gallery", "thumbnail"] }
+            }
+          },
+          "description": "Service images."
+        },
+        "availability_hint": {
+          "$ref": "#/$defs/AvailabilityHint",
+          "description": "Approximate availability summary for agent-assisted discovery."
+        }
+      }
+    },
+    "Duration": {
+      "type": "object",
+      "title": "Duration",
+      "description": "Defines how long a service takes. Either fixed or range MUST be provided.",
+      "properties": {
+        "fixed": {
+          "type": "string",
+          "description": "ISO 8601 duration. REQUIRED if range is not present."
+        },
+        "range": {
+          "type": "object",
+          "description": "REQUIRED if fixed is not present. Buyer selects duration within this range.",
+          "properties": {
+            "min": { "type": "string", "description": "ISO 8601 duration" },
+            "max": { "type": "string", "description": "ISO 8601 duration" },
+            "step": { "type": "string", "description": "ISO 8601 duration" }
+          }
+        },
+        "buffer_before": { "type": "string", "description": "ISO 8601 duration. Non-bookable prep time." },
+        "buffer_after": { "type": "string", "description": "ISO 8601 duration. Non-bookable cleanup time." }
+      }
+    },
+    "Pricing": {
+      "type": "object",
+      "title": "Pricing",
+      "description": "Defines how a service is priced.",
+      "required": ["model", "currency"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["fixed", "hourly", "per_person", "variable", "free"],
+          "description": "The pricing model."
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Price in minor currency units. REQUIRED when model is fixed, hourly, or per_person. MUST NOT be present when model is free."
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 currency code (e.g., USD, EUR, GBP)."
+        },
+        "deposit": {
+          "type": "object",
+          "description": "REQUIRED when payment_timing is deposit_required.",
+          "properties": {
+            "type": { "type": "string", "enum": ["fixed", "percentage"] },
+            "value": { "type": ["integer", "number"] },
+            "refundable": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "Location": {
+      "type": "object",
+      "title": "Location",
+      "description": "Physical or virtual location where a service is offered.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "coordinates": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      }
+    },
+    "ResourceRequirement": {
+      "type": "object",
+      "title": "ResourceRequirement",
+      "description": "Defines staff, rooms, or equipment needed for a service.",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["staff", "room", "equipment", "other"],
+          "description": "The kind of resource."
+        },
+        "name": { "type": "string", "description": "Human-readable label." },
+        "selectable": { "type": "boolean", "default": false, "description": "Whether the buyer can choose a specific resource." },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "image_url": { "type": "string", "format": "uri" }
+            }
+          },
+          "description": "Available resource instances. REQUIRED when selectable is true."
+        }
+      }
+    },
+    "Channel": {
+      "type": "object",
+      "title": "Channel",
+      "description": "Delivery channel for the service.",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["in_person", "virtual", "phone", "hybrid"],
+          "description": "Channel type."
+        },
+        "virtual_provider": { "type": "string", "description": "Platform name for virtual/hybrid (e.g., Zoom, Google Meet)." },
+        "instructions": { "type": "string", "description": "Arrival, join, or call-in instructions." }
+      }
+    },
+    "ServicePolicies": {
+      "type": "object",
+      "title": "ServicePolicies",
+      "description": "Machine-readable policies for booking, cancellation, rescheduling, and payment.",
+      "required": ["cancellation", "rescheduling", "booking_window", "confirmation_mode", "requires_payment"],
+      "properties": {
+        "cancellation": {
+          "type": "object",
+          "required": ["allowed"],
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "free_cancellation_until": { "type": "string", "description": "ISO 8601 duration" },
+            "late_cancellation_fee": { "type": "integer" },
+            "no_cancellation_after": { "type": "string", "description": "ISO 8601 duration" }
+          }
+        },
+        "rescheduling": {
+          "type": "object",
+          "required": ["allowed"],
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "free_reschedule_until": { "type": "string", "description": "ISO 8601 duration" },
+            "max_reschedules": { "type": "integer" },
+            "fee": { "type": "integer" }
+          }
+        },
+        "no_show": {
+          "type": "object",
+          "properties": {
+            "fee": { "type": "integer" },
+            "fee_percentage": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "grace_period": { "type": "string", "description": "ISO 8601 duration" }
+          }
+        },
+        "booking_window": {
+          "type": "object",
+          "required": ["min_advance", "max_advance", "slot_interval"],
+          "properties": {
+            "min_advance": { "type": "string", "description": "ISO 8601 duration" },
+            "max_advance": { "type": "string", "description": "ISO 8601 duration" },
+            "slot_interval": { "type": "string", "description": "ISO 8601 duration" }
+          }
+        },
+        "confirmation_mode": {
+          "type": "string",
+          "enum": ["auto", "manual"],
+          "description": "auto: confirmed immediately. manual: requires business approval."
+        },
+        "requires_payment": { "type": "boolean" },
+        "payment_timing": {
+          "type": "string",
+          "enum": ["at_booking", "at_service", "deposit_required"],
+          "description": "REQUIRED when requires_payment is true."
+        }
+      }
+    },
+    "AvailabilityHint": {
+      "type": "object",
+      "title": "AvailabilityHint",
+      "description": "Approximate availability summary for agent-assisted discovery. Cached alongside catalog data.",
+      "required": ["summary", "generated_at"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Natural-language description of near-term availability."
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp of when this hint was generated."
+        },
+        "next_available_date": {
+          "type": "string",
+          "format": "date",
+          "description": "YYYY-MM-DD date of the next day with known availability."
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/Service"
+}
