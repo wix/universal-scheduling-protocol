@@ -120,7 +120,7 @@ The Universal Scheduling Protocol (USP) is an open standard that enables consume
 
 USP defines the complete scheduling domain - service catalog, availability, holds, and bookings - with two deployment modes: UCP-Native Mode (Section 6) for platforms using the Universal Commerce Protocol, and Standalone Mode (Section 7) for self-contained deployments. Cross-cutting concerns (security, authorization, error format, idempotency, webhook verification) reference IETF standards directly.
 
-The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These keywords **MUST** only carry their special meaning when they appear in all capitals, as shown here.
+The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These keywords **MUST** only carry their special meaning when they appear in all capitals, as shown here.
 
 ### 1.1 Conventions
 
@@ -572,6 +572,8 @@ This mapping ensures consistent discoverability across search engines while the 
 
 ### 3.3 Service Schema
 
+> **JSON Schema:** [`schemas/catalog.json`](schemas/catalog.json)
+
 The service object represents a bookable offering from a business. Each service has a type (vertical), duration, pricing, policies, and optional resource requirements.
 
 | Field | Type | Required | Description |
@@ -912,6 +914,8 @@ Response:
 
 **Capability:** `dev.usp.services.availability`
 
+> **JSON Schema:** [`schemas/availability.json`](schemas/availability.json)
+
 The availability capability lets platforms **query when services are available** and **hold slots** to prevent double-booking during the booking flow.
 
 ### 4.1 Time Slot
@@ -1148,6 +1152,8 @@ The bookings capability defines the **lifecycle of a service booking** from crea
 | `canceled` | The booking has been canceled. Can be reached from `pending`, `requires_action`, or `confirmed`. Terminal state. Cancellation fees may apply per the service's cancellation policy. |
 
 ### 5.2 Booking Schema
+
+> **JSON Schema:** [`schemas/scheduling.json`](schemas/scheduling.json)
 
 The booking object represents a scheduled service instance for a specific buyer at a specific time.
 
@@ -1592,7 +1598,7 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 
 The paid bookings extension adds a `booking` object to the UCP checkout. This object carries the scheduling context - the slot, service, hold, resources, and booking status - as a first-class, schema-validated extension field.
 
-The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.shopping.checkout`, consistent with UCP's schema composition model. See `schemas/services/paid_bookings.json`.
+The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.shopping.checkout`, consistent with UCP's schema composition model. See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
 
 **The `create_checkout` request with the paid bookings extension:**
 
@@ -2102,6 +2108,8 @@ Registries are **independent** from USP-enabled businesses. Multiple registries 
 This section defines payment handling for Standalone Mode. USP defines **when** payment is required and provides a universal payment handoff mechanism. This section applies only when `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`.
 
 #### 7.6.1 Booking Payment Schema
+
+> **JSON Schema:** [`schemas/scheduling.json`](schemas/scheduling.json) (see `BookingPayment` and `PaymentContext` definitions)
 
 The `payment` object on the booking tracks the lifecycle of payment:
 
@@ -2892,6 +2900,8 @@ Extensions are not required for a conforming USP implementation. Implementers **
 The waitlist extension enables buyers to join a queue when their desired time slot is fully booked. When a spot opens (due to cancellation or reschedule), the business offers it to the next eligible waitlisted buyer.
 
 #### 10.1.1 WaitlistEntry Schema
+
+> **JSON Schema:** [`schemas/waitlist.json`](schemas/waitlist.json)
 
 The waitlist entry tracks a buyer's position and preferences.
 
