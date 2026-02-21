@@ -31,10 +31,10 @@ USP solves this with core support for **appointments**, **group sessions**, **re
 
 ## Specification
 
-| Document | Description |
-|----------|-------------|
-| [**USP Specification**](specification.md) | Complete protocol: domain core, deployment modes, transport bindings, security, and extensions |
-| [**Design Rationale**](DESIGN_RATIONALE.md) | Why this architecture, comparison with alternatives, UCP assimilation analysis |
+| Document                                                         | Description                                                                                    |
+|------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [**USP Specification**](specification.md)                        | Complete protocol: domain core, deployment modes, transport bindings, security, and extensions |
+| [**USP Booking Form Profile**](docs/usp-booking-form-profile.md) | Field derivation rules and A2UI component mapping for agent platforms building booking forms   |
 
 ### Implementer Quick Start
 
