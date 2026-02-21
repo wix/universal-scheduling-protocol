@@ -1,5 +1,12 @@
 # Change Log
 
+## 21/02/26 at 11:42:09 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Extended USP Booking Form Profile with slot selection:** Added D0 derivation rules (slot picker, date picker), new inputs (`slots[]`, `flow_mode`), A2UI mappings for slot/date pickers, `usp_select_date` action, and D3/D4/D5 fallbacks when slot not yet selected, enabling unified forms where slot selection is part of the form (pre-fetched or date-first flow)
+- **Bumped profile version to 1.1**
+
+---
+
 ## 21/02/26 at 10:47:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Added USP Booking Form Profile:** New separate spec (`docs/usp-booking-form-profile.md`) defining field derivation rules and A2UI component mapping for AI agent platforms building booking forms, so platforms know which form fields to show based on service/slot context and how to render them via A2UI
