@@ -21,7 +21,7 @@ Where:
 
 ### Rules
 
-1. Append new entries to the **end** of the file (newest last)
+1. Append new entries to the **start** of the file (newest first)
 2. Separate each entry from the previous one with a blank line and a horizontal rule (`---`)
 3. If you make changes across multiple files, group related changes into a single entry
 4. Do NOT edit or remove existing entries
