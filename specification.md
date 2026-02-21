@@ -1,6 +1,6 @@
 # Universal Scheduling Protocol (USP)
 
-**Version:** `2026-02-17`
+**Version:** `2026-02-21`
 
 **Status:** Draft
 
