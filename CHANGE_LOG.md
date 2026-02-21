@@ -1,5 +1,11 @@
 # Change Log
 
+## 21/02/26 at 10:12:28 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Updated AGENTS.md entry format to include a mailto link for the author's git email, so each change log entry attributes the author with a clickable email link for traceability and easy contact
+
+---
+
 ## 21/02/26 at 10:05:27 by Ran Yahalom
 
 - **Fixed wrong cross-section links in specification.md:** Corrected Section 1.3 (Vertical) link from `#9-service-verticals` to `#13-service-verticals`; Section 4.4 (Caching Strategy) from `#34-caching-strategy` to `#44-caching-strategy`; RFC 6749 (OAuth) from non-existent Section 9.6 to Section 9.2.3 Authentication and Authorization (`#923-authentication-and-authorization`); RFC 9421 (Webhooks) from Section 9.3 to Section 9.1.1 Webhook Security (`#911-webhook-security`); Section 5.1 (Booking Status) from `#31-booking-status-lifecycle` to `#51-booking-status-lifecycle`
