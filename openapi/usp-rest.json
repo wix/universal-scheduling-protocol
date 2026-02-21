@@ -4,32 +4,1622 @@
     "title": "Universal Scheduling Protocol (USP) REST API",
     "version": "2026-02-09",
     "description": "The Universal Scheduling Protocol (USP) enables consumer platforms and AI agents to discover, check availability of, and book time-based services from businesses. This OpenAPI specification defines the REST binding for all USP operations.",
-    "contact": { "url": "https://usp.dev" },
-    "license": { "name": "Apache-2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0" }
+    "contact": {
+      "url": "https://usp.dev"
+    },
+    "license": {
+      "name": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
   },
-  "servers": [{ "url": "https://business.example.com/usp/v1", "description": "Business USP endpoint (from /.well-known/usp)" }],
-  "tags": [
-    { "name": "Services", "description": "Service catalog operations" },
-    { "name": "Availability", "description": "Availability and hold operations" },
-    { "name": "Bookings", "description": "Booking lifecycle operations" },
-    { "name": "Waitlist", "description": "Waitlist management operations" },
-    { "name": "Registry", "description": "Discovery registry operations (optional)" }
+  "servers": [
+    {
+      "url": "https://business.example.com/usp/v1",
+      "description": "Business USP endpoint (from /.well-known/usp)"
+    }
   ],
+  "tags": [
+    {
+      "name": "Services",
+      "description": "Service catalog operations"
+    },
+    {
+      "name": "Availability",
+      "description": "Availability and hold operations"
+    },
+    {
+      "name": "Bookings",
+      "description": "Booking lifecycle operations"
+    },
+    {
+      "name": "Waitlist",
+      "description": "Waitlist management operations"
+    },
+    {
+      "name": "Registry",
+      "description": "Discovery registry operations (optional)"
+    }
+  ],
+  "components": {
+    "parameters": {
+      "USP-Agent": {
+        "name": "USP-Agent",
+        "in": "header",
+        "description": "Platform profile URI for capability negotiation. RFC 8941 Dictionary Structured Field: profile=\"https://agent.example/profiles/scheduling-agent.json\"",
+        "schema": {
+          "type": "string",
+          "example": "profile=\"https://agent.example/profiles/scheduling-agent.json\""
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "description": "UUID v4 for idempotency of state-modifying operations.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "schemas": {
+      "USPEnvelope": {
+        "type": "object",
+        "required": [
+          "usp"
+        ],
+        "properties": {
+          "usp": {
+            "type": "object",
+            "required": [
+              "version"
+            ],
+            "properties": {
+              "version": {
+                "type": "string",
+                "description": "USP protocol version (date-based, YYYY-MM-DD format)."
+              },
+              "capabilities": {
+                "type": "object",
+                "description": "Active capabilities for this response.",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "string",
+                        "description": "Capability version."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "PaginationRequest": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "default": 20
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "duration",
+          "pricing",
+          "channel",
+          "policies"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique service identifier, scoped to the business."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable display name for the service."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the service, aimed at both human readers and AI agents."
+          },
+          "type": {
+            "type": "string",
+            "description": "Service vertical.",
+            "enum": [
+              "appointment",
+              "group",
+              "reservation",
+              "rental"
+            ]
+          },
+          "category": {
+            "type": "object",
+            "description": "Business-defined classification for organizing services.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "parent_id": {
+                "type": "string",
+                "description": "Enables hierarchical categorization."
+              }
+            }
+          },
+          "duration": {
+            "$ref": "#/components/schemas/Duration"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/Pricing"
+          },
+          "locations": {
+            "type": "array",
+            "description": "Physical or virtual locations where the service is offered.",
+            "items": {
+              "$ref": "#/components/schemas/Location"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "description": "Required staff, rooms, or equipment.",
+            "items": {
+              "$ref": "#/components/schemas/ResourceRequirement"
+            }
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "policies": {
+            "$ref": "#/components/schemas/ServicePolicies"
+          },
+          "capacity": {
+            "type": "object",
+            "description": "Required for group and reservation types.",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "description": "Minimum party size accepted."
+              },
+              "max": {
+                "type": "integer",
+                "description": "Maximum participants per slot."
+              },
+              "waitlist": {
+                "type": "boolean",
+                "description": "Whether waitlist is enabled when slots are full."
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "alt": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "hero",
+                    "gallery",
+                    "thumbnail"
+                  ]
+                }
+              }
+            }
+          },
+          "availability_hint": {
+            "$ref": "#/components/schemas/AvailabilityHint"
+          }
+        }
+      },
+      "Duration": {
+        "type": "object",
+        "description": "Duration configuration. Provide either fixed or range, not both.",
+        "properties": {
+          "fixed": {
+            "type": "string",
+            "description": "ISO 8601 duration. Required if range is not present."
+          },
+          "range": {
+            "type": "object",
+            "description": "Required if fixed is not present. Buyer selects a duration within this range.",
+            "properties": {
+              "min": {
+                "type": "string",
+                "description": "ISO 8601 minimum duration."
+              },
+              "max": {
+                "type": "string",
+                "description": "ISO 8601 maximum duration."
+              },
+              "step": {
+                "type": "string",
+                "description": "ISO 8601 duration increment."
+              }
+            }
+          },
+          "buffer_before": {
+            "type": "string",
+            "description": "ISO 8601 non-bookable prep time before the service."
+          },
+          "buffer_after": {
+            "type": "string",
+            "description": "ISO 8601 non-bookable cleanup time after the service."
+          }
+        }
+      },
+      "Pricing": {
+        "type": "object",
+        "required": [
+          "model",
+          "currency"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "hourly",
+              "per_person",
+              "variable",
+              "free"
+            ],
+            "description": "The pricing model."
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Price in minor currency units (e.g. 7500 = $75.00). Required when model is fixed, hourly, or per_person. Must not be present when model is free."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code."
+          },
+          "deposit": {
+            "type": "object",
+            "description": "Required when payment_timing is deposit_required.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "fixed",
+                  "percentage"
+                ]
+              },
+              "value": {
+                "type": "number",
+                "description": "The deposit amount or percentage."
+              },
+              "refundable": {
+                "type": "boolean",
+                "description": "Whether the deposit is refundable upon free-window cancellation."
+              }
+            }
+          }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "coordinates": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "Channel": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "in_person",
+              "virtual",
+              "phone",
+              "hybrid"
+            ],
+            "description": "Delivery channel for the service."
+          },
+          "virtual_provider": {
+            "type": "string",
+            "description": "Platform name (e.g. Zoom, Google Meet). Relevant for virtual and hybrid channels."
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Arrival, join, or call-in instructions."
+          }
+        }
+      },
+      "ServicePolicies": {
+        "type": "object",
+        "required": [
+          "cancellation",
+          "rescheduling",
+          "booking_window",
+          "confirmation_mode",
+          "requires_payment"
+        ],
+        "properties": {
+          "cancellation": {
+            "type": "object",
+            "required": [
+              "allowed"
+            ],
+            "properties": {
+              "allowed": {
+                "type": "boolean"
+              },
+              "free_cancellation_until": {
+                "type": "string",
+                "description": "ISO 8601 duration before service start for free cancellation."
+              },
+              "late_cancellation_fee": {
+                "type": "integer",
+                "description": "Fee in minor currency units for late cancellation."
+              },
+              "no_cancellation_after": {
+                "type": "string",
+                "description": "ISO 8601 duration after which cancellation is no longer permitted."
+              }
+            }
+          },
+          "rescheduling": {
+            "type": "object",
+            "required": [
+              "allowed"
+            ],
+            "properties": {
+              "allowed": {
+                "type": "boolean"
+              },
+              "free_reschedule_until": {
+                "type": "string",
+                "description": "ISO 8601 duration before start for free rescheduling."
+              },
+              "max_reschedules": {
+                "type": "integer",
+                "description": "Maximum number of reschedules allowed."
+              },
+              "fee": {
+                "type": "integer",
+                "description": "Fee in minor currency units for rescheduling outside the free window."
+              }
+            }
+          },
+          "no_show": {
+            "type": "object",
+            "properties": {
+              "fee": {
+                "type": "integer",
+                "description": "Fixed fee in minor currency units."
+              },
+              "fee_percentage": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Percentage of service price charged as no-show fee."
+              },
+              "grace_period": {
+                "type": "string",
+                "description": "ISO 8601 duration after scheduled start before marking as no-show."
+              }
+            }
+          },
+          "booking_window": {
+            "type": "object",
+            "required": [
+              "min_advance",
+              "max_advance"
+            ],
+            "properties": {
+              "min_advance": {
+                "type": "string",
+                "description": "ISO 8601 minimum advance booking time."
+              },
+              "max_advance": {
+                "type": "string",
+                "description": "ISO 8601 maximum advance booking time."
+              },
+              "slot_interval": {
+                "type": "string",
+                "description": "ISO 8601 interval at which slots are generated."
+              }
+            }
+          },
+          "confirmation_mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ],
+            "description": "auto: confirmed immediately. manual: requires business approval."
+          },
+          "requires_payment": {
+            "type": "boolean",
+            "description": "Whether this service requires any payment."
+          },
+          "payment_timing": {
+            "type": "string",
+            "enum": [
+              "at_booking",
+              "at_service",
+              "deposit_required"
+            ],
+            "description": "Required when requires_payment is true. Must not be present when requires_payment is false."
+          }
+        }
+      },
+      "AvailabilityHint": {
+        "type": "object",
+        "required": [
+          "summary",
+          "generated_at"
+        ],
+        "description": "Approximate availability summary for agent-assisted discovery. Not a substitute for real-time availability queries.",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "Natural-language description of near-term availability, aimed at AI agents."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this hint was generated. Hints older than 6 hours should be treated with lower confidence."
+          },
+          "next_available_date": {
+            "type": "string",
+            "format": "date",
+            "description": "YYYY-MM-DD date of the next day with known availability."
+          }
+        }
+      },
+      "FeedSubscription": {
+        "type": "object",
+        "required": [
+          "id",
+          "callback_url",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique subscription identifier."
+          },
+          "callback_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Webhook URL where catalog change events are delivered. Must be HTTPS."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Category IDs to receive events for. If omitted, receives events for all categories."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "service.created",
+                "service.updated",
+                "service.deleted",
+                "service.suspended"
+              ]
+            },
+            "description": "Event types to subscribe to. If omitted, defaults to all service.* events."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "canceled"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TimeSlot": {
+        "type": "object",
+        "required": [
+          "id",
+          "service_id",
+          "start",
+          "end",
+          "duration",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique slot identifier, opaque to the platform."
+          },
+          "service_id": {
+            "type": "string",
+            "description": "The service this slot belongs to."
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 start time of the slot."
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 end time of the slot."
+          },
+          "duration": {
+            "type": "string",
+            "description": "ISO 8601 duration of the slot."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "limited",
+              "waitlist"
+            ],
+            "description": "available: open for booking. limited: low remaining capacity. waitlist: fully booked but waitlist enabled."
+          },
+          "capacity": {
+            "type": "object",
+            "description": "Present for group and reservation types.",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "Maximum number of spots."
+              },
+              "remaining": {
+                "type": "integer",
+                "description": "Spots still available."
+              },
+              "held": {
+                "type": "integer",
+                "description": "Spots currently in active holds."
+              }
+            }
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources available for this slot.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "location": {
+            "type": "object",
+            "description": "Specific location for this slot, when a service is offered at multiple locations.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "description": "Slot-specific pricing that overrides service-level pricing. Used for peak/off-peak or demand-based pricing.",
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "description": "Price in minor currency units."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code."
+              },
+              "label": {
+                "type": "string",
+                "description": "Human-readable note (e.g. 'Peak hour rate')."
+              }
+            }
+          }
+        }
+      },
+      "Hold": {
+        "type": "object",
+        "required": [
+          "id",
+          "slot_id",
+          "service_id",
+          "expires_at",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique hold identifier."
+          },
+          "slot_id": {
+            "type": "string",
+            "description": "The held slot."
+          },
+          "service_id": {
+            "type": "string",
+            "description": "The service."
+          },
+          "spots": {
+            "type": "integer",
+            "default": 1,
+            "description": "Number of spots held. For group and reservation types, this is the number of capacity units reserved."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 expiration time. Hold TTL is typically 5-10 minutes."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "released",
+              "converted"
+            ],
+            "description": "active: hold is in effect. expired: TTL elapsed. released: explicitly released. converted: converted to a booking."
+          }
+        }
+      },
+      "Buyer": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "E.164 format phone number."
+          }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "required": [
+          "id",
+          "service_id",
+          "service_name",
+          "slot",
+          "buyer",
+          "party_size",
+          "status",
+          "confirmation_mode",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique booking identifier, generated by the business."
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "service_name": {
+            "type": "string",
+            "description": "Service display name, captured at booking time. Does not change if the service name is later updated."
+          },
+          "slot": {
+            "type": "object",
+            "required": [
+              "id",
+              "start",
+              "end",
+              "duration"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "duration": {
+                "type": "string"
+              }
+            }
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/Buyer"
+          },
+          "recipient": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Buyer"
+              }
+            ],
+            "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient."
+          },
+          "party_size": {
+            "type": "integer",
+            "default": 1,
+            "description": "Total number of attendees."
+          },
+          "resources": {
+            "type": "array",
+            "description": "Specific resources assigned to this booking.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "location": {
+            "type": "object",
+            "description": "Specific location for this booking.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "requires_action",
+              "in_progress",
+              "canceled",
+              "completed",
+              "no_show"
+            ],
+            "description": "Current booking status."
+          },
+          "confirmation_mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ],
+            "description": "Reflects the service's confirmation policy at booking time."
+          },
+          "payment": {
+            "$ref": "#/components/schemas/BookingPayment"
+          },
+          "payment_context": {
+            "$ref": "#/components/schemas/PaymentContext"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "Messages providing context about the booking state."
+          },
+          "continue_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Business UI handoff URL. Must be provided when status is requires_action."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Buyer-provided special requests or notes."
+          },
+          "cancellation": {
+            "type": "object",
+            "description": "Present when the booking has been canceled.",
+            "properties": {
+              "reason": {
+                "type": "string"
+              },
+              "canceled_by": {
+                "type": "string",
+                "description": "Who initiated the cancellation (e.g. buyer, business)."
+              },
+              "fee": {
+                "type": "integer",
+                "description": "Cancellation fee in minor currency units."
+              },
+              "refund_amount": {
+                "type": "integer",
+                "description": "Refund amount in minor currency units."
+              },
+              "canceled_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Present for pending and requires_action bookings. If not resolved by this time, the booking transitions to canceled."
+          }
+        }
+      },
+      "BookingPayment": {
+        "type": "object",
+        "required": [
+          "status",
+          "timing"
+        ],
+        "description": "Payment state on the booking. Present when the service requires_payment is true and payment_timing is at_booking or deposit_required. Omitted when requires_payment is false.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_required",
+              "pending",
+              "deposit_paid",
+              "paid",
+              "refunded",
+              "partially_refunded"
+            ]
+          },
+          "timing": {
+            "type": "string",
+            "enum": [
+              "at_booking",
+              "at_service",
+              "deposit_required"
+            ],
+            "description": "Mirrors the service's payment_timing."
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Total service amount in minor currency units."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code."
+          },
+          "amount_due": {
+            "type": "integer",
+            "description": "Amount due now in minor currency units."
+          },
+          "deposit_amount": {
+            "type": "integer",
+            "description": "Deposit amount when timing is deposit_required."
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "Transaction ID from the payment provider, set after confirm-payment."
+          },
+          "order_reference": {
+            "type": "string",
+            "description": "External order ID from the checkout system."
+          },
+          "payment_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Fallback URL for buyer-facing payment pages."
+          }
+        }
+      },
+      "PaymentContext": {
+        "type": "object",
+        "required": [
+          "amount_due",
+          "currency",
+          "description",
+          "line_items",
+          "metadata",
+          "expires_at"
+        ],
+        "description": "Handoff object included in the booking response when status is requires_action. Contains everything needed to process payment.",
+        "properties": {
+          "amount_due": {
+            "type": "integer",
+            "description": "Amount to collect in minor currency units."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the payment."
+          },
+          "line_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "amount",
+                "quantity"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "quantity": {
+                  "type": "integer"
+                },
+                "item_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Machine-readable context.",
+            "properties": {
+              "booking_id": {
+                "type": "string"
+              },
+              "service_id": {
+                "type": "string"
+              },
+              "service_type": {
+                "type": "string"
+              },
+              "slot_start": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Payment must complete by this time."
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error/info code."
+          },
+          "content": {
+            "type": "string",
+            "description": "Human-readable message text."
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "requires_buyer_input",
+              "recoverable",
+              "requires_buyer_review"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "Optional JSON Pointer to the field this message relates to."
+          }
+        }
+      },
+      "WaitlistEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "service_id",
+          "buyer",
+          "status",
+          "position",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique waitlist entry identifier."
+          },
+          "service_id": {
+            "type": "string",
+            "description": "The service the buyer is waitlisted for."
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/Buyer"
+          },
+          "preferred_slots": {
+            "type": "array",
+            "description": "Preferred time windows. If omitted, the buyer accepts any available slot.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "end_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "time_of_day": {
+                  "type": "string",
+                  "description": "Preferred time of day (e.g. morning, afternoon, evening)."
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "offered",
+              "accepted",
+              "expired",
+              "declined",
+              "removed"
+            ]
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current position in the waitlist queue (1-based)."
+          },
+          "offered_slot": {
+            "type": "object",
+            "description": "The slot being offered. Present when status is offered.",
+            "properties": {
+              "slot_id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "offer_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiration time for the current offer. Present when status is offered."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResourceRequirement": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "description": "Defines what staff, rooms, or equipment are needed for a service.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "staff",
+              "room",
+              "equipment",
+              "other"
+            ],
+            "description": "The kind of resource."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable label for this resource type (e.g. 'Stylist')."
+          },
+          "selectable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the buyer can choose a specific resource during booking. When true, options must be populated."
+          },
+          "options": {
+            "type": "array",
+            "description": "Available resource instances. Required when selectable is true.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "image_url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RegistryEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "usp_profile_url",
+          "name",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique registration identifier."
+          },
+          "usp_profile_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The business's /.well-known/usp profile URL."
+          },
+          "name": {
+            "type": "string",
+            "description": "Business display name."
+          },
+          "verticals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Service verticals the business supports."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Service categories the business offers."
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceSearchResult": {
+        "type": "object",
+        "required": [
+          "service_id",
+          "service_name",
+          "business",
+          "category"
+        ],
+        "properties": {
+          "service_id": {
+            "type": "string"
+          },
+          "service_name": {
+            "type": "string"
+          },
+          "business": {
+            "type": "object",
+            "required": [
+              "id",
+              "usp_profile_url",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "usp_profile_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "duration_minutes": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "description": "Price in minor currency units."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code."
+              }
+            }
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier."
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "RFC 9457 Problem Details",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "description": "URI reference identifying the problem type."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short, human-readable summary of the problem."
+          },
+          "status": {
+            "type": "integer",
+            "description": "HTTP status code."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation specific to this occurrence."
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference",
+            "description": "URI reference identifying the specific occurrence."
+          },
+          "errors": {
+            "type": "array",
+            "description": "Detailed validation errors.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Protocol error: malformed request",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/invalid_request",
+              "title": "Bad Request",
+              "status": 400,
+              "detail": "Malformed JSON or missing required fields"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Protocol error: authentication required",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/authentication_required",
+              "title": "Unauthorized",
+              "status": 401,
+              "detail": "Authentication credentials are missing or invalid"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/booking_not_found",
+              "title": "Not Found",
+              "status": 404,
+              "detail": "The requested resource does not exist"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Idempotency key conflict",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/idempotency_conflict",
+              "title": "Conflict",
+              "status": 409,
+              "detail": "Idempotency key was previously used with different parameters"
+            }
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "description": "Validation error",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/validation_error",
+              "title": "Unprocessable Entity",
+              "status": 422,
+              "detail": "Request fields are invalid"
+            }
+          }
+        }
+      },
+      "FailedDependency": {
+        "description": "Profile unreachable",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/profile_unreachable",
+              "title": "Failed Dependency",
+              "status": 424,
+              "detail": "Business profile could not be fetched"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limited",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/rate_limited",
+              "title": "Too Many Requests",
+              "status": 429,
+              "detail": "Rate limit exceeded"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Server error",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/server_error",
+              "title": "Internal Server Error",
+              "status": 500,
+              "detail": "An unexpected error occurred"
+            }
+          }
+        }
+      }
+    }
+  },
   "paths": {
     "/services/list": {
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "List Services",
         "operationId": "listServices",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "filters": { "type": "object", "properties": { "type": {}, "category_id": {}, "location_id": {} } },
-                  "pagination": { "$ref": "#/components/schemas/PaginationRequest" }
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "description": "Service vertical to filter by."
+                      },
+                      "category_id": {
+                        "type": "string",
+                        "description": "Category ID to filter by."
+                      },
+                      "location_id": {
+                        "type": "string",
+                        "description": "Location ID to filter by (for multi-location businesses)."
+                      }
+                    }
+                  },
+                  "pagination": {
+                    "$ref": "#/components/schemas/PaginationRequest"
+                  }
                 }
               }
             }
@@ -42,28 +1632,73 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["services", "pagination"], "properties": { "services": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } }, "pagination": { "$ref": "#/components/schemas/Pagination" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "services",
+                        "pagination"
+                      ],
+                      "properties": {
+                        "services": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Service"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/Pagination"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
-          "424": { "$ref": "#/components/responses/FailedDependency" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/{service_id}": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Get Service",
         "operationId": "getService",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Service details",
@@ -71,31 +1706,77 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["service"], "properties": { "service": { "$ref": "#/components/schemas/Service" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "service"
+                      ],
+                      "properties": {
+                        "service": {
+                          "$ref": "#/components/schemas/Service"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/feed": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Service Feed",
         "operationId": "getServiceFeed",
         "parameters": [
-          { "$ref": "#/components/parameters/USP-Agent" },
-          { "name": "cursor", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
-          { "name": "location_id", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -104,14 +1785,85 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
                     {
                       "type": "object",
-                      "required": ["items", "pagination", "feed_meta"],
+                      "required": [
+                        "items",
+                        "pagination",
+                        "feed_meta"
+                      ],
                       "properties": {
-                        "items": { "type": "array", "items": { "type": "object", "required": ["state", "modified_at", "data"], "properties": { "state": { "enum": ["updated", "deleted"] }, "modified_at": { "type": "string", "format": "date-time" }, "data": {} } } },
-                        "pagination": { "type": "object", "required": ["next_cursor", "has_more"], "properties": { "next_cursor": {}, "has_more": { "type": "boolean" } } },
-                        "feed_meta": { "type": "object", "required": ["feed_generated_at", "total_services", "feed_status"], "properties": { "feed_generated_at": { "type": "string", "format": "date-time" }, "total_services": { "type": "integer" }, "feed_status": { "enum": ["healthy", "degraded", "rebuilding"] } } }
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "state",
+                              "modified_at",
+                              "data"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "updated",
+                                  "deleted"
+                                ]
+                              },
+                              "modified_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "data": {
+                                "type": "object",
+                                "description": "Full service object for updated state; object containing only id for deleted state."
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "required": [
+                            "next_cursor",
+                            "has_more"
+                          ],
+                          "properties": {
+                            "next_cursor": {
+                              "type": "string",
+                              "description": "Opaque cursor to pass on the next request."
+                            },
+                            "has_more": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "feed_meta": {
+                          "type": "object",
+                          "required": [
+                            "feed_generated_at",
+                            "total_services",
+                            "feed_status"
+                          ],
+                          "properties": {
+                            "feed_generated_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "total_services": {
+                              "type": "integer"
+                            },
+                            "feed_status": {
+                              "enum": [
+                                "healthy",
+                                "degraded",
+                                "rebuilding"
+                              ]
+                            }
+                          }
+                        }
                       }
                     }
                   ]
@@ -119,27 +1871,69 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/feed/subscriptions": {
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Create Feed Subscription",
         "operationId": "createFeedSubscription",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["callback_url"],
-                "properties": { "callback_url": { "type": "string", "format": "uri" }, "categories": { "type": "array", "items": { "type": "string" } }, "events": { "type": "array", "items": { "type": "string", "enum": ["service.created", "service.updated", "service.deleted", "service.suspended"] } } }
+                "required": [
+                  "callback_url"
+                ],
+                "properties": {
+                  "callback_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "service.created",
+                        "service.updated",
+                        "service.deleted",
+                        "service.suspended"
+                      ]
+                    }
+                  }
+                }
               }
             }
           }
@@ -151,27 +1945,63 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "subscription"
+                      ],
+                      "properties": {
+                        "subscription": {
+                          "$ref": "#/components/schemas/FeedSubscription"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/feed/subscriptions/{subscription_id}": {
       "get": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Get Feed Subscription",
         "operationId": "getFeedSubscription",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Subscription details",
@@ -179,42 +2009,123 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "subscription"
+                      ],
+                      "properties": {
+                        "subscription": {
+                          "$ref": "#/components/schemas/FeedSubscription"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "delete": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Cancel Feed Subscription",
         "operationId": "cancelFeedSubscription",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Subscription canceled", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "200": {
+            "description": "Subscription canceled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/feed/subscriptions/{subscription_id}/pause": {
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Pause Feed Subscription",
         "operationId": "pauseFeedSubscription",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Subscription paused",
@@ -222,28 +2133,69 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "subscription"
+                      ],
+                      "properties": {
+                        "subscription": {
+                          "$ref": "#/components/schemas/FeedSubscription"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/services/feed/subscriptions/{subscription_id}/resume": {
       "post": {
-        "tags": ["Services"],
+        "tags": [
+          "Services"
+        ],
         "summary": "Resume Feed Subscription",
         "operationId": "resumeFeedSubscription",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "subscription_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Subscription resumed",
@@ -251,36 +2203,100 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["subscription"], "properties": { "subscription": { "$ref": "#/components/schemas/FeedSubscription" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "subscription"
+                      ],
+                      "properties": {
+                        "subscription": {
+                          "$ref": "#/components/schemas/FeedSubscription"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/availability/query": {
       "post": {
-        "tags": ["Availability"],
+        "tags": [
+          "Availability"
+        ],
         "summary": "Query Availability",
         "operationId": "queryAvailability",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["service_id", "start_date", "end_date"],
-                "properties": { "service_id": {}, "start_date": {}, "end_date": {}, "timezone": {}, "resource_id": {}, "party_size": { "default": 1 }, "location_id": {} }
+                "required": [
+                  "service_id",
+                  "start_date",
+                  "end_date"
+                ],
+                "properties": {
+                  "service_id": {
+                    "type": "string",
+                    "description": "The service to query."
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "description": "Start of range (RFC 3339 date or datetime)."
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "description": "End of range (RFC 3339 date or datetime)."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone. Defaults to business timezone."
+                  },
+                  "resource_id": {
+                    "type": "string",
+                    "description": "Preferred resource. If provided, only slots where this resource is available are returned."
+                  },
+                  "party_size": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of participants. For group/reservation types, only slots with sufficient remaining capacity are returned."
+                  },
+                  "location_id": {
+                    "type": "string",
+                    "description": "Location ID to filter by (for multi-location businesses)."
+                  }
+                }
               }
             }
           }
@@ -292,35 +2308,116 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["service_id", "slots"], "properties": { "service_id": {}, "slots": { "type": "array", "items": { "$ref": "#/components/schemas/TimeSlot" } }, "opening_hours": {}, "pagination": { "$ref": "#/components/schemas/Pagination" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "service_id",
+                        "slots"
+                      ],
+                      "properties": {
+                        "service_id": {
+                          "type": "string"
+                        },
+                        "slots": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TimeSlot"
+                          }
+                        },
+                        "opening_hours": {
+                          "type": "array",
+                          "description": "Business opening hours for the queried date range.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "day_of_week": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "opens": {
+                                "type": "string",
+                                "description": "Opening time in HH:MM format."
+                              },
+                              "closes": {
+                                "type": "string",
+                                "description": "Closing time in HH:MM format."
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/Pagination"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/availability/holds": {
       "post": {
-        "tags": ["Availability"],
+        "tags": [
+          "Availability"
+        ],
         "summary": "Hold Slot",
         "operationId": "holdSlot",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["slot_id", "service_id"],
-                "properties": { "slot_id": {}, "service_id": {}, "spots": { "default": 1 } }
+                "required": [
+                  "slot_id",
+                  "service_id"
+                ],
+                "properties": {
+                  "slot_id": {
+                    "type": "string",
+                    "description": "The slot to hold."
+                  },
+                  "service_id": {
+                    "type": "string",
+                    "description": "The service."
+                  },
+                  "spots": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of spots to hold. For group/reservation types."
+                  }
+                }
               }
             }
           }
@@ -332,27 +2429,69 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "properties": { "hold": { "$ref": "#/components/schemas/Hold" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "hold": {
+                          "$ref": "#/components/schemas/Hold"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/availability/holds/{hold_id}": {
       "delete": {
-        "tags": ["Availability"],
+        "tags": [
+          "Availability"
+        ],
         "summary": "Release Slot",
         "operationId": "releaseSlot",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "hold_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "hold_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Hold released",
@@ -360,36 +2499,125 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["hold"], "properties": { "hold": { "$ref": "#/components/schemas/Hold" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "hold"
+                      ],
+                      "properties": {
+                        "hold": {
+                          "$ref": "#/components/schemas/Hold"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings": {
       "post": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Create Booking",
         "operationId": "createBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["service_id", "slot_id", "buyer"],
-                "properties": { "service_id": {}, "slot_id": {}, "hold_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." }, "party_size": { "default": 1 }, "resource_id": {}, "notes": {}, "consent": { "type": "object", "properties": { "analytics": {}, "marketing": {}, "data_sharing": {}, "health_data": {} } } }
+                "required": [
+                  "service_id",
+                  "slot_id",
+                  "buyer"
+                ],
+                "properties": {
+                  "service_id": {
+                    "type": "string"
+                  },
+                  "slot_id": {
+                    "type": "string"
+                  },
+                  "hold_id": {
+                    "type": "string",
+                    "description": "Hold ID from a prior hold operation. Recommended to prevent race conditions."
+                  },
+                  "buyer": {
+                    "$ref": "#/components/schemas/Buyer"
+                  },
+                  "recipient": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Buyer"
+                      }
+                    ],
+                    "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient."
+                  },
+                  "party_size": {
+                    "type": "integer",
+                    "default": 1
+                  },
+                  "resource_id": {
+                    "type": "string",
+                    "description": "Preferred resource (e.g. specific staff member)."
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Buyer-provided special requests or notes."
+                  },
+                  "consent": {
+                    "type": "object",
+                    "description": "Optional buyer consent signals.",
+                    "properties": {
+                      "analytics": {
+                        "type": "boolean"
+                      },
+                      "marketing": {
+                        "type": "boolean"
+                      },
+                      "data_sharing": {
+                        "type": "boolean"
+                      },
+                      "health_data": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -401,28 +2629,72 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/UnprocessableEntity" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings/{booking_id}": {
       "get": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Get Booking",
         "operationId": "getBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Booking details",
@@ -430,32 +2702,86 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "put": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Update Booking",
         "operationId": "updateBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer." }, "notes": {} }
+                "properties": {
+                  "buyer": {
+                    "$ref": "#/components/schemas/Buyer"
+                  },
+                  "recipient": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Buyer"
+                      }
+                    ],
+                    "description": "The person receiving the service, when different from the buyer."
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
@@ -467,28 +2793,69 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings/{booking_id}/confirm": {
       "post": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Confirm Booking",
         "operationId": "confirmBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Booking confirmed",
@@ -496,29 +2863,84 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings/{booking_id}/cancel": {
       "post": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Cancel Booking",
         "operationId": "cancelBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "reason": {} } } } } },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "Cancellation reason."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Booking canceled",
@@ -526,36 +2948,95 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings/{booking_id}/reschedule": {
       "post": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Reschedule Booking",
         "operationId": "rescheduleBooking",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["slot_id", "hold_id"],
-                "properties": { "slot_id": {}, "hold_id": {} }
+                "required": [
+                  "slot_id",
+                  "hold_id"
+                ],
+                "properties": {
+                  "slot_id": {
+                    "type": "string",
+                    "description": "The new slot to reschedule to."
+                  },
+                  "hold_id": {
+                    "type": "string",
+                    "description": "Hold ID for the new slot."
+                  }
+                }
               }
             }
           }
@@ -567,40 +3048,123 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/bookings/{booking_id}/confirm-payment": {
       "post": {
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "summary": "Confirm Payment",
         "operationId": "confirmPayment",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "booking_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["payment_result"],
+                "required": [
+                  "payment_result"
+                ],
                 "properties": {
                   "payment_result": {
                     "type": "object",
-                    "required": ["status", "transaction_id", "amount_paid", "currency"],
-                    "properties": { "status": { "enum": ["paid", "deposit_paid"] }, "provider": {}, "transaction_id": {}, "amount_paid": {}, "currency": {}, "order_reference": {} }
+                    "required": [
+                      "status",
+                      "transaction_id",
+                      "amount_paid",
+                      "currency"
+                    ],
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "paid",
+                          "deposit_paid"
+                        ],
+                        "description": "Payment outcome."
+                      },
+                      "provider": {
+                        "type": "string",
+                        "description": "Payment provider identifier (e.g. stripe, adyen, paypal). Informational."
+                      },
+                      "transaction_id": {
+                        "type": "string",
+                        "description": "Transaction identifier from the payment provider."
+                      },
+                      "amount_paid": {
+                        "type": "integer",
+                        "description": "Amount paid in minor currency units."
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "ISO 4217 currency code."
+                      },
+                      "order_reference": {
+                        "type": "string",
+                        "description": "External order identifier from the checkout system."
+                      }
+                    }
                   }
                 }
               }
@@ -614,36 +3178,109 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["booking"], "properties": { "booking": { "$ref": "#/components/schemas/Booking" }, "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "booking"
+                      ],
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/waitlist": {
       "post": {
-        "tags": ["Waitlist"],
+        "tags": [
+          "Waitlist"
+        ],
         "summary": "Join Waitlist",
         "operationId": "joinWaitlist",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["service_id", "buyer"],
-                "properties": { "service_id": {}, "slot_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "preferred_slots": { "type": "array" } }
+                "required": [
+                  "service_id",
+                  "buyer"
+                ],
+                "properties": {
+                  "service_id": {
+                    "type": "string"
+                  },
+                  "slot_id": {
+                    "type": "string",
+                    "description": "Specific slot to waitlist for, if applicable."
+                  },
+                  "buyer": {
+                    "$ref": "#/components/schemas/Buyer"
+                  },
+                  "preferred_slots": {
+                    "type": "array",
+                    "description": "Preferred time windows. If omitted, the buyer accepts any available slot.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "start_date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "end_date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "time_of_day": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -655,27 +3292,63 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["entry"], "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "entry"
+                      ],
+                      "properties": {
+                        "entry": {
+                          "$ref": "#/components/schemas/WaitlistEntry"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/waitlist/{entry_id}": {
       "get": {
-        "tags": ["Waitlist"],
+        "tags": [
+          "Waitlist"
+        ],
         "summary": "Get Waitlist Entry",
         "operationId": "getWaitlistEntry",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Waitlist entry details",
@@ -683,43 +3356,138 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["entry"], "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "entry"
+                      ],
+                      "properties": {
+                        "entry": {
+                          "$ref": "#/components/schemas/WaitlistEntry"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "delete": {
-        "tags": ["Waitlist"],
+        "tags": [
+          "Waitlist"
+        ],
         "summary": "Leave Waitlist",
         "operationId": "leaveWaitlist",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Left waitlist", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "200": {
+            "description": "Left waitlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/waitlist/{entry_id}/accept": {
       "post": {
-        "tags": ["Waitlist"],
+        "tags": [
+          "Waitlist"
+        ],
         "summary": "Accept Waitlist Offer",
         "operationId": "acceptWaitlistOffer",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "hold_id": {} } } } } },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hold_id": {
+                    "type": "string",
+                    "description": "Hold ID for the offered slot, if already held."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Offer accepted",
@@ -727,28 +3495,69 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" }, "booking": { "$ref": "#/components/schemas/Booking" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "entry": {
+                          "$ref": "#/components/schemas/WaitlistEntry"
+                        },
+                        "booking": {
+                          "$ref": "#/components/schemas/Booking"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/waitlist/{entry_id}/decline": {
       "post": {
-        "tags": ["Waitlist"],
+        "tags": [
+          "Waitlist"
+        ],
         "summary": "Decline Waitlist Offer",
         "operationId": "declineWaitlistOffer",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }, { "name": "entry_id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Offer declined",
@@ -756,62 +3565,228 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "properties": { "entry": { "$ref": "#/components/schemas/WaitlistEntry" } } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "entry": {
+                          "$ref": "#/components/schemas/WaitlistEntry"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/registry/businesses": {
       "post": {
-        "tags": ["Registry"],
+        "tags": [
+          "Registry"
+        ],
         "summary": "Register Business",
         "operationId": "registerBusiness",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["usp_profile_url", "name"],
-                "properties": { "usp_profile_url": { "type": "string", "format": "uri" }, "name": {}, "verticals": { "type": "array" }, "categories": { "type": "array" }, "location": {}, "timezone": {} }
+                "required": [
+                  "usp_profile_url",
+                  "name"
+                ],
+                "properties": {
+                  "usp_profile_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "The business's /.well-known/usp profile URL. Must be reachable and return a valid USP profile."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Business display name."
+                  },
+                  "verticals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Service verticals the business supports."
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Service categories the business offers."
+                  },
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string"
+                      },
+                      "coordinates": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number"
+                          },
+                          "lng": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone identifier."
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Business registered", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/USPEnvelope" }] } } } },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "200": {
+            "description": "Business registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "registration"
+                      ],
+                      "properties": {
+                        "registration": {
+                          "$ref": "#/components/schemas/RegistryEntry"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-    "/registry/search": {
+    "/registry/search_business": {
       "post": {
-        "tags": ["Registry"],
+        "tags": [
+          "Registry"
+        ],
         "summary": "Search Businesses",
         "operationId": "searchBusinesses",
-        "parameters": [{ "$ref": "#/components/parameters/USP-Agent" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "location": {}, "verticals": { "type": "array" }, "categories": { "type": "array" }, "query": {}, "pagination": { "$ref": "#/components/schemas/PaginationRequest" } }
+                "properties": {
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "coordinates": {
+                        "type": "object",
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "properties": {
+                          "lat": {
+                            "type": "number"
+                          },
+                          "lng": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "radius_km": {
+                        "type": "number",
+                        "description": "Search radius in kilometers."
+                      }
+                    }
+                  },
+                  "verticals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by service verticals."
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by service categories."
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Free-text search query."
+                  },
+                  "pagination": {
+                    "$ref": "#/components/schemas/PaginationRequest"
+                  }
+                }
               }
             }
           }
@@ -823,131 +3798,192 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/USPEnvelope" },
-                    { "type": "object", "required": ["businesses", "pagination"], "properties": { "businesses": { "type": "array" }, "pagination": {} } }
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "businesses",
+                        "pagination"
+                      ],
+                      "properties": {
+                        "businesses": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/RegistryEntry"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/Pagination"
+                        }
+                      }
+                    }
                   ]
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
-        }
-      }
-    }
-  },
-  "components": {
-    "parameters": {
-      "USP-Agent": {
-        "name": "USP-Agent",
-        "in": "header",
-        "description": "Platform profile URI for capability negotiation. RFC 8941 Dictionary Structured Field: profile=\"https://agent.example/profiles/scheduling-agent.json\"",
-        "schema": { "type": "string", "example": "profile=\"https://agent.example/profiles/scheduling-agent.json\"" }
-      },
-      "IdempotencyKey": {
-        "name": "Idempotency-Key",
-        "in": "header",
-        "description": "UUID v4 for idempotency of state-modifying operations.",
-        "schema": { "type": "string", "format": "uuid" }
-      }
-    },
-    "schemas": {
-      "USPEnvelope": {
-        "type": "object",
-        "required": ["usp"],
-        "properties": {
-          "usp": {
-            "type": "object",
-            "required": ["version"],
-            "properties": { "version": { "type": "string" }, "capabilities": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "object", "properties": { "version": {} } } } }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
-      },
-      "PaginationRequest": { "type": "object", "properties": { "limit": { "type": "integer", "default": 20 }, "cursor": { "type": ["string", "null"] } } },
-      "Pagination": { "type": "object", "properties": { "cursor": { "type": ["string", "null"] }, "has_more": { "type": "boolean" } } },
-      "Service": {
-        "type": "object",
-        "required": ["id", "name", "type", "duration", "pricing", "channel", "policies"],
-        "properties": { "id": {}, "name": {}, "description": {}, "type": {}, "duration": {}, "pricing": {}, "channel": {}, "policies": {}, "capacity": {}, "availability_hint": {} }
-      },
-      "FeedSubscription": {
-        "type": "object",
-        "required": ["id", "callback_url", "status", "created_at"],
-        "properties": { "id": {}, "callback_url": {}, "categories": {}, "events": {}, "status": { "enum": ["active", "paused", "canceled"] }, "created_at": {} }
-      },
-      "TimeSlot": {
-        "type": "object",
-        "required": ["id", "service_id", "start", "end", "duration", "state"],
-        "properties": { "id": {}, "service_id": {}, "start": {}, "end": {}, "duration": {}, "state": { "enum": ["available", "limited", "waitlist"] }, "capacity": {}, "resources": {}, "location": {}, "pricing": {} }
-      },
-      "Hold": {
-        "type": "object",
-        "required": ["id", "slot_id", "service_id", "expires_at", "status"],
-        "properties": { "id": {}, "slot_id": {}, "service_id": {}, "spots": {}, "expires_at": {}, "status": { "enum": ["active", "expired", "released", "converted"] } }
-      },
-      "Buyer": {
-        "type": "object",
-        "required": ["first_name", "last_name", "email"],
-        "properties": { "first_name": {}, "last_name": {}, "email": {}, "phone_number": {} }
-      },
-      "Booking": {
-        "type": "object",
-        "required": ["id", "service_id", "service_name", "slot", "buyer", "party_size", "status", "confirmation_mode", "created_at", "updated_at"],
-        "properties": { "id": {}, "service_id": {}, "service_name": {}, "slot": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "recipient": { "$ref": "#/components/schemas/Buyer", "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." }, "party_size": {}, "status": {}, "confirmation_mode": {}, "payment": {}, "payment_context": {}, "messages": {}, "continue_url": {}, "notes": {}, "created_at": {}, "updated_at": {}, "expires_at": {} }
-      },
-      "Message": {
-        "type": "object",
-        "properties": { "type": { "enum": ["error", "warning", "info"] }, "code": {}, "content": {}, "severity": { "enum": ["requires_buyer_input", "recoverable", "requires_buyer_review"] }, "path": {} }
-      },
-      "WaitlistEntry": {
-        "type": "object",
-        "required": ["id", "service_id", "buyer", "status", "position", "created_at"],
-        "properties": { "id": {}, "service_id": {}, "buyer": { "$ref": "#/components/schemas/Buyer" }, "status": { "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"] }, "position": {}, "offered_slot": {}, "offer_expires_at": {}, "created_at": {} }
-      },
-      "ProblemDetails": {
-        "type": "object",
-        "description": "RFC 9457 Problem Details",
-        "required": ["type", "title", "status"],
-        "properties": { "type": { "type": "string", "format": "uri-reference" }, "title": {}, "status": { "type": "integer" }, "detail": {}, "instance": {}, "errors": {} }
       }
     },
-    "responses": {
-      "BadRequest": {
-        "description": "Protocol error: malformed request",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/invalid_request", "title": "Bad Request", "status": 400, "detail": "Malformed JSON or missing required fields" } } }
-      },
-      "Unauthorized": {
-        "description": "Protocol error: authentication required",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/authentication_required", "title": "Unauthorized", "status": 401, "detail": "Authentication credentials are missing or invalid" } } }
-      },
-      "NotFound": {
-        "description": "Resource not found",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/booking_not_found", "title": "Not Found", "status": 404, "detail": "The requested resource does not exist" } } }
-      },
-      "Conflict": {
-        "description": "Idempotency key conflict",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/idempotency_conflict", "title": "Conflict", "status": 409, "detail": "Idempotency key was previously used with different parameters" } } }
-      },
-      "UnprocessableEntity": {
-        "description": "Validation error",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/validation_error", "title": "Unprocessable Entity", "status": 422, "detail": "Request fields are invalid" } } }
-      },
-      "FailedDependency": {
-        "description": "Profile unreachable",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/profile_unreachable", "title": "Failed Dependency", "status": 424, "detail": "Business profile could not be fetched" } } }
-      },
-      "TooManyRequests": {
-        "description": "Rate limited",
-        "headers": { "Retry-After": { "schema": { "type": "integer" } } },
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/rate_limited", "title": "Too Many Requests", "status": 429, "detail": "Rate limit exceeded" } } }
-      },
-      "InternalServerError": {
-        "description": "Server error",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" }, "example": { "type": "https://usp.dev/errors/server_error", "title": "Internal Server Error", "status": 500, "detail": "An unexpected error occurred" } } }
+    "/registry/search_services": {
+      "post": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Search Services",
+        "operationId": "searchServices",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "coordinates": {
+                        "type": "object",
+                        "required": [
+                          "lat",
+                          "lng"
+                        ],
+                        "properties": {
+                          "lat": {
+                            "type": "number"
+                          },
+                          "lng": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "radius_km": {
+                        "type": "number",
+                        "description": "Search radius in kilometers."
+                      }
+                    }
+                  },
+                  "verticals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by service verticals."
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by service categories."
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Free-text search query."
+                  },
+                  "price_range": {
+                    "type": "object",
+                    "description": "Filter by price range.",
+                    "properties": {
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum price in minor currency units."
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum price in minor currency units."
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "ISO 4217 currency code."
+                      }
+                    }
+                  },
+                  "duration_range": {
+                    "type": "object",
+                    "description": "Filter by duration range.",
+                    "properties": {
+                      "min_minutes": {
+                        "type": "integer"
+                      },
+                      "max_minutes": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "pagination": {
+                    "$ref": "#/components/schemas/PaginationRequest"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Service search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "services",
+                        "pagination"
+                      ],
+                      "properties": {
+                        "services": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ServiceSearchResult"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/Pagination"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
       }
     }
   }
-}
 }
