@@ -36,7 +36,7 @@ USP solves this with core support for **appointments**, **group sessions**, **re
 | [**USP Specification**](specification.md) | Complete protocol: domain core, deployment modes, transport bindings, security, and extensions |
 | [**Design Rationale**](DESIGN_RATIONALE.md) | Why this architecture, comparison with alternatives, UCP assimilation analysis |
 
-### Implementor Quick Start
+### Implementer Quick Start
 
 Everyone starts with the **domain core (Sections 1-5)** - these define the 
 scheduling capabilities shared by both modes. After the domain core, read the 

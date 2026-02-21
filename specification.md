@@ -1087,6 +1087,9 @@ Response:
   },
   "hold": {
     "id": "hold_abc123",
+    "slot_id": "slot_20260315_0900",
+    "service_id": "svc_haircut_001",
+    "expires_at": "2026-03-15T08:10:00-04:00",
     "status": "released"
   }
 }
@@ -1910,6 +1913,8 @@ A USP registry is a centralized or federated directory that maintains a searchab
 
 #### 7.5.1 Business Registration - `POST /registry/businesses`
 
+Request:
+
 ```json
 {
   "usp_profile_url": "https://sunrisewellness.com/.well-known/usp",
@@ -1924,9 +1929,36 @@ A USP registry is a centralized or federated directory that maintains a searchab
 }
 ```
 
+Response:
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {"dev.usp.discovery.registry": [{"version": "2026-02-09"}]}
+  },
+  "registration": {
+    "id": "reg_sunrise_001",
+    "usp_profile_url": "https://sunrisewellness.com/.well-known/usp",
+    "name": "Sunrise Wellness Studio",
+    "verticals": ["appointment", "group"],
+    "categories": ["wellness", "beauty", "fitness"],
+    "location": {
+      "address": "123 Main St, New York, NY 10001",
+      "coordinates": {"lat": 40.7484, "lng": -73.9967}
+    },
+    "timezone": "America/New_York",
+    "status": "active",
+    "created_at": "2026-03-14T10:00:00Z"
+  }
+}
+```
+
 The registry **MUST** validate that the `usp_profile_url` is reachable and returns a valid USP profile before accepting the registration.
 
-#### 7.5.2 Business Search - `POST /registry/search`
+#### 7.5.2 Business Search - `POST /registry/search_business`
+
+Request:
 
 ```json
 {
@@ -1941,7 +1973,127 @@ The registry **MUST** validate that the `usp_profile_url` is reachable and retur
 }
 ```
 
-#### 7.5.3 Registry Governance
+Response:
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {"dev.usp.discovery.registry": [{"version": "2026-02-09"}]}
+  },
+  "businesses": [
+    {
+      "id": "reg_sunrise_001",
+      "usp_profile_url": "https://sunrisewellness.com/.well-known/usp",
+      "name": "Sunrise Wellness Studio",
+      "verticals": ["appointment", "group"],
+      "categories": ["wellness", "beauty", "fitness"],
+      "location": {
+        "address": "123 Main St, New York, NY 10001",
+        "coordinates": {"lat": 40.7484, "lng": -73.9967}
+      },
+      "timezone": "America/New_York",
+      "status": "active",
+      "created_at": "2026-03-01T10:00:00Z"
+    },
+    {
+      "id": "reg_serenity_002",
+      "usp_profile_url": "https://serenityspa.example.com/.well-known/usp",
+      "name": "Serenity Spa & Massage",
+      "verticals": ["appointment"],
+      "categories": ["wellness", "beauty"],
+      "location": {
+        "address": "456 Oak Ave, New York, NY 10002",
+        "coordinates": {"lat": 40.7521, "lng": -73.9812}
+      },
+      "timezone": "America/New_York",
+      "status": "active",
+      "created_at": "2026-03-05T14:30:00Z"
+    }
+  ],
+  "pagination": {"cursor": "cursor_abc123", "has_more": true}
+}
+```
+
+#### 7.5.3 Service Search - `POST /registry/search_services`
+
+A platform can search the registry for specific **services** offered by registered businesses. This enables more granular discovery — rather than finding businesses and then querying each one for services, the platform can directly search across all registered businesses' services.
+
+Request:
+
+```json
+{
+  "location": {
+    "coordinates": {"lat": 40.7484, "lng": -73.9967},
+    "radius_km": 10
+  },
+  "verticals": ["appointment"],
+  "categories": ["wellness"],
+  "query": "deep tissue massage",
+  "price_range": {
+    "min": 5000,
+    "max": 20000,
+    "currency": "USD"
+  },
+  "duration_range": {
+    "min_minutes": 30,
+    "max_minutes": 90
+  },
+  "pagination": {"limit": 20, "cursor": null}
+}
+```
+
+Response:
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {"dev.usp.discovery.registry": [{"version": "2026-02-09"}]}
+  },
+  "services": [
+    {
+      "service_id": "svc_deep_tissue_60",
+      "service_name": "Deep Tissue Massage - 60 min",
+      "business": {
+        "id": "reg_sunrise_001",
+        "usp_profile_url": "https://sunrisewellness.com/.well-known/usp",
+        "name": "Sunrise Wellness Studio"
+      },
+      "category": "wellness",
+      "duration_minutes": 60,
+      "price": {"amount": 12000, "currency": "USD"},
+      "location": {
+        "address": "123 Main St, New York, NY 10001",
+        "coordinates": {"lat": 40.7484, "lng": -73.9967}
+      },
+      "timezone": "America/New_York"
+    },
+    {
+      "service_id": "svc_massage_90",
+      "service_name": "Therapeutic Deep Tissue - 90 min",
+      "business": {
+        "id": "reg_serenity_002",
+        "usp_profile_url": "https://serenityspa.example.com/.well-known/usp",
+        "name": "Serenity Spa & Massage"
+      },
+      "category": "wellness",
+      "duration_minutes": 90,
+      "price": {"amount": 18000, "currency": "USD"},
+      "location": {
+        "address": "456 Oak Ave, New York, NY 10002",
+        "coordinates": {"lat": 40.7521, "lng": -73.9812}
+      },
+      "timezone": "America/New_York"
+    }
+  ],
+  "pagination": {"cursor": "cursor_svc_xyz", "has_more": true}
+}
+```
+
+The registry **SHOULD** index services from registered businesses by periodically fetching their USP profiles and caching service metadata. The `query` field performs a full-text search across service names, descriptions, and categories.
+
+#### 7.5.4 Registry Governance
 
 Registries are **independent** from USP-enabled businesses. Multiple registries **MAY** coexist (federated model). A business **MAY** register with multiple registries. Registries **SHOULD** periodically validate that registered businesses still serve a valid USP profile.
 
@@ -2214,7 +2366,7 @@ A paid booking with `deposit_required` using the generic path. The key differenc
       "line_items": [
         {"label": "Deep Tissue Massage (deposit)", "amount": 6000, "quantity": 1, "item_id": "svc_massage_001"}
       ],
-      "metadata": {"booking_id": "bkg_deposit_001", "service_id": "svc_massage_001", "service_type": "appointment"},
+      "metadata": {"booking_id": "bkg_deposit_001", "service_id": "svc_massage_001", "service_type": "appointment", "slot_start": "2026-03-16T14:00:00-04:00"},
       "expires_at": "2026-03-16T13:10:00-04:00"
     }
   }
@@ -2819,7 +2971,8 @@ When a waitlisted buyer accepts an offered slot for a paid service that requires
 | Accept Waitlist Offer | `POST` | `/waitlist/{entry_id}/accept` | waitlist |
 | Decline Waitlist Offer | `POST` | `/waitlist/{entry_id}/decline` | waitlist |
 | Register Business | `POST` | `/registry/businesses` | discovery (optional) |
-| Search Businesses | `POST` | `/registry/search` | discovery (optional) |
+| Search Businesses | `POST` | `/registry/search_business` | discovery (optional) |
+| Search Services | `POST` | `/registry/search_services` | discovery (optional) |
 
 ---
 
