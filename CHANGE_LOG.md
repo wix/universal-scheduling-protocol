@@ -1,5 +1,13 @@
 # Change Log
 
+## 21/02/26 at 10:47:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Added USP Booking Form Profile:** New separate spec (`docs/usp-booking-form-profile.md`) defining field derivation rules and A2UI component mapping for AI agent platforms building booking forms, so platforms know which form fields to show based on service/slot context and how to render them via A2UI
+- **Added design doc:** `docs/plans/2026-02-21-usp-booking-form-profile-design.md` capturing the approved design from brainstorming
+- **Updated README:** Added USP Booking Form Profile to the Specification documents table with link to the profile spec
+
+---
+
 ## 21/02/26 at 10:12:28 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Updated AGENTS.md entry format to include a mailto link for the author's git email, so each change log entry attributes the author with a clickable email link for traceability and easy contact
