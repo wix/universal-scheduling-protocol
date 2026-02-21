@@ -1,5 +1,13 @@
 # Change Log
 
+## 21/02/26 at 10:05:27 by Ran Yahalom
+
+- **Fixed wrong cross-section links in specification.md:** Corrected Section 1.3 (Vertical) link from `#9-service-verticals` to `#13-service-verticals`; Section 4.4 (Caching Strategy) from `#34-caching-strategy` to `#44-caching-strategy`; RFC 6749 (OAuth) from non-existent Section 9.6 to Section 9.2.3 Authentication and Authorization (`#923-authentication-and-authorization`); RFC 9421 (Webhooks) from Section 9.3 to Section 9.1.1 Webhook Security (`#911-webhook-security`); Section 5.1 (Booking Status) from `#31-booking-status-lifecycle` to `#51-booking-status-lifecycle`
+- **Fixed TOC:** Section 1.5 link text and anchor from "Deployment Modes and Implementation Guide" / `#15-deployment-modes-and-implementation-guide` to "Deployment Modes" / `#15-deployment-modes` to match actual heading
+- **Added missing cross-links:** Converted plain "Section X" references to markdown links throughout the specification (intro, terminology table, implementation stages, deployment mode descriptions, core constructs table, booking schema, webhooks, security, extensions, etc.)
+
+---
+
 ## 21/02/26 at 09:47:00 by Ran Yahalom
 
 ### Added JSON Schema links to specification.md
