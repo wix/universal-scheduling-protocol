@@ -8,7 +8,7 @@ After completing any set of file changes in this repository, you MUST append a n
 
 Each entry is a level-2 heading followed by a bulleted list:
 
-    ## DD/MM/YY at HH:MM:SS by <git_username>
+    ## DD/MM/YY at HH:MM:SS by [<git_username>](mailto:<git_email>)
 
     - <change description>
     - <change description>
@@ -17,6 +17,7 @@ Where:
 - `DD/MM/YY` is the current date (day/month/year, zero-padded)
 - `HH:MM:SS` is the current time in the user's local timezone (24-hour, zero-padded)
 - `<git_username>` is the output of `git config user.name`
+- `<git_email>` is the output of `git config user.email`. If unavailable, use the plain username without a mailto link
 - Each bullet describes one logical change with its **motivation or rationale** (e.g. "Fixed the bug where X caused Y", "Added missing Z required by W"), not just what was changed
 
 ### Rules
