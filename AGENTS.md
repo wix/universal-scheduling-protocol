@@ -26,4 +26,4 @@ Where:
 2. Separate each entry from the previous one with a blank line and a horizontal rule (`---`)
 3. If you make changes across multiple files, group related changes into a single entry
 4. Do NOT edit or remove existing entries
-5. Obtain the current date, time, and git username at the time you write the entry -- do not guess or reuse stale values
+5. Obtain the current date, time, and git username at the time you write the entry - do not guess or reuse stale values
