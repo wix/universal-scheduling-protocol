@@ -1,5 +1,11 @@
 # Change Log
 
+## 22/02/26 at 14:09:11 by [kobym707](mailto:kobym@wix.com)
+
+- **Promoted Business ID and Localization to peer-level sections:** Extracted former 3.3.1 (Business ID) and 3.3.2 (Localization) from under the Service Schema section into their own top-level sections (3.4 and 3.5), consistent with how other complex Service fields (Duration, Pricing, Policies, etc.) are structured. Renumbered sections 3.4-3.10 to 3.6-3.12 and updated all cross-references throughout the spec.
+
+---
+
 ## 22/02/26 at 13:54:36 by [kobym707](mailto:kobym@wix.com)
 
 - **Moved extended verticals to informative Appendix A:** Relocated the five candidate verticals (`event`, `course`, `healthcare`, `home_service`, `tour`) from Section 1.3.2 to a new non-normative Appendix A, following RFC conventions for separating forward-looking content from normative spec. Added promotion criteria (A.2) requiring two independent implementations before a vertical can become core.

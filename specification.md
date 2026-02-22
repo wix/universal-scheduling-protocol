@@ -47,13 +47,15 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
   - [3.1 Service Catalog Feed](#31-service-catalog-feed)
   - [3.2 Catalog Caching and Indexing](#32-catalog-caching-and-indexing)
   - [3.3 Service Schema](#33-service-schema)
-  - [3.4 Availability Hint](#34-availability-hint)
-  - [3.5 Duration](#35-duration)
-  - [3.6 Pricing](#36-pricing)
-  - [3.7 Service Policies](#37-service-policies)
-  - [3.8 Resource Requirement](#38-resource-requirement)
-  - [3.9 Validation Rules](#39-validation-rules)
-  - [3.10 Operations](#310-operations)
+  - [3.4 Business ID and Cross-Business Discovery](#34-business-id-and-cross-business-discovery)
+  - [3.5 Localization](#35-localization)
+  - [3.6 Availability Hint](#36-availability-hint)
+  - [3.7 Duration](#37-duration)
+  - [3.8 Pricing](#38-pricing)
+  - [3.9 Service Policies](#39-service-policies)
+  - [3.10 Resource Requirement](#310-resource-requirement)
+  - [3.11 Validation Rules](#311-validation-rules)
+  - [3.12 Operations](#312-operations)
 - [4. Availability](#4-availability)
   - [4.1 Time Slot](#41-time-slot)
   - [4.2 Hold](#42-hold)
@@ -526,7 +528,7 @@ Response:
 | `feed_meta.total_services` | integer | **Yes** | Total number of active (non-deleted) services in the business's catalog. Aggregators can use this to verify completeness of their index. |
 | `feed_meta.feed_status` | string | **Yes** | Health status of the feed. `healthy`: feed is fully up-to-date. `degraded`: feed may be missing recent changes (e.g., partial index rebuild in progress). `rebuilding`: feed is being regenerated from scratch; aggregators **SHOULD** expect a full resync. |
 
-The `List Services` operation ([Section 3.10](#310-operations)) remains available for interactive use by platform UIs and AI agents. The feed endpoint is designed for bulk indexing by aggregators.
+The `List Services` operation ([Section 3.12](#312-operations)) remains available for interactive use by platform UIs and AI agents. The feed endpoint is designed for bulk indexing by aggregators.
 
 ### 3.2 Catalog Caching and Indexing
 
@@ -572,21 +574,21 @@ The service object represents a bookable offering from a business. Each service 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | **Yes** | Unique service identifier, scoped to the business. Opaque to the platform. The composite key `(business_id, id)` is globally unique. |
-| `business_id` | string | **Yes** | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.3.1](#331-business-id-and-cross-business-discovery). |
+| `business_id` | string | **Yes** | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.4](#34-business-id-and-cross-business-discovery). |
 | `name` | string | **Yes** | Human-readable display name for the service (e.g., "Women's Haircut & Style"). |
 | `description` | string | No | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents. |
 | `type` | string | **Yes** | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals). |
 | `category` | object | No | `{id, name, parent_id}` - business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization. |
-| `duration` | Duration | **Yes** | Duration configuration. See [Section 3.5](#35-duration). |
-| `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Section 3.6](#36-pricing). |
+| `duration` | Duration | **Yes** | Duration configuration. See [Section 3.7](#37-duration). |
+| `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Section 3.8](#38-pricing). |
 | `locations` | Array\[Location\] | No | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`. |
-| `resources` | Array\[ResourceRequirement\] | No | Required staff, rooms, or equipment. See [Section 3.8](#38-resource-requirement). |
+| `resources` | Array\[ResourceRequirement\] | No | Required staff, rooms, or equipment. See [Section 3.10](#310-resource-requirement). |
 | `channel` | object | **Yes** | Delivery channel for the service. See channel types below. |
-| `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling, and payment policies. See [Section 3.7](#37-service-policies). |
+| `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling, and payment policies. See [Section 3.9](#39-service-policies). |
 | `capacity` | object | No | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full. |
 | `images` | Array\[object\] | No | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`. |
-| `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.4](#34-availability-hint). |
-| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.3.2](#332-localization). |
+| `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint). |
+| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization). |
 
 **Channel types:**
 
@@ -597,7 +599,7 @@ The service object represents a bookable offering from a business. Each service 
 | `phone` | Service is delivered via phone call. | `instructions`: optional call-in details. |
 | `hybrid` | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference. |
 
-#### 3.3.1 Business ID and Cross-Business Discovery
+### 3.4 Business ID and Cross-Business Discovery
 
 The `business_id` field makes every service object **self-describing** — it carries the identity of the business that offers it, even after the service object leaves the API response context.
 
@@ -615,7 +617,7 @@ This is critical in agentic workflows where services are routinely aggregated, c
 - Platforms **MUST NOT** send `business_id` in create or update requests — the business context is established by the API endpoint and authentication.
 - The composite key `(business_id, id)` is the globally unique identifier for a service across the entire USP ecosystem.
 
-#### 3.3.2 Localization
+### 3.5 Localization
 
 The optional `localized` field provides per-locale overrides for human-readable text fields on a service. The top-level fields (`name`, `description`, `category.name`, `channel.instructions`) serve as the default/fallback locale. The `localized` field uses IETF BCP 47 language tags as keys.
 
@@ -660,7 +662,7 @@ This design allows platforms to cache a single service object containing all tra
 - Platforms **SHOULD** resolve the buyer's preferred locale by matching against available keys, falling back to the top-level field when no match is found.
 - Providers **SHOULD** include translations for all locales they actively support.
 
-### 3.4 Availability Hint
+### 3.6 Availability Hint
 
 An optional, lightweight summary of a service's near-term availability. The hint is designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before hitting the real-time availability API. It is cached alongside catalog data and serves as "Tier 0" of the availability funnel (see [Section 4.4 - Caching Strategy](#44-caching-strategy)).
 
@@ -674,7 +676,7 @@ The hint captures the same information a receptionist would give over the phone:
 | `generated_at` | string | **Yes** | RFC 3339 timestamp of when this hint was generated. Platforms can use this to assess freshness and decide how much weight to give the hint. A hint older than 6 hours **SHOULD** be treated with lower confidence. |
 | `next_available_date` | string | No | `YYYY-MM-DD` date of the next day with known availability. This single structured field is usable by both AI agents and traditional programmatic platforms to skip fully booked date ranges. |
 
-#### 3.4.1 Agent Use Cases
+#### 3.6.1 Agent Use Cases
 
 The availability hint is particularly valuable for AI agents that orchestrate scheduling on behalf of users. The following table summarizes the key use cases and how the hint helps in each:
 
@@ -704,7 +706,7 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 }
 ```
 
-### 3.5 Duration
+### 3.7 Duration
 
 The duration object defines how long a service takes. Exactly one of `fixed`, `range`, or `undetermined` **MUST** be provided. Buffers define non-bookable prep/cleanup time that the business needs between consecutive bookings.
 
@@ -734,9 +736,9 @@ The duration object defines how long a service takes. Exactly one of `fixed`, `r
 | `buffer_before` | string | No | ISO 8601 duration. Non-bookable prep time before the service (e.g., room setup). This time is blocked on the schedule but not visible to the buyer. |
 | `buffer_after` | string | No | ISO 8601 duration. Non-bookable cleanup time after the service (e.g., sanitization between clients). |
 
-### 3.6 Pricing
+### 3.8 Pricing
 
-The pricing object defines how a service is priced. The combination of `model` and the service's `requires_payment` / `payment_timing` fields **MUST** conform to the validation rules in [Section 3.9](#39-validation-rules).
+The pricing object defines how a service is priced. The combination of `model` and the service's `requires_payment` / `payment_timing` fields **MUST** conform to the validation rules in [Section 3.11](#311-validation-rules).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -755,7 +757,7 @@ The pricing object defines how a service is priced. The combination of `model` a
 | `variable` | Price varies based on factors such as time of day, demand, day of week, or provider. The actual price is returned on each time slot in the availability response (`slot.pricing`). The catalog `amount` **MAY** be omitted or set to a base/starting price. |
 | `free` | No charge for the service. `amount` **MUST NOT** be present. The service `requires_payment` **MUST** be `false`. |
 
-### 3.7 Service Policies
+### 3.9 Service Policies
 
 Machine-readable policies that enable agents to make informed decisions about booking, cancellation, rescheduling, and payment. These policies govern the booking lifecycle and **MUST** be enforced by the business.
 
@@ -769,7 +771,7 @@ Machine-readable policies that enable agents to make informed decisions about bo
 | `requires_payment` | boolean | **Yes** | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services). |
 | `payment_timing` | string | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time). |
 
-### 3.8 Resource Requirement
+### 3.10 Resource Requirement
 
 The resource requirement defines what staff, rooms, or equipment are needed for a service, and whether the buyer can select a specific resource.
 
@@ -780,11 +782,11 @@ The resource requirement defines what staff, rooms, or equipment are needed for 
 | `selectable` | boolean | No | Whether the buyer can choose a specific resource during booking. Default: `false`. When `true`, the `options` array **MUST** be populated. When `false`, the business assigns the resource automatically. |
 | `options` | Array\[Resource\] | No | `{id, name, description, image_url}` - the available resource instances. **REQUIRED** when `selectable` is `true`. Each option represents a specific resource the buyer can choose (e.g., a specific stylist or a specific room). |
 
-### 3.9 Validation Rules
+### 3.11 Validation Rules
 
 The following constraints define legal combinations of `requires_payment`, `payment_timing`, and `pricing.model`. Implementations **MUST** validate service definitions against these rules. JSON Schema files published at the capability schema URL **SHOULD** enforce these constraints using `if/then/else` or `oneOf` composition.
 
-#### 3.9.1 Payment and Pricing Constraint Matrix
+#### 3.11.1 Payment and Pricing Constraint Matrix
 
 | `requires_payment` | `payment_timing` | `pricing.model` | `pricing.amount` | Legal? | Notes |
 |--------------------|-------------------|-----------------|-------------------|--------|-------|
@@ -809,7 +811,7 @@ The following constraints define legal combinations of `requires_payment`, `paym
 | `true` | `deposit_required` | `per_person` | (required) | **Yes** | Same as above. |
 | `true` | `deposit_required` | `variable` | (optional) | **Yes** | Variable pricing with deposit. |
 
-#### 3.9.2 Summary Rules
+#### 3.11.2 Summary Rules
 
 1. When `requires_payment` is `false`, `pricing.model` **MUST** be `free` and `payment_timing` **MUST NOT** be present.
 2. When `requires_payment` is `true`, `pricing.model` **MUST NOT** be `free`.
@@ -819,9 +821,9 @@ The following constraints define legal combinations of `requires_payment`, `paym
 6. Exactly one of `duration.fixed`, `duration.range`, or `duration.undetermined` **MUST** be present. They are mutually exclusive.
 7. When `duration.undetermined` is `true`, `pricing.model` **MUST NOT** be `hourly` (hourly pricing requires a known duration to compute the total).
 
-### 3.10 Operations
+### 3.12 Operations
 
-#### 3.10.1 List Services - `POST /services/list`
+#### 3.12.1 List Services - `POST /services/list`
 
 Returns a filtered, paginated list of services from the business catalog. Designed for interactive use by platforms and AI agents.
 
@@ -887,7 +889,7 @@ Response:
 }
 ```
 
-#### 3.10.2 Feed Subscriptions - `POST /services/feed/subscriptions`
+#### 3.12.2 Feed Subscriptions - `POST /services/feed/subscriptions`
 
 Platforms and aggregators **MAY** register for push-based catalog change notifications by creating a feed subscription. This formalizes the producer-consumer relationship between a feed producer (business) and a feed consumer (platform/aggregator).
 
@@ -943,7 +945,7 @@ Response:
 
 Businesses that support feed subscriptions **SHOULD** declare the `dev.usp.services.catalog.subscriptions` capability in their profile.
 
-#### 3.10.3 Get Service - `GET /services/{service_id}`
+#### 3.12.3 Get Service - `GET /services/{service_id}`
 
 Returns the full service object for a single service.
 
@@ -1035,7 +1037,7 @@ A hold is a temporary reservation of a time slot that prevents double-booking du
 
 #### 4.3.1 Query Availability - `POST /availability/query`
 
-Returns available time slots for a service within a date range. Use the [Availability Hint](#34-availability-hint) on the service entity to narrow the date range before querying.
+Returns available time slots for a service within a date range. Use the [Availability Hint](#36-availability-hint) on the service entity to narrow the date range before querying.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -1180,7 +1182,7 @@ Availability data has an inverse relationship between freshness and usefulness: 
 
 | Tier | Source | Date Range | Recommended TTL | Use Case |
 |------|--------|------------|-----------------|----------|
-| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.4](#34-availability-hint). |
+| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
 | **Select** | `slot` query | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
 | **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
 
