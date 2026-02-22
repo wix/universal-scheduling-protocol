@@ -47,13 +47,15 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
   - [3.1 Service Catalog Feed](#31-service-catalog-feed)
   - [3.2 Catalog Caching and Indexing](#32-catalog-caching-and-indexing)
   - [3.3 Service Schema](#33-service-schema)
-  - [3.4 Availability Hint](#34-availability-hint)
-  - [3.5 Duration](#35-duration)
-  - [3.6 Pricing](#36-pricing)
-  - [3.7 Service Policies](#37-service-policies)
-  - [3.8 Resource Requirement](#38-resource-requirement)
-  - [3.9 Validation Rules](#39-validation-rules)
-  - [3.10 Operations](#310-operations)
+  - [3.4 Business ID and Cross-Business Discovery](#34-business-id-and-cross-business-discovery)
+  - [3.5 Localization](#35-localization)
+  - [3.6 Availability Hint](#36-availability-hint)
+  - [3.7 Duration](#37-duration)
+  - [3.8 Pricing](#38-pricing)
+  - [3.9 Service Policies](#39-service-policies)
+  - [3.10 Resource Requirement](#310-resource-requirement)
+  - [3.11 Validation Rules](#311-validation-rules)
+  - [3.12 Operations](#312-operations)
 - [4. Availability](#4-availability)
   - [4.1 Time Slot](#41-time-slot)
   - [4.2 Hold](#42-hold)
@@ -110,6 +112,7 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
 - [13. References](#13-references)
   - [13.1 Normative References](#131-normative-references)
   - [13.2 Informative References](#132-informative-references)
+- [Appendix A. Future Vertical Considerations (Informative)](#appendix-a-future-vertical-considerations-informative)
 - [Authors' Addresses](#authors-addresses)
 
 ---
@@ -162,19 +165,7 @@ USP defines the following core service verticals. The `type` field on a service 
 | `reservation` | A hold on a shared resource for a time window. The buyer reserves a specific resource (e.g., a table, a room) for a party of a given size. | Restaurant table, conference room, venue, court booking |
 | `rental` | Temporary exclusive use of equipment or space for a duration. The buyer takes possession of the resource for the rental period. | Car rental, studio space, equipment hire, vacation rental |
 
-#### 1.3.2 Extended Verticals
-
-The following verticals address additional scheduling domains. Implementations **MAY** support these as vendor-defined capabilities or as future USP core verticals:
-
-| Vertical | Description | Examples | Key Differences from Core |
-|----------|-------------|----------|---------------------------|
-| `event` | A ticketed one-time event with complex capacity models (tiers, seating maps, general admission). | Concerts, conferences, theater, sporting events | Ticket tiers, seating maps, general admission vs. reserved seating |
-| `course` | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion. | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression |
-| `healthcare` | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms. | Doctor visits, telehealth, lab work, dental procedures | Insurance, referrals, HIPAA compliance, intake workflows |
-| `home_service` | An on-location service performed at the buyer's premises. Scheduling must account for travel time and service area. | Plumbing, cleaning, pest control, home repair, moving | Travel time, service area boundaries, on-site assessment |
-| `tour` | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours | Route/location, equipment, weather dependencies |
-
-#### 1.3.3 Custom Verticals
+#### 1.3.2 Custom Verticals
 
 Vendors **MAY** define custom verticals using their reverse-domain namespace:
 
@@ -183,6 +174,8 @@ com.{vendor}.services.{vertical_name}
 ```
 
 Custom verticals **MUST** publish a specification and schema that define the additional fields and semantics beyond the USP base service schema. Platforms encountering an unrecognized vertical **SHOULD** fall back to treating the service as an `appointment` type for basic scheduling operations.
+
+For a list of scheduling domains under consideration for future standardization, see [Appendix A](#appendix-a-future-vertical-considerations-informative).
 
 ### 1.4 Relationship to Other Standards
 
@@ -497,6 +490,7 @@ Response:
       "modified_at": "2026-03-10T09:15:00Z",
       "data": {
         "id": "svc_haircut_001",
+        "business_id": "biz_glamour_salon_nyc",
         "name": "Women's Haircut & Style",
         "type": "appointment",
         "...": "full service object"
@@ -506,7 +500,8 @@ Response:
       "state": "deleted",
       "modified_at": "2026-03-10T10:00:00Z",
       "data": {
-        "id": "svc_old_service_002"
+        "id": "svc_old_service_002",
+        "business_id": "biz_glamour_salon_nyc"
       }
     }
   ],
@@ -533,7 +528,7 @@ Response:
 | `feed_meta.total_services` | integer | **Yes** | Total number of active (non-deleted) services in the business's catalog. Aggregators can use this to verify completeness of their index. |
 | `feed_meta.feed_status` | string | **Yes** | Health status of the feed. `healthy`: feed is fully up-to-date. `degraded`: feed may be missing recent changes (e.g., partial index rebuild in progress). `rebuilding`: feed is being regenerated from scratch; aggregators **SHOULD** expect a full resync. |
 
-The `List Services` operation ([Section 3.10](#310-operations)) remains available for interactive use by platform UIs and AI agents. The feed endpoint is designed for bulk indexing by aggregators.
+The `List Services` operation ([Section 3.12](#312-operations)) remains available for interactive use by platform UIs and AI agents. The feed endpoint is designed for bulk indexing by aggregators.
 
 ### 3.2 Catalog Caching and Indexing
 
@@ -578,20 +573,22 @@ The service object represents a bookable offering from a business. Each service 
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | string | **Yes** | Unique service identifier, scoped to the business. Opaque to the platform. |
+| `id` | string | **Yes** | Unique service identifier, scoped to the business. Opaque to the platform. The composite key `(business_id, id)` is globally unique. |
+| `business_id` | string | **Yes** | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.4](#34-business-id-and-cross-business-discovery). |
 | `name` | string | **Yes** | Human-readable display name for the service (e.g., "Women's Haircut & Style"). |
 | `description` | string | No | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents. |
 | `type` | string | **Yes** | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals). |
 | `category` | object | No | `{id, name, parent_id}` - business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization. |
-| `duration` | Duration | **Yes** | Duration configuration. See [Section 3.5](#35-duration). |
-| `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Section 3.6](#36-pricing). |
+| `duration` | Duration | **Yes** | Duration configuration. See [Section 3.7](#37-duration). |
+| `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Section 3.8](#38-pricing). |
 | `locations` | Array\[Location\] | No | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`. |
-| `resources` | Array\[ResourceRequirement\] | No | Required staff, rooms, or equipment. See [Section 3.8](#38-resource-requirement). |
+| `resources` | Array\[ResourceRequirement\] | No | Required staff, rooms, or equipment. See [Section 3.10](#310-resource-requirement). |
 | `channel` | object | **Yes** | Delivery channel for the service. See channel types below. |
-| `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling, and payment policies. See [Section 3.7](#37-service-policies). |
+| `policies` | ServicePolicies | **Yes** | Booking, cancellation, rescheduling, and payment policies. See [Section 3.9](#39-service-policies). |
 | `capacity` | object | No | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full. |
 | `images` | Array\[object\] | No | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`. |
-| `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.4](#34-availability-hint). |
+| `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint). |
+| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization). |
 
 **Channel types:**
 
@@ -602,7 +599,70 @@ The service object represents a bookable offering from a business. Each service 
 | `phone` | Service is delivered via phone call. | `instructions`: optional call-in details. |
 | `hybrid` | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference. |
 
-### 3.4 Availability Hint
+### 3.4 Business ID and Cross-Business Discovery
+
+The `business_id` field makes every service object **self-describing** — it carries the identity of the business that offers it, even after the service object leaves the API response context.
+
+This is critical in agentic workflows where services are routinely aggregated, cached, and passed between systems:
+
+| Scenario | Why `business_id` matters |
+|----------|--------------------------|
+| **Cross-business semantic search** | An agent indexes services from hundreds of businesses into a single search index. When a match is found, the agent needs to know which business to call for availability and booking. |
+| **Cached catalog aggregation** | Platforms cache service catalogs (the spec recommends 1-24 hour caching). The cache is a flat collection; `business_id` preserves the association. |
+| **Agent-to-agent hand-off** | A discovery agent passes a service object to a booking agent. Without `business_id`, the receiving agent cannot act on it. |
+| **Collision prevention** | Two businesses may both have a service with `id: "haircut-1"`. The composite key `(business_id, id)` ensures global uniqueness. |
+
+**Rules:**
+- Providers **MUST** populate `business_id` in all API responses that contain service objects (list, get, feed, webhooks).
+- Platforms **MUST NOT** send `business_id` in create or update requests — the business context is established by the API endpoint and authentication.
+- The composite key `(business_id, id)` is the globally unique identifier for a service across the entire USP ecosystem.
+
+### 3.5 Localization
+
+The optional `localized` field provides per-locale overrides for human-readable text fields on a service. The top-level fields (`name`, `description`, `category.name`, `channel.instructions`) serve as the default/fallback locale. The `localized` field uses IETF BCP 47 language tags as keys.
+
+This design allows platforms to cache a single service object containing all translations, rather than making per-locale API calls or maintaining multiple cached copies. It is especially important for businesses serving multilingual audiences.
+
+**Localizable fields:**
+
+| `localized` key | Overrides |
+|-----------------|-----------|
+| `name` | `service.name` |
+| `description` | `service.description` |
+| `category_name` | `service.category.name` |
+| `channel_instructions` | `service.channel.instructions` |
+
+**Example:**
+
+```json
+{
+  "id": "svc_haircut_001",
+  "business_id": "biz_glamour_salon_nyc",
+  "name": "Women's Haircut & Style",
+  "description": "A full haircut and styling session.",
+  "localized": {
+    "name": {
+      "es": "Corte y Peinado para Mujer",
+      "fr": "Coupe & Coiffure Femme"
+    },
+    "description": {
+      "es": "Una sesión completa de corte y peinado.",
+      "fr": "Une séance complète de coupe et coiffure."
+    },
+    "category_name": {
+      "es": "Cortes de pelo",
+      "fr": "Coupes de cheveux"
+    }
+  }
+}
+```
+
+**Rules:**
+- The `localized` field is **optional**. Services without it use their top-level text fields for all locales.
+- Platforms **SHOULD** resolve the buyer's preferred locale by matching against available keys, falling back to the top-level field when no match is found.
+- Providers **SHOULD** include translations for all locales they actively support.
+
+### 3.6 Availability Hint
 
 An optional, lightweight summary of a service's near-term availability. The hint is designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before hitting the real-time availability API. It is cached alongside catalog data and serves as "Tier 0" of the availability funnel (see [Section 4.4 - Caching Strategy](#44-caching-strategy)).
 
@@ -616,7 +676,7 @@ The hint captures the same information a receptionist would give over the phone:
 | `generated_at` | string | **Yes** | RFC 3339 timestamp of when this hint was generated. Platforms can use this to assess freshness and decide how much weight to give the hint. A hint older than 6 hours **SHOULD** be treated with lower confidence. |
 | `next_available_date` | string | No | `YYYY-MM-DD` date of the next day with known availability. This single structured field is usable by both AI agents and traditional programmatic platforms to skip fully booked date ranges. |
 
-#### 3.4.1 Agent Use Cases
+#### 3.6.1 Agent Use Cases
 
 The availability hint is particularly valuable for AI agents that orchestrate scheduling on behalf of users. The following table summarizes the key use cases and how the hint helps in each:
 
@@ -636,6 +696,7 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 ```json
 {
   "id": "svc_haircut_001",
+  "business_id": "biz_glamour_salon_nyc",
   "name": "Women's Haircut & Style",
   "availability_hint": {
     "summary": "Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning. Thursday is filling up fast.",
@@ -645,9 +706,9 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 }
 ```
 
-### 3.5 Duration
+### 3.7 Duration
 
-The duration object defines how long a service takes. Either a fixed duration or a range **MUST** be provided. Buffers define non-bookable prep/cleanup time that the business needs between consecutive bookings.
+The duration object defines how long a service takes. Exactly one of `fixed`, `range`, or `undetermined` **MUST** be provided. Buffers define non-bookable prep/cleanup time that the business needs between consecutive bookings.
 
 **Fixed duration:**
 
@@ -661,16 +722,23 @@ The duration object defines how long a service takes. Either a fixed duration or
 {"range": {"min": "PT30M", "max": "PT120M", "step": "PT30M"}}
 ```
 
+**Undetermined duration (no meaningful duration to display):**
+
+```json
+{"undetermined": true}
+```
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `fixed` | string | Conditional | ISO 8601 duration. **REQUIRED** if `range` is not present. The exact duration of the service. |
-| `range` | object | Conditional | **REQUIRED** if `fixed` is not present. `{min, max, step}` - all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
+| `fixed` | string | Conditional | ISO 8601 duration. **REQUIRED** if neither `range` nor `undetermined` is present. The exact duration of the service. |
+| `range` | object | Conditional | **REQUIRED** if neither `fixed` nor `undetermined` is present. `{min, max, step}` - all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
+| `undetermined` | boolean | Conditional | Set to `true` when the service has no meaningful duration to display (e.g., consultations, custom quotes, "call for estimate" services). **MUST NOT** be combined with `fixed` or `range`. When set, platforms **SHOULD NOT** display duration information to the buyer. Buffers **MAY** still be set for scheduling purposes. |
 | `buffer_before` | string | No | ISO 8601 duration. Non-bookable prep time before the service (e.g., room setup). This time is blocked on the schedule but not visible to the buyer. |
 | `buffer_after` | string | No | ISO 8601 duration. Non-bookable cleanup time after the service (e.g., sanitization between clients). |
 
-### 3.6 Pricing
+### 3.8 Pricing
 
-The pricing object defines how a service is priced. The combination of `model` and the service's `requires_payment` / `payment_timing` fields **MUST** conform to the validation rules in [Section 3.9](#39-validation-rules).
+The pricing object defines how a service is priced. The combination of `model` and the service's `requires_payment` / `payment_timing` fields **MUST** conform to the validation rules in [Section 3.11](#311-validation-rules).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -689,7 +757,7 @@ The pricing object defines how a service is priced. The combination of `model` a
 | `variable` | Price varies based on factors such as time of day, demand, day of week, or provider. The actual price is returned on each time slot in the availability response (`slot.pricing`). The catalog `amount` **MAY** be omitted or set to a base/starting price. |
 | `free` | No charge for the service. `amount` **MUST NOT** be present. The service `requires_payment` **MUST** be `false`. |
 
-### 3.7 Service Policies
+### 3.9 Service Policies
 
 Machine-readable policies that enable agents to make informed decisions about booking, cancellation, rescheduling, and payment. These policies govern the booking lifecycle and **MUST** be enforced by the business.
 
@@ -703,7 +771,7 @@ Machine-readable policies that enable agents to make informed decisions about bo
 | `requires_payment` | boolean | **Yes** | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services). |
 | `payment_timing` | string | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time). |
 
-### 3.8 Resource Requirement
+### 3.10 Resource Requirement
 
 The resource requirement defines what staff, rooms, or equipment are needed for a service, and whether the buyer can select a specific resource.
 
@@ -714,11 +782,11 @@ The resource requirement defines what staff, rooms, or equipment are needed for 
 | `selectable` | boolean | No | Whether the buyer can choose a specific resource during booking. Default: `false`. When `true`, the `options` array **MUST** be populated. When `false`, the business assigns the resource automatically. |
 | `options` | Array\[Resource\] | No | `{id, name, description, image_url}` - the available resource instances. **REQUIRED** when `selectable` is `true`. Each option represents a specific resource the buyer can choose (e.g., a specific stylist or a specific room). |
 
-### 3.9 Validation Rules
+### 3.11 Validation Rules
 
 The following constraints define legal combinations of `requires_payment`, `payment_timing`, and `pricing.model`. Implementations **MUST** validate service definitions against these rules. JSON Schema files published at the capability schema URL **SHOULD** enforce these constraints using `if/then/else` or `oneOf` composition.
 
-#### 3.9.1 Payment and Pricing Constraint Matrix
+#### 3.11.1 Payment and Pricing Constraint Matrix
 
 | `requires_payment` | `payment_timing` | `pricing.model` | `pricing.amount` | Legal? | Notes |
 |--------------------|-------------------|-----------------|-------------------|--------|-------|
@@ -743,17 +811,19 @@ The following constraints define legal combinations of `requires_payment`, `paym
 | `true` | `deposit_required` | `per_person` | (required) | **Yes** | Same as above. |
 | `true` | `deposit_required` | `variable` | (optional) | **Yes** | Variable pricing with deposit. |
 
-#### 3.9.2 Summary Rules
+#### 3.11.2 Summary Rules
 
 1. When `requires_payment` is `false`, `pricing.model` **MUST** be `free` and `payment_timing` **MUST NOT** be present.
 2. When `requires_payment` is `true`, `pricing.model` **MUST NOT** be `free`.
 3. When `payment_timing` is `deposit_required`, the `pricing.deposit` object **MUST** be present.
 4. When `pricing.model` is `free`, `pricing.amount` **MUST NOT** be present.
 5. When `pricing.model` is `fixed`, `hourly`, or `per_person`, `pricing.amount` **MUST** be present and greater than zero.
+6. Exactly one of `duration.fixed`, `duration.range`, or `duration.undetermined` **MUST** be present. They are mutually exclusive.
+7. When `duration.undetermined` is `true`, `pricing.model` **MUST NOT** be `hourly` (hourly pricing requires a known duration to compute the total).
 
-### 3.10 Operations
+### 3.12 Operations
 
-#### 3.10.1 List Services - `POST /services/list`
+#### 3.12.1 List Services - `POST /services/list`
 
 Returns a filtered, paginated list of services from the business catalog. Designed for interactive use by platforms and AI agents.
 
@@ -777,6 +847,7 @@ Response:
   "services": [
     {
       "id": "svc_haircut_001",
+      "business_id": "biz_glamour_salon_nyc",
       "name": "Women's Haircut & Style",
       "type": "appointment",
       "duration": {"fixed": "PT60M", "buffer_after": "PT15M"},
@@ -806,6 +877,11 @@ Response:
         "summary": "Fully booked this week. Next week we have good availability Tuesday afternoon and all day Wednesday. Thursday is filling up.",
         "generated_at": "2026-03-11T08:00:00-04:00",
         "next_available_date": "2026-03-17"
+      },
+      "localized": {
+        "name": {
+          "es": "Corte y Peinado para Mujer"
+        }
       }
     }
   ],
@@ -813,7 +889,7 @@ Response:
 }
 ```
 
-#### 3.10.2 Feed Subscriptions - `POST /services/feed/subscriptions`
+#### 3.12.2 Feed Subscriptions - `POST /services/feed/subscriptions`
 
 Platforms and aggregators **MAY** register for push-based catalog change notifications by creating a feed subscription. This formalizes the producer-consumer relationship between a feed producer (business) and a feed consumer (platform/aggregator).
 
@@ -869,7 +945,7 @@ Response:
 
 Businesses that support feed subscriptions **SHOULD** declare the `dev.usp.services.catalog.subscriptions` capability in their profile.
 
-#### 3.10.3 Get Service - `GET /services/{service_id}`
+#### 3.12.3 Get Service - `GET /services/{service_id}`
 
 Returns the full service object for a single service.
 
@@ -889,6 +965,7 @@ Response:
   },
   "service": {
     "id": "svc_haircut_001",
+    "business_id": "biz_glamour_salon_nyc",
     "name": "Women's Haircut & Style",
     "type": "appointment",
     "description": "A full haircut and styling session with one of our experienced stylists. Includes consultation, shampoo, cut, and blow-dry.",
@@ -916,7 +993,24 @@ Response:
 
 > **JSON Schema:** [`schemas/availability.json`](schemas/availability.json)
 
-The availability capability lets platforms **query when services are available** and **hold slots** to prevent double-booking during the booking flow.
+The availability capability lets platforms **query when services are available** and, optionally, **hold slots** to prevent double-booking during the booking flow.
+
+**Feature flags:**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `holds` | boolean | `false` | When `true`, the business supports the Hold Slot (`POST /availability/holds`) and Release Slot (`DELETE /availability/holds/{hold_id}`) operations described in [Section 4.2](#42-hold). Platforms **MUST NOT** call hold/release endpoints unless the business advertises `"holds": true`. |
+
+Businesses declare feature flags inside the capability entry in their profile:
+
+```json
+"dev.usp.services.availability": [{
+  "version": "2026-02-09",
+  "holds": true
+}]
+```
+
+When `holds` is `false` or absent, the booking flow proceeds directly from slot query to booking creation without an intermediate hold step.
 
 ### 4.1 Time Slot
 
@@ -945,6 +1039,8 @@ A time slot represents a specific, bookable window for a service. Slots are comp
 
 ### 4.2 Hold
 
+> **Feature flag:** This section applies only when the business advertises `"holds": true` in its `dev.usp.services.availability` capability entry. See [Section 4](#4-availability) for the feature flag definition.
+
 A hold is a temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released when they expire, are explicitly released, or are converted to a booking.
 
 | Field | Type | Required | Description |
@@ -960,7 +1056,7 @@ A hold is a temporary reservation of a time slot that prevents double-booking du
 
 #### 4.3.1 Query Availability - `POST /availability/query`
 
-Returns available time slots for a service within a date range. Use the [Availability Hint](#34-availability-hint) on the service entity to narrow the date range before querying.
+Returns available time slots for a service within a date range. Use the [Availability Hint](#36-availability-hint) on the service entity to narrow the date range before querying.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -1024,6 +1120,8 @@ Response:
 
 #### 4.3.2 Hold Slot - `POST /availability/holds`
 
+> **Requires:** `"holds": true` on the `dev.usp.services.availability` capability. Platforms **MUST NOT** call this endpoint unless the business profile advertises hold support.
+
 Creates a temporary hold on a time slot to prevent double-booking while the buyer completes the booking flow.
 
 Request:
@@ -1073,6 +1171,8 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 
 #### 4.3.3 Release Slot - `DELETE /availability/holds/{hold_id}`
 
+> **Requires:** `"holds": true` on the `dev.usp.services.availability` capability.
+
 Explicitly releases a hold before it expires. This frees the slot for other buyers.
 
 Request:
@@ -1105,18 +1205,20 @@ Availability data has an inverse relationship between freshness and usefulness: 
 
 | Tier | Source | Date Range | Recommended TTL | Use Case |
 |------|--------|------------|-----------------|----------|
-| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.4](#34-availability-hint). |
+| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
 | **Select** | `slot` query | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
-| **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
+| **Commit** *(optional)* | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Only available when business advertises `"holds": true`. |
 
-This creates a natural funnel that balances user experience with data freshness:
+This creates a natural funnel that balances user experience with data freshness. When holds are not supported, the flow skips directly from slot selection to booking creation:
 
 ```mermaid
 graph TD
-    H["1. Availability Hint (catalog-cached, 1-6hr)"] - "Agent narrows date range" --> S
+    H["1. Availability Hint (catalog-cached, 1-6hr)"] -- "Agent narrows date range" --> S
     S["2. Slot Query (slot-level, short cache)"] --> D["Agent picks a slot"]
-    D --> E["3. Hold Slot (real-time)"]
-    E --> F["4. Create Booking"]
+    D --> E{"3. Holds supported?"}
+    E -- "Yes" --> F["Hold Slot (real-time)"]
+    F --> G["4. Create Booking"]
+    E -- "No" --> G
 ```
 
 ---
@@ -1186,15 +1288,44 @@ The booking object represents a scheduled service instance for a specific buyer 
 
 #### 5.3.1 Create Booking - `POST /bookings`
 
-Creates a new booking for a service at a specific time slot. The platform **SHOULD** hold the slot before creating the booking to prevent race conditions. When the person receiving the service is different from the buyer, the platform **SHOULD** include a `recipient` object.
+Creates a new booking for a service at a specific time slot. When the business supports holds (`"holds": true`), the platform **SHOULD** hold the slot before creating the booking to prevent race conditions. When holds are not supported, the platform proceeds directly from slot query to booking creation. When the person receiving the service is different from the buyer, the platform **SHOULD** include a `recipient` object.
 
-Request:
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `service_id` | string | **Yes** | The service to book. |
+| `slot_id` | string | **Yes** | The selected time slot. |
+| `hold_id` | string | No | Hold ID from a prior hold operation. Present only when the business supports holds. |
+| `buyer` | object | **Yes** | Buyer contact information. |
+| `recipient` | object | No | The person receiving the service, when different from the buyer. |
+| `party_size` | integer | No | Number of participants. Default: 1. |
+| `resource_id` | string | No | Preferred resource. |
+| `notes` | string | No | Free-text notes for the business. |
+
+Request (with hold):
 
 ```json
 {
   "service_id": "svc_massage_001",
   "slot_id": "slot_20260316_1400",
   "hold_id": "hold_xyz789",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1,
+  "resource_id": "staff_jane",
+  "notes": "First time visit"
+}
+```
+
+Request (without hold - business does not support holds):
+
+```json
+{
+  "service_id": "svc_massage_001",
+  "slot_id": "slot_20260316_1400",
   "buyer": {
     "first_name": "Alice",
     "last_name": "Williams",
@@ -1342,7 +1473,12 @@ Cancels a booking. Cancellation fees are applied per the service's cancellation 
 
 #### 5.3.6 Reschedule Booking - `POST /bookings/{booking_id}/reschedule`
 
-Moves a booking to a different time slot. The platform **SHOULD** hold the new slot before rescheduling. Rescheduling limits and fees are governed by the service's rescheduling policy.
+Moves a booking to a different time slot. When the business supports holds, the platform **SHOULD** hold the new slot before rescheduling. When holds are not supported, the platform provides only the new `slot_id`. Rescheduling limits and fees are governed by the service's rescheduling policy.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `slot_id` | string | **Yes** | The new slot to reschedule to. |
+| `hold_id` | string | No | Hold ID for the new slot. Present only when the business supports holds. |
 
 #### 5.3.7 Confirm Payment - `POST /bookings/{booking_id}/confirm-payment`
 
@@ -1440,6 +1576,7 @@ The webhook payload for catalog change events **MUST** include the `service_id` 
   "service_id": "svc_haircut_001",
   "data": {
     "id": "svc_haircut_001",
+    "business_id": "biz_glamour_salon_nyc",
     "name": "Women's Haircut & Style",
     "pricing": {"model": "fixed", "amount": 8000, "currency": "USD"},
     "...": "full service object"
@@ -1536,7 +1673,7 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
     "capabilities": {
       "dev.ucp.shopping.checkout": [{"version": "2026-01-11"}],
       "dev.usp.services.catalog": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#3-service-catalog", "schema": "https://usp.dev/schemas/services/catalog.json"}],
-      "dev.usp.services.availability": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09", "holds": true, "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
       "dev.usp.services.bookings": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#5-booking-lifecycle", "schema": "https://usp.dev/schemas/services/scheduling.json"}],
       "dev.usp.services.paid_bookings": [{
         "version": "2026-02-09",
@@ -1702,8 +1839,8 @@ When the platform detects `dev.usp.services.paid_bookings` in the business's UCP
 
 1. **[USP] Discover services** via `POST /services/list`.
 2. **[USP] Query availability** via `POST /availability/query`.
-3. **[USP] Hold the slot** via `POST /availability/holds`.
-4. **[UCP] Create checkout** with the booking extension. The business validates the booking context, creates a pending booking, and returns the checkout with payment handlers. No separate `create_booking` call. No `update_checkout` round-trip.
+3. *(If business supports holds)* **[USP] Hold the slot** via `POST /availability/holds`.
+4. **[UCP] Create checkout** with the booking extension (including `hold_id` if step 3 was performed). The business validates the booking context, creates a pending booking, and returns the checkout with payment handlers. No separate `create_booking` call. No `update_checkout` round-trip.
 5. **[UCP] Acquire payment token** from the PSP using handler configuration from the checkout response.
 6. **[UCP] Complete checkout** with the payment token. The business atomically: (a) processes the payment with the PSP, (b) transitions the booking from `pending` to `confirmed`, and (c) returns the completed checkout with the `order_id` and confirmed `booking_status`.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
@@ -1738,9 +1875,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (svc_yoga_free, March 18)
     B-->>P: Available Slots (10:00 AM, 6 spots remaining)
     Note over P: User selects 10:00 AM slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_20260318_1000, spots: 1)
     B-->>P: Hold (hold_id: hold_free_001, expires_at: +10min)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: confirmed)
     Note over P,B: Done. No payment step needed.
 ```
@@ -1760,8 +1899,10 @@ sequenceDiagram
     P->>B: 2. Query Availability (service_id, date range)
     B-->>P: Available Slots
     Note over P: User selects a slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_id)
     B-->>P: Hold (hold_id, expires_at)
+    end
     end
 
     rect rgb(255, 243, 224)
@@ -1787,8 +1928,8 @@ sequenceDiagram
 
 1. **[USP] Discover services** via `POST /services/list`.
 2. **[USP] Query availability** via `POST /availability/query`.
-3. **[USP] Hold the slot** via `POST /availability/holds`.
-4. **[UCP] Create checkout** with the booking extension.
+3. *(If business supports holds)* **[USP] Hold the slot** via `POST /availability/holds`.
+4. **[UCP] Create checkout** with the booking extension (including `hold_id` if step 3 was performed).
 5. **[UCP] Acquire payment token** from the PSP.
 6. **[UCP] Complete checkout** - atomic payment + booking confirmation.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
@@ -1838,7 +1979,7 @@ Businesses publish their USP profile at `/.well-known/usp`:
     },
     "capabilities": {
       "dev.usp.services.catalog": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#3-service-catalog", "schema": "https://usp.dev/schemas/services/catalog.json"}],
-      "dev.usp.services.availability": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09", "holds": true, "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
       "dev.usp.services.bookings": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#5-booking-lifecycle", "schema": "https://usp.dev/schemas/services/scheduling.json"}]
     },
     "checkout_systems": ["acp", "redirect"],
@@ -2274,9 +2415,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (svc_yoga_free, March 18)
     B-->>P: Available Slots (10:00 AM, 6 spots remaining)
     Note over P: User selects 10:00 AM slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_20260318_1000, spots: 1)
     B-->>P: Hold (hold_id: hold_free_001, expires_at: +10min)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: confirmed)
     Note over P,B: Done. No payment step needed.
 ```
@@ -2297,9 +2440,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (service_id, date range)
     B-->>P: Available Slots
     Note over P: User selects a slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_id)
     B-->>P: Hold (hold_id, expires_at)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: requires_action, payment_context)
     end
 
@@ -2330,7 +2475,7 @@ sequenceDiagram
 
     rect rgb(230, 245, 255)
     Note over P,PSP: USP — Service Discovery & Booking
-    P->>B: 1-4. Discover, query, hold, create booking
+    P->>B: 1-4. Discover, query, hold (if supported), create booking
     B-->>P: Booking (status: requires_action, payment_context)
     end
 
@@ -2470,8 +2615,8 @@ Each USP REST operation maps to a JSON-RPC method:
 | `GET /services/feed` | `usp_services_feed` | Get service catalog feed |
 | `POST /services/feed/subscriptions` | `usp_services_feed_subscribe` | Create a feed subscription |
 | `POST /availability/query` | `usp_availability_query` | Query time slots |
-| `POST /availability/holds` | `usp_availability_hold` | Hold a slot |
-| `DELETE /availability/holds/{hold_id}` | `usp_availability_release` | Release a hold |
+| `POST /availability/holds` | `usp_availability_hold` | Hold a slot (requires `holds: true`) |
+| `DELETE /availability/holds/{hold_id}` | `usp_availability_release` | Release a hold (requires `holds: true`) |
 | `POST /bookings` | `usp_bookings_create` | Create a booking |
 | `GET /bookings/{booking_id}` | `usp_bookings_get` | Get a booking |
 | `PUT /bookings/{booking_id}` | `usp_bookings_update` | Update a booking |
@@ -2587,8 +2732,8 @@ Each USP operation is expressed as an A2A **task**. The full multi-step booking 
 | Get Service | `usp/services/get` | Get single service |
 | Service Feed | `usp/services/feed` | Feed sync task |
 | Query Availability | `usp/availability/query` | Availability task |
-| Hold Slot | `usp/availability/hold` | Hold task |
-| Release Slot | `usp/availability/release` | Release task |
+| Hold Slot | `usp/availability/hold` | Hold task (requires `holds: true`) |
+| Release Slot | `usp/availability/release` | Release task (requires `holds: true`) |
 | Create Booking | `usp/bookings/create` | Booking task |
 | Get Booking | `usp/bookings/get` | Booking status |
 | Cancel Booking | `usp/bookings/cancel` | Cancellation task |
@@ -2602,8 +2747,8 @@ The following shows a complete booking flow through A2A task chaining between a 
 
 1. **Platform agent → Business agent:** Task `usp/services/list` with filters. Business agent returns the service catalog.
 2. **Platform agent → Business agent:** Task `usp/availability/query` with the selected service and date range. Business agent returns available slots.
-3. **Platform agent → Business agent:** Task `usp/availability/hold` with the selected slot. Business agent returns the hold.
-4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, hold, buyer, and optional recipient. Business agent returns the booking.
+3. *(If business supports holds)* **Platform agent → Business agent:** Task `usp/availability/hold` with the selected slot. Business agent returns the hold.
+4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, buyer, optional recipient, and `hold_id` (if step 3 was performed). Business agent returns the booking.
 5. *(If payment required)* Platform agent processes payment through the configured checkout system.
 6. **Platform agent → Business agent:** Task `usp/bookings/confirm-payment` with the payment result.
 
@@ -2795,7 +2940,7 @@ Multiple keys **MUST** be supported for key rotation. The business **SHOULD** pu
 
 #### 9.1.2 Hold Abuse Prevention
 
-Businesses **MUST** implement safeguards against hold abuse:
+When a business supports holds (`"holds": true`), it **MUST** implement safeguards against hold abuse:
 
 - **Concurrent hold limits:** Maximum concurrent holds per buyer per service (recommended: 1-3).
 - **Short TTLs:** Hold TTL **SHOULD** be between 5 and 10 minutes.
@@ -2966,8 +3111,8 @@ When a waitlisted buyer accepts an offered slot for a paid service that requires
 | Resume Feed Subscription | `POST` | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions) |
 | Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}` | catalog (subscriptions) |
 | Query Availability | `POST` | `/availability/query` | availability |
-| Hold Slot | `POST` | `/availability/holds` | availability |
-| Release Slot | `DELETE` | `/availability/holds/{hold_id}` | availability |
+| Hold Slot | `POST` | `/availability/holds` | availability (`holds: true`) |
+| Release Slot | `DELETE` | `/availability/holds/{hold_id}` | availability (`holds: true`) |
 | Create Booking | `POST` | `/bookings` | bookings |
 | Get Booking | `GET` | `/bookings/{booking_id}` | bookings |
 | Update Booking | `PUT` | `/bookings/{booking_id}` | bookings |
@@ -3035,6 +3180,34 @@ If USP advances to Standards Track, future versions may request IANA registratio
 - **[MCP]** Model Context Protocol. https://modelcontextprotocol.io/docs/getting-started/intro
 - **[schema.org/Service]** schema.org, "Service Type". https://schema.org/Service
 - **[UCP]** Universal Commerce Protocol, "UCP Specification", Version 2026-01-11. https://ucp.dev/latest/specification/overview/
+
+---
+
+## Appendix A. Future Vertical Considerations (Informative)
+
+This appendix is non-normative.
+
+The core verticals defined in [Section 1.3.1](#131-core-verticals) cover the most common scheduling domains. The following additional domains have been identified as candidates for future standardization. They are documented here to guide vendors defining custom verticals ([Section 1.3.2](#132-custom-verticals)) and to promote namespace convergence across the ecosystem.
+
+Vendors implementing services in these domains **SHOULD** use the custom vertical mechanism (reverse-domain notation) until these verticals are promoted to core status. Platforms encountering services with these verticals **SHOULD** fall back to treating the service as an `appointment` type for basic scheduling operations, as described in [Section 1.3.2](#132-custom-verticals).
+
+### A.1 Candidate Verticals
+
+| Vertical | Description | Examples | Key Differences from Core |
+|----------|-------------|----------|---------------------------|
+| `event` | A ticketed one-time event with complex capacity models (tiers, seating maps, general admission). | Concerts, conferences, theater, sporting events | Ticket tiers, seating maps, general admission vs. reserved seating |
+| `course` | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion. | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression |
+| `healthcare` | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms. | Doctor visits, telehealth, lab work, dental procedures | Insurance, referrals, HIPAA compliance, intake workflows |
+| `home_service` | An on-location service performed at the buyer's premises. Scheduling must account for travel time and service area. | Plumbing, cleaning, pest control, home repair, moving | Travel time, service area boundaries, on-site assessment |
+| `tour` | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours | Route/location, equipment, weather dependencies |
+
+### A.2 Promotion Criteria
+
+A vertical **MAY** be promoted from this appendix to core status in a future version of USP when:
+
+1. At least two independent implementations exist using the vertical via the custom vertical mechanism ([Section 1.3.2](#132-custom-verticals)).
+2. The additional schema fields and behavioral semantics are documented in a published specification.
+3. The scheduling semantics cannot be adequately modeled by one of the existing core verticals with category differentiation alone.
 
 ---
 

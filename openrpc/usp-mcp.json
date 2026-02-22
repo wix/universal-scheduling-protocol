@@ -184,7 +184,7 @@
     {
       "name": "usp_availability_hold",
       "summary": "Hold Slot",
-      "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds.",
+      "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
       "paramStructure": "by-name",
       "params": [
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
@@ -209,7 +209,7 @@
     {
       "name": "usp_availability_release",
       "summary": "Release Slot",
-      "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}.",
+      "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
       "paramStructure": "by-name",
       "params": [
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
@@ -360,7 +360,7 @@
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
         { "name": "booking_id", "required": true, "schema": { "type": "string" } },
         { "name": "slot_id", "required": true, "schema": { "type": "string" } },
-        { "name": "hold_id", "required": true, "schema": { "type": "string" } }
+        { "name": "hold_id", "required": false, "schema": { "type": "string" }, "description": "Hold ID for the new slot. Present only when the business supports holds." }
       ],
       "result": {
         "name": "RescheduleBookingResult",
@@ -550,13 +550,15 @@
       "Service": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
+          "id": { "type": "string", "description": "Unique service identifier, scoped to the business. The composite key (business_id, id) is globally unique." },
+          "business_id": { "type": "string", "description": "Identifier of the business that owns this service." },
           "name": { "type": "string" },
           "type": { "type": "string" },
           "duration": { "type": "object" },
           "pricing": { "type": "object" },
           "channel": { "type": "object" },
-          "policies": { "type": "object" }
+          "policies": { "type": "object" },
+          "localized": { "type": "object", "description": "Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags." }
         }
       },
       "FeedSubscription": {
