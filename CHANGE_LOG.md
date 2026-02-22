@@ -1,5 +1,45 @@
 # Change Log
 
+## 22/02/26 at 15:36:29 by [kobym707](mailto:kobym@wix.com)
+
+- **Made holds optional via feature flag on the availability capability:** Introduced a `holds` boolean feature flag on `dev.usp.services.availability` to explicitly declare whether a business supports the Hold Slot and Release Slot operations, because many businesses (especially small or low-contention ones) can operate safely without the hold mechanism, and forcing it on all implementers raised the integration bar unnecessarily.
+- **Updated Section 4 (Availability) with feature flag table and discovery guidance:** Added the flag definition, profile declaration example, and clarified that when `holds` is absent or `false`, the booking flow proceeds directly from slot query to booking creation.
+- **Gated Sections 4.2, 4.3.2, and 4.3.3 behind the holds flag:** Added callout blocks to the Hold entity, Hold Slot, and Release Slot operation sections noting they require `"holds": true`, preventing platforms from calling endpoints the business does not support.
+- **Made `hold_id` explicitly optional in Create Booking (5.3.1) and Reschedule (5.3.6):** Added field-level tables with `hold_id` marked as optional, added a "without hold" request example, and updated the prose to describe both hold and no-hold flows.
+- **Updated the caching strategy funnel (4.4):** Marked the Commit tier as optional and updated the Mermaid diagram to show a conditional branch for hold support.
+- **Updated all end-to-end flow diagrams (6.7 and 7.7):** Changed Mermaid sequence diagrams to use `opt Business supports holds` blocks instead of showing holds as mandatory steps.
+- **Updated A2A booking flow (8.3.2):** Made the hold step conditional and noted `hold_id` as optional in the booking creation step.
+- **Updated profile examples (6.2, 7.2) to include `"holds": true`:** Demonstrates how businesses declare hold support in both UCP-Native and Standalone profiles.
+- **Updated OpenAPI schema:** Added descriptions to hold/release endpoints noting the feature flag requirement, made `hold_id` optional in the reschedule request body, and updated `hold_id` descriptions in create booking.
+- **Updated OpenRPC schema:** Added feature flag descriptions to hold/release methods and made `hold_id` optional (not required) in the reschedule method.
+- **Updated paid_bookings.json schema:** Clarified `hold_id` description to note it depends on holds capability support.
+- **Updated Operation Reference (11) and MCP/A2A mapping tables:** Annotated hold/release operations with `(holds: true)` to signal the feature flag requirement.
+- **Updated Hold Abuse Prevention (9.1.2):** Scoped the section to apply only when holds are supported.
+
+---
+
+## 22/02/26 at 14:09:11 by [kobym707](mailto:kobym@wix.com)
+
+- **Promoted Business ID and Localization to peer-level sections:** Extracted former 3.3.1 (Business ID) and 3.3.2 (Localization) from under the Service Schema section into their own top-level sections (3.4 and 3.5), consistent with how other complex Service fields (Duration, Pricing, Policies, etc.) are structured. Renumbered sections 3.4-3.10 to 3.6-3.12 and updated all cross-references throughout the spec.
+
+---
+
+## 22/02/26 at 13:54:36 by [kobym707](mailto:kobym@wix.com)
+
+- **Moved extended verticals to informative Appendix A:** Relocated the five candidate verticals (`event`, `course`, `healthcare`, `home_service`, `tour`) from Section 1.3.2 to a new non-normative Appendix A, following RFC conventions for separating forward-looking content from normative spec. Added promotion criteria (A.2) requiring two independent implementations before a vertical can become core.
+- **Renumbered Custom Verticals to Section 1.3.2:** Former Section 1.3.3 is now 1.3.2 with a forward reference to Appendix A for candidate verticals.
+- **Opened the `type` field enum in JSON schemas:** Removed the closed enum constraint on `service.type` in `usp-rest.json` and `paid_bookings.json` so that vendor-defined custom verticals using reverse-domain notation are not rejected by schema validation, aligning the schemas with what Section 1.3 already permits.
+
+---
+
+## 22/02/26 at 12:18:07 by [kobym707](mailto:kobym@wix.com)
+
+- **Added `business_id` to Service schema:** Every service object now carries the identifier of its owning business, making services self-describing for cross-business semantic search, cached catalog aggregation, and agent-to-agent hand-off. The composite key `(business_id, id)` is the globally unique identifier. Updated `catalog.json`, `usp-rest.json`, `usp-mcp.json`, and all service examples in `specification.md`.
+- **Added localization (i18n) support:** Introduced the `localized` field on Service with per-locale overrides for `name`, `description`, `category_name`, and `channel_instructions` using IETF BCP 47 language tags. Enables businesses serving multilingual audiences to provide translations in a single cacheable response. Added `LocalizedFields` type to `catalog.json` and `usp-rest.json`.
+- **Added undetermined duration option:** Services with no meaningful duration (consultations, custom quotes) can now set `duration.undetermined: true` instead of being forced to provide a fixed or range value. Added mutual exclusivity constraint with `fixed`/`range` and a validation rule preventing `hourly` pricing with undetermined duration.
+
+---
+
 ## 21/02/26 at 11:42:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Extended USP Booking Form Profile with slot selection:** Added D0 derivation rules (slot picker, date picker), new inputs (`slots[]`, `flow_mode`), A2UI mappings for slot/date pickers, `usp_select_date` action, and D3/D4/D5 fallbacks when slot not yet selected, enabling unified forms where slot selection is part of the form (pre-fetched or date-first flow)

@@ -33,8 +33,7 @@
         },
         "service_type": {
           "type": "string",
-          "enum": ["appointment", "group", "reservation", "rental"],
-          "description": "The service vertical."
+          "description": "The service vertical. One of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation."
         },
         "slot": {
           "$ref": "#/$defs/SlotReference",
@@ -42,7 +41,7 @@
         },
         "hold_id": {
           "type": "string",
-          "description": "The hold ID if a slot was held."
+          "description": "The hold ID if a slot was held. Present only when the business supports holds (holds: true on the availability capability)."
         },
         "resources": {
           "type": "array",

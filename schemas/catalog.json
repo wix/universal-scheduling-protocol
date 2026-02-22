@@ -8,11 +8,15 @@
       "type": "object",
       "title": "Service",
       "description": "A bookable offering from a business. Each service has a type (vertical), duration, pricing, policies, and optional resource requirements.",
-      "required": ["id", "name", "type", "duration", "pricing", "channel", "policies"],
+      "required": ["id", "business_id", "name", "type", "duration", "pricing", "channel", "policies"],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique service identifier, scoped to the business. Opaque to the platform."
+          "description": "Unique service identifier, scoped to the business. Opaque to the platform. The composite key (business_id, id) is globally unique."
+        },
+        "business_id": {
+          "type": "string",
+          "description": "Identifier of the business that owns this service. Populated by the provider in API responses. Together with id, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off."
         },
         "name": {
           "type": "string",
@@ -85,26 +89,35 @@
         "availability_hint": {
           "$ref": "#/$defs/AvailabilityHint",
           "description": "Approximate availability summary for agent-assisted discovery."
+        },
+        "localized": {
+          "$ref": "#/$defs/LocalizedFields",
+          "description": "Per-locale overrides for human-readable text fields. The top-level fields (name, description, etc.) serve as the default/fallback locale."
         }
       }
     },
     "Duration": {
       "type": "object",
       "title": "Duration",
-      "description": "Defines how long a service takes. Either fixed or range MUST be provided.",
+      "description": "Defines how long a service takes. Exactly one of fixed, range, or undetermined MUST be provided.",
       "properties": {
         "fixed": {
           "type": "string",
-          "description": "ISO 8601 duration. REQUIRED if range is not present."
+          "description": "ISO 8601 duration. REQUIRED if neither range nor undetermined is present."
         },
         "range": {
           "type": "object",
-          "description": "REQUIRED if fixed is not present. Buyer selects duration within this range.",
+          "description": "REQUIRED if neither fixed nor undetermined is present. Buyer selects duration within this range.",
           "properties": {
             "min": { "type": "string", "description": "ISO 8601 duration" },
             "max": { "type": "string", "description": "ISO 8601 duration" },
             "step": { "type": "string", "description": "ISO 8601 duration" }
           }
+        },
+        "undetermined": {
+          "type": "boolean",
+          "const": true,
+          "description": "Set to true when the service has no meaningful duration to display (e.g., consultations, custom quotes). MUST NOT be combined with fixed or range."
         },
         "buffer_before": { "type": "string", "description": "ISO 8601 duration. Non-bookable prep time." },
         "buffer_after": { "type": "string", "description": "ISO 8601 duration. Non-bookable cleanup time." }
@@ -253,6 +266,33 @@
           "type": "string",
           "enum": ["at_booking", "at_service", "deposit_required"],
           "description": "REQUIRED when requires_payment is true."
+        }
+      }
+    },
+    "LocalizedFields": {
+      "type": "object",
+      "title": "LocalizedFields",
+      "description": "Per-locale overrides for human-readable text fields on a service. Keys are IETF BCP 47 language tags (e.g., 'es', 'fr', 'zh-Hant'). The top-level service fields (name, description, etc.) serve as the default/fallback locale.",
+      "properties": {
+        "name": {
+          "type": "object",
+          "description": "Per-locale overrides for the service name.",
+          "additionalProperties": { "type": "string" }
+        },
+        "description": {
+          "type": "object",
+          "description": "Per-locale overrides for the service description.",
+          "additionalProperties": { "type": "string" }
+        },
+        "category_name": {
+          "type": "object",
+          "description": "Per-locale overrides for the category name.",
+          "additionalProperties": { "type": "string" }
+        },
+        "channel_instructions": {
+          "type": "object",
+          "description": "Per-locale overrides for channel instructions.",
+          "additionalProperties": { "type": "string" }
         }
       }
     },
