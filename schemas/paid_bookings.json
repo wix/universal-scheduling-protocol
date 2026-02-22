@@ -33,8 +33,7 @@
         },
         "service_type": {
           "type": "string",
-          "enum": ["appointment", "group", "reservation", "rental"],
-          "description": "The service vertical."
+          "description": "The service vertical. One of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation."
         },
         "slot": {
           "$ref": "#/$defs/SlotReference",

@@ -110,6 +110,7 @@ Copyright (c) 2026 USP Authors. This specification is released under the [Apache
 - [13. References](#13-references)
   - [13.1 Normative References](#131-normative-references)
   - [13.2 Informative References](#132-informative-references)
+- [Appendix A. Future Vertical Considerations (Informative)](#appendix-a-future-vertical-considerations-informative)
 - [Authors' Addresses](#authors-addresses)
 
 ---
@@ -162,19 +163,7 @@ USP defines the following core service verticals. The `type` field on a service 
 | `reservation` | A hold on a shared resource for a time window. The buyer reserves a specific resource (e.g., a table, a room) for a party of a given size. | Restaurant table, conference room, venue, court booking |
 | `rental` | Temporary exclusive use of equipment or space for a duration. The buyer takes possession of the resource for the rental period. | Car rental, studio space, equipment hire, vacation rental |
 
-#### 1.3.2 Extended Verticals
-
-The following verticals address additional scheduling domains. Implementations **MAY** support these as vendor-defined capabilities or as future USP core verticals:
-
-| Vertical | Description | Examples | Key Differences from Core |
-|----------|-------------|----------|---------------------------|
-| `event` | A ticketed one-time event with complex capacity models (tiers, seating maps, general admission). | Concerts, conferences, theater, sporting events | Ticket tiers, seating maps, general admission vs. reserved seating |
-| `course` | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion. | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression |
-| `healthcare` | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms. | Doctor visits, telehealth, lab work, dental procedures | Insurance, referrals, HIPAA compliance, intake workflows |
-| `home_service` | An on-location service performed at the buyer's premises. Scheduling must account for travel time and service area. | Plumbing, cleaning, pest control, home repair, moving | Travel time, service area boundaries, on-site assessment |
-| `tour` | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours | Route/location, equipment, weather dependencies |
-
-#### 1.3.3 Custom Verticals
+#### 1.3.2 Custom Verticals
 
 Vendors **MAY** define custom verticals using their reverse-domain namespace:
 
@@ -183,6 +172,8 @@ com.{vendor}.services.{vertical_name}
 ```
 
 Custom verticals **MUST** publish a specification and schema that define the additional fields and semantics beyond the USP base service schema. Platforms encountering an unrecognized vertical **SHOULD** fall back to treating the service as an `appointment` type for basic scheduling operations.
+
+For a list of scheduling domains under consideration for future standardization, see [Appendix A](#appendix-a-future-vertical-considerations-informative).
 
 ### 1.4 Relationship to Other Standards
 
@@ -3120,6 +3111,34 @@ If USP advances to Standards Track, future versions may request IANA registratio
 - **[MCP]** Model Context Protocol. https://modelcontextprotocol.io/docs/getting-started/intro
 - **[schema.org/Service]** schema.org, "Service Type". https://schema.org/Service
 - **[UCP]** Universal Commerce Protocol, "UCP Specification", Version 2026-01-11. https://ucp.dev/latest/specification/overview/
+
+---
+
+## Appendix A. Future Vertical Considerations (Informative)
+
+This appendix is non-normative.
+
+The core verticals defined in [Section 1.3.1](#131-core-verticals) cover the most common scheduling domains. The following additional domains have been identified as candidates for future standardization. They are documented here to guide vendors defining custom verticals ([Section 1.3.2](#132-custom-verticals)) and to promote namespace convergence across the ecosystem.
+
+Vendors implementing services in these domains **SHOULD** use the custom vertical mechanism (reverse-domain notation) until these verticals are promoted to core status. Platforms encountering services with these verticals **SHOULD** fall back to treating the service as an `appointment` type for basic scheduling operations, as described in [Section 1.3.2](#132-custom-verticals).
+
+### A.1 Candidate Verticals
+
+| Vertical | Description | Examples | Key Differences from Core |
+|----------|-------------|----------|---------------------------|
+| `event` | A ticketed one-time event with complex capacity models (tiers, seating maps, general admission). | Concerts, conferences, theater, sporting events | Ticket tiers, seating maps, general admission vs. reserved seating |
+| `course` | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion. | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression |
+| `healthcare` | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms. | Doctor visits, telehealth, lab work, dental procedures | Insurance, referrals, HIPAA compliance, intake workflows |
+| `home_service` | An on-location service performed at the buyer's premises. Scheduling must account for travel time and service area. | Plumbing, cleaning, pest control, home repair, moving | Travel time, service area boundaries, on-site assessment |
+| `tour` | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours | Route/location, equipment, weather dependencies |
+
+### A.2 Promotion Criteria
+
+A vertical **MAY** be promoted from this appendix to core status in a future version of USP when:
+
+1. At least two independent implementations exist using the vertical via the custom vertical mechanism ([Section 1.3.2](#132-custom-verticals)).
+2. The additional schema fields and behavioral semantics are documented in a published specification.
+3. The scheduling semantics cannot be adequately modeled by one of the existing core verticals with category differentiation alone.
 
 ---
 

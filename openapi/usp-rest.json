@@ -158,13 +158,7 @@
           },
           "type": {
             "type": "string",
-            "description": "Service vertical.",
-            "enum": [
-              "appointment",
-              "group",
-              "reservation",
-              "rental"
-            ]
+            "description": "Service vertical. One of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses). Platforms encountering an unrecognized vertical SHOULD fall back to appointment semantics."
           },
           "category": {
             "type": "object",
