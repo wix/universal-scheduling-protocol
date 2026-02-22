@@ -1,5 +1,23 @@
 # Change Log
 
+## 22/02/26 at 15:36:29 by [kobym707](mailto:kobym@wix.com)
+
+- **Made holds optional via feature flag on the availability capability:** Introduced a `holds` boolean feature flag on `dev.usp.services.availability` to explicitly declare whether a business supports the Hold Slot and Release Slot operations, because many businesses (especially small or low-contention ones) can operate safely without the hold mechanism, and forcing it on all implementers raised the integration bar unnecessarily.
+- **Updated Section 4 (Availability) with feature flag table and discovery guidance:** Added the flag definition, profile declaration example, and clarified that when `holds` is absent or `false`, the booking flow proceeds directly from slot query to booking creation.
+- **Gated Sections 4.2, 4.3.2, and 4.3.3 behind the holds flag:** Added callout blocks to the Hold entity, Hold Slot, and Release Slot operation sections noting they require `"holds": true`, preventing platforms from calling endpoints the business does not support.
+- **Made `hold_id` explicitly optional in Create Booking (5.3.1) and Reschedule (5.3.6):** Added field-level tables with `hold_id` marked as optional, added a "without hold" request example, and updated the prose to describe both hold and no-hold flows.
+- **Updated the caching strategy funnel (4.4):** Marked the Commit tier as optional and updated the Mermaid diagram to show a conditional branch for hold support.
+- **Updated all end-to-end flow diagrams (6.7 and 7.7):** Changed Mermaid sequence diagrams to use `opt Business supports holds` blocks instead of showing holds as mandatory steps.
+- **Updated A2A booking flow (8.3.2):** Made the hold step conditional and noted `hold_id` as optional in the booking creation step.
+- **Updated profile examples (6.2, 7.2) to include `"holds": true`:** Demonstrates how businesses declare hold support in both UCP-Native and Standalone profiles.
+- **Updated OpenAPI schema:** Added descriptions to hold/release endpoints noting the feature flag requirement, made `hold_id` optional in the reschedule request body, and updated `hold_id` descriptions in create booking.
+- **Updated OpenRPC schema:** Added feature flag descriptions to hold/release methods and made `hold_id` optional (not required) in the reschedule method.
+- **Updated paid_bookings.json schema:** Clarified `hold_id` description to note it depends on holds capability support.
+- **Updated Operation Reference (11) and MCP/A2A mapping tables:** Annotated hold/release operations with `(holds: true)` to signal the feature flag requirement.
+- **Updated Hold Abuse Prevention (9.1.2):** Scoped the section to apply only when holds are supported.
+
+---
+
 ## 22/02/26 at 14:09:11 by [kobym707](mailto:kobym@wix.com)
 
 - **Promoted Business ID and Localization to peer-level sections:** Extracted former 3.3.1 (Business ID) and 3.3.2 (Localization) from under the Service Schema section into their own top-level sections (3.4 and 3.5), consistent with how other complex Service fields (Duration, Pricing, Policies, etc.) are structured. Renumbered sections 3.4-3.10 to 3.6-3.12 and updated all cross-references throughout the spec.

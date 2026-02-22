@@ -993,7 +993,24 @@ Response:
 
 > **JSON Schema:** [`schemas/availability.json`](schemas/availability.json)
 
-The availability capability lets platforms **query when services are available** and **hold slots** to prevent double-booking during the booking flow.
+The availability capability lets platforms **query when services are available** and, optionally, **hold slots** to prevent double-booking during the booking flow.
+
+**Feature flags:**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `holds` | boolean | `false` | When `true`, the business supports the Hold Slot (`POST /availability/holds`) and Release Slot (`DELETE /availability/holds/{hold_id}`) operations described in [Section 4.2](#42-hold). Platforms **MUST NOT** call hold/release endpoints unless the business advertises `"holds": true`. |
+
+Businesses declare feature flags inside the capability entry in their profile:
+
+```json
+"dev.usp.services.availability": [{
+  "version": "2026-02-09",
+  "holds": true
+}]
+```
+
+When `holds` is `false` or absent, the booking flow proceeds directly from slot query to booking creation without an intermediate hold step.
 
 ### 4.1 Time Slot
 
@@ -1021,6 +1038,8 @@ A time slot represents a specific, bookable window for a service. Slots are comp
 | `waitlist` | The slot is fully booked but the service has waitlist enabled (`capacity.waitlist: true`). The platform **MAY** allow the buyer to join the waitlist via the waitlist extension ([Section 10.1](#101-waitlist-extension)). Businesses **MUST NOT** return `waitlist` state unless the `dev.usp.services.waitlist` capability is supported. |
 
 ### 4.2 Hold
+
+> **Feature flag:** This section applies only when the business advertises `"holds": true` in its `dev.usp.services.availability` capability entry. See [Section 4](#4-availability) for the feature flag definition.
 
 A hold is a temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released when they expire, are explicitly released, or are converted to a booking.
 
@@ -1101,6 +1120,8 @@ Response:
 
 #### 4.3.2 Hold Slot - `POST /availability/holds`
 
+> **Requires:** `"holds": true` on the `dev.usp.services.availability` capability. Platforms **MUST NOT** call this endpoint unless the business profile advertises hold support.
+
 Creates a temporary hold on a time slot to prevent double-booking while the buyer completes the booking flow.
 
 Request:
@@ -1150,6 +1171,8 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 
 #### 4.3.3 Release Slot - `DELETE /availability/holds/{hold_id}`
 
+> **Requires:** `"holds": true` on the `dev.usp.services.availability` capability.
+
 Explicitly releases a hold before it expires. This frees the slot for other buyers.
 
 Request:
@@ -1184,16 +1207,18 @@ Availability data has an inverse relationship between freshness and usefulness: 
 |------|--------|------------|-----------------|----------|
 | **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
 | **Select** | `slot` query | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
-| **Commit** | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Always live. |
+| **Commit** *(optional)* | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Only available when business advertises `"holds": true`. |
 
-This creates a natural funnel that balances user experience with data freshness:
+This creates a natural funnel that balances user experience with data freshness. When holds are not supported, the flow skips directly from slot selection to booking creation:
 
 ```mermaid
 graph TD
-    H["1. Availability Hint (catalog-cached, 1-6hr)"] - "Agent narrows date range" --> S
+    H["1. Availability Hint (catalog-cached, 1-6hr)"] -- "Agent narrows date range" --> S
     S["2. Slot Query (slot-level, short cache)"] --> D["Agent picks a slot"]
-    D --> E["3. Hold Slot (real-time)"]
-    E --> F["4. Create Booking"]
+    D --> E{"3. Holds supported?"}
+    E -- "Yes" --> F["Hold Slot (real-time)"]
+    F --> G["4. Create Booking"]
+    E -- "No" --> G
 ```
 
 ---
@@ -1263,15 +1288,44 @@ The booking object represents a scheduled service instance for a specific buyer 
 
 #### 5.3.1 Create Booking - `POST /bookings`
 
-Creates a new booking for a service at a specific time slot. The platform **SHOULD** hold the slot before creating the booking to prevent race conditions. When the person receiving the service is different from the buyer, the platform **SHOULD** include a `recipient` object.
+Creates a new booking for a service at a specific time slot. When the business supports holds (`"holds": true`), the platform **SHOULD** hold the slot before creating the booking to prevent race conditions. When holds are not supported, the platform proceeds directly from slot query to booking creation. When the person receiving the service is different from the buyer, the platform **SHOULD** include a `recipient` object.
 
-Request:
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `service_id` | string | **Yes** | The service to book. |
+| `slot_id` | string | **Yes** | The selected time slot. |
+| `hold_id` | string | No | Hold ID from a prior hold operation. Present only when the business supports holds. |
+| `buyer` | object | **Yes** | Buyer contact information. |
+| `recipient` | object | No | The person receiving the service, when different from the buyer. |
+| `party_size` | integer | No | Number of participants. Default: 1. |
+| `resource_id` | string | No | Preferred resource. |
+| `notes` | string | No | Free-text notes for the business. |
+
+Request (with hold):
 
 ```json
 {
   "service_id": "svc_massage_001",
   "slot_id": "slot_20260316_1400",
   "hold_id": "hold_xyz789",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1,
+  "resource_id": "staff_jane",
+  "notes": "First time visit"
+}
+```
+
+Request (without hold - business does not support holds):
+
+```json
+{
+  "service_id": "svc_massage_001",
+  "slot_id": "slot_20260316_1400",
   "buyer": {
     "first_name": "Alice",
     "last_name": "Williams",
@@ -1419,7 +1473,12 @@ Cancels a booking. Cancellation fees are applied per the service's cancellation 
 
 #### 5.3.6 Reschedule Booking - `POST /bookings/{booking_id}/reschedule`
 
-Moves a booking to a different time slot. The platform **SHOULD** hold the new slot before rescheduling. Rescheduling limits and fees are governed by the service's rescheduling policy.
+Moves a booking to a different time slot. When the business supports holds, the platform **SHOULD** hold the new slot before rescheduling. When holds are not supported, the platform provides only the new `slot_id`. Rescheduling limits and fees are governed by the service's rescheduling policy.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `slot_id` | string | **Yes** | The new slot to reschedule to. |
+| `hold_id` | string | No | Hold ID for the new slot. Present only when the business supports holds. |
 
 #### 5.3.7 Confirm Payment - `POST /bookings/{booking_id}/confirm-payment`
 
@@ -1614,7 +1673,7 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
     "capabilities": {
       "dev.ucp.shopping.checkout": [{"version": "2026-01-11"}],
       "dev.usp.services.catalog": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#3-service-catalog", "schema": "https://usp.dev/schemas/services/catalog.json"}],
-      "dev.usp.services.availability": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09", "holds": true, "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
       "dev.usp.services.bookings": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#5-booking-lifecycle", "schema": "https://usp.dev/schemas/services/scheduling.json"}],
       "dev.usp.services.paid_bookings": [{
         "version": "2026-02-09",
@@ -1780,8 +1839,8 @@ When the platform detects `dev.usp.services.paid_bookings` in the business's UCP
 
 1. **[USP] Discover services** via `POST /services/list`.
 2. **[USP] Query availability** via `POST /availability/query`.
-3. **[USP] Hold the slot** via `POST /availability/holds`.
-4. **[UCP] Create checkout** with the booking extension. The business validates the booking context, creates a pending booking, and returns the checkout with payment handlers. No separate `create_booking` call. No `update_checkout` round-trip.
+3. *(If business supports holds)* **[USP] Hold the slot** via `POST /availability/holds`.
+4. **[UCP] Create checkout** with the booking extension (including `hold_id` if step 3 was performed). The business validates the booking context, creates a pending booking, and returns the checkout with payment handlers. No separate `create_booking` call. No `update_checkout` round-trip.
 5. **[UCP] Acquire payment token** from the PSP using handler configuration from the checkout response.
 6. **[UCP] Complete checkout** with the payment token. The business atomically: (a) processes the payment with the PSP, (b) transitions the booking from `pending` to `confirmed`, and (c) returns the completed checkout with the `order_id` and confirmed `booking_status`.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
@@ -1816,9 +1875,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (svc_yoga_free, March 18)
     B-->>P: Available Slots (10:00 AM, 6 spots remaining)
     Note over P: User selects 10:00 AM slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_20260318_1000, spots: 1)
     B-->>P: Hold (hold_id: hold_free_001, expires_at: +10min)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: confirmed)
     Note over P,B: Done. No payment step needed.
 ```
@@ -1838,8 +1899,10 @@ sequenceDiagram
     P->>B: 2. Query Availability (service_id, date range)
     B-->>P: Available Slots
     Note over P: User selects a slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_id)
     B-->>P: Hold (hold_id, expires_at)
+    end
     end
 
     rect rgb(255, 243, 224)
@@ -1865,8 +1928,8 @@ sequenceDiagram
 
 1. **[USP] Discover services** via `POST /services/list`.
 2. **[USP] Query availability** via `POST /availability/query`.
-3. **[USP] Hold the slot** via `POST /availability/holds`.
-4. **[UCP] Create checkout** with the booking extension.
+3. *(If business supports holds)* **[USP] Hold the slot** via `POST /availability/holds`.
+4. **[UCP] Create checkout** with the booking extension (including `hold_id` if step 3 was performed).
 5. **[UCP] Acquire payment token** from the PSP.
 6. **[UCP] Complete checkout** - atomic payment + booking confirmation.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
@@ -1916,7 +1979,7 @@ Businesses publish their USP profile at `/.well-known/usp`:
     },
     "capabilities": {
       "dev.usp.services.catalog": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#3-service-catalog", "schema": "https://usp.dev/schemas/services/catalog.json"}],
-      "dev.usp.services.availability": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
+      "dev.usp.services.availability": [{"version": "2026-02-09", "holds": true, "spec": "https://usp.dev/specification#4-availability", "schema": "https://usp.dev/schemas/services/availability.json"}],
       "dev.usp.services.bookings": [{"version": "2026-02-09", "spec": "https://usp.dev/specification#5-booking-lifecycle", "schema": "https://usp.dev/schemas/services/scheduling.json"}]
     },
     "checkout_systems": ["acp", "redirect"],
@@ -2352,9 +2415,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (svc_yoga_free, March 18)
     B-->>P: Available Slots (10:00 AM, 6 spots remaining)
     Note over P: User selects 10:00 AM slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_20260318_1000, spots: 1)
     B-->>P: Hold (hold_id: hold_free_001, expires_at: +10min)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: confirmed)
     Note over P,B: Done. No payment step needed.
 ```
@@ -2375,9 +2440,11 @@ sequenceDiagram
     P->>B: 2. Query Availability (service_id, date range)
     B-->>P: Available Slots
     Note over P: User selects a slot
+    opt Business supports holds
     P->>B: 3. Hold Slot (slot_id)
     B-->>P: Hold (hold_id, expires_at)
-    P->>B: 4. Create Booking (service, slot, hold, buyer)
+    end
+    P->>B: 4. Create Booking (service, slot, buyer, hold_id if held)
     B-->>P: Booking (status: requires_action, payment_context)
     end
 
@@ -2408,7 +2475,7 @@ sequenceDiagram
 
     rect rgb(230, 245, 255)
     Note over P,PSP: USP — Service Discovery & Booking
-    P->>B: 1-4. Discover, query, hold, create booking
+    P->>B: 1-4. Discover, query, hold (if supported), create booking
     B-->>P: Booking (status: requires_action, payment_context)
     end
 
@@ -2548,8 +2615,8 @@ Each USP REST operation maps to a JSON-RPC method:
 | `GET /services/feed` | `usp_services_feed` | Get service catalog feed |
 | `POST /services/feed/subscriptions` | `usp_services_feed_subscribe` | Create a feed subscription |
 | `POST /availability/query` | `usp_availability_query` | Query time slots |
-| `POST /availability/holds` | `usp_availability_hold` | Hold a slot |
-| `DELETE /availability/holds/{hold_id}` | `usp_availability_release` | Release a hold |
+| `POST /availability/holds` | `usp_availability_hold` | Hold a slot (requires `holds: true`) |
+| `DELETE /availability/holds/{hold_id}` | `usp_availability_release` | Release a hold (requires `holds: true`) |
 | `POST /bookings` | `usp_bookings_create` | Create a booking |
 | `GET /bookings/{booking_id}` | `usp_bookings_get` | Get a booking |
 | `PUT /bookings/{booking_id}` | `usp_bookings_update` | Update a booking |
@@ -2665,8 +2732,8 @@ Each USP operation is expressed as an A2A **task**. The full multi-step booking 
 | Get Service | `usp/services/get` | Get single service |
 | Service Feed | `usp/services/feed` | Feed sync task |
 | Query Availability | `usp/availability/query` | Availability task |
-| Hold Slot | `usp/availability/hold` | Hold task |
-| Release Slot | `usp/availability/release` | Release task |
+| Hold Slot | `usp/availability/hold` | Hold task (requires `holds: true`) |
+| Release Slot | `usp/availability/release` | Release task (requires `holds: true`) |
 | Create Booking | `usp/bookings/create` | Booking task |
 | Get Booking | `usp/bookings/get` | Booking status |
 | Cancel Booking | `usp/bookings/cancel` | Cancellation task |
@@ -2680,8 +2747,8 @@ The following shows a complete booking flow through A2A task chaining between a 
 
 1. **Platform agent → Business agent:** Task `usp/services/list` with filters. Business agent returns the service catalog.
 2. **Platform agent → Business agent:** Task `usp/availability/query` with the selected service and date range. Business agent returns available slots.
-3. **Platform agent → Business agent:** Task `usp/availability/hold` with the selected slot. Business agent returns the hold.
-4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, hold, buyer, and optional recipient. Business agent returns the booking.
+3. *(If business supports holds)* **Platform agent → Business agent:** Task `usp/availability/hold` with the selected slot. Business agent returns the hold.
+4. **Platform agent → Business agent:** Task `usp/bookings/create` with service, slot, buyer, optional recipient, and `hold_id` (if step 3 was performed). Business agent returns the booking.
 5. *(If payment required)* Platform agent processes payment through the configured checkout system.
 6. **Platform agent → Business agent:** Task `usp/bookings/confirm-payment` with the payment result.
 
@@ -2873,7 +2940,7 @@ Multiple keys **MUST** be supported for key rotation. The business **SHOULD** pu
 
 #### 9.1.2 Hold Abuse Prevention
 
-Businesses **MUST** implement safeguards against hold abuse:
+When a business supports holds (`"holds": true`), it **MUST** implement safeguards against hold abuse:
 
 - **Concurrent hold limits:** Maximum concurrent holds per buyer per service (recommended: 1-3).
 - **Short TTLs:** Hold TTL **SHOULD** be between 5 and 10 minutes.
@@ -3044,8 +3111,8 @@ When a waitlisted buyer accepts an offered slot for a paid service that requires
 | Resume Feed Subscription | `POST` | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions) |
 | Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}` | catalog (subscriptions) |
 | Query Availability | `POST` | `/availability/query` | availability |
-| Hold Slot | `POST` | `/availability/holds` | availability |
-| Release Slot | `DELETE` | `/availability/holds/{hold_id}` | availability |
+| Hold Slot | `POST` | `/availability/holds` | availability (`holds: true`) |
+| Release Slot | `DELETE` | `/availability/holds/{hold_id}` | availability (`holds: true`) |
 | Create Booking | `POST` | `/bookings` | bookings |
 | Get Booking | `GET` | `/bookings/{booking_id}` | bookings |
 | Update Booking | `PUT` | `/bookings/{booking_id}` | bookings |

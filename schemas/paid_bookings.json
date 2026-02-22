@@ -41,7 +41,7 @@
         },
         "hold_id": {
           "type": "string",
-          "description": "The hold ID if a slot was held."
+          "description": "The hold ID if a slot was held. Present only when the business supports holds (holds: true on the availability capability)."
         },
         "resources": {
           "type": "array",
