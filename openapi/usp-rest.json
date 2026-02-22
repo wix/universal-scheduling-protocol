@@ -131,6 +131,7 @@
         "type": "object",
         "required": [
           "id",
+          "business_id",
           "name",
           "type",
           "duration",
@@ -141,7 +142,11 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique service identifier, scoped to the business."
+            "description": "Unique service identifier, scoped to the business. The composite key (business_id, id) is globally unique."
+          },
+          "business_id": {
+            "type": "string",
+            "description": "Identifier of the business that owns this service. Populated by the provider in API responses. Together with id, forms the globally unique composite key."
           },
           "name": {
             "type": "string",
@@ -246,20 +251,49 @@
           },
           "availability_hint": {
             "$ref": "#/components/schemas/AvailabilityHint"
+          },
+          "localized": {
+            "$ref": "#/components/schemas/LocalizedFields"
+          }
+        }
+      },
+      "LocalizedFields": {
+        "type": "object",
+        "description": "Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags.",
+        "properties": {
+          "name": {
+            "type": "object",
+            "description": "Per-locale overrides for the service name.",
+            "additionalProperties": { "type": "string" }
+          },
+          "description": {
+            "type": "object",
+            "description": "Per-locale overrides for the service description.",
+            "additionalProperties": { "type": "string" }
+          },
+          "category_name": {
+            "type": "object",
+            "description": "Per-locale overrides for the category name.",
+            "additionalProperties": { "type": "string" }
+          },
+          "channel_instructions": {
+            "type": "object",
+            "description": "Per-locale overrides for channel instructions.",
+            "additionalProperties": { "type": "string" }
           }
         }
       },
       "Duration": {
         "type": "object",
-        "description": "Duration configuration. Provide either fixed or range, not both.",
+        "description": "Duration configuration. Provide exactly one of fixed, range, or undetermined.",
         "properties": {
           "fixed": {
             "type": "string",
-            "description": "ISO 8601 duration. Required if range is not present."
+            "description": "ISO 8601 duration. Required if neither range nor undetermined is present."
           },
           "range": {
             "type": "object",
-            "description": "Required if fixed is not present. Buyer selects a duration within this range.",
+            "description": "Required if neither fixed nor undetermined is present. Buyer selects a duration within this range.",
             "properties": {
               "min": {
                 "type": "string",
@@ -274,6 +308,10 @@
                 "description": "ISO 8601 duration increment."
               }
             }
+          },
+          "undetermined": {
+            "type": "boolean",
+            "description": "Set to true when the service has no meaningful duration to display (e.g., consultations, custom quotes). Must not be combined with fixed or range."
           },
           "buffer_before": {
             "type": "string",

@@ -550,13 +550,15 @@
       "Service": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
+          "id": { "type": "string", "description": "Unique service identifier, scoped to the business. The composite key (business_id, id) is globally unique." },
+          "business_id": { "type": "string", "description": "Identifier of the business that owns this service." },
           "name": { "type": "string" },
           "type": { "type": "string" },
           "duration": { "type": "object" },
           "pricing": { "type": "object" },
           "channel": { "type": "object" },
-          "policies": { "type": "object" }
+          "policies": { "type": "object" },
+          "localized": { "type": "object", "description": "Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags." }
         }
       },
       "FeedSubscription": {
