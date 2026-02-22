@@ -1,5 +1,13 @@
 # Change Log
 
+## 22/02/26 at 13:54:36 by [kobym707](mailto:kobym@wix.com)
+
+- **Moved extended verticals to informative Appendix A:** Relocated the five candidate verticals (`event`, `course`, `healthcare`, `home_service`, `tour`) from Section 1.3.2 to a new non-normative Appendix A, following RFC conventions for separating forward-looking content from normative spec. Added promotion criteria (A.2) requiring two independent implementations before a vertical can become core.
+- **Renumbered Custom Verticals to Section 1.3.2:** Former Section 1.3.3 is now 1.3.2 with a forward reference to Appendix A for candidate verticals.
+- **Opened the `type` field enum in JSON schemas:** Removed the closed enum constraint on `service.type` in `usp-rest.json` and `paid_bookings.json` so that vendor-defined custom verticals using reverse-domain notation are not rejected by schema validation, aligning the schemas with what Section 1.3 already permits.
+
+---
+
 ## 22/02/26 at 12:18:07 by [kobym707](mailto:kobym@wix.com)
 
 - **Added `business_id` to Service schema:** Every service object now carries the identifier of its owning business, making services self-describing for cross-business semantic search, cached catalog aggregation, and agent-to-agent hand-off. The composite key `(business_id, id)` is the globally unique identifier. Updated `catalog.json`, `usp-rest.json`, `usp-mcp.json`, and all service examples in `specification.md`.
