@@ -497,6 +497,7 @@ Response:
       "modified_at": "2026-03-10T09:15:00Z",
       "data": {
         "id": "svc_haircut_001",
+        "business_id": "biz_glamour_salon_nyc",
         "name": "Women's Haircut & Style",
         "type": "appointment",
         "...": "full service object"
@@ -506,7 +507,8 @@ Response:
       "state": "deleted",
       "modified_at": "2026-03-10T10:00:00Z",
       "data": {
-        "id": "svc_old_service_002"
+        "id": "svc_old_service_002",
+        "business_id": "biz_glamour_salon_nyc"
       }
     }
   ],
@@ -578,7 +580,8 @@ The service object represents a bookable offering from a business. Each service 
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | string | **Yes** | Unique service identifier, scoped to the business. Opaque to the platform. |
+| `id` | string | **Yes** | Unique service identifier, scoped to the business. Opaque to the platform. The composite key `(business_id, id)` is globally unique. |
+| `business_id` | string | **Yes** | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.3.1](#331-business-id-and-cross-business-discovery). |
 | `name` | string | **Yes** | Human-readable display name for the service (e.g., "Women's Haircut & Style"). |
 | `description` | string | No | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents. |
 | `type` | string | **Yes** | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals). |
@@ -592,6 +595,7 @@ The service object represents a bookable offering from a business. Each service 
 | `capacity` | object | No | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full. |
 | `images` | Array\[object\] | No | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`. |
 | `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. See [Section 3.4](#34-availability-hint). |
+| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.3.2](#332-localization). |
 
 **Channel types:**
 
@@ -601,6 +605,69 @@ The service object represents a bookable offering from a business. Each service 
 | `virtual` | Service is delivered remotely via video/audio call. | `virtual_provider`: platform name (e.g., "Zoom", "Google Meet"). `instructions`: join instructions or a link provided after booking. |
 | `phone` | Service is delivered via phone call. | `instructions`: optional call-in details. |
 | `hybrid` | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference. |
+
+#### 3.3.1 Business ID and Cross-Business Discovery
+
+The `business_id` field makes every service object **self-describing** — it carries the identity of the business that offers it, even after the service object leaves the API response context.
+
+This is critical in agentic workflows where services are routinely aggregated, cached, and passed between systems:
+
+| Scenario | Why `business_id` matters |
+|----------|--------------------------|
+| **Cross-business semantic search** | An agent indexes services from hundreds of businesses into a single search index. When a match is found, the agent needs to know which business to call for availability and booking. |
+| **Cached catalog aggregation** | Platforms cache service catalogs (the spec recommends 1-24 hour caching). The cache is a flat collection; `business_id` preserves the association. |
+| **Agent-to-agent hand-off** | A discovery agent passes a service object to a booking agent. Without `business_id`, the receiving agent cannot act on it. |
+| **Collision prevention** | Two businesses may both have a service with `id: "haircut-1"`. The composite key `(business_id, id)` ensures global uniqueness. |
+
+**Rules:**
+- Providers **MUST** populate `business_id` in all API responses that contain service objects (list, get, feed, webhooks).
+- Platforms **MUST NOT** send `business_id` in create or update requests — the business context is established by the API endpoint and authentication.
+- The composite key `(business_id, id)` is the globally unique identifier for a service across the entire USP ecosystem.
+
+#### 3.3.2 Localization
+
+The optional `localized` field provides per-locale overrides for human-readable text fields on a service. The top-level fields (`name`, `description`, `category.name`, `channel.instructions`) serve as the default/fallback locale. The `localized` field uses IETF BCP 47 language tags as keys.
+
+This design allows platforms to cache a single service object containing all translations, rather than making per-locale API calls or maintaining multiple cached copies. It is especially important for businesses serving multilingual audiences.
+
+**Localizable fields:**
+
+| `localized` key | Overrides |
+|-----------------|-----------|
+| `name` | `service.name` |
+| `description` | `service.description` |
+| `category_name` | `service.category.name` |
+| `channel_instructions` | `service.channel.instructions` |
+
+**Example:**
+
+```json
+{
+  "id": "svc_haircut_001",
+  "business_id": "biz_glamour_salon_nyc",
+  "name": "Women's Haircut & Style",
+  "description": "A full haircut and styling session.",
+  "localized": {
+    "name": {
+      "es": "Corte y Peinado para Mujer",
+      "fr": "Coupe & Coiffure Femme"
+    },
+    "description": {
+      "es": "Una sesión completa de corte y peinado.",
+      "fr": "Une séance complète de coupe et coiffure."
+    },
+    "category_name": {
+      "es": "Cortes de pelo",
+      "fr": "Coupes de cheveux"
+    }
+  }
+}
+```
+
+**Rules:**
+- The `localized` field is **optional**. Services without it use their top-level text fields for all locales.
+- Platforms **SHOULD** resolve the buyer's preferred locale by matching against available keys, falling back to the top-level field when no match is found.
+- Providers **SHOULD** include translations for all locales they actively support.
 
 ### 3.4 Availability Hint
 
@@ -636,6 +703,7 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 ```json
 {
   "id": "svc_haircut_001",
+  "business_id": "biz_glamour_salon_nyc",
   "name": "Women's Haircut & Style",
   "availability_hint": {
     "summary": "Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning. Thursday is filling up fast.",
@@ -647,7 +715,7 @@ The availability hint is particularly valuable for AI agents that orchestrate sc
 
 ### 3.5 Duration
 
-The duration object defines how long a service takes. Either a fixed duration or a range **MUST** be provided. Buffers define non-bookable prep/cleanup time that the business needs between consecutive bookings.
+The duration object defines how long a service takes. Exactly one of `fixed`, `range`, or `undetermined` **MUST** be provided. Buffers define non-bookable prep/cleanup time that the business needs between consecutive bookings.
 
 **Fixed duration:**
 
@@ -661,10 +729,17 @@ The duration object defines how long a service takes. Either a fixed duration or
 {"range": {"min": "PT30M", "max": "PT120M", "step": "PT30M"}}
 ```
 
+**Undetermined duration (no meaningful duration to display):**
+
+```json
+{"undetermined": true}
+```
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `fixed` | string | Conditional | ISO 8601 duration. **REQUIRED** if `range` is not present. The exact duration of the service. |
-| `range` | object | Conditional | **REQUIRED** if `fixed` is not present. `{min, max, step}` - all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
+| `fixed` | string | Conditional | ISO 8601 duration. **REQUIRED** if neither `range` nor `undetermined` is present. The exact duration of the service. |
+| `range` | object | Conditional | **REQUIRED** if neither `fixed` nor `undetermined` is present. `{min, max, step}` - all ISO 8601 durations. The buyer selects a duration within this range in increments of `step`. |
+| `undetermined` | boolean | Conditional | Set to `true` when the service has no meaningful duration to display (e.g., consultations, custom quotes, "call for estimate" services). **MUST NOT** be combined with `fixed` or `range`. When set, platforms **SHOULD NOT** display duration information to the buyer. Buffers **MAY** still be set for scheduling purposes. |
 | `buffer_before` | string | No | ISO 8601 duration. Non-bookable prep time before the service (e.g., room setup). This time is blocked on the schedule but not visible to the buyer. |
 | `buffer_after` | string | No | ISO 8601 duration. Non-bookable cleanup time after the service (e.g., sanitization between clients). |
 
@@ -750,6 +825,8 @@ The following constraints define legal combinations of `requires_payment`, `paym
 3. When `payment_timing` is `deposit_required`, the `pricing.deposit` object **MUST** be present.
 4. When `pricing.model` is `free`, `pricing.amount` **MUST NOT** be present.
 5. When `pricing.model` is `fixed`, `hourly`, or `per_person`, `pricing.amount` **MUST** be present and greater than zero.
+6. Exactly one of `duration.fixed`, `duration.range`, or `duration.undetermined` **MUST** be present. They are mutually exclusive.
+7. When `duration.undetermined` is `true`, `pricing.model` **MUST NOT** be `hourly` (hourly pricing requires a known duration to compute the total).
 
 ### 3.10 Operations
 
@@ -777,6 +854,7 @@ Response:
   "services": [
     {
       "id": "svc_haircut_001",
+      "business_id": "biz_glamour_salon_nyc",
       "name": "Women's Haircut & Style",
       "type": "appointment",
       "duration": {"fixed": "PT60M", "buffer_after": "PT15M"},
@@ -806,6 +884,11 @@ Response:
         "summary": "Fully booked this week. Next week we have good availability Tuesday afternoon and all day Wednesday. Thursday is filling up.",
         "generated_at": "2026-03-11T08:00:00-04:00",
         "next_available_date": "2026-03-17"
+      },
+      "localized": {
+        "name": {
+          "es": "Corte y Peinado para Mujer"
+        }
       }
     }
   ],
@@ -889,6 +972,7 @@ Response:
   },
   "service": {
     "id": "svc_haircut_001",
+    "business_id": "biz_glamour_salon_nyc",
     "name": "Women's Haircut & Style",
     "type": "appointment",
     "description": "A full haircut and styling session with one of our experienced stylists. Includes consultation, shampoo, cut, and blow-dry.",
@@ -1440,6 +1524,7 @@ The webhook payload for catalog change events **MUST** include the `service_id` 
   "service_id": "svc_haircut_001",
   "data": {
     "id": "svc_haircut_001",
+    "business_id": "biz_glamour_salon_nyc",
     "name": "Women's Haircut & Style",
     "pricing": {"model": "fixed", "amount": 8000, "currency": "USD"},
     "...": "full service object"

@@ -1,5 +1,13 @@
 # Change Log
 
+## 22/02/26 at 12:18:07 by [kobym707](mailto:kobym@wix.com)
+
+- **Added `business_id` to Service schema:** Every service object now carries the identifier of its owning business, making services self-describing for cross-business semantic search, cached catalog aggregation, and agent-to-agent hand-off. The composite key `(business_id, id)` is the globally unique identifier. Updated `catalog.json`, `usp-rest.json`, `usp-mcp.json`, and all service examples in `specification.md`.
+- **Added localization (i18n) support:** Introduced the `localized` field on Service with per-locale overrides for `name`, `description`, `category_name`, and `channel_instructions` using IETF BCP 47 language tags. Enables businesses serving multilingual audiences to provide translations in a single cacheable response. Added `LocalizedFields` type to `catalog.json` and `usp-rest.json`.
+- **Added undetermined duration option:** Services with no meaningful duration (consultations, custom quotes) can now set `duration.undetermined: true` instead of being forced to provide a fixed or range value. Added mutual exclusivity constraint with `fixed`/`range` and a validation rule preventing `hourly` pricing with undetermined duration.
+
+---
+
 ## 21/02/26 at 11:42:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Extended USP Booking Form Profile with slot selection:** Added D0 derivation rules (slot picker, date picker), new inputs (`slots[]`, `flow_mode`), A2UI mappings for slot/date pickers, `usp_select_date` action, and D3/D4/D5 fallbacks when slot not yet selected, enabling unified forms where slot selection is part of the form (pre-fetched or date-first flow)
