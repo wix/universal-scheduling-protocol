@@ -25,7 +25,7 @@
     },
     {
       "name": "Availability",
-      "description": "Availability and hold operations"
+      "description": "Availability query and optional hold operations. Hold and release endpoints require the business to advertise holds: true in the dev.usp.services.availability capability."
     },
     {
       "name": "Bookings",
@@ -2416,6 +2416,7 @@
           "Availability"
         ],
         "summary": "Hold Slot",
+        "description": "Creates a temporary hold on a time slot. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
         "operationId": "holdSlot",
         "parameters": [
           {
@@ -2507,6 +2508,7 @@
           "Availability"
         ],
         "summary": "Release Slot",
+        "description": "Explicitly releases a hold before it expires. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
         "operationId": "releaseSlot",
         "parameters": [
           {
@@ -2606,7 +2608,7 @@
                   },
                   "hold_id": {
                     "type": "string",
-                    "description": "Hold ID from a prior hold operation. Recommended to prevent race conditions."
+                    "description": "Hold ID from a prior hold operation. Present only when the business supports holds (holds: true on the availability capability). When provided, the business converts the hold to a booking."
                   },
                   "buyer": {
                     "$ref": "#/components/schemas/Buyer"
@@ -3056,8 +3058,7 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "slot_id",
-                  "hold_id"
+                  "slot_id"
                 ],
                 "properties": {
                   "slot_id": {
@@ -3066,7 +3067,7 @@
                   },
                   "hold_id": {
                     "type": "string",
-                    "description": "Hold ID for the new slot."
+                    "description": "Hold ID for the new slot. Present only when the business supports holds (holds: true on the availability capability)."
                   }
                 }
               }

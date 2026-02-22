@@ -184,7 +184,7 @@
     {
       "name": "usp_availability_hold",
       "summary": "Hold Slot",
-      "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds.",
+      "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
       "paramStructure": "by-name",
       "params": [
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
@@ -209,7 +209,7 @@
     {
       "name": "usp_availability_release",
       "summary": "Release Slot",
-      "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}.",
+      "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
       "paramStructure": "by-name",
       "params": [
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
@@ -360,7 +360,7 @@
         { "name": "_meta", "required": false, "schema": { "type": "object", "properties": { "usp": { "type": "object", "properties": { "profile": { "type": "string" } } } } } },
         { "name": "booking_id", "required": true, "schema": { "type": "string" } },
         { "name": "slot_id", "required": true, "schema": { "type": "string" } },
-        { "name": "hold_id", "required": true, "schema": { "type": "string" } }
+        { "name": "hold_id", "required": false, "schema": { "type": "string" }, "description": "Hold ID for the new slot. Present only when the business supports holds." }
       ],
       "result": {
         "name": "RescheduleBookingResult",
