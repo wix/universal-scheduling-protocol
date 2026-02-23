@@ -330,6 +330,25 @@ The financial infrastructure that processes payments. USP delegates all payment 
 
 - **Examples:** Stripe, Adyen, PayPal, Braintree.
 
+#### 2.1.5 Implementor Note: Expected Deployment Topology
+
+While Section 2.1 describes the logical roles, in practice the business-side USP implementation is almost always provided by a **SaaS platform** (e.g., Wix, Square, Mindbody, Booksy) rather than by the individual business itself. The salon owner does not implement USP endpoints -- their SaaS platform does, once, on behalf of all its merchants.
+
+This means the realistic implementor landscape is:
+
+| Side | Who implements | Scale |
+|------|---------------|-------|
+| **Business (server)** | SaaS scheduling platforms | One implementation serves thousands of merchants |
+| **Platform (client)** | Aggregators, AI agents, marketplace platforms | One integration consumes services across many SaaS providers |
+
+This topology has important implications for the spec:
+
+- **Features like the service catalog feed** ([Section 3.1](#31-service-catalog-feed)), feed subscriptions, and hold abuse prevention are designed for SaaS-to-aggregator integration, not for individual businesses to build from scratch. SaaS platforms already have the infrastructure (change tracking, cursor-based pagination, soft-delete tombstones) to implement these features.
+- **The `POST /services/list` endpoint** remains available for simpler, interactive use by platform UIs and AI agents that do not need bulk indexing.
+- **Complexity budgets** in this spec are calibrated for professional platform teams on both sides, not for ad-hoc integrations.
+
+Businesses that self-host USP without a SaaS platform **MAY** implement only the capabilities they need. The modular capability system ensures that a minimal implementation (catalog + availability + bookings) is viable without the feed, subscriptions, or hold operations.
+
 ### 2.2 Commerce and Non-Commerce Services
 
 USP supports both **paid services** that require payment integration and **free or pay-later services** that operate standalone without any payment infrastructure. This section defines the two operational modes and their implications.
