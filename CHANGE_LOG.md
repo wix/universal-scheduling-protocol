@@ -1,5 +1,11 @@
 # Change Log
 
+## 23/02/26 at 16:21:59 by [kobym707](mailto:kobym@wix.com)
+
+- **Fixed broken Mermaid diagram in Section 2.3 (High-Level Architecture):** The `graph TD` diagram used invalid single-dash edge syntax (` - "label" -->`) which caused a parse error on GitHub. Replaced with valid double-dash syntax (`-- "label" -->`) and switched `\n` to `<br/>` for multi-line edge labels.
+
+---
+
 ## 22/02/26 at 15:36:29 by [kobym707](mailto:kobym@wix.com)
 
 - **Made holds optional via feature flag on the availability capability:** Introduced a `holds` boolean feature flag on `dev.usp.services.availability` to explicitly declare whether a business supports the Hold Slot and Release Slot operations, because many businesses (especially small or low-contention ones) can operate safely without the hold mechanism, and forcing it on all implementers raised the integration bar unnecessarily.

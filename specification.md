@@ -367,24 +367,24 @@ USP supports two deployment modes. Both share the same scheduling layer (catalog
 graph TD
     subgraph USP ["USP — Scheduling (shared)"]
         direction LR
-        P[Platform / Agent] - "catalog + availability + booking" --> B[Business]
+        P[Platform / Agent] -- "catalog + availability + booking" --> B[Business]
     end
 
     subgraph UCP_Mode ["UCP-Native Mode"]
         direction LR
-        P1[Platform] - "create_checkout\n(booking extension)" --> UCP[UCP Checkout]
-        UCP - "complete_checkout\n(atomic: payment + booking)" --> PSP1[PSP]
+        P1[Platform] -- "create_checkout<br/>(booking extension)" --> UCP[UCP Checkout]
+        UCP -- "complete_checkout<br/>(atomic: payment + booking)" --> PSP1[PSP]
     end
 
     subgraph Standalone_Mode ["Standalone Mode"]
         direction LR
-        P2[Platform] - "payment_context" --> CS[Checkout System]
-        CS - "process payment" --> PSP2[PSP]
-        P2 - "confirm-payment" --> B2[Business]
+        P2[Platform] -- "payment_context" --> CS[Checkout System]
+        CS -- "process payment" --> PSP2[PSP]
+        P2 -- "confirm-payment" --> B2[Business]
     end
 
-    USP - "paid booking\n(UCP platform)" --> UCP_Mode
-    USP - "paid booking\n(non-UCP platform)" --> Standalone_Mode
+    USP -- "paid booking<br/>(UCP platform)" --> UCP_Mode
+    USP -- "paid booking<br/>(non-UCP platform)" --> Standalone_Mode
 ```
 
 **UCP-Native Mode** ([Section 6](#6-ucp-native-mode)): Platforms that already support UCP register USP scheduling capabilities directly in their `/.well-known/ucp` profile. Paid bookings use UCP's atomic checkout - `complete_checkout` finalizes both payment and booking in a single operation. Infrastructure (discovery, negotiation, security, error handling) is inherited from UCP.
