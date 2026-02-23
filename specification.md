@@ -415,17 +415,7 @@ The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use thei
 
 ### 2.6 Multi-Location Businesses
 
-For businesses with multiple locations (chains, franchises), USP supports two models:
-
-#### 2.6.1 Per-Location Profiles
-
-Each location publishes its own `/.well-known/usp` on its own subdomain or domain (e.g., `nyc.sunrisewellness.com/.well-known/usp`, `la.sunrisewellness.com/.well-known/usp`). Each location operates as an independent USP business with its own service catalog, availability, and bookings.
-
-This model is appropriate when locations are independently managed with separate schedules and pricing.
-
-#### 2.6.2 Parent-Entity Profile
-
-A parent entity publishes a single `/.well-known/usp` that spans multiple locations. The parent profile includes a `locations` array:
+For businesses with multiple locations (chains, franchises), a single USP endpoint **MAY** serve all locations through a unified profile. The business profile includes a `locations` array that enumerates the locations it manages:
 
 ```json
 {
@@ -444,15 +434,15 @@ A parent entity publishes a single `/.well-known/usp` that spans multiple locati
 }
 ```
 
-When a parent entity exposes a unified feed, the feed endpoint **SHOULD** support a `location_id` query parameter for filtering:
+When multiple locations share a single endpoint, the feed, list, and availability operations **SHOULD** accept an optional `location_id` filter so platforms can scope requests to a specific location:
 
 ```
 GET /services/feed?cursor=2026-03-10T08:00:00Z&limit=50&location_id=loc_nyc
 ```
 
-Similarly, the `POST /services/list` and `POST /availability/query` operations **SHOULD** accept an optional `location_id` filter.
+Similarly, `POST /services/list` and `POST /availability/query` **SHOULD** accept `location_id`. Each service's `locations[]` field ([Section 3.3](#33-service-schema)) and each slot's `location` field ([Section 4.1](#41-time-slot)) identify which location a service or slot belongs to.
 
-This model is appropriate when a central entity manages all locations and wants to provide a unified API surface for platforms.
+> **Note:** Alternatively, each location **MAY** publish its own independent `/.well-known/usp` profile (e.g., `nyc.sunrisewellness.com`, `la.sunrisewellness.com`), in which case no multi-location protocol extensions are needed -- each location operates as a standard single-location USP business.
 
 ---
 
