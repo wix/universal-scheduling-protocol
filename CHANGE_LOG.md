@@ -1,5 +1,23 @@
 # Change Log
 
+## 23/02/26 at 21:30:07 by [kobym707](mailto:kobym@wix.com)
+
+- **Added Section 2.1.5 "Implementor Note: Expected Deployment Topology":** Clarifies that business-side USP is almost always implemented by SaaS platforms (Wix, Square, Mindbody) on behalf of their merchants, not by individual businesses. This sets reader expectations for why features like the catalog feed, subscriptions, and hold abuse prevention are scoped for professional platform teams, and preempts the "too complex for a small business" objection.
+
+---
+
+## 23/02/26 at 16:26:54 by [kobym707](mailto:kobym@wix.com)
+
+- **Simplified Section 2.6 (Multi-Location Businesses):** Collapsed two sub-sections (2.6.1 Per-Location Profiles and 2.6.2 Parent-Entity Profile) into a single unified section. The per-location model was just standard single-location USP and didn't need its own sub-section; it's now a one-line note. The section now focuses on the only case that introduces protocol surface: a single endpoint serving multiple locations via the `locations[]` profile field and `location_id` filters.
+
+---
+
+## 23/02/26 at 16:21:59 by [kobym707](mailto:kobym@wix.com)
+
+- **Fixed broken Mermaid diagram in Section 2.3 (High-Level Architecture):** The `graph TD` diagram used invalid single-dash edge syntax (` - "label" -->`) which caused a parse error on GitHub. Replaced with valid double-dash syntax (`-- "label" -->`) and switched `\n` to `<br/>` for multi-line edge labels.
+
+---
+
 ## 22/02/26 at 15:36:29 by [kobym707](mailto:kobym@wix.com)
 
 - **Made holds optional via feature flag on the availability capability:** Introduced a `holds` boolean feature flag on `dev.usp.services.availability` to explicitly declare whether a business supports the Hold Slot and Release Slot operations, because many businesses (especially small or low-contention ones) can operate safely without the hold mechanism, and forcing it on all implementers raised the integration bar unnecessarily.

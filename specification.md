@@ -330,6 +330,25 @@ The financial infrastructure that processes payments. USP delegates all payment 
 
 - **Examples:** Stripe, Adyen, PayPal, Braintree.
 
+#### 2.1.5 Implementor Note: Expected Deployment Topology
+
+While Section 2.1 describes the logical roles, in practice the business-side USP implementation is almost always provided by a **SaaS platform** (e.g., Wix, Square, Mindbody, Booksy) rather than by the individual business itself. The salon owner does not implement USP endpoints -- their SaaS platform does, once, on behalf of all its merchants.
+
+This means the realistic implementor landscape is:
+
+| Side | Who implements | Scale |
+|------|---------------|-------|
+| **Business (server)** | SaaS scheduling platforms | One implementation serves thousands of merchants |
+| **Platform (client)** | Aggregators, AI agents, marketplace platforms | One integration consumes services across many SaaS providers |
+
+This topology has important implications for the spec:
+
+- **Features like the service catalog feed** ([Section 3.1](#31-service-catalog-feed)), feed subscriptions, and hold abuse prevention are designed for SaaS-to-aggregator integration, not for individual businesses to build from scratch. SaaS platforms already have the infrastructure (change tracking, cursor-based pagination, soft-delete tombstones) to implement these features.
+- **The `POST /services/list` endpoint** remains available for simpler, interactive use by platform UIs and AI agents that do not need bulk indexing.
+- **Complexity budgets** in this spec are calibrated for professional platform teams on both sides, not for ad-hoc integrations.
+
+Businesses that self-host USP without a SaaS platform **MAY** implement only the capabilities they need. The modular capability system ensures that a minimal implementation (catalog + availability + bookings) is viable without the feed, subscriptions, or hold operations.
+
 ### 2.2 Commerce and Non-Commerce Services
 
 USP supports both **paid services** that require payment integration and **free or pay-later services** that operate standalone without any payment infrastructure. This section defines the two operational modes and their implications.
@@ -367,24 +386,24 @@ USP supports two deployment modes. Both share the same scheduling layer (catalog
 graph TD
     subgraph USP ["USP — Scheduling (shared)"]
         direction LR
-        P[Platform / Agent] - "catalog + availability + booking" --> B[Business]
+        P[Platform / Agent] -- "catalog + availability + booking" --> B[Business]
     end
 
     subgraph UCP_Mode ["UCP-Native Mode"]
         direction LR
-        P1[Platform] - "create_checkout\n(booking extension)" --> UCP[UCP Checkout]
-        UCP - "complete_checkout\n(atomic: payment + booking)" --> PSP1[PSP]
+        P1[Platform] -- "create_checkout<br/>(booking extension)" --> UCP[UCP Checkout]
+        UCP -- "complete_checkout<br/>(atomic: payment + booking)" --> PSP1[PSP]
     end
 
     subgraph Standalone_Mode ["Standalone Mode"]
         direction LR
-        P2[Platform] - "payment_context" --> CS[Checkout System]
-        CS - "process payment" --> PSP2[PSP]
-        P2 - "confirm-payment" --> B2[Business]
+        P2[Platform] -- "payment_context" --> CS[Checkout System]
+        CS -- "process payment" --> PSP2[PSP]
+        P2 -- "confirm-payment" --> B2[Business]
     end
 
-    USP - "paid booking\n(UCP platform)" --> UCP_Mode
-    USP - "paid booking\n(non-UCP platform)" --> Standalone_Mode
+    USP -- "paid booking<br/>(UCP platform)" --> UCP_Mode
+    USP -- "paid booking<br/>(non-UCP platform)" --> Standalone_Mode
 ```
 
 **UCP-Native Mode** ([Section 6](#6-ucp-native-mode)): Platforms that already support UCP register USP scheduling capabilities directly in their `/.well-known/ucp` profile. Paid bookings use UCP's atomic checkout - `complete_checkout` finalizes both payment and booking in a single operation. Infrastructure (discovery, negotiation, security, error handling) is inherited from UCP.
@@ -415,17 +434,7 @@ The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use thei
 
 ### 2.6 Multi-Location Businesses
 
-For businesses with multiple locations (chains, franchises), USP supports two models:
-
-#### 2.6.1 Per-Location Profiles
-
-Each location publishes its own `/.well-known/usp` on its own subdomain or domain (e.g., `nyc.sunrisewellness.com/.well-known/usp`, `la.sunrisewellness.com/.well-known/usp`). Each location operates as an independent USP business with its own service catalog, availability, and bookings.
-
-This model is appropriate when locations are independently managed with separate schedules and pricing.
-
-#### 2.6.2 Parent-Entity Profile
-
-A parent entity publishes a single `/.well-known/usp` that spans multiple locations. The parent profile includes a `locations` array:
+For businesses with multiple locations (chains, franchises), a single USP endpoint **MAY** serve all locations through a unified profile. The business profile includes a `locations` array that enumerates the locations it manages:
 
 ```json
 {
@@ -444,15 +453,15 @@ A parent entity publishes a single `/.well-known/usp` that spans multiple locati
 }
 ```
 
-When a parent entity exposes a unified feed, the feed endpoint **SHOULD** support a `location_id` query parameter for filtering:
+When multiple locations share a single endpoint, the feed, list, and availability operations **SHOULD** accept an optional `location_id` filter so platforms can scope requests to a specific location:
 
 ```
 GET /services/feed?cursor=2026-03-10T08:00:00Z&limit=50&location_id=loc_nyc
 ```
 
-Similarly, the `POST /services/list` and `POST /availability/query` operations **SHOULD** accept an optional `location_id` filter.
+Similarly, `POST /services/list` and `POST /availability/query` **SHOULD** accept `location_id`. Each service's `locations[]` field ([Section 3.3](#33-service-schema)) and each slot's `location` field ([Section 4.1](#41-time-slot)) identify which location a service or slot belongs to.
 
-This model is appropriate when a central entity manages all locations and wants to provide a unified API surface for platforms.
+> **Note:** Alternatively, each location **MAY** publish its own independent `/.well-known/usp` profile (e.g., `nyc.sunrisewellness.com`, `la.sunrisewellness.com`), in which case no multi-location protocol extensions are needed -- each location operates as a standard single-location USP business.
 
 ---
 
