@@ -1,89 +1,230 @@
 # Change Log
 
+## 25/02/26 at 17:16:27 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Updated `openapi/usp-rest.json` to match the actions[] changes:** Added `Action` schema to OpenAPI components. Removed `payment_context`, `messages`, and `continue_url` from the Booking schema and replaced with `actions` array referencing the new Action schema. Removed `payment_url` from BookingPayment. Removed `expires_at` from PaymentContext required fields and properties. Added description to Message schema clarifying its dual use (response-level and action-level).
+
+---
+
+## 25/02/26 at 16:11:33 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Introduced `actions[]` array on the booking object:** Replaced the flat `payment_context`, `continue_url`, and `messages` fields on the booking with an ordered `actions` array. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. Payment actions carry a nested `payment_context`. This makes the spec extensible for future non-payment action types (e.g., waivers, intake forms) while cleaning up the `payment_url` redundancy.
+- **Established the status-actions invariant:** `booking.status: requires_action` is now structurally tied to `actions[]` — the booking MUST have this status if and only if at least one action has `status: pending`. When the last pending action completes, the business MUST transition the booking out of `requires_action`.
+- **Made actions mode-agnostic for non-payment actions:** In UCP-Native Mode, `actions[]` never contains `payment`-type actions (payment is handled by UCP checkout), but non-payment actions may appear on the booking inside the `create_checkout` response. `complete_checkout` may be rejected if non-payment actions are still pending.
+- **Added action ordering rationale:** Non-payment actions SHOULD precede payment actions so that the buyer can review requirements (e.g., read a liability waiver) and opt out before committing financially, avoiding unnecessary refunds.
+- **Removed `payment_url` from BookingPayment:** Absorbed into the payment action's `continue_url` field.
+- **Removed `expires_at` from PaymentContext:** Moved to the action-level `expires_at` field.
+- **Removed `booking.messages[]`:** The only concrete usage (`payment_required`) now lives on `action.message`. Response-level `messages[]` remains for business outcome errors/warnings. Removed `info` from response-level message types.
+- **Added `actions_pending` error code:** For when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending.
+- **Updated `schemas/scheduling.json`:** Added `Action` definition to `$defs` with `type`, `status`, `continue_url`, `expires_at`, `message`, and `payment_context`. Removed `payment_context`, `messages`, and `continue_url` from Booking properties. Added `actions` array. Removed `payment_url` from BookingPayment. Removed `expires_at` from PaymentContext.
+- **Updated all affected sections:** Glossary (1.2), operational modes (2.2.1), business responsibilities (2.1.2), architecture diagram text (2.3), booking status lifecycle (5.1), booking schema (5.2), create booking example (5.3.1), confirm-payment (5.3.7), UCP checkout flow (7.5), standalone mode (8), payment integration (8.5.1–8.5.7), checkout_systems (8.2), end-to-end flows (8.6), REST error model (9.1), and error code mapping (9.4).
+
+---
+
+## 25/02/26 at 12:51:33 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Promoted Discovery Registry to standalone Section 6:** Extracted Section
+  7.5 (Discovery Registry) from Standalone Mode and promoted it to a top-level
+  section (new Section 6) placed before the deployment modes. This reflects that
+  the Discovery Registry is deployment-mode-independent and can index both
+  Standalone and UCP-Native businesses. Incurred changes:
+    - **Generalized Discovery Registry for both deployment modes:** Replaced
+      `usp_profile_url` with `profile_url`, added a `deployment_mode` field (
+      `standalone` or `ucp_native`) to registration and search schemas, and
+      updated validation rules to support both `/.well-known/usp` and
+      `/.well-known/ucp` profiles.
+    - **Renumbered Sections 6-13 → 7-14:** Cascading renumber due to the new
+      Section 6 insertion. UCP-Native Mode is now Section 7, Standalone Mode is
+      Section 8, Transport Bindings is Section 9, Security is Section 10,
+      Extensions is Section 11, Operation Reference is Section 12, IANA
+      Considerations is Section 13, References is Section 14.
+    - **Updated all cross-references, ToC, implementation stages, reading path
+      diagram, and reading path tables** to reflect the new section numbering
+      and the mode-independent Discovery Registry.
+
+---
+
 ## 23/02/26 at 21:30:07 by [kobym707](mailto:kobym@wix.com)
 
-- **Added Section 2.1.5 "Implementor Note: Expected Deployment Topology":** Clarifies that business-side USP is almost always implemented by SaaS platforms (Wix, Square, Mindbody) on behalf of their merchants, not by individual businesses. This sets reader expectations for why features like the catalog feed, subscriptions, and hold abuse prevention are scoped for professional platform teams, and preempts the "too complex for a small business" objection.
+- **Added Section 2.1.5 "Implementor Note: Expected Deployment Topology":**
+  Clarifies that business-side USP is almost always implemented by SaaS
+  platforms (Wix, Square, Mindbody) on behalf of their merchants, not by
+  individual businesses. This sets reader expectations for why features like the
+  catalog feed, subscriptions, and hold abuse prevention are scoped for
+  professional platform teams, and preempts the "too complex for a small
+  business" objection.
 
 ---
 
 ## 23/02/26 at 16:26:54 by [kobym707](mailto:kobym@wix.com)
 
-- **Simplified Section 2.6 (Multi-Location Businesses):** Collapsed two sub-sections (2.6.1 Per-Location Profiles and 2.6.2 Parent-Entity Profile) into a single unified section. The per-location model was just standard single-location USP and didn't need its own sub-section; it's now a one-line note. The section now focuses on the only case that introduces protocol surface: a single endpoint serving multiple locations via the `locations[]` profile field and `location_id` filters.
+- **Simplified Section 2.6 (Multi-Location Businesses):** Collapsed two
+  sub-sections (2.6.1 Per-Location Profiles and 2.6.2 Parent-Entity Profile)
+  into a single unified section. The per-location model was just standard
+  single-location USP and didn't need its own sub-section; it's now a one-line
+  note. The section now focuses on the only case that introduces protocol
+  surface: a single endpoint serving multiple locations via the `locations[]`
+  profile field and `location_id` filters.
 
 ---
 
 ## 23/02/26 at 16:21:59 by [kobym707](mailto:kobym@wix.com)
 
-- **Fixed broken Mermaid diagram in Section 2.3 (High-Level Architecture):** The `graph TD` diagram used invalid single-dash edge syntax (` - "label" -->`) which caused a parse error on GitHub. Replaced with valid double-dash syntax (`-- "label" -->`) and switched `\n` to `<br/>` for multi-line edge labels.
+- **Fixed broken Mermaid diagram in Section 2.3 (High-Level Architecture):** The
+  `graph TD` diagram used invalid single-dash edge syntax (` - "label" -->`)
+  which caused a parse error on GitHub. Replaced with valid double-dash syntax (
+  `-- "label" -->`) and switched `\n` to `<br/>` for multi-line edge labels.
 
 ---
 
 ## 22/02/26 at 15:36:29 by [kobym707](mailto:kobym@wix.com)
 
-- **Made holds optional via feature flag on the availability capability:** Introduced a `holds` boolean feature flag on `dev.usp.services.availability` to explicitly declare whether a business supports the Hold Slot and Release Slot operations, because many businesses (especially small or low-contention ones) can operate safely without the hold mechanism, and forcing it on all implementers raised the integration bar unnecessarily.
-- **Updated Section 4 (Availability) with feature flag table and discovery guidance:** Added the flag definition, profile declaration example, and clarified that when `holds` is absent or `false`, the booking flow proceeds directly from slot query to booking creation.
-- **Gated Sections 4.2, 4.3.2, and 4.3.3 behind the holds flag:** Added callout blocks to the Hold entity, Hold Slot, and Release Slot operation sections noting they require `"holds": true`, preventing platforms from calling endpoints the business does not support.
-- **Made `hold_id` explicitly optional in Create Booking (5.3.1) and Reschedule (5.3.6):** Added field-level tables with `hold_id` marked as optional, added a "without hold" request example, and updated the prose to describe both hold and no-hold flows.
-- **Updated the caching strategy funnel (4.4):** Marked the Commit tier as optional and updated the Mermaid diagram to show a conditional branch for hold support.
-- **Updated all end-to-end flow diagrams (6.7 and 7.7):** Changed Mermaid sequence diagrams to use `opt Business supports holds` blocks instead of showing holds as mandatory steps.
-- **Updated A2A booking flow (8.3.2):** Made the hold step conditional and noted `hold_id` as optional in the booking creation step.
-- **Updated profile examples (6.2, 7.2) to include `"holds": true`:** Demonstrates how businesses declare hold support in both UCP-Native and Standalone profiles.
-- **Updated OpenAPI schema:** Added descriptions to hold/release endpoints noting the feature flag requirement, made `hold_id` optional in the reschedule request body, and updated `hold_id` descriptions in create booking.
-- **Updated OpenRPC schema:** Added feature flag descriptions to hold/release methods and made `hold_id` optional (not required) in the reschedule method.
-- **Updated paid_bookings.json schema:** Clarified `hold_id` description to note it depends on holds capability support.
-- **Updated Operation Reference (11) and MCP/A2A mapping tables:** Annotated hold/release operations with `(holds: true)` to signal the feature flag requirement.
-- **Updated Hold Abuse Prevention (9.1.2):** Scoped the section to apply only when holds are supported.
+- **Made holds optional via feature flag on the availability capability:**
+  Introduced a `holds` boolean feature flag on `dev.usp.services.availability`
+  to explicitly declare whether a business supports the Hold Slot and Release
+  Slot operations, because many businesses (especially small or low-contention
+  ones) can operate safely without the hold mechanism, and forcing it on all
+  implementers raised the integration bar unnecessarily.
+- **Updated Section 4 (Availability) with feature flag table and discovery
+  guidance:** Added the flag definition, profile declaration example, and
+  clarified that when `holds` is absent or `false`, the booking flow proceeds
+  directly from slot query to booking creation.
+- **Gated Sections 4.2, 4.3.2, and 4.3.3 behind the holds flag:** Added callout
+  blocks to the Hold entity, Hold Slot, and Release Slot operation sections
+  noting they require `"holds": true`, preventing platforms from calling
+  endpoints the business does not support.
+- **Made `hold_id` explicitly optional in Create Booking (5.3.1) and
+  Reschedule (5.3.6):** Added field-level tables with `hold_id` marked as
+  optional, added a "without hold" request example, and updated the prose to
+  describe both hold and no-hold flows.
+- **Updated the caching strategy funnel (4.4):** Marked the Commit tier as
+  optional and updated the Mermaid diagram to show a conditional branch for hold
+  support.
+- **Updated all end-to-end flow diagrams (6.7 and 7.7):** Changed Mermaid
+  sequence diagrams to use `opt Business supports holds` blocks instead of
+  showing holds as mandatory steps.
+- **Updated A2A booking flow (8.3.2):** Made the hold step conditional and noted
+  `hold_id` as optional in the booking creation step.
+- **Updated profile examples (6.2, 7.2) to include `"holds": true`:**
+  Demonstrates how businesses declare hold support in both UCP-Native and
+  Standalone profiles.
+- **Updated OpenAPI schema:** Added descriptions to hold/release endpoints
+  noting the feature flag requirement, made `hold_id` optional in the reschedule
+  request body, and updated `hold_id` descriptions in create booking.
+- **Updated OpenRPC schema:** Added feature flag descriptions to hold/release
+  methods and made `hold_id` optional (not required) in the reschedule method.
+- **Updated paid_bookings.json schema:** Clarified `hold_id` description to note
+  it depends on holds capability support.
+- **Updated Operation Reference (11) and MCP/A2A mapping tables:** Annotated
+  hold/release operations with `(holds: true)` to signal the feature flag
+  requirement.
+- **Updated Hold Abuse Prevention (9.1.2):** Scoped the section to apply only
+  when holds are supported.
 
 ---
 
 ## 22/02/26 at 14:09:11 by [kobym707](mailto:kobym@wix.com)
 
-- **Promoted Business ID and Localization to peer-level sections:** Extracted former 3.3.1 (Business ID) and 3.3.2 (Localization) from under the Service Schema section into their own top-level sections (3.4 and 3.5), consistent with how other complex Service fields (Duration, Pricing, Policies, etc.) are structured. Renumbered sections 3.4-3.10 to 3.6-3.12 and updated all cross-references throughout the spec.
+- **Promoted Business ID and Localization to peer-level sections:** Extracted
+  former 3.3.1 (Business ID) and 3.3.2 (Localization) from under the Service
+  Schema section into their own top-level sections (3.4 and 3.5), consistent
+  with how other complex Service fields (Duration, Pricing, Policies, etc.) are
+  structured. Renumbered sections 3.4-3.10 to 3.6-3.12 and updated all
+  cross-references throughout the spec.
 
 ---
 
 ## 22/02/26 at 13:54:36 by [kobym707](mailto:kobym@wix.com)
 
-- **Moved extended verticals to informative Appendix A:** Relocated the five candidate verticals (`event`, `course`, `healthcare`, `home_service`, `tour`) from Section 1.3.2 to a new non-normative Appendix A, following RFC conventions for separating forward-looking content from normative spec. Added promotion criteria (A.2) requiring two independent implementations before a vertical can become core.
-- **Renumbered Custom Verticals to Section 1.3.2:** Former Section 1.3.3 is now 1.3.2 with a forward reference to Appendix A for candidate verticals.
-- **Opened the `type` field enum in JSON schemas:** Removed the closed enum constraint on `service.type` in `usp-rest.json` and `paid_bookings.json` so that vendor-defined custom verticals using reverse-domain notation are not rejected by schema validation, aligning the schemas with what Section 1.3 already permits.
+- **Moved extended verticals to informative Appendix A:** Relocated the five
+  candidate verticals (`event`, `course`, `healthcare`, `home_service`, `tour`)
+  from Section 1.3.2 to a new non-normative Appendix A, following RFC
+  conventions for separating forward-looking content from normative spec. Added
+  promotion criteria (A.2) requiring two independent implementations before a
+  vertical can become core.
+- **Renumbered Custom Verticals to Section 1.3.2:** Former Section 1.3.3 is now
+  1.3.2 with a forward reference to Appendix A for candidate verticals.
+- **Opened the `type` field enum in JSON schemas:** Removed the closed enum
+  constraint on `service.type` in `usp-rest.json` and `paid_bookings.json` so
+  that vendor-defined custom verticals using reverse-domain notation are not
+  rejected by schema validation, aligning the schemas with what Section 1.3
+  already permits.
 
 ---
 
 ## 22/02/26 at 12:18:07 by [kobym707](mailto:kobym@wix.com)
 
-- **Added `business_id` to Service schema:** Every service object now carries the identifier of its owning business, making services self-describing for cross-business semantic search, cached catalog aggregation, and agent-to-agent hand-off. The composite key `(business_id, id)` is the globally unique identifier. Updated `catalog.json`, `usp-rest.json`, `usp-mcp.json`, and all service examples in `specification.md`.
-- **Added localization (i18n) support:** Introduced the `localized` field on Service with per-locale overrides for `name`, `description`, `category_name`, and `channel_instructions` using IETF BCP 47 language tags. Enables businesses serving multilingual audiences to provide translations in a single cacheable response. Added `LocalizedFields` type to `catalog.json` and `usp-rest.json`.
-- **Added undetermined duration option:** Services with no meaningful duration (consultations, custom quotes) can now set `duration.undetermined: true` instead of being forced to provide a fixed or range value. Added mutual exclusivity constraint with `fixed`/`range` and a validation rule preventing `hourly` pricing with undetermined duration.
+- **Added `business_id` to Service schema:** Every service object now carries
+  the identifier of its owning business, making services self-describing for
+  cross-business semantic search, cached catalog aggregation, and agent-to-agent
+  hand-off. The composite key `(business_id, id)` is the globally unique
+  identifier. Updated `catalog.json`, `usp-rest.json`, `usp-mcp.json`, and all
+  service examples in `specification.md`.
+- **Added localization (i18n) support:** Introduced the `localized` field on
+  Service with per-locale overrides for `name`, `description`, `category_name`,
+  and `channel_instructions` using IETF BCP 47 language tags. Enables businesses
+  serving multilingual audiences to provide translations in a single cacheable
+  response. Added `LocalizedFields` type to `catalog.json` and `usp-rest.json`.
+- **Added undetermined duration option:** Services with no meaningful duration (
+  consultations, custom quotes) can now set `duration.undetermined: true`
+  instead of being forced to provide a fixed or range value. Added mutual
+  exclusivity constraint with `fixed`/`range` and a validation rule preventing
+  `hourly` pricing with undetermined duration.
 
 ---
 
 ## 21/02/26 at 11:42:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Extended USP Booking Form Profile with slot selection:** Added D0 derivation rules (slot picker, date picker), new inputs (`slots[]`, `flow_mode`), A2UI mappings for slot/date pickers, `usp_select_date` action, and D3/D4/D5 fallbacks when slot not yet selected, enabling unified forms where slot selection is part of the form (pre-fetched or date-first flow)
+- **Extended USP Booking Form Profile with slot selection:** Added D0 derivation
+  rules (slot picker, date picker), new inputs (`slots[]`, `flow_mode`), A2UI
+  mappings for slot/date pickers, `usp_select_date` action, and D3/D4/D5
+  fallbacks when slot not yet selected, enabling unified forms where slot
+  selection is part of the form (pre-fetched or date-first flow)
 - **Bumped profile version to 1.1**
 
 ---
 
 ## 21/02/26 at 10:47:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Added USP Booking Form Profile:** New separate spec (`docs/usp-booking-form-profile.md`) defining field derivation rules and A2UI component mapping for AI agent platforms building booking forms, so platforms know which form fields to show based on service/slot context and how to render them via A2UI
-- **Added design doc:** `docs/plans/2026-02-21-usp-booking-form-profile-design.md` capturing the approved design from brainstorming
-- **Updated README:** Added USP Booking Form Profile to the Specification documents table with link to the profile spec
+- **Added USP Booking Form Profile:** New separate spec (
+  `docs/usp-booking-form-profile.md`) defining field derivation rules and A2UI
+  component mapping for AI agent platforms building booking forms, so platforms
+  know which form fields to show based on service/slot context and how to render
+  them via A2UI
+- **Added design doc:**
+  `docs/plans/2026-02-21-usp-booking-form-profile-design.md` capturing the
+  approved design from brainstorming
+- **Updated README:** Added USP Booking Form Profile to the Specification
+  documents table with link to the profile spec
 
 ---
 
 ## 21/02/26 at 10:12:28 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- Updated AGENTS.md entry format to include a mailto link for the author's git email, so each change log entry attributes the author with a clickable email link for traceability and easy contact
+- Updated AGENTS.md entry format to include a mailto link for the author's git
+  email, so each change log entry attributes the author with a clickable email
+  link for traceability and easy contact
 
 ---
 
 ## 21/02/26 at 10:05:27 by Ran Yahalom
 
-- **Fixed wrong cross-section links in specification.md:** Corrected Section 1.3 (Vertical) link from `#9-service-verticals` to `#13-service-verticals`; Section 4.4 (Caching Strategy) from `#34-caching-strategy` to `#44-caching-strategy`; RFC 6749 (OAuth) from non-existent Section 9.6 to Section 9.2.3 Authentication and Authorization (`#923-authentication-and-authorization`); RFC 9421 (Webhooks) from Section 9.3 to Section 9.1.1 Webhook Security (`#911-webhook-security`); Section 5.1 (Booking Status) from `#31-booking-status-lifecycle` to `#51-booking-status-lifecycle`
-- **Fixed TOC:** Section 1.5 link text and anchor from "Deployment Modes and Implementation Guide" / `#15-deployment-modes-and-implementation-guide` to "Deployment Modes" / `#15-deployment-modes` to match actual heading
-- **Added missing cross-links:** Converted plain "Section X" references to markdown links throughout the specification (intro, terminology table, implementation stages, deployment mode descriptions, core constructs table, booking schema, webhooks, security, extensions, etc.)
+- **Fixed wrong cross-section links in specification.md:** Corrected Section
+  1.3 (Vertical) link from `#9-service-verticals` to `#13-service-verticals`;
+  Section 4.4 (Caching Strategy) from `#34-caching-strategy` to
+  `#44-caching-strategy`; RFC 6749 (OAuth) from non-existent Section 9.6 to
+  Section 9.2.3 Authentication and Authorization (
+  `#923-authentication-and-authorization`); RFC 9421 (Webhooks) from Section 9.3
+  to Section 9.1.1 Webhook Security (`#911-webhook-security`); Section 5.1 (
+  Booking Status) from `#31-booking-status-lifecycle` to
+  `#51-booking-status-lifecycle`
+- **Fixed TOC:** Section 1.5 link text and anchor from "Deployment Modes and
+  Implementation Guide" / `#15-deployment-modes-and-implementation-guide` to "
+  Deployment Modes" / `#15-deployment-modes` to match actual heading
+- **Added missing cross-links:** Converted plain "Section X" references to
+  markdown links throughout the specification (intro, terminology table,
+  implementation stages, deployment mode descriptions, core constructs table,
+  booking schema, webhooks, security, extensions, etc.)
 
 ---
 
@@ -94,14 +235,20 @@
 #### specification.md
 
 **Added schema file links to all schema definition sections**
+
 - Section 3.3 (Service Schema): added link to `schemas/catalog.json`
 - Section 4 (Availability): added link to `schemas/availability.json`
 - Section 5.2 (Booking Schema): added link to `schemas/scheduling.json`
-- Section 7.6.1 (Booking Payment Schema): added link to `schemas/scheduling.json` with note pointing to `BookingPayment` and `PaymentContext` definitions
+- Section 7.6.1 (Booking Payment Schema): added link to
+  `schemas/scheduling.json` with note pointing to `BookingPayment` and
+  `PaymentContext` definitions
 - Section 10.1.1 (WaitlistEntry Schema): added link to `schemas/waitlist.json`
 
-**Fixed broken schema reference in Section 6.4 (Paid Bookings Extension Schema)**
-- Updated `schemas/services/paid_bookings.json` → `schemas/paid_bookings.json` to reflect the schema file relocation from `schemas/services/` to `schemas/`
+**Fixed broken schema reference in Section 6.4 (Paid Bookings Extension Schema)
+**
+
+- Updated `schemas/services/paid_bookings.json` → `schemas/paid_bookings.json`
+  to reflect the schema file relocation from `schemas/services/` to `schemas/`
 - Converted plain text reference to a proper Markdown link
 
 ---
@@ -111,11 +258,24 @@
 #### openapi/usp-rest.json
 
 **Moved 22 schemas out of `USPEnvelope` to top-level `components.schemas`**
-- `PaginationRequest`, `Pagination`, `Service`, `Duration`, `Pricing`, `Location`, `Channel`, `ServicePolicies`, `AvailabilityHint`, `FeedSubscription`, `TimeSlot`, `Hold`, `Buyer`, `Booking`, `BookingPayment`, `PaymentContext`, `Message`, `WaitlistEntry`, `ResourceRequirement`, `RegistryEntry`, `ServiceSearchResult`, and `ProblemDetails` were incorrectly nested as extra keys inside the `USPEnvelope` schema object (siblings of its `type`/`required`/`properties`)
-- All 22 are now proper siblings of `USPEnvelope` under `components.schemas`, which allows `$ref` pointers like `#/components/schemas/Duration` to resolve correctly
+
+- `PaginationRequest`, `Pagination`, `Service`, `Duration`, `Pricing`,
+  `Location`, `Channel`, `ServicePolicies`, `AvailabilityHint`,
+  `FeedSubscription`, `TimeSlot`, `Hold`, `Buyer`, `Booking`, `BookingPayment`,
+  `PaymentContext`, `Message`, `WaitlistEntry`, `ResourceRequirement`,
+  `RegistryEntry`, `ServiceSearchResult`, and `ProblemDetails` were incorrectly
+  nested as extra keys inside the `USPEnvelope` schema object (siblings of its
+  `type`/`required`/`properties`)
+- All 22 are now proper siblings of `USPEnvelope` under `components.schemas`,
+  which allows `$ref` pointers like `#/components/schemas/Duration` to resolve
+  correctly
 
 **Moved `responses` block from inside `schemas` to `components.responses`**
-- The 8 response definitions (`BadRequest`, `Unauthorized`, `NotFound`, `Conflict`, `UnprocessableEntity`, `FailedDependency`, `TooManyRequests`, `InternalServerError`) were nested under `components.schemas.responses` instead of `components.responses`
+
+- The 8 response definitions (`BadRequest`, `Unauthorized`, `NotFound`,
+  `Conflict`, `UnprocessableEntity`, `FailedDependency`, `TooManyRequests`,
+  `InternalServerError`) were nested under `components.schemas.responses`
+  instead of `components.responses`
 - They are now correctly placed as a sibling of `schemas` under `components`
 
 ---
@@ -124,33 +284,51 @@
 
 #### specification.md
 
-**Section 7.5.2 – Renamed `POST /registry/search` → `POST /registry/search_business`**
+**Section 7.5.2 –
+Renamed `POST /registry/search` → `POST /registry/search_business`**
+
 - Endpoint path changed to disambiguate from the new service search endpoint
 
 **Section 7.5.3 – Added Service Search (`POST /registry/search_services`)**
-- New section enabling platforms to search across all registered businesses' services directly
-- Request accepts `location`, `verticals`, `categories`, `query`, `price_range` (min/max/currency), `duration_range` (min_minutes/max_minutes), and `pagination`
-- Response returns a `services` array with `service_id`, `service_name`, nested `business` object (id, usp_profile_url, name), `category`, `duration_minutes`, `price`, `location`, and `timezone`
+
+- New section enabling platforms to search across all registered businesses'
+  services directly
+- Request accepts `location`, `verticals`, `categories`, `query`,
+  `price_range` (min/max/currency), `duration_range` (min_minutes/max_minutes),
+  and `pagination`
+- Response returns a `services` array with `service_id`, `service_name`, nested
+  `business` object (id, usp_profile_url, name), `category`, `duration_minutes`,
+  `price`, `location`, and `timezone`
 
 **Section 7.5.4 – Renumbered Registry Governance**
+
 - Previously 7.5.3, renumbered to accommodate the new Service Search section
 
 **Section 11 – Endpoint Summary Table**
+
 - Updated `/registry/search` row to `/registry/search_business`
-- Added new row for `Search Services | POST | /registry/search_services | discovery (optional)`
+- Added new row for
+  `Search Services | POST | /registry/search_services | discovery (optional)`
 
 #### openapi/usp-rest.json
 
 **Renamed path `/registry/search` → `/registry/search_business`**
+
 - operationId remains `searchBusinesses`
 
 **Added path `/registry/search_services`**
+
 - operationId: `searchServices`
-- Request body includes `price_range` and `duration_range` filters in addition to the base search fields
-- Response returns `services` array of `ServiceSearchResult` items with pagination
+- Request body includes `price_range` and `duration_range` filters in addition
+  to the base search fields
+- Response returns `services` array of `ServiceSearchResult` items with
+  pagination
 
 **Added schema `ServiceSearchResult`**
-- Fields: `service_id`, `service_name`, `business` (id, usp_profile_url, name), `category`, `duration_minutes`, `price` (amount, currency), `location`, `timezone`
+
+- Fields: `service_id`, `service_name`, `business` (id, usp_profile_url, name),
+  `category`, `duration_minutes`, `price` (amount, currency), `location`,
+  `timezone`
 
 ---
 
@@ -159,25 +337,39 @@
 #### specification.md
 
 **Section 7.5.1 – Business Registration (`POST /registry/businesses`)**
+
 - Added `Request:` label before the existing JSON body
-- Added `Response:` snippet returning a `USPEnvelope` with `dev.usp.discovery.registry` capability and a `registration` object containing `id`, echoed request fields, `status`, and `created_at`
+- Added `Response:` snippet returning a `USPEnvelope` with
+  `dev.usp.discovery.registry` capability and a `registration` object containing
+  `id`, echoed request fields, `status`, and `created_at`
 
 **Section 7.5.2 – Business Search (`POST /registry/search_business`)**
+
 - Added `Request:` label before the existing JSON body
-- Added `Response:` snippet returning a `USPEnvelope` with a `businesses` array of `RegistryEntry` objects and `pagination` with `cursor`/`has_more`
+- Added `Response:` snippet returning a `USPEnvelope` with a `businesses` array
+  of `RegistryEntry` objects and `pagination` with `cursor`/`has_more`
 
 **Section 4.3.3 – Release Slot response**
-- Added `slot_id`, `service_id`, and `expires_at` to the `hold` object in the response, which are required fields per the `Hold` schema
+
+- Added `slot_id`, `service_id`, and `expires_at` to the `hold` object in the
+  response, which are required fields per the `Hold` schema
 
 **Section 7.5.2 – Business Search response**
-- Added `status` and `created_at` to each business entry in the `businesses` array, which are required fields per the `RegistryEntry` schema
+
+- Added `status` and `created_at` to each business entry in the `businesses`
+  array, which are required fields per the `RegistryEntry` schema
 
 **Section 7.5.3 – Service Search request and response**
-- Changed `price_range.min`/`max` from `50`/`200` to `5000`/`20000` (minor currency units)
-- Changed `price.amount` from `120`/`180` to `12000`/`18000` (minor currency units), consistent with the convention used throughout the spec
+
+- Changed `price_range.min`/`max` from `50`/`200` to `5000`/`20000` (minor
+  currency units)
+- Changed `price.amount` from `120`/`180` to `12000`/`18000` (minor currency
+  units), consistent with the convention used throughout the spec
 
 **Section 7.7.4 – Deposit Flow**
-- Added `slot_start` to `payment_context.metadata`, matching the `PaymentContext` schema and other `create_booking` response examples
+
+- Added `slot_start` to `payment_context.metadata`, matching the
+  `PaymentContext` schema and other `create_booking` response examples
 
 ---
 
@@ -187,57 +379,65 @@
 
 **New schemas**
 
-| Schema | Description |
-|--------|-------------|
-| `Duration` | `fixed` / `range` (min, max, step), `buffer_before`, `buffer_after` |
-| `Pricing` | `model` (enum), `amount`, `currency`, `deposit` (type, value, refundable) |
-| `Location` | `id`, `name`, `address`, `coordinates` |
-| `Channel` | `type` (enum: in_person/virtual/phone/hybrid), `virtual_provider`, `instructions` |
-| `ServicePolicies` | `cancellation`, `rescheduling`, `no_show`, `booking_window`, `confirmation_mode`, `requires_payment`, `payment_timing` with all sub-fields |
-| `AvailabilityHint` | `summary`, `generated_at`, `next_available_date` |
-| `BookingPayment` | `status` (enum), `timing`, `amount`, `currency`, `amount_due`, `deposit_amount`, `transaction_id`, `order_reference`, `payment_url` |
-| `PaymentContext` | `amount_due`, `currency`, `description`, `line_items`, `metadata`, `expires_at` |
-| `ResourceRequirement` | `type` (enum: staff/room/equipment/other), `name`, `selectable`, `options` |
-| `RegistryEntry` | `id`, `usp_profile_url`, `name`, `verticals`, `categories`, `location`, `timezone`, `status`, `created_at` |
+| Schema                | Description                                                                                                                                |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `Duration`            | `fixed` / `range` (min, max, step), `buffer_before`, `buffer_after`                                                                        |
+| `Pricing`             | `model` (enum), `amount`, `currency`, `deposit` (type, value, refundable)                                                                  |
+| `Location`            | `id`, `name`, `address`, `coordinates`                                                                                                     |
+| `Channel`             | `type` (enum: in_person/virtual/phone/hybrid), `virtual_provider`, `instructions`                                                          |
+| `ServicePolicies`     | `cancellation`, `rescheduling`, `no_show`, `booking_window`, `confirmation_mode`, `requires_payment`, `payment_timing` with all sub-fields |
+| `AvailabilityHint`    | `summary`, `generated_at`, `next_available_date`                                                                                           |
+| `BookingPayment`      | `status` (enum), `timing`, `amount`, `currency`, `amount_due`, `deposit_amount`, `transaction_id`, `order_reference`, `payment_url`        |
+| `PaymentContext`      | `amount_due`, `currency`, `description`, `line_items`, `metadata`, `expires_at`                                                            |
+| `ResourceRequirement` | `type` (enum: staff/room/equipment/other), `name`, `selectable`, `options`                                                                 |
+| `RegistryEntry`       | `id`, `usp_profile_url`, `name`, `verticals`, `categories`, `location`, `timezone`, `status`, `created_at`                                 |
 
 **Updated schemas – added missing fields**
 
-| Schema | Fields added |
-|--------|-------------|
-| `Service` | `category`, `locations`, `resources`, `images` |
-| `Booking` | `resources`, `location`, `cancellation` |
-| `WaitlistEntry` | `preferred_slots` |
+| Schema          | Fields added                                   |
+|-----------------|------------------------------------------------|
+| `Service`       | `category`, `locations`, `resources`, `images` |
+| `Booking`       | `resources`, `location`, `cancellation`        |
+| `WaitlistEntry` | `preferred_slots`                              |
 
 **Updated schemas – added types, descriptions, defaults, and enums**
 
-Every property across all schemas was updated from bare `{}` to include explicit `type`, `description`, `format`, `default`, and/or `enum` values. This applies to:
+Every property across all schemas was updated from bare `{}` to include explicit
+`type`, `description`, `format`, `default`, and/or `enum` values. This applies
+to:
 
 - `USPEnvelope` (version, capabilities)
 - `Service` (all 14 properties)
 - `FeedSubscription` (id, callback_url, categories, events, status, created_at)
-- `TimeSlot` (all 10 properties including capacity sub-fields, resources items, location, pricing)
+- `TimeSlot` (all 10 properties including capacity sub-fields, resources items,
+  location, pricing)
 - `Hold` (id, slot_id, service_id, spots with default:1, expires_at, status)
 - `Buyer` (first_name, last_name, email with format:email, phone_number)
-- `Booking` (all 18 properties including slot sub-object, status enum with 7 values, confirmation_mode enum)
+- `Booking` (all 18 properties including slot sub-object, status enum with 7
+  values, confirmation_mode enum)
 - `Message` (type, code, content, severity, path)
-- `WaitlistEntry` (all 8 properties including preferred_slots items, offered_slot, position with minimum:1)
+- `WaitlistEntry` (all 8 properties including preferred_slots items,
+  offered_slot, position with minimum:1)
 - `ResourceRequirement` (type, name, selectable with default:false, options)
 - `RegistryEntry` (all 9 properties)
 - `ServiceSearchResult` (all 8 properties)
 - `ProblemDetails` (type, title, status, detail, instance, errors)
 
-All request body schemas were also updated (list services filters, availability query, hold slot, create booking, update booking, cancel booking, reschedule booking, confirm payment, join waitlist, accept waitlist offer, register business, search businesses, search services).
+All request body schemas were also updated (list services filters, availability
+query, hold slot, create booking, update booking, cancel booking, reschedule
+booking, confirm payment, join waitlist, accept waitlist offer, register
+business, search businesses, search services).
 
 **Updated endpoint responses**
 
-| Endpoint | Change |
-|----------|--------|
-| `POST /registry/businesses` | Response now returns `USPEnvelope` + `{ registration: RegistryEntry }` instead of bare envelope |
+| Endpoint                         | Change                                                                                                  |
+|----------------------------------|---------------------------------------------------------------------------------------------------------|
+| `POST /registry/businesses`      | Response now returns `USPEnvelope` + `{ registration: RegistryEntry }` instead of bare envelope         |
 | `POST /registry/search_business` | `businesses` array items now reference `RegistryEntry`; `pagination` now references `Pagination` schema |
 
 **Fixed inconsistencies with specification.md**
 
-| Issue | Fix |
-|-------|-----|
-| `Booking.status` enum missing `in_progress` | Added `in_progress` to the enum to match Section 5.1 lifecycle |
-| `opening_hours` typed as `object` | Changed to `array` with items schema (`day_of_week`, `opens`, `closes`) to match Section 4.3.1 |
+| Issue                                       | Fix                                                                                            |
+|---------------------------------------------|------------------------------------------------------------------------------------------------|
+| `Booking.status` enum missing `in_progress` | Added `in_progress` to the enum to match Section 5.1 lifecycle                                 |
+| `opening_hours` typed as `object`           | Changed to `array` with items schema (`day_of_week`, `opens`, `closes`) to match Section 4.3.1 |

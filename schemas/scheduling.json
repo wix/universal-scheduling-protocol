@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://usp.dev/schemas/services/scheduling.json",
   "title": "USP Scheduling",
-  "description": "Booking lifecycle schema for the Universal Scheduling Protocol. Defines Booking, Buyer, BookingPayment, PaymentContext, Message, and Cancellation objects.",
+  "description": "Booking lifecycle schema for the Universal Scheduling Protocol. Defines Booking, Buyer, BookingPayment, PaymentContext, Action, Message, and Cancellation objects.",
   "$defs": {
     "Booking": {
       "type": "object",
@@ -72,19 +72,10 @@
           "$ref": "#/$defs/BookingPayment",
           "description": "Payment state. MUST be present when requires_payment is true and payment_timing is at_booking or deposit_required."
         },
-        "payment_context": {
-          "$ref": "#/$defs/PaymentContext",
-          "description": "Universal payment handoff object. MUST be present when status is requires_action and payment timing is at_booking or deposit_required."
-        },
-        "messages": {
+        "actions": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Message" },
-          "description": "Messages providing context about the booking state."
-        },
-        "continue_url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Business UI handoff URL. MUST be provided when status is requires_action."
+          "items": { "$ref": "#/$defs/Action" },
+          "description": "Ordered array of pending tasks the buyer must complete. MUST be present and non-empty when status is requires_action; MUST be absent or empty otherwise. The booking has status requires_action if and only if this array contains at least one action with status pending."
         },
         "notes": {
           "type": "string",
@@ -174,19 +165,14 @@
         "order_reference": {
           "type": "string",
           "description": "External order identifier from the checkout system. Used for refund reconciliation."
-        },
-        "payment_url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Fallback URL for buyer-facing payment pages."
         }
       }
     },
     "PaymentContext": {
       "type": "object",
       "title": "PaymentContext",
-      "description": "Universal payment handoff object. Contains everything a checkout system needs to process payment.",
-      "required": ["amount_due", "currency", "description", "line_items", "metadata", "expires_at"],
+      "description": "Universal payment handoff object nested inside a payment action. Contains everything a checkout system needs to process payment. The payment expiry deadline is carried on the action's expires_at field.",
+      "required": ["amount_due", "currency", "description", "line_items", "metadata"],
       "properties": {
         "amount_due": {
           "type": "integer",
@@ -224,11 +210,41 @@
             "slot_start": { "type": "string", "format": "date-time" }
           },
           "description": "Machine-readable context for the checkout system to pass back during confirmation."
+        }
+      }
+    },
+    "Action": {
+      "type": "object",
+      "title": "Action",
+      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry.",
+      "required": ["type", "status", "continue_url", "expires_at"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Action type identifier (e.g., payment, waiver)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed", "expired"],
+          "description": "Action status."
+        },
+        "continue_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Business-hosted URL for completing this specific action."
         },
         "expires_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 timestamp. Payment must be completed by this time, or the booking expires."
+          "description": "RFC 3339 deadline for this action. Can be equal to or earlier than the booking expiry."
+        },
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "Human-readable context about this action."
+        },
+        "payment_context": {
+          "$ref": "#/$defs/PaymentContext",
+          "description": "Payment handoff object. MUST be present when type is payment (Standalone Mode only)."
         }
       }
     },
