@@ -1,5 +1,11 @@
 # Change Log
 
+## 25/02/26 at 17:23:00 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Updated `openrpc/usp-mcp.json` to match the current OpenAPI and specification:** Expanded the sparse `Booking` schema to include all properties from the OpenAPI spec (`resources`, `location`, `payment`, `actions`, `notes`, `cancellation`, `created_at`, `updated_at`, `expires_at`) with proper types, enums, and descriptions. Added `BookingPayment`, `PaymentContext`, and `Action` component schemas matching the OpenAPI definitions. Updated `Message` schema to include `severity` enum, `path` field, and description. The OpenRPC now has full parity with the OpenAPI for all domain schemas (Booking, BookingPayment, PaymentContext, Action, Message).
+
+---
+
 ## 25/02/26 at 17:16:27 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Updated `openapi/usp-rest.json` to match the actions[] changes:** Added `Action` schema to OpenAPI components. Removed `payment_context`, `messages`, and `continue_url` from the Booking schema and replaced with `actions` array referencing the new Action schema. Removed `payment_url` from BookingPayment. Removed `expires_at` from PaymentContext required fields and properties. Added description to Message schema clarifying its dual use (response-level and action-level).
