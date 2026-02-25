@@ -911,20 +911,12 @@
           "payment": {
             "$ref": "#/components/schemas/BookingPayment"
           },
-          "payment_context": {
-            "$ref": "#/components/schemas/PaymentContext"
-          },
-          "messages": {
+          "actions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Message"
+              "$ref": "#/components/schemas/Action"
             },
-            "description": "Messages providing context about the booking state."
-          },
-          "continue_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Business UI handoff URL. Must be provided when status is requires_action."
+            "description": "Ordered array of pending tasks the buyer must complete. Must be present and non-empty when status is requires_action; must be absent or empty otherwise."
           },
           "notes": {
             "type": "string",
@@ -1021,11 +1013,6 @@
           "order_reference": {
             "type": "string",
             "description": "External order ID from the checkout system."
-          },
-          "payment_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Fallback URL for buyer-facing payment pages."
           }
         }
       },
@@ -1036,10 +1023,9 @@
           "currency",
           "description",
           "line_items",
-          "metadata",
-          "expires_at"
+          "metadata"
         ],
-        "description": "Handoff object included in the booking response when status is requires_action. Contains everything needed to process payment.",
+        "description": "Universal payment handoff object nested inside a payment action. Contains everything a checkout system needs to process payment. The payment expiry deadline is carried on the action's expires_at field.",
         "properties": {
           "amount_due": {
             "type": "integer",
@@ -1096,16 +1082,54 @@
                 "format": "date-time"
               }
             }
+          }
+        }
+      },
+      "Action": {
+        "type": "object",
+        "required": [
+          "type",
+          "status",
+          "continue_url",
+          "expires_at"
+        ],
+        "description": "A pending task the buyer must complete before a booking can be confirmed.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Action type identifier (e.g., payment, waiver)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "expired"
+            ],
+            "description": "Action status."
+          },
+          "continue_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Business-hosted URL for completing this specific action."
           },
           "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Payment must complete by this time."
+            "description": "RFC 3339 deadline for this action."
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "payment_context": {
+            "$ref": "#/components/schemas/PaymentContext",
+            "description": "Payment handoff object. Must be present when type is payment (Standalone Mode only)."
           }
         }
       },
       "Message": {
         "type": "object",
+        "description": "Message used in response-level messages arrays and on action objects.",
         "properties": {
           "type": {
             "type": "string",
