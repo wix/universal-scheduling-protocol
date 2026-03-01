@@ -1766,16 +1766,17 @@ the platform proceeds directly from slot query to booking creation. When the
 person receiving the service is different from the buyer, the platform **SHOULD
 ** include a `recipient` object.
 
-| Field         | Type    | Required | Description                                                                         |
-|---------------|---------|----------|-------------------------------------------------------------------------------------|
-| `service_id`  | string  | **Yes**  | The service to book.                                                                |
-| `slot_id`     | string  | **Yes**  | The selected time slot.                                                             |
-| `hold_id`     | string  | No       | Hold ID from a prior hold operation. Present only when the business supports holds. |
-| `buyer`       | object  | **Yes**  | Buyer contact information.                                                          |
-| `recipient`   | object  | No       | The person receiving the service, when different from the buyer.                    |
-| `party_size`  | integer | No       | Number of participants. Default: 1.                                                 |
-| `resource_id` | string  | No       | Preferred resource.                                                                 |
-| `notes`       | string  | No       | Free-text notes for the business.                                                   |
+| Field                         | Type    | Required | Description                                                                                                                                                                                                                                 |
+|-------------------------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service_id`                  | string  | **Yes**  | The service to book.                                                                                                                                                                                                                        |
+| `slot_id`                     | string  | **Yes**  | The selected time slot.                                                                                                                                                                                                                     |
+| `hold_id`                     | string  | No       | Hold ID from a prior hold operation. Present only when the business supports holds.                                                                                                                                                         |
+| `buyer`                       | object  | **Yes**  | Buyer contact information.                                                                                                                                                                                                                  |
+| `recipient`                   | object  | No       | The person receiving the service, when different from the buyer.                                                                                                                                                                            |
+| `party_size`                  | integer | No       | Number of participants. Default: 1.                                                                                                                                                                                                         |
+| `resource_id`                 | string  | No       | Preferred resource.                                                                                                                                                                                                                         |
+| `notes`                       | string  | No       | Free-text notes for the business.                                                                                                                                                                                                           |
+| `post_payment_return_request` | object  | No       | The platform's return instruction for when `checkout_systems: redirect` is in use. The platform **SHOULD** always include this field when using the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation. If present, the business **MUST** redirect the buyer's browser (via GET) to the specified URL — with the specified query parameters appended — after payment completes **or** after the buyer cancels or abandons payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return). |
 
 Request (with hold):
 
@@ -1834,6 +1835,29 @@ Request (booking on behalf of another person):
   "party_size": 1,
   "resource_id": "staff_tom",
   "notes": "He is 7 years old"
+}
+```
+
+Request (paid service, with `post_payment_return_request`):
+
+```json
+{
+  "service_id": "svc_massage_001",
+  "slot_id": "slot_20260316_1400",
+  "hold_id": "hold_xyz789",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1,
+  "post_payment_return_request": {
+    "url": "https://platform.example.com/booking/return",
+    "params": {
+      "session_id": "plat-sess-abc123"
+    }
+  }
 }
 ```
 
@@ -3220,7 +3244,9 @@ The platform extracts `payment_context` from the payment action in `actions[]` (
 the action with `type: payment`). The action's `expires_at` indicates the
 payment deadline.
 
-#### 8.5.5 Action Continue URL
+#### 8.5.5 Redirect Flow and Post-Payment Return
+
+> **Applies to:** Businesses that declare `checkout_systems: ["redirect"]`. This section is not applicable to the `acp` or `embedded` checkout paths.
 
 Each action in the `actions` array includes a `continue_url` that links to a
 business-hosted page for completing that specific action. For payment actions,
@@ -3230,9 +3256,38 @@ questionnaire, or similar.
 The platform **SHOULD** redirect the buyer to an action's `continue_url` if it
 cannot process the action programmatically. For payment actions, this serves as
 a fallback when the platform cannot use the `payment_context` for programmatic
-processing. After the buyer completes the action on the business's page, the
-business updates the action status and sends the appropriate webhook (e.g.,
-`booking.confirmed` when no pending actions remain).
+processing.
+
+**Post-payment return:** The platform **SHOULD** include a
+`post_payment_return_request` object in the `POST /bookings` request body
+whenever the redirect checkout path is used. Without it, the platform has no
+way to predict or control where the buyer's browser will land after payment
+completes or after the buyer cancels or abandons payment — making it impossible
+to resume the booking flow reliably on the platform side.
+
+If `post_payment_return_request` is present, the business **MUST** redirect the
+buyer's browser (via HTTP GET) to `post_payment_return_request.url` — with all
+`post_payment_return_request.params` key-value pairs appended verbatim as URL
+query parameters — in both of the following terminal outcomes of the payment
+action:
+
+- **Payment completed** (successful or failed): buyer has reached a definitive
+  payment result on the business's payment page.
+- **Payment cancelled or abandoned**: buyer has explicitly cancelled, closed,
+  or navigated away from the payment page without completing payment.
+
+> **Note:** Businesses using server-side checkout configuration need the 
+> return URL at checkout session creation time — before
+> the buyer reaches the payment page. Because `post_payment_return_request` is
+> present in the `POST /bookings` request, the business backend has it at exactly
+> the right time.
+
+`post_payment_return_request` contains two fields:
+
+| Field    | Type   | Required | Description                                                                                                                                                                                                                                                         |
+|----------|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `url`    | string | **Yes**  | The platform's return URL. The business MUST redirect the buyer's browser to this URL (via HTTP GET) after payment completes, is cancelled, or is abandoned, appending any `params` as query parameters.                                                            |
+| `params` | object | No       | Query parameter key-value pairs (string values) the business MUST append verbatim to `url` when issuing the return redirect. Keys and values are opaque to the business — the platform uses them to carry whatever correlation state it needs to identify the session on return. |
 
 #### 8.5.6 ACP Booking Extension
 

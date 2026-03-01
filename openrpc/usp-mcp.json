@@ -242,7 +242,8 @@
         { "name": "recipient", "required": false, "schema": { "$ref": "#/components/schemas/Buyer" }, "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient." },
         { "name": "party_size", "required": false, "schema": { "type": "integer", "default": 1 } },
         { "name": "resource_id", "required": false, "schema": { "type": "string" } },
-        { "name": "notes", "required": false, "schema": { "type": "string" } }
+        { "name": "notes", "required": false, "schema": { "type": "string" } },
+        { "name": "post_payment_return_request", "required": false, "schema": { "$ref": "#/components/schemas/PostPaymentReturnRequest" }, "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation/abandonment. If present, the business MUST redirect the buyer's browser (via GET) to the specified URL with the specified query parameters appended after payment completes, is cancelled, or is abandoned." }
       ],
       "result": {
         "name": "CreateBookingResult",
@@ -756,6 +757,16 @@
           "content": { "type": "string", "description": "Human-readable message text." },
           "severity": { "type": "string", "enum": ["requires_buyer_input", "recoverable", "requires_buyer_review"] },
           "path": { "type": "string", "description": "Optional JSON Pointer to the field this message relates to." }
+        }
+      },
+      "PostPaymentReturnRequest": {
+        "type": "object",
+        "title": "PostPaymentReturnRequest",
+        "description": "Applicable when checkout_systems: redirect is in use. Instructs the business where to redirect the buyer's browser after payment completes, is cancelled, or is abandoned. The platform SHOULD always include this field on the redirect path — without it, the platform cannot predict or control where the buyer lands after the payment flow. The business MUST issue an HTTP GET redirect to url (with all params appended as URL query parameters) in both terminal outcomes: payment completed and payment cancelled/abandoned.",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "description": "The platform's return URL. The business MUST redirect the buyer's browser to this URL (via HTTP GET) after payment completes, is cancelled, or is abandoned, appending any params as query parameters." },
+          "params": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Query parameter key-value pairs the business MUST append verbatim to url when issuing the return redirect. Keys and values are opaque to the business — the platform uses them to carry whatever correlation state it needs (e.g. a token generated before the booking request) so it can map the returning buyer back to its session." }
         }
       },
       "WaitlistEntry": {
