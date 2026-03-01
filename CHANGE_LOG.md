@@ -16,6 +16,12 @@
 
 ---
 
+## 26/02/26 at 10:27:59 by [kobym707](mailto:kobym@wix.com)
+
+- **Renamed `schemas/scheduling.json` to `schemas/booking.json`:** Renamed the file and updated the schema identity (`$id`, `title`) to "USP Booking" to better reflect that the schema defines the booking lifecycle (Booking, Buyer, BookingPayment, etc.), not the broader scheduling domain. Updated all references in specification.md and README.md.
+
+---
+
 ## 25/02/26 at 17:23:00 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Updated `openrpc/usp-mcp.json` to match the current OpenAPI and specification:** Expanded the sparse `Booking` schema to include all properties from the OpenAPI spec (`resources`, `location`, `payment`, `actions`, `notes`, `cancellation`, `created_at`, `updated_at`, `expires_at`) with proper types, enums, and descriptions. Added `BookingPayment`, `PaymentContext`, and `Action` component schemas matching the OpenAPI definitions. Updated `Message` schema to include `severity` enum, `path` field, and description. The OpenRPC now has full parity with the OpenAPI for all domain schemas (Booking, BookingPayment, PaymentContext, Action, Message).

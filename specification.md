@@ -1719,7 +1719,7 @@ and the `confirm-payment` operation for payment confirmation.
 
 ### 5.2 Booking Schema
 
-> **JSON Schema:** [`schemas/scheduling.json`](schemas/scheduling.json)
+> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json)
 
 The booking object represents a scheduled service instance for a specific buyer
 at a specific time.
@@ -2609,7 +2609,7 @@ other UCP capabilities:
         {
           "version": "2026-02-09",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/scheduling.json"
+          "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
@@ -3050,7 +3050,7 @@ Businesses publish their USP profile at `/.well-known/usp`:
         {
           "version": "2026-02-09",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/scheduling.json"
+          "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ]
     },
@@ -3165,7 +3165,7 @@ section applies only when `requires_payment` is `true` and `payment_timing` is
 
 #### 8.5.1 Booking Payment Schema
 
-> **JSON Schema:** [`schemas/scheduling.json`](schemas/scheduling.json) (see
+> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json) (see
 `BookingPayment` and `PaymentContext` definitions)
 
 The `payment` object on the booking tracks the lifecycle of payment:
