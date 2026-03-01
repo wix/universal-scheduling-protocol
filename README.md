@@ -134,7 +134,7 @@ USP's payment handling depends on the deployment mode:
 
 | Artifact | Path | Description |
 |----------|------|-------------|
-| JSON Schemas | `schemas/services/` | `catalog.json`, `availability.json`, `scheduling.json`, `paid_bookings.json`, `waitlist.json` |
+| JSON Schemas | `schemas/services/` | `catalog.json`, `availability.json`, `booking.json`, `paid_bookings.json`, `waitlist.json` |
 | OpenAPI Spec | `openapi/usp-rest.json` | OpenAPI 3.1.0 for all REST operations |
 | OpenRPC Spec | `openrpc/usp-mcp.json` | OpenRPC for all MCP methods |
 
