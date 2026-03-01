@@ -1,5 +1,21 @@
 # Change Log
 
+## 01/03/26 at 15:28:19 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Scoped `post_payment_return_request` to the `redirect` checkout path:** Added a note in §8.5.5 and in all schema descriptions clarifying that the field applies only when `checkout_systems: redirect` is in use, and is not applicable to the `acp` or `embedded` checkout paths.
+- **Made cancellation/abandonment a first-class outcome in `post_payment_return_request`:** Expanded all prose, table descriptions, and schema `description` strings to explicitly state the business MUST honor the return redirect in both terminal outcomes — payment completed *and* payment cancelled/abandoned — not only on success.
+- **Added SHOULD recommendation for including `post_payment_return_request`:** Even though the field is optional, updated §8.5.5, the §5.3.1 field table, and all schema descriptions to state that the platform SHOULD always include it on the redirect path, because without it the platform has no way to predict or control where the buyer lands after payment or cancellation.
+
+---
+
+## 01/03/26 at 15:24:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **Added `post_payment_return_request` to `POST /bookings` as a first-class spec field with MUST-level compliance language:** Resolves the missing return-redirect mechanism in the redirect-based payment flow. The new field lets the platform supply a return URL (with opaque correlation params) at booking creation time — exactly when a server-side checkout system (e.g. Wix headless checkout) needs it — rather than after the buyer reaches the payment page.
+- **Introduced `PostPaymentReturnRequest` schema across all spec artefacts (`specification.md`, `openapi/usp-rest.json`, `openrpc/usp-mcp.json`, `schemas/scheduling.json`):** Defines `url` (required, URI) and `params` (optional, string key-value map) with descriptions that make clear the business must append `params` verbatim as query parameters on the GET redirect, and that keys/values are opaque platform-controlled correlation state.
+- **Expanded §8.5.5 from "Action Continue URL" to "Redirect Flow and Post-Payment Return":** Added a mermaid sequence diagram of the full redirect round-trip, MUST language, and the analogy to OAuth 2.0's `redirect_uri` + `state` pattern.
+
+---
+
 ## 25/02/26 at 17:23:00 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **Updated `openrpc/usp-mcp.json` to match the current OpenAPI and specification:** Expanded the sparse `Booking` schema to include all properties from the OpenAPI spec (`resources`, `location`, `payment`, `actions`, `notes`, `cancellation`, `created_at`, `updated_at`, `expires_at`) with proper types, enums, and descriptions. Added `BookingPayment`, `PaymentContext`, and `Action` component schemas matching the OpenAPI definitions. Updated `Message` schema to include `severity` enum, `path` field, and description. The OpenRPC now has full parity with the OpenAPI for all domain schemas (Booking, BookingPayment, PaymentContext, Action, Message).

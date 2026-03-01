@@ -8,7 +8,18 @@
       "type": "object",
       "title": "Booking",
       "description": "A scheduled service instance for a specific buyer at a specific time.",
-      "required": ["id", "service_id", "service_name", "slot", "buyer", "party_size", "status", "confirmation_mode", "created_at", "updated_at"],
+      "required": [
+        "id",
+        "service_id",
+        "service_name",
+        "slot",
+        "buyer",
+        "party_size",
+        "status",
+        "confirmation_mode",
+        "created_at",
+        "updated_at"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -43,9 +54,15 @@
           "items": {
             "type": "object",
             "properties": {
-              "id": { "type": "string" },
-              "type": { "type": "string" },
-              "name": { "type": "string" }
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           },
           "description": "The specific resources assigned to this booking."
@@ -53,19 +70,34 @@
         "location": {
           "type": "object",
           "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" }
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
           },
           "description": "The specific location for this booking."
         },
         "status": {
           "type": "string",
-          "enum": ["pending", "requires_action", "confirmed", "in_progress", "completed", "no_show", "canceled"],
+          "enum": [
+            "pending",
+            "requires_action",
+            "confirmed",
+            "in_progress",
+            "completed",
+            "no_show",
+            "canceled"
+          ],
           "description": "Current booking status."
         },
         "confirmation_mode": {
           "type": "string",
-          "enum": ["auto", "manual"],
+          "enum": [
+            "auto",
+            "manual"
+          ],
           "description": "Reflects the service's confirmation policy at booking time."
         },
         "payment": {
@@ -74,7 +106,9 @@
         },
         "actions": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Action" },
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
           "description": "Ordered array of pending tasks the buyer must complete. MUST be present and non-empty when status is requires_action; MUST be absent or empty otherwise. The booking has status requires_action if and only if this array contains at least one action with status pending."
         },
         "notes": {
@@ -106,40 +140,83 @@
       "type": "object",
       "title": "SlotReference",
       "description": "Reference to a booked time slot.",
-      "required": ["id", "start", "end", "duration"],
+      "required": [
+        "id",
+        "start",
+        "end",
+        "duration"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "start": { "type": "string", "format": "date-time" },
-        "end": { "type": "string", "format": "date-time" },
-        "duration": { "type": "string", "description": "ISO 8601 duration" }
+        "id": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "string",
+          "description": "ISO 8601 duration"
+        }
       }
     },
     "Buyer": {
       "type": "object",
       "title": "Buyer",
       "description": "The person making and paying for the booking. When no separate recipient is specified, the buyer is also the person receiving the service.",
-      "required": ["first_name", "last_name", "email"],
+      "required": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
       "properties": {
-        "first_name": { "type": "string" },
-        "last_name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone_number": { "type": "string" }
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone_number": {
+          "type": "string"
+        }
       }
     },
     "BookingPayment": {
       "type": "object",
       "title": "BookingPayment",
       "description": "Payment state within a booking. Tracks the lifecycle of payment.",
-      "required": ["status", "timing"],
+      "required": [
+        "status",
+        "timing"
+      ],
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["not_required", "pending", "deposit_paid", "paid", "refunded", "partially_refunded"],
+          "enum": [
+            "not_required",
+            "pending",
+            "deposit_paid",
+            "paid",
+            "refunded",
+            "partially_refunded"
+          ],
           "description": "Payment status."
         },
         "timing": {
           "type": "string",
-          "enum": ["at_booking", "at_service", "deposit_required"],
+          "enum": [
+            "at_booking",
+            "at_service",
+            "deposit_required"
+          ],
           "description": "Mirrors the service's payment_timing value."
         },
         "amount": {
@@ -172,7 +249,13 @@
       "type": "object",
       "title": "PaymentContext",
       "description": "Universal payment handoff object nested inside a payment action. Contains everything a checkout system needs to process payment. The payment expiry deadline is carried on the action's expires_at field.",
-      "required": ["amount_due", "currency", "description", "line_items", "metadata"],
+      "required": [
+        "amount_due",
+        "currency",
+        "description",
+        "line_items",
+        "metadata"
+      ],
       "properties": {
         "amount_due": {
           "type": "integer",
@@ -190,24 +273,51 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["label", "amount", "quantity", "item_id"],
+            "required": [
+              "label",
+              "amount",
+              "quantity",
+              "item_id"
+            ],
             "properties": {
-              "label": { "type": "string" },
-              "amount": { "type": "integer" },
-              "quantity": { "type": "integer" },
-              "item_id": { "type": "string", "description": "Service ID for checkout system line item mapping." }
+              "label": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "integer"
+              },
+              "quantity": {
+                "type": "integer"
+              },
+              "item_id": {
+                "type": "string",
+                "description": "Service ID for checkout system line item mapping."
+              }
             }
           },
           "description": "Itemized breakdown for display and checkout integration."
         },
         "metadata": {
           "type": "object",
-          "required": ["booking_id", "service_id", "service_type"],
+          "required": [
+            "booking_id",
+            "service_id",
+            "service_type"
+          ],
           "properties": {
-            "booking_id": { "type": "string" },
-            "service_id": { "type": "string" },
-            "service_type": { "type": "string" },
-            "slot_start": { "type": "string", "format": "date-time" }
+            "booking_id": {
+              "type": "string"
+            },
+            "service_id": {
+              "type": "string"
+            },
+            "service_type": {
+              "type": "string"
+            },
+            "slot_start": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
           "description": "Machine-readable context for the checkout system to pass back during confirmation."
         }
@@ -217,7 +327,12 @@
       "type": "object",
       "title": "Action",
       "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry.",
-      "required": ["type", "status", "continue_url", "expires_at"],
+      "required": [
+        "type",
+        "status",
+        "continue_url",
+        "expires_at"
+      ],
       "properties": {
         "type": {
           "type": "string",
@@ -225,7 +340,11 @@
         },
         "status": {
           "type": "string",
-          "enum": ["pending", "completed", "expired"],
+          "enum": [
+            "pending",
+            "completed",
+            "expired"
+          ],
           "description": "Action status."
         },
         "continue_url": {
@@ -252,11 +371,19 @@
       "type": "object",
       "title": "Message",
       "description": "Message providing context about the booking state.",
-      "required": ["type", "code", "content"],
+      "required": [
+        "type",
+        "code",
+        "content"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["error", "warning", "info"],
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ],
           "description": "Message type."
         },
         "code": {
@@ -269,7 +396,11 @@
         },
         "severity": {
           "type": "string",
-          "enum": ["requires_buyer_input", "recoverable", "requires_buyer_review"],
+          "enum": [
+            "requires_buyer_input",
+            "recoverable",
+            "requires_buyer_review"
+          ],
           "description": "Severity level."
         },
         "path": {
@@ -283,11 +414,48 @@
       "title": "Cancellation",
       "description": "Cancellation details when a booking has been canceled.",
       "properties": {
-        "reason": { "type": "string" },
-        "canceled_by": { "type": "string", "description": "Who initiated the cancellation." },
-        "fee": { "type": "integer", "description": "Cancellation fee in minor currency units." },
-        "refund_amount": { "type": "integer", "description": "Amount refunded in minor currency units." },
-        "canceled_at": { "type": "string", "format": "date-time", "description": "RFC 3339 timestamp." }
+        "reason": {
+          "type": "string"
+        },
+        "canceled_by": {
+          "type": "string",
+          "description": "Who initiated the cancellation."
+        },
+        "fee": {
+          "type": "integer",
+          "description": "Cancellation fee in minor currency units."
+        },
+        "refund_amount": {
+          "type": "integer",
+          "description": "Amount refunded in minor currency units."
+        },
+        "canceled_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp."
+        }
+      }
+    },
+    "PostPaymentReturnRequest": {
+      "type": "object",
+      "title": "PostPaymentReturnRequest",
+      "description": "Applicable when checkout_systems: redirect is in use. Instructs the business where to redirect the buyer's browser after payment completes, is cancelled, or is abandoned. The platform SHOULD always include this field on the redirect path \u2014 without it, the platform cannot predict or control where the buyer lands after the payment flow. The business MUST issue an HTTP GET redirect to url (with all params appended as URL query parameters) in both terminal outcomes: payment completed and payment cancelled/abandoned.",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The platform's return URL. The business MUST redirect the buyer's browser to this URL (via HTTP GET) after payment completes, is cancelled, or is abandoned, appending any params as query parameters."
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Query parameter key-value pairs the business MUST append verbatim to url when issuing the return redirect. Keys and values are opaque to the business \u2014 the platform uses them to carry whatever correlation state it needs (e.g. a token generated before the booking request) so it can map the returning buyer back to its session without relying on the booking_id (which is not yet known at request time)."
+        }
       }
     }
   },
