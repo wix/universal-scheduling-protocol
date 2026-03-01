@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/scheduling.json",
-  "title": "USP Scheduling",
+  "$id": "https://usp.dev/schemas/services/booking.json",
+  "title": "USP Booking",
   "description": "Booking lifecycle schema for the Universal Scheduling Protocol. Defines Booking, Buyer, BookingPayment, PaymentContext, Action, Message, and Cancellation objects.",
   "$defs": {
     "Booking": {
@@ -439,7 +439,7 @@
     "PostPaymentReturnRequest": {
       "type": "object",
       "title": "PostPaymentReturnRequest",
-      "description": "Applicable when checkout_systems: redirect is in use. Instructs the business where to redirect the buyer's browser after payment completes, is cancelled, or is abandoned. The platform SHOULD always include this field on the redirect path \u2014 without it, the platform cannot predict or control where the buyer lands after the payment flow. The business MUST issue an HTTP GET redirect to url (with all params appended as URL query parameters) in both terminal outcomes: payment completed and payment cancelled/abandoned.",
+      "description": "Applicable when checkout_systems: redirect is in use. Instructs the business where to redirect the buyer's browser after payment completes, is cancelled, or is abandoned. The platform SHOULD always include this field on the redirect path — without it, the platform cannot predict or control where the buyer lands after the payment flow. The business MUST issue an HTTP GET redirect to url (with all params appended as URL query parameters) in both terminal outcomes: payment completed and payment cancelled/abandoned.",
       "required": [
         "url"
       ],
@@ -454,7 +454,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Query parameter key-value pairs the business MUST append verbatim to url when issuing the return redirect. Keys and values are opaque to the business \u2014 the platform uses them to carry whatever correlation state it needs (e.g. a token generated before the booking request) so it can map the returning buyer back to its session without relying on the booking_id (which is not yet known at request time)."
+          "description": "Query parameter key-value pairs the business MUST append verbatim to url when issuing the return redirect. Keys and values are opaque to the business — the platform uses them to carry whatever correlation state it needs (e.g. a token generated before the booking request) so it can map the returning buyer back to its session without relying on the booking_id (which is not yet known at request time)."
         }
       }
     }
