@@ -2,7 +2,8 @@
 
 ## Change Log Policy
 
-After completing any set of file changes in this repository, you MUST append a new entry to the root-level `CHANGE_LOG.md` file before finishing your response.
+After completing any set of file changes in this repository, you 
+MUST append a new entry to the root-level `CHANGE_LOG.md` file before finishing your response.
 
 ### Entry format
 

@@ -45,11 +45,12 @@
       "USP-Agent": {
         "name": "USP-Agent",
         "in": "header",
-        "description": "Platform profile URI for capability negotiation. RFC 8941 Dictionary Structured Field: profile=\"https://agent.example/profiles/scheduling-agent.json\"",
+        "description": "Platform profile URI for capability negotiation (Standalone Mode). RFC 8941 Dictionary Structured Field syntax. The business fetches this URI to determine the capability intersection. Required in Standalone Mode; omit in UCP-Native Mode.",
         "schema": {
           "type": "string",
           "example": "profile=\"https://agent.example/profiles/scheduling-agent.json\""
-        }
+        },
+        "required": true
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -258,22 +259,30 @@
           "name": {
             "type": "object",
             "description": "Per-locale overrides for the service name.",
-            "additionalProperties": { "type": "string" }
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "description": {
             "type": "object",
             "description": "Per-locale overrides for the service description.",
-            "additionalProperties": { "type": "string" }
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "category_name": {
             "type": "object",
             "description": "Per-locale overrides for the category name.",
-            "additionalProperties": { "type": "string" }
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "channel_instructions": {
             "type": "object",
             "description": "Per-locale overrides for channel instructions.",
-            "additionalProperties": { "type": "string" }
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -1519,6 +1528,341 @@
             }
           }
         }
+      },
+      "SigningKey": {
+        "type": "object",
+        "title": "SigningKey",
+        "description": "A public key in JWK format (RFC 7517) used to verify HTTP Message Signatures (RFC 9421) on webhook payloads. The keyid parameter in the Signature-Input header MUST match the kid of one of the signing_keys in the business profile.",
+        "required": [
+          "kid",
+          "kty"
+        ],
+        "properties": {
+          "kid": {
+            "type": "string",
+            "description": "Key ID. Matched against the keyid parameter in the Signature-Input header."
+          },
+          "kty": {
+            "type": "string",
+            "enum": [
+              "EC",
+              "RSA"
+            ],
+            "description": "Key type."
+          },
+          "crv": {
+            "type": "string",
+            "enum": [
+              "P-256",
+              "P-384"
+            ],
+            "description": "Elliptic curve. REQUIRED when kty is EC."
+          },
+          "x": {
+            "type": "string",
+            "description": "X coordinate (base64url). REQUIRED for EC keys."
+          },
+          "y": {
+            "type": "string",
+            "description": "Y coordinate (base64url). REQUIRED for EC keys."
+          },
+          "n": {
+            "type": "string",
+            "description": "Modulus (base64url). REQUIRED for RSA keys."
+          },
+          "e": {
+            "type": "string",
+            "description": "Exponent (base64url). REQUIRED for RSA keys."
+          },
+          "use": {
+            "type": "string",
+            "enum": [
+              "sig",
+              "enc"
+            ],
+            "description": "Intended key usage."
+          },
+          "alg": {
+            "type": "string",
+            "enum": [
+              "ES256",
+              "ES384",
+              "RS256"
+            ],
+            "description": "Algorithm. ES256 is RECOMMENDED. Implementations MUST support ES256."
+          }
+        }
+      },
+      "ServiceBinding": {
+        "type": "object",
+        "title": "ServiceBinding",
+        "description": "A transport-specific binding for a USP service endpoint, as declared in a profile services registry.",
+        "required": [
+          "version",
+          "transport"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Protocol version implemented at this endpoint (YYYY-MM-DD)."
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "rest",
+              "mcp",
+              "a2a",
+              "embedded"
+            ],
+            "description": "Transport protocol."
+          },
+          "endpoint": {
+            "type": "string",
+            "format": "uri",
+            "description": "Base URL of the endpoint. REQUIRED for rest, mcp, and a2a transports."
+          },
+          "spec": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the human-readable specification."
+          },
+          "schema": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the machine-readable schema (OpenAPI or OpenRPC)."
+          }
+        },
+        "additionalProperties": true
+      },
+      "CapabilityEntry": {
+        "type": "object",
+        "title": "CapabilityEntry",
+        "description": "Declares support for a specific version of a USP capability, as listed in a profile capabilities registry.",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Capability version (YYYY-MM-DD)."
+          },
+          "spec": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the capability specification. RECOMMENDED in profiles."
+          },
+          "schema": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the capability JSON Schema. RECOMMENDED in profiles."
+          },
+          "extends": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Base capability name(s) this capability extends, in reverse-domain format."
+          }
+        },
+        "additionalProperties": true
+      },
+      "BusinessProfile": {
+        "type": "object",
+        "title": "BusinessProfile",
+        "description": "The USP business profile document. MUST be published at /.well-known/usp over HTTPS with Cache-Control: public, max-age>=60 and no redirects.",
+        "required": [
+          "usp"
+        ],
+        "properties": {
+          "usp": {
+            "type": "object",
+            "required": [
+              "version",
+              "services",
+              "capabilities",
+              "business"
+            ],
+            "description": "USP metadata for this business.",
+            "properties": {
+              "version": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "USP protocol version implemented by this business (YYYY-MM-DD)."
+              },
+              "services": {
+                "type": "object",
+                "description": "Service endpoint registry. Keys are reverse-domain service names; values are arrays of ServiceBinding.",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "": "#/components/schemas/ServiceBinding"
+                  }
+                }
+              },
+              "capabilities": {
+                "type": "object",
+                "description": "Capability registry. Keys are reverse-domain capability names; values are arrays of CapabilityEntry.",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "": "#/components/schemas/CapabilityEntry"
+                  }
+                }
+              },
+              "checkout_systems": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "acp",
+                    "redirect",
+                    "embedded"
+                  ]
+                },
+                "description": "OPTIONAL. Checkout systems integrated for paid bookings. Omit for free or pay-at-service services."
+              },
+              "business": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "timezone",
+                  "currency"
+                ],
+                "description": "Business identity and locale information.",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Business display name."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA Time Zone Database identifier."
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "ISO 4217 default currency code."
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "coordinates": {
+                          "type": "object",
+                          "properties": {
+                            "lat": {
+                              "type": "number"
+                            },
+                            "lng": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "Multi-location extension."
+                  }
+                }
+              },
+              "supported_versions": {
+                "type": "object",
+                "description": "OPTIONAL. Backward-compatibility map. Keys are older protocol versions (YYYY-MM-DD); values are URIs to version-specific profiles.",
+                "additionalProperties": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "signing_keys": {
+            "type": "array",
+            "items": {
+              "": "#/components/schemas/SigningKey"
+            },
+            "description": "CONDITIONAL. Public keys for webhook signature verification. MUST be present when the business sends signed webhooks. See Section 10.1.1."
+          }
+        }
+      },
+      "PlatformProfile": {
+        "type": "object",
+        "title": "PlatformProfile",
+        "description": "The USP platform profile document. Published at a stable HTTPS URI advertised via the USP-Agent header (REST) or _meta.usp.profile field (MCP).",
+        "required": [
+          "usp"
+        ],
+        "properties": {
+          "usp": {
+            "type": "object",
+            "required": [
+              "version",
+              "capabilities"
+            ],
+            "description": "USP metadata for this platform.",
+            "properties": {
+              "version": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "The highest USP protocol version this platform supports (YYYY-MM-DD)."
+              },
+              "capabilities": {
+                "type": "object",
+                "description": "Capabilities the platform can consume. Same format as business profile.",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "": "#/components/schemas/CapabilityEntry"
+                  }
+                }
+              },
+              "services": {
+                "type": "object",
+                "description": "OPTIONAL. Service consumption preferences.",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "transport"
+                    ],
+                    "properties": {
+                      "transport": {
+                        "type": "string",
+                        "enum": [
+                          "rest",
+                          "mcp",
+                          "a2a",
+                          "embedded"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "responses": {
@@ -1598,6 +1942,22 @@
               "title": "Unprocessable Entity",
               "status": 422,
               "detail": "Request fields are invalid"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Profile not trusted",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/profile_not_trusted",
+              "title": "Forbidden",
+              "status": 403,
+              "detail": "The platform profile URL is not in the business's pre-approved allowlist"
             }
           }
         }
@@ -1742,6 +2102,9 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
           },
@@ -1809,8 +2172,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -1955,6 +2324,12 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
           },
@@ -2048,8 +2423,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2112,8 +2493,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2166,11 +2553,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2236,11 +2629,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2306,11 +2705,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2444,8 +2849,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2536,8 +2947,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2604,11 +3021,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2699,7 +3122,9 @@
                   },
                   "post_payment_return_request": {
                     "allOf": [
-                      { "$ref": "#/components/schemas/PostPaymentReturnRequest" }
+                      {
+                        "$ref": "#/components/schemas/PostPaymentReturnRequest"
+                      }
                     ],
                     "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation."
                   }
@@ -2746,11 +3171,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2813,8 +3244,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2904,11 +3341,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -2974,11 +3417,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3065,11 +3514,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3164,11 +3619,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3294,11 +3755,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3402,8 +3869,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3466,8 +3939,14 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3520,11 +3999,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3605,11 +4090,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3672,11 +4163,17 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -3941,6 +4438,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "query"
+                ],
                 "properties": {
                   "location": {
                     "type": "object",
@@ -4066,6 +4566,95 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/.well-known/usp": {
+      "get": {
+        "summary": "Get business profile",
+        "operationId": "getBusinessProfile",
+        "description": "Returns the USP business profile document. Published at the well-known URI path. Platforms fetch this document to discover endpoints, negotiate capabilities, determine supported checkout systems, and obtain webhook verification keys. MUST be served over HTTPS with Cache-Control: public, max-age>=60 and no redirects.",
+        "tags": [
+          "Discovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "Business profile document.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "MUST include public and max-age>=60. Example: public, max-age=300"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/BusinessProfile"
+                },
+                "example": {
+                  "usp": {
+                    "version": "2026-02-09",
+                    "services": {
+                      "dev.usp.services": [
+                        {
+                          "version": "2026-02-09",
+                          "transport": "rest",
+                          "endpoint": "https://business.example.com/usp/v1",
+                          "spec": "https://usp.dev/specification",
+                          "schema": "https://usp.dev/services/rest.openapi.json"
+                        }
+                      ]
+                    },
+                    "capabilities": {
+                      "dev.usp.services.catalog": [
+                        {
+                          "version": "2026-02-09",
+                          "spec": "https://usp.dev/specification#3-service-catalog",
+                          "schema": "https://usp.dev/schemas/services/catalog.json"
+                        }
+                      ],
+                      "dev.usp.services.availability": [
+                        {
+                          "version": "2026-02-09",
+                          "spec": "https://usp.dev/specification#4-availability",
+                          "schema": "https://usp.dev/schemas/services/availability.json"
+                        }
+                      ],
+                      "dev.usp.services.bookings": [
+                        {
+                          "version": "2026-02-09",
+                          "spec": "https://usp.dev/specification#5-booking-lifecycle",
+                          "schema": "https://usp.dev/schemas/services/booking.json"
+                        }
+                      ]
+                    },
+                    "checkout_systems": [
+                      "acp",
+                      "redirect"
+                    ],
+                    "business": {
+                      "name": "Sunrise Wellness Studio",
+                      "timezone": "America/New_York",
+                      "currency": "USD"
+                    }
+                  },
+                  "signing_keys": [
+                    {
+                      "kid": "usp-webhook-key-2026-02",
+                      "kty": "EC",
+                      "crv": "P-256",
+                      "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+                      "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+                      "use": "sig",
+                      "alg": "ES256"
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }

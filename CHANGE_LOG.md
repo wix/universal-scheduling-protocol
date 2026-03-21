@@ -1,51 +1,208 @@
 # Change Log
 
+## 19/03/26 at 18:03:50 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Expanded `USPError` definition in `openrpc/usp-mcp.json` with a fully-typed `data` schema: `code` (string enum of all 22 §9.4 error codes including the 5 new profile error codes), `messages` (array of `$ref: Message`), and `severity` (enum). Previously the `data` field was an unstructured description string, making the error contract unvalidatable.
+- Added `Forbidden` (403) response component to `openapi/usp-rest.json` for the `profile_not_trusted` error code. This was the only §9.4 protocol error without a corresponding OpenAPI response component.
+- Added `403` and `424` error responses to all business-facing endpoints in `openapi/usp-rest.json`. Profile negotiation errors are protocol-level and can occur on any Standalone Mode call, but previously only `POST /services/list` referenced `FailedDependency` (424).
+- Fixed previous CHANGE_LOG entry: corrected "four profile-related protocol error codes" to "five" — `profile_unreachable` was missing from the list.
+
+---
+
+## 18/03/26 at 23:26:59 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `schemas/usp.json` — formal JSON Schema (Draft 2020-12) for the `usp`
+  metadata object used in business profiles, platform profiles, and API
+  responses. Defines `$defs/base`, `business_schema` (services, capabilities,
+  checkout_systems, business identity, supported_versions), `platform_schema` (
+  capabilities + optional service preferences), and `response_schema` (version +
+  active capabilities), along with reusable `ServiceBinding`, `CapabilityEntry`,
+  and `BusinessInfo` sub-types. Needed to give implementors a
+  machine-validatable schema for the core protocol metadata object.
+- Added `schemas/profile.json` — formal JSON Schema for the two USP profile
+  document types: `$defs/BusinessProfile` (the document at `/.well-known/usp`)
+  and `$defs/PlatformProfile` (the document advertised via `USP-Agent`). Defines
+  `$defs/SigningKey` (JWK structure for webhook verification keys) with all
+  required EC and RSA fields. Needed because there was no machine-validatable
+  schema for either profile document, making automated validation impossible.
+- Expanded `specification.md` §8.2 with four subsections: §8.2.1 Business
+  Profile Fields (field-level tables for top-level profile, `usp` object,
+  ServiceBinding, CapabilityEntry, and namespace governance), §8.2.2 Profile
+  Hosting Requirements (HTTPS, no-redirect, Cache-Control, Content-Type rules
+  and implementation obligations for both sides), §8.2.3 Platform Profile (full
+  specification of the platform profile document structure, example, field
+  table, hosting requirements, and business-side fetch/cache obligations), and
+  §8.2.4 Backward Compatibility (the `supported_versions` map pattern with
+  90-day guidance). Needed because the profile was documented only via a single
+  example with no formal field definitions.
+- Expanded `specification.md` §8.3 Capability Negotiation with a six-step
+  negotiation algorithm covering platform profile fetch timing, caching,
+  intersection computation, extension pruning, response envelope, and the
+  empty-intersection error case. Needed to replace the bare four-bullet
+  description with a complete normative algorithm.
+- Added five profile-related protocol error codes to `specification.md` §9.4
+  error table: `invalid_profile_url`, `profile_unreachable`, `profile_malformed`,
+  `capabilities_incompatible`, and `profile_not_trusted`, with REST status codes
+  and JSON-RPC codes. Needed to make profile failure modes first-class,
+  consistent, and interoperable.
+- Expanded `specification.md` §10.1.1 signing keys documentation with a full
+  `SigningKey` field table (kid, kty, crv, x, y, n, e, use, alg) and
+  cross-references to `schemas/profile.json`. Needed because `signing_keys`
+  field-level constraints were undocumented.
+- Updated `openapi/usp-rest.json`: marked `USP-Agent` parameter as
+  `required: true`; added `SigningKey`, `ServiceBinding`, `CapabilityEntry`,
+  `BusinessProfile`, and `PlatformProfile` component schemas; added
+  `GET /.well-known/usp` path with full response schema and example. Needed to
+  make the OpenAPI spec self-describing for both the profile endpoint and the
+  header the spec already referenced.
+- Updated `openrpc/usp-mcp.json`: tightened `_meta` param schema across all 19
+  methods — `_meta.usp.profile` is now declared with `format: uri`, descriptive
+  text clarifying it is required in Standalone Mode, and `required: ["profile"]`
+  within the `usp` sub-object. Needed to align the MCP binding with the REST
+  binding's capability negotiation semantics.
+
+---
+
+## 16/03/26 at 12:20:45 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Implemented `USPRestClient.search_registry_for_services` method body per the
+  `/registry/search_services` OpenAPI schema — performs a POST to the USP
+  registry, builds the request from typed parameters (query, location,
+  verticals, categories, price\_range, duration\_range, pagination), and parses
+  the response into `ServiceSearchResult` models. Handles both camelCase and
+  snake\_case response field names (e.g. `results` vs `services`,
+  `pagingMetadata` vs `pagination`) so the client works against both the live
+  API and schema-compliant implementations.
+- Added four new Pydantic models to `shopping_agent/subagents/usp/models.py`:
+  `ServiceSearchResultPrice`, `ServiceSearchResultLocation`,
+  `ServiceSearchResult`, and `ServiceSearchPagination` — all configured with
+  `alias_generator=to_camel` and `populate_by_name=True` for bidirectional
+  camelCase/snake\_case support, matching the `ServiceSearchResult` and
+  `Pagination` schemas in the OpenAPI spec.
+
+---
+
 ## 01/03/26 at 15:28:19 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Scoped `post_payment_return_request` to the `redirect` checkout path:** Added a note in §8.5.5 and in all schema descriptions clarifying that the field applies only when `checkout_systems: redirect` is in use, and is not applicable to the `acp` or `embedded` checkout paths.
-- **Made cancellation/abandonment a first-class outcome in `post_payment_return_request`:** Expanded all prose, table descriptions, and schema `description` strings to explicitly state the business MUST honor the return redirect in both terminal outcomes — payment completed *and* payment cancelled/abandoned — not only on success.
-- **Added SHOULD recommendation for including `post_payment_return_request`:** Even though the field is optional, updated §8.5.5, the §5.3.1 field table, and all schema descriptions to state that the platform SHOULD always include it on the redirect path, because without it the platform has no way to predict or control where the buyer lands after payment or cancellation.
+- **Scoped `post_payment_return_request` to the `redirect` checkout path:**
+  Added a note in §8.5.5 and in all schema descriptions clarifying that the
+  field applies only when `checkout_systems: redirect` is in use, and is not
+  applicable to the `acp` or `embedded` checkout paths.
+- **Made cancellation/abandonment a first-class outcome
+  in `post_payment_return_request`:** Expanded all prose, table descriptions,
+  and schema `description` strings to explicitly state the business MUST honor
+  the return redirect in both terminal outcomes — payment completed *and*
+  payment cancelled/abandoned — not only on success.
+- **Added SHOULD recommendation for including `post_payment_return_request`:**
+  Even though the field is optional, updated §8.5.5, the §5.3.1 field table, and
+  all schema descriptions to state that the platform SHOULD always include it on
+  the redirect path, because without it the platform has no way to predict or
+  control where the buyer lands after payment or cancellation.
 
 ---
 
 ## 01/03/26 at 15:24:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Added `post_payment_return_request` to `POST /bookings` as a first-class spec field with MUST-level compliance language:** Resolves the missing return-redirect mechanism in the redirect-based payment flow. The new field lets the platform supply a return URL (with opaque correlation params) at booking creation time — exactly when a server-side checkout system (e.g. Wix headless checkout) needs it — rather than after the buyer reaches the payment page.
-- **Introduced `PostPaymentReturnRequest` schema across all spec artefacts (`specification.md`, `openapi/usp-rest.json`, `openrpc/usp-mcp.json`, `schemas/scheduling.json`):** Defines `url` (required, URI) and `params` (optional, string key-value map) with descriptions that make clear the business must append `params` verbatim as query parameters on the GET redirect, and that keys/values are opaque platform-controlled correlation state.
-- **Expanded §8.5.5 from "Action Continue URL" to "Redirect Flow and Post-Payment Return":** Added a mermaid sequence diagram of the full redirect round-trip, MUST language, and the analogy to OAuth 2.0's `redirect_uri` + `state` pattern.
+- **Added `post_payment_return_request` to `POST /bookings` as a first-class
+  spec field with MUST-level compliance language:** Resolves the missing
+  return-redirect mechanism in the redirect-based payment flow. The new field
+  lets the platform supply a return URL (with opaque correlation params) at
+  booking creation time — exactly when a server-side checkout system (e.g. Wix
+  headless checkout) needs it — rather than after the buyer reaches the payment
+  page.
+- **Introduced `PostPaymentReturnRequest` schema across all spec
+  artefacts (`specification.md`, `openapi/usp-rest.json`,`openrpc/usp-mcp.json`,
+  `schemas/scheduling.json`):** Defines `url` (required, URI) and `params` (
+  optional, string key-value map) with descriptions that make clear the business
+  must append `params` verbatim as query parameters on the GET redirect, and
+  that keys/values are opaque platform-controlled correlation state.
+- **Expanded §8.5.5 from "Action Continue URL" to "Redirect Flow and
+  Post-Payment Return":** Added a mermaid sequence diagram of the full redirect
+  round-trip, MUST language, and the analogy to OAuth 2.0's `redirect_uri` +
+  `state` pattern.
 
 ---
 
 ## 26/02/26 at 10:27:59 by [kobym707](mailto:kobym@wix.com)
 
-- **Renamed `schemas/scheduling.json` to `schemas/booking.json`:** Renamed the file and updated the schema identity (`$id`, `title`) to "USP Booking" to better reflect that the schema defines the booking lifecycle (Booking, Buyer, BookingPayment, etc.), not the broader scheduling domain. Updated all references in specification.md and README.md.
+- **Renamed `schemas/scheduling.json` to `schemas/booking.json`:** Renamed the
+  file and updated the schema identity (`$id`, `title`) to "USP Booking" to
+  better reflect that the schema defines the booking lifecycle (Booking, Buyer,
+  BookingPayment, etc.), not the broader scheduling domain. Updated all
+  references in specification.md and README.md.
 
 ---
 
 ## 25/02/26 at 17:23:00 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Updated `openrpc/usp-mcp.json` to match the current OpenAPI and specification:** Expanded the sparse `Booking` schema to include all properties from the OpenAPI spec (`resources`, `location`, `payment`, `actions`, `notes`, `cancellation`, `created_at`, `updated_at`, `expires_at`) with proper types, enums, and descriptions. Added `BookingPayment`, `PaymentContext`, and `Action` component schemas matching the OpenAPI definitions. Updated `Message` schema to include `severity` enum, `path` field, and description. The OpenRPC now has full parity with the OpenAPI for all domain schemas (Booking, BookingPayment, PaymentContext, Action, Message).
+- **Updated `openrpc/usp-mcp.json` to match the current OpenAPI and
+  specification:** Expanded the sparse `Booking` schema to include all
+  properties from the OpenAPI spec (`resources`, `location`, `payment`,
+  `actions`, `notes`, `cancellation`, `created_at`, `updated_at`, `expires_at`)
+  with proper types, enums, and descriptions. Added `BookingPayment`,
+  `PaymentContext`, and `Action` component schemas matching the OpenAPI
+  definitions. Updated `Message` schema to include `severity` enum, `path`
+  field, and description. The OpenRPC now has full parity with the OpenAPI for
+  all domain schemas (Booking, BookingPayment, PaymentContext, Action, Message).
 
 ---
 
 ## 25/02/26 at 17:16:27 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Updated `openapi/usp-rest.json` to match the actions[] changes:** Added `Action` schema to OpenAPI components. Removed `payment_context`, `messages`, and `continue_url` from the Booking schema and replaced with `actions` array referencing the new Action schema. Removed `payment_url` from BookingPayment. Removed `expires_at` from PaymentContext required fields and properties. Added description to Message schema clarifying its dual use (response-level and action-level).
+- **Updated `openapi/usp-rest.json` to match the actions[] changes:** Added
+  `Action` schema to OpenAPI components. Removed `payment_context`, `messages`,
+  and `continue_url` from the Booking schema and replaced with `actions` array
+  referencing the new Action schema. Removed `payment_url` from BookingPayment.
+  Removed `expires_at` from PaymentContext required fields and properties. Added
+  description to Message schema clarifying its dual use (response-level and
+  action-level).
 
 ---
 
 ## 25/02/26 at 16:11:33 by [Ran Yahalom](mailto:ranya@wix.com)
 
-- **Introduced `actions[]` array on the booking object:** Replaced the flat `payment_context`, `continue_url`, and `messages` fields on the booking with an ordered `actions` array. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. Payment actions carry a nested `payment_context`. This makes the spec extensible for future non-payment action types (e.g., waivers, intake forms) while cleaning up the `payment_url` redundancy.
-- **Established the status-actions invariant:** `booking.status: requires_action` is now structurally tied to `actions[]` — the booking MUST have this status if and only if at least one action has `status: pending`. When the last pending action completes, the business MUST transition the booking out of `requires_action`.
-- **Made actions mode-agnostic for non-payment actions:** In UCP-Native Mode, `actions[]` never contains `payment`-type actions (payment is handled by UCP checkout), but non-payment actions may appear on the booking inside the `create_checkout` response. `complete_checkout` may be rejected if non-payment actions are still pending.
-- **Added action ordering rationale:** Non-payment actions SHOULD precede payment actions so that the buyer can review requirements (e.g., read a liability waiver) and opt out before committing financially, avoiding unnecessary refunds.
-- **Removed `payment_url` from BookingPayment:** Absorbed into the payment action's `continue_url` field.
-- **Removed `expires_at` from PaymentContext:** Moved to the action-level `expires_at` field.
-- **Removed `booking.messages[]`:** The only concrete usage (`payment_required`) now lives on `action.message`. Response-level `messages[]` remains for business outcome errors/warnings. Removed `info` from response-level message types.
-- **Added `actions_pending` error code:** For when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending.
-- **Updated `schemas/scheduling.json`:** Added `Action` definition to `$defs` with `type`, `status`, `continue_url`, `expires_at`, `message`, and `payment_context`. Removed `payment_context`, `messages`, and `continue_url` from Booking properties. Added `actions` array. Removed `payment_url` from BookingPayment. Removed `expires_at` from PaymentContext.
-- **Updated all affected sections:** Glossary (1.2), operational modes (2.2.1), business responsibilities (2.1.2), architecture diagram text (2.3), booking status lifecycle (5.1), booking schema (5.2), create booking example (5.3.1), confirm-payment (5.3.7), UCP checkout flow (7.5), standalone mode (8), payment integration (8.5.1–8.5.7), checkout_systems (8.2), end-to-end flows (8.6), REST error model (9.1), and error code mapping (9.4).
+- **Introduced `actions[]` array on the booking object:** Replaced the flat
+  `payment_context`, `continue_url`, and `messages` fields on the booking with
+  an ordered `actions` array. Each action has `type`, `status`, `continue_url`,
+  `expires_at`, and an optional `message`. Payment actions carry a nested
+  `payment_context`. This makes the spec extensible for future non-payment
+  action types (e.g., waivers, intake forms) while cleaning up the `payment_url`
+  redundancy.
+- **Established the status-actions invariant:**
+  `booking.status: requires_action` is now structurally tied to `actions[]` —
+  the booking MUST have this status if and only if at least one action has
+  `status: pending`. When the last pending action completes, the business MUST
+  transition the booking out of `requires_action`.
+- **Made actions mode-agnostic for non-payment actions:** In UCP-Native Mode,
+  `actions[]` never contains `payment`-type actions (payment is handled by UCP
+  checkout), but non-payment actions may appear on the booking inside the
+  `create_checkout` response. `complete_checkout` may be rejected if non-payment
+  actions are still pending.
+- **Added action ordering rationale:** Non-payment actions SHOULD precede
+  payment actions so that the buyer can review requirements (e.g., read a
+  liability waiver) and opt out before committing financially, avoiding
+  unnecessary refunds.
+- **Removed `payment_url` from BookingPayment:** Absorbed into the payment
+  action's `continue_url` field.
+- **Removed `expires_at` from PaymentContext:** Moved to the action-level
+  `expires_at` field.
+- **Removed `booking.messages[]`:** The only concrete usage (`payment_required`)
+  now lives on `action.message`. Response-level `messages[]` remains for
+  business outcome errors/warnings. Removed `info` from response-level message
+  types.
+- **Added `actions_pending` error code:** For when `confirm-payment` or
+  `complete_checkout` is called while non-payment actions are still pending.
+- **Updated `schemas/scheduling.json`:** Added `Action` definition to `$defs`
+  with `type`, `status`, `continue_url`, `expires_at`, `message`, and
+  `payment_context`. Removed `payment_context`, `messages`, and `continue_url`
+  from Booking properties. Added `actions` array. Removed `payment_url` from
+  BookingPayment. Removed `expires_at` from PaymentContext.
+- **Updated all affected sections:** Glossary (1.2), operational modes (2.2.1),
+  business responsibilities (2.1.2), architecture diagram text (2.3), booking
+  status lifecycle (5.1), booking schema (5.2), create booking example (5.3.1),
+  confirm-payment (5.3.7), UCP checkout flow (7.5), standalone mode (8), payment
+  integration (8.5.1–8.5.7), checkout_systems (8.2), end-to-end flows (8.6),
+  REST error model (9.1), and error code mapping (9.4).
 
 ---
 

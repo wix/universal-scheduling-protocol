@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usp.dev/schemas/usp.json",
+  "title": "USP Metadata Object",
+  "description": "Defines the usp metadata object used in USP business profiles, platform profiles, and API responses. Each context uses a different variant defined in $defs.",
+  "$defs": {
+    "ServiceBinding": {
+      "type": "object",
+      "title": "ServiceBinding",
+      "description": "A transport-specific binding for a USP service endpoint. Each entry in a services registry value array is a ServiceBinding.",
+      "required": ["version", "transport"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "USP protocol version implemented at this endpoint (YYYY-MM-DD format)."
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["rest", "mcp", "a2a", "embedded"],
+          "description": "Transport protocol for this binding."
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL or connection URI for the endpoint. REQUIRED for rest, mcp, and a2a transports."
+        },
+        "spec": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the human-readable specification document for this service. RECOMMENDED."
+        },
+        "schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the machine-readable schema (OpenAPI for rest, OpenRPC for mcp). RECOMMENDED."
+        }
+      },
+      "additionalProperties": true
+    },
+    "CapabilityEntry": {
+      "type": "object",
+      "title": "CapabilityEntry",
+      "description": "Declares support for a specific version of a USP capability. Each entry in a capabilities registry value array is a CapabilityEntry.",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Capability version in YYYY-MM-DD format."
+        },
+        "spec": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the capability specification. RECOMMENDED in business and platform profiles."
+        },
+        "schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the capability JSON Schema. RECOMMENDED in business and platform profiles."
+        },
+        "extends": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ],
+          "description": "Base capability name(s) this capability extends, in reverse-domain format (e.g., dev.usp.services.bookings)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "BusinessInfo": {
+      "type": "object",
+      "title": "BusinessInfo",
+      "description": "Identity and locale information for the business.",
+      "required": ["name", "timezone", "currency"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable business display name (e.g., \"Sunrise Wellness Studio\")."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA Time Zone Database identifier (e.g., America/New_York). All times in catalog and availability responses are expressed relative to this timezone when no explicit offset is given."
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 default currency code (e.g., USD, EUR, GBP). Used as the fallback when pricing amounts do not carry an explicit currency field."
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique location identifier, stable across profile updates. Service objects reference this id via their locations[] array."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable location name (e.g., \"Downtown Studio\")."
+              },
+              "address": {
+                "type": "string",
+                "description": "Full postal address, formatted for display."
+              },
+              "coordinates": {
+                "type": "object",
+                "description": "Geographic coordinates for map-based discovery.",
+                "properties": {
+                  "lat": { "type": "number", "description": "Latitude in decimal degrees." },
+                  "lng": { "type": "number", "description": "Longitude in decimal degrees." }
+                }
+              }
+            }
+          },
+          "description": "OPTIONAL. Multi-location extension. Presence of this array signals that the business operates across multiple locations. Service objects SHOULD reference a location id from this list via their locations[] array."
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "title": "USP Base",
+      "description": "Shared base for all usp metadata objects. All variants extend this.",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "USP protocol version in YYYY-MM-DD format."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "error"],
+          "default": "success",
+          "description": "Application-level outcome of the USP operation. Used in API responses; not applicable to profile documents."
+        }
+      }
+    },
+    "business_schema": {
+      "allOf": [
+        { "$ref": "#/$defs/base" }
+      ],
+      "type": "object",
+      "title": "USP Business Profile Metadata",
+      "description": "The usp object published in a business's /.well-known/usp profile. Declares the services and capabilities the business exposes, its checkout integrations, and its identity.",
+      "required": ["version", "services", "capabilities", "business"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The USP protocol version implemented by this business (YYYY-MM-DD)."
+        },
+        "services": {
+          "type": "object",
+          "description": "Service endpoint registry. Keys are reverse-domain service names (e.g., dev.usp.services). Values are arrays of ServiceBinding objects, one per supported transport. The dev.usp.* namespace is reserved for the USP governing body.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/ServiceBinding" }
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",
+            "description": "Reverse-domain service name."
+          }
+        },
+        "capabilities": {
+          "type": "object",
+          "description": "Capability registry. Keys are reverse-domain capability names (e.g., dev.usp.services.catalog). Values are arrays of CapabilityEntry objects, one per supported capability version. Multiple entries for the same key indicate multi-version support.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/CapabilityEntry" }
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",
+            "description": "Reverse-domain capability name."
+          }
+        },
+        "checkout_systems": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["acp", "redirect", "embedded"]
+          },
+          "description": "OPTIONAL. Declares which checkout systems the business has integrated for paid bookings. Platforms use this field during onboarding to determine payment compatibility — it is not consulted per-transaction. Omit for businesses with only free or pay-at-service services."
+        },
+        "business": {
+          "$ref": "#/$defs/BusinessInfo",
+          "description": "Business identity and locale information. Required so that platforms can present the business correctly to buyers."
+        },
+        "supported_versions": {
+          "type": "object",
+          "description": "OPTIONAL. Backward-compatibility map. Keys are older USP protocol version strings (YYYY-MM-DD); values are URIs pointing to version-specific profile documents. Businesses that upgrade to a new USP version SHOULD advertise prior supported versions here for at least 90 days to allow older platforms to continue integrating.",
+          "additionalProperties": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI of the profile document conforming to the keyed protocol version."
+          },
+          "propertyNames": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "USP protocol version in YYYY-MM-DD format."
+          }
+        }
+      }
+    },
+    "platform_schema": {
+      "allOf": [
+        { "$ref": "#/$defs/base" }
+      ],
+      "type": "object",
+      "title": "USP Platform Profile Metadata",
+      "description": "The usp object published in a platform's profile document. The platform advertises this document's URI via the USP-Agent HTTP header (REST) or _meta.usp.profile field (MCP). Declares the capabilities the platform can consume, enabling businesses to perform server-side capability negotiation.",
+      "required": ["version", "capabilities"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The highest USP protocol version this platform supports (YYYY-MM-DD)."
+        },
+        "capabilities": {
+          "type": "object",
+          "description": "Capability declarations. Keys are reverse-domain capability names. Values are arrays of CapabilityEntry objects listing each capability version the platform can consume.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/CapabilityEntry" }
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",
+            "description": "Reverse-domain capability name."
+          }
+        },
+        "services": {
+          "type": "object",
+          "description": "OPTIONAL. Service consumption preferences. Keys are reverse-domain service names. Values are arrays declaring which transports the platform prefers, in preference order.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["transport"],
+              "properties": {
+                "transport": {
+                  "type": "string",
+                  "enum": ["rest", "mcp", "a2a", "embedded"],
+                  "description": "Preferred transport."
+                }
+              }
+            }
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$"
+          }
+        }
+      }
+    },
+    "response_schema": {
+      "allOf": [
+        { "$ref": "#/$defs/base" }
+      ],
+      "type": "object",
+      "title": "USP Response Metadata",
+      "description": "The usp object included in all USP API responses. Declares the protocol version and active capabilities for this specific response, scoped to the negotiated intersection of business and platform capabilities.",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The USP protocol version used for this response."
+        },
+        "capabilities": {
+          "type": "object",
+          "description": "Active capabilities for this response. Businesses SHOULD include only capabilities relevant to the specific operation type. Keys are reverse-domain capability names; values are arrays with a single entry declaring the negotiated version.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["version"],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "The negotiated capability version in YYYY-MM-DD format."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/base"
+}
