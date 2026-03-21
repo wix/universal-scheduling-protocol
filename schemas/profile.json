@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usp.dev/schemas/profile.json",
+  "title": "USP Profile",
+  "description": "Defines the structure of USP profile documents. A profile is a machine-readable JSON document that declares a participant's USP capabilities and configuration. Businesses publish a BusinessProfile at /.well-known/usp; platforms publish a PlatformProfile at a stable URI they advertise via the USP-Agent header (REST) or _meta.usp.profile field (MCP). See $defs/BusinessProfile and $defs/PlatformProfile.",
+  "$defs": {
+    "SigningKey": {
+      "type": "object",
+      "title": "SigningKey",
+      "description": "A public key in JWK format (RFC 7517) used to verify HTTP Message Signatures (RFC 9421) on webhook payloads sent by the profile publisher. The keyid parameter in the Signature-Input header of a webhook MUST match the kid of one of these keys.",
+      "required": ["kid", "kty"],
+      "properties": {
+        "kid": {
+          "type": "string",
+          "description": "Key ID. Referenced in the Signature-Input header's keyid parameter to identify which key was used to sign a webhook payload."
+        },
+        "kty": {
+          "type": "string",
+          "enum": ["EC", "RSA"],
+          "description": "Key type."
+        },
+        "crv": {
+          "type": "string",
+          "enum": ["P-256", "P-384"],
+          "description": "Elliptic curve name. REQUIRED when kty is EC."
+        },
+        "x": {
+          "type": "string",
+          "description": "X coordinate in base64url encoding (RFC 4648). REQUIRED for EC keys."
+        },
+        "y": {
+          "type": "string",
+          "description": "Y coordinate in base64url encoding (RFC 4648). REQUIRED for EC keys."
+        },
+        "n": {
+          "type": "string",
+          "description": "RSA modulus in base64url encoding. REQUIRED for RSA keys."
+        },
+        "e": {
+          "type": "string",
+          "description": "RSA public exponent in base64url encoding. REQUIRED for RSA keys."
+        },
+        "use": {
+          "type": "string",
+          "enum": ["sig", "enc"],
+          "description": "Intended key usage. SHOULD be set to sig for webhook verification keys."
+        },
+        "alg": {
+          "type": "string",
+          "enum": ["ES256", "ES384", "RS256"],
+          "description": "Algorithm intended for use with this key. ES256 (ECDSA P-256 + SHA-256) is RECOMMENDED. Implementations MUST support ES256. ES384 and RS256 are OPTIONAL."
+        }
+      }
+    },
+    "BusinessProfile": {
+      "type": "object",
+      "title": "BusinessProfile",
+      "description": "A USP business profile document. MUST be published at /.well-known/usp over HTTPS with no redirects and with Cache-Control: public, max-age>=60. Describes the scheduling endpoints, capabilities, payment support, business identity, and (optionally) webhook signing keys of a USP-enabled business.",
+      "required": ["usp"],
+      "properties": {
+        "usp": {
+          "$ref": "usp.json#/$defs/business_schema",
+          "description": "The USP metadata object. Contains version, services endpoint registry, capabilities registry, optional checkout_systems, business identity, and optional backward-compatibility declarations."
+        },
+        "signing_keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SigningKey" },
+          "description": "CONDITIONAL. Public keys for verifying webhook signatures. MUST be present when the business sends signed webhook payloads. Multiple keys MUST be supported to enable zero-downtime key rotation. The business SHOULD publish a new key before switching to it, and SHOULD retain the old key for at least 24 hours after rotation."
+        }
+      },
+      "additionalProperties": false
+    },
+    "PlatformProfile": {
+      "type": "object",
+      "title": "PlatformProfile",
+      "description": "A USP platform profile document. Published at a stable URI that the platform advertises on every USP API request via the USP-Agent HTTP header (REST binding) or the _meta.usp.profile field (MCP binding). Describes the capabilities and service preferences of the platform, enabling businesses to perform server-side capability negotiation without round-trip negotiation messages.",
+      "required": ["usp"],
+      "properties": {
+        "usp": {
+          "$ref": "usp.json#/$defs/platform_schema",
+          "description": "The USP metadata object. Contains version and capabilities registry. Optionally includes service consumption preferences."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

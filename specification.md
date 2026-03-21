@@ -104,6 +104,10 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 - [8. Standalone Mode](#8-standalone-mode)
     - [8.1 Overview and When to Use](#81-overview-and-when-to-use)
     - [8.2 Business Profile (/.well-known/usp)](#82-business-profile-well-knownusp)
+        - [8.2.1 Business Profile Fields](#821-business-profile-fields)
+        - [8.2.2 Profile Hosting Requirements](#822-profile-hosting-requirements)
+        - [8.2.3 Platform Profile](#823-platform-profile)
+        - [8.2.4 Backward Compatibility](#824-backward-compatibility)
     - [8.3 Capability Negotiation](#83-capability-negotiation)
     - [8.4 Versioning](#84-versioning)
     - [8.5 Payment Integration](#85-payment-integration)
@@ -3006,7 +3010,15 @@ and 10.2).
 
 ### 8.2 Business Profile (/.well-known/usp)
 
-Businesses publish their USP profile at `/.well-known/usp`:
+> **JSON Schemas:** [`schemas/profile.json`](schemas/profile.json) (see
+> `$defs/BusinessProfile`) and [`schemas/usp.json`](schemas/usp.json) (see
+> `$defs/business_schema`)
+
+Businesses publish their USP profile at `/.well-known/usp`. This document is
+the single source of truth for endpoint discovery, capability negotiation, and
+webhook verification key distribution. Platforms fetch this document to
+determine which transports, capabilities, and checkout systems the business
+supports before initiating any scheduling interactions.
 
 ```json
 {
@@ -3063,9 +3075,63 @@ Businesses publish their USP profile at `/.well-known/usp`:
       "timezone": "America/New_York",
       "currency": "USD"
     }
-  }
+  },
+  "signing_keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ]
 }
 ```
+
+#### 8.2.1 Business Profile Fields
+
+The business profile document has the following top-level fields:
+
+| Field          | Type              | Required    | Description                                                                                                                 |
+|----------------|-------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `usp`          | object            | **Yes**     | The USP metadata object. Contains version, services, capabilities, checkout systems, business identity, and backward-compatibility declarations. |
+| `signing_keys` | Array[SigningKey] | Conditional | Public keys for webhook signature verification. **MUST** be present when the business sends signed webhooks. See [Section 10.1.1](#1011-webhook-security). |
+
+The `usp` object fields:
+
+| Field               | Type   | Required | Description                                                                                                                   |
+|---------------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------------|
+| `version`           | string | **Yes**  | USP protocol version implemented by this business (`YYYY-MM-DD`).                                                            |
+| `services`          | object | **Yes**  | Service endpoint registry. Keys are reverse-domain service names (e.g., `dev.usp.services`). Values are arrays of **ServiceBinding** objects, one per supported transport. |
+| `capabilities`      | object | **Yes**  | Capability registry. Keys are reverse-domain capability names (e.g., `dev.usp.services.catalog`). Values are arrays of **CapabilityEntry** objects. |
+| `checkout_systems`  | array  | No       | Checkout systems integrated for paid bookings: `acp`, `redirect`, `embedded`. Omit for free or pay-at-service services.       |
+| `business`          | object | **Yes**  | Business identity: `name` (string, required), `timezone` (IANA identifier, required), `currency` (ISO 4217, required), `locations` (array, optional). |
+| `supported_versions`| object | No       | Backward-compatibility map. Keys are older protocol versions (`YYYY-MM-DD`); values are URIs to version-specific profiles. See [Section 8.2.4](#824-backward-compatibility). |
+
+Each **ServiceBinding** (an entry in a `services` value array) has:
+
+| Field      | Type       | Required    | Description                                                                                                    |
+|------------|------------|-------------|----------------------------------------------------------------------------------------------------------------|
+| `version`  | string     | **Yes**     | Protocol version implemented at this endpoint (`YYYY-MM-DD`).                                                 |
+| `transport`| string     | **Yes**     | Transport protocol: `rest`, `mcp`, `a2a`, or `embedded`.                                                      |
+| `endpoint` | string URI | Conditional | Base URL of the endpoint. **REQUIRED** for `rest`, `mcp`, and `a2a` transports.                              |
+| `spec`     | string URI | No          | URL to the human-readable specification. **RECOMMENDED**.                                                     |
+| `schema`   | string URI | No          | URL to the machine-readable schema (OpenAPI for `rest`, OpenRPC for `mcp`). **RECOMMENDED**.                  |
+
+Each **CapabilityEntry** (an entry in a `capabilities` value array) has:
+
+| Field     | Type              | Required | Description                                                                                    |
+|-----------|-------------------|----------|------------------------------------------------------------------------------------------------|
+| `version` | string            | **Yes**  | Capability version (`YYYY-MM-DD`).                                                            |
+| `spec`    | string URI        | No       | URL to the capability specification. **RECOMMENDED** in profiles.                             |
+| `schema`  | string URI        | No       | URL to the capability JSON Schema. **RECOMMENDED** in profiles.                               |
+| `extends` | string or array   | No       | Base capability name(s) this capability extends, in reverse-domain format.                    |
+
+Capability keys **MUST** use reverse-domain notation. The `dev.usp.*` namespace
+is reserved for the USP governing body. Vendor-defined capabilities **MUST**
+use the vendor's own reverse-domain prefix (e.g., `com.example.services.loyalty`).
 
 The `checkout_systems` field is an **OPTIONAL** array that declares which
 checkout systems the business has integrated for paid bookings. Platforms use
@@ -3086,20 +3152,168 @@ A business offering only free or pay-at-service services **MAY** omit
 > the information needed for compatibility assessment, but the actual onboarding
 > process occurs out-of-band.
 
+#### 8.2.2 Profile Hosting Requirements
+
+Business profiles **MUST** comply with the following hosting requirements:
+
+| Requirement      | Rule                                                                                                                                                        |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Transport**    | **MUST** be served over HTTPS. Plaintext HTTP **MUST** be rejected.                                                                                        |
+| **Redirects**    | **MUST NOT** issue HTTP 3xx redirects on the profile URL.                                                                                                  |
+| **Cache-Control**| **MUST** include `Cache-Control: public, max-age=<N>` where N ≥ 60. The directives `no-store`, `no-cache`, and `private` are prohibited.                  |
+| **Content-Type** | **MUST** return `Content-Type: application/json`.                                                                                                          |
+| **Schema**       | **MUST** conform to [`schemas/profile.json`](schemas/profile.json) `$defs/BusinessProfile`.                                                               |
+
+Platforms fetching business profiles:
+
+- **MUST** reject profile URLs that do not use the `https://` scheme and treat
+  them as `invalid_profile_url` errors (see [Section 9.4](#94-error-code-mapping)).
+- **MUST NOT** follow HTTP redirects when fetching profiles.
+- **SHOULD** cache the fetched profile for the TTL given in the `Cache-Control`
+  header, with a minimum floor of 60 seconds regardless of origin headers.
+- **MAY** refresh profiles asynchronously using stale-while-revalidate semantics.
+- **SHOULD** force-refresh the cached profile when a signed webhook arrives with
+  an unknown `kid`, but **MUST NOT** do so more than once per TTL floor per origin.
+
+#### 8.2.3 Platform Profile
+
+Platforms publish a machine-readable profile document at a stable HTTPS URI
+and advertise that URI on every API request:
+
+- **REST:** via the `USP-Agent` header (see [Section 9.1](#91-rest-binding)):
+  `USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"`
+- **MCP:** via the `_meta.usp.profile` JSON-RPC field (see
+  [Section 9.2](#92-mcp-binding)):
+  `"_meta": {"usp": {"profile": "https://agent.example/profiles/scheduling-agent.json"}}`
+
+The platform profile document describes which capabilities the platform can
+consume. Businesses fetch this document and compute the capability intersection
+to determine which capabilities to activate for responses — without any
+round-trip negotiation handshake.
+
+> **JSON Schemas:** [`schemas/profile.json`](schemas/profile.json) (see
+> `$defs/PlatformProfile`) and [`schemas/usp.json`](schemas/usp.json) (see
+> `$defs/platform_schema`)
+
+**Example platform profile document:**
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.catalog": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#3-service-catalog",
+          "schema": "https://usp.dev/schemas/services/catalog.json"
+        }
+      ],
+      "dev.usp.services.availability": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#4-availability",
+          "schema": "https://usp.dev/schemas/services/availability.json"
+        }
+      ],
+      "dev.usp.services.bookings": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp.dev/schemas/services/booking.json"
+        }
+      ]
+    },
+    "services": {
+      "dev.usp.services": [
+        { "transport": "rest" },
+        { "transport": "mcp" }
+      ]
+    }
+  }
+}
+```
+
+The `usp` object in a platform profile has the following fields:
+
+| Field          | Type   | Required | Description                                                                                                                              |
+|----------------|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `version`      | string | **Yes**  | The highest USP protocol version the platform supports (`YYYY-MM-DD`).                                                                  |
+| `capabilities` | object | **Yes**  | Capabilities the platform can consume. Same key/value format as the business profile: reverse-domain keys → arrays of CapabilityEntry.  |
+| `services`     | object | No       | Service consumption preferences. Keys are reverse-domain service names; values list preferred transports in preference order.            |
+
+Platform profile hosting requirements are identical to business profile
+requirements: HTTPS, no redirects, `Cache-Control: public, max-age≥60`,
+`Content-Type: application/json`.
+
+Businesses fetching platform profiles:
+
+- **MUST** reject profile URLs that do not use the `https://` scheme.
+- **MUST NOT** follow redirects.
+- **SHOULD** fetch and cache the platform profile lazily — on the first request
+  from a given profile URI — and refresh it according to the `Cache-Control` TTL
+  with a minimum floor of 60 seconds.
+- **MUST** treat platform profile fetch failures as protocol errors. See the
+  `profile_unreachable` and `profile_malformed` error codes in
+  [Section 9.4](#94-error-code-mapping).
+
+#### 8.2.4 Backward Compatibility
+
+The optional `supported_versions` field in the business profile enables
+businesses that have upgraded their USP implementation to continue serving older
+platforms that only understand a prior protocol version:
+
+```json
+{
+  "usp": {
+    "version": "2026-06-01",
+    "supported_versions": {
+      "2026-02-09": "https://business.example.com/.well-known/usp-2026-02-09"
+    },
+    "services": { ... },
+    "capabilities": { ... },
+    "business": { ... }
+  }
+}
+```
+
+Each key is an older protocol version string (`YYYY-MM-DD`). Each value is a
+URI pointing to a profile document that conforms to that older version's schema.
+Businesses that upgrade to a new USP version **SHOULD** advertise prior
+supported versions in `supported_versions` for at least 90 days to allow older
+platforms to continue discovering a compatible profile.
+
 ### 8.3 Capability Negotiation
 
-USP uses a **server-selects** negotiation model:
+USP uses a **server-selects** negotiation model. There is no handshake — the
+business computes the intersection of its own capabilities and the platform's
+capabilities and activates only shared capabilities silently on every response.
 
-1. Platform advertises its profile URI via the `USP-Agent` header (REST) or
-   `_meta.usp.profile` (MCP).
-2. Business fetches the platform profile, computes the capability intersection,
-   and responds using only shared capabilities. If a capability depends on an
-   extension that the platform does not support, the business **MUST** prune the
-   orphaned extension from the response.
-3. Every response **MUST** include a `usp` metadata object declaring the active
-   version and capabilities.
-4. If the intersection is empty (no shared capabilities), the business **MUST**
-   return a `version_unsupported` error.
+**Negotiation algorithm:**
+
+1. **Platform advertises its profile URI** on every request via the `USP-Agent`
+   header (REST) or `_meta.usp.profile` field (MCP). See
+   [Section 8.2.3](#823-platform-profile) for the platform profile structure.
+2. **Business fetches and caches the platform profile** lazily on first contact
+   from a given URI, then refreshes it per its `Cache-Control` TTL (minimum 60
+   seconds). Fetch failures **MUST** be returned as `profile_unreachable` or
+   `invalid_profile_url` protocol errors (see
+   [Section 9.4](#94-error-code-mapping)).
+3. **Business computes the capability intersection**: the set of capability keys
+   that appear in both the business profile's `capabilities` map and the platform
+   profile's `capabilities` map. For each shared key, the business selects the
+   highest mutually supported version.
+4. **Business responds using only capabilities in the intersection.** If a
+   capability depends on an extension that the platform does not support, the
+   business **MUST** prune the orphaned extension from the response.
+5. **Every response includes a `usp` object** declaring the active version and
+   the negotiated capabilities (see [Section 9.2.2](#922-requestresponse-format)
+   for the MCP example and REST envelope structure).
+6. **If the intersection is empty** (no shared capabilities), the business
+   **MUST** return a `capabilities_incompatible` error.
+
+**Example response `usp` object** (the negotiated intersection for a
+standard scheduling request):
 
 ```json
 {
@@ -3125,6 +3339,11 @@ USP uses a **server-selects** negotiation model:
   }
 }
 ```
+
+Businesses **SHOULD** include in the response `usp.capabilities` only the
+capabilities relevant to the specific operation type. For example, a response
+to `POST /availability/query` need not include `dev.usp.services.bookings` in
+the `usp.capabilities` map.
 
 ### 8.4 Versioning
 
@@ -3830,14 +4049,24 @@ USP defines the following error codes, which are transport-independent:
 
 **Protocol errors** (use standard HTTP status codes):
 
-| Protocol Error            | Description                                       | REST Status                 | JSON-RPC Code |
-|---------------------------|---------------------------------------------------|-----------------------------|---------------|
-| `invalid_request`         | Malformed JSON, missing required fields           | `400 Bad Request`           | `-32001`      |
-| `profile_unreachable`     | Business profile could not be fetched             | `424 Failed Dependency`     | `-32001`      |
-| `authentication_required` | Authentication credentials are missing or invalid | `401 Unauthorized`          | `-32000`      |
-| `rate_limited`            | Too many requests                                 | `429 Too Many Requests`     | `-32000`      |
-| `version_unsupported`     | The requested USP version is not supported        | `400 Bad Request`           | `-32011`      |
-| `server_error`            | Unexpected server failure                         | `500 Internal Server Error` | `-32603`      |
+| Protocol Error              | Description                                                                                                          | REST Status                 | JSON-RPC Code |
+|-----------------------------|----------------------------------------------------------------------------------------------------------------------|-----------------------------|---------------|
+| `invalid_request`           | Malformed JSON, missing required fields                                                                              | `400 Bad Request`           | `-32001`      |
+| `invalid_profile_url`       | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable                                               | `400 Bad Request`           | `-32001`      |
+| `profile_unreachable`       | Profile fetch failed (timeout, DNS failure, non-2xx response)                                                        | `424 Failed Dependency`     | `-32001`      |
+| `profile_malformed`         | Profile document is not valid JSON or fails schema validation against `schemas/profile.json`                         | `422 Unprocessable Entity`  | `-32001`      |
+| `capabilities_incompatible` | The capability intersection between the business and platform profiles is empty — no shared capabilities             | `200 OK`                    | result        |
+| `profile_not_trusted`       | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist)  | `403 Forbidden`             | `-32000`      |
+| `authentication_required`   | Authentication credentials are missing or invalid                                                                    | `401 Unauthorized`          | `-32000`      |
+| `rate_limited`              | Too many requests                                                                                                    | `429 Too Many Requests`     | `-32000`      |
+| `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32011`      |
+| `server_error`              | Unexpected server failure                                                                                            | `500 Internal Server Error` | `-32603`      |
+
+> **Note on `capabilities_incompatible`:** This is a business outcome error
+> (returned with HTTP 200 and a `messages[]` entry) rather than a protocol
+> error, because the request itself was valid — the business and platform simply
+> have no capabilities in common. The platform **SHOULD** surface this to the
+> operator as a configuration incompatibility.
 
 ### 9.5 Embedded Scheduling Protocol (ESP)
 
@@ -4028,22 +4257,45 @@ uses HTTP Message Signatures [RFC 9421] for webhook verification.
 
 **Signing Keys in Business Profile:**
 
-The business profile **MUST** include a `signing_keys` array containing one or
-more public keys in JWK format [RFC 7517]:
+The business profile **MUST** include a top-level `signing_keys` array
+containing one or more public keys in JWK format [RFC 7517]. See
+[Section 8.2.1](#821-business-profile-fields) for the full business profile
+structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
+hosting requirements.
+
+> **JSON Schema:** [`schemas/profile.json`](schemas/profile.json) (see
+> `$defs/SigningKey`) and [`schemas/usp.json`](schemas/usp.json)
 
 ```json
 {
+  "usp": { "..." : "..." },
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
       "kty": "EC",
       "crv": "P-256",
       "x": "...",
-      "y": "..."
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
     }
   ]
 }
 ```
+
+Each `SigningKey` object has the following fields:
+
+| Field | Type   | Required    | Description                                                                                                 |
+|-------|--------|-------------|-------------------------------------------------------------------------------------------------------------|
+| `kid` | string | **Yes**     | Key ID. Matched against the `keyid` parameter in the `Signature-Input` header to identify the signing key. |
+| `kty` | string | **Yes**     | Key type: `EC` or `RSA`.                                                                                   |
+| `crv` | string | Conditional | Elliptic curve: `P-256` or `P-384`. **REQUIRED** when `kty` is `EC`.                                      |
+| `x`   | string | Conditional | X coordinate (base64url). **REQUIRED** for EC keys.                                                        |
+| `y`   | string | Conditional | Y coordinate (base64url). **REQUIRED** for EC keys.                                                        |
+| `n`   | string | Conditional | Modulus (base64url). **REQUIRED** for RSA keys.                                                             |
+| `e`   | string | Conditional | Exponent (base64url). **REQUIRED** for RSA keys.                                                            |
+| `use` | string | No          | Intended key usage: `sig` or `enc`. **SHOULD** be set to `sig` for webhook verification keys.              |
+| `alg` | string | No          | Algorithm: `ES256`, `ES384`, or `RS256`. Implementations **MUST** support `ES256`. `ES384` and `RS256` are **OPTIONAL**. |
 
 Multiple keys **MUST** be supported for key rotation. The business **SHOULD**
 publish the new key before transitioning to it. Old keys **SHOULD** be retained
