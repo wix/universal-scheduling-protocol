@@ -1,5 +1,31 @@
 # Change Log
 
+## 21/03/26 at 14:05:04 by [kobym707](mailto:kobym@wix.com)
+
+- Added §11.2 Buyer Calendar Free/Busy Extension to `specification.md` — a MAY-level, platform-scoped extension that enables platforms to access a buyer's calendar for opaque free/busy blocks only, then cross-reference with business availability to suggest mutually free times. Addresses issue #18 requesting privacy-preserving calendar access for scheduling agents.
+- Introduced the `dev.usp.platform.*` capability namespace in §2.5 to distinguish platform-scoped capabilities (implemented entirely by the platform) from business-facing `dev.usp.services.*` capabilities. Needed because the calendar free/busy extension is the first capability that does not require any business-side implementation.
+- Created `schemas/calendar_freebusy.json` defining `BusyBlock` (opaque `{start, end}` with `additionalProperties: false` to enforce no event detail leakage), `BuyerFreeBusy` (aggregated buyer availability), and `CalendarProviderConfig` (informative provider reference).
+- Added `BusyBlock` and `BuyerFreeBusy` component schemas to `openapi/usp-rest.json` for schema registry completeness, even though no new endpoints are introduced (the feature is platform-internal).
+- Added `BusyBlock` and `BuyerFreeBusy` to the §1.2 Terminology table so the new types are discoverable alongside existing protocol terms.
+- Updated §11 Extensions intro to note that extensions can be platform-scoped, not just business-scoped.
+- Added informative references to §14.2 for RFC 4791 (CalDAV), Google Calendar FreeBusy API, and Microsoft Graph getSchedule API.
+
+---
+
+## 21/03/26 at 16:27:55 by [kobym707](mailto:kobym@wix.com)
+
+- Expanded §11.2.2 Proactive Agent Use Cases with 4 business-initiated reactive scenarios (#8–#11) that compose calendar free/busy with USP webhooks and the waitlist extension: calendar-aware waitlist auto-accept/decline, proactive rebooking on business cancellation, smart conflict detection on business-initiated reschedule, and waitlist priority pre-fetching. These demonstrate the extension's value beyond buyer-initiated flows.
+- Reorganized the use cases table into two groups — "Buyer-initiated scenarios" and "Business-initiated scenarios (reactive via webhooks)" — with cross-references to §5.4 (Webhooks) and §11.1 (Waitlist Extension).
+
+---
+
+## 21/03/26 at 14:12:18 by [kobym707](mailto:kobym@wix.com)
+
+- Added §11.2.2 Proactive Agent Use Cases to the calendar free/busy extension, describing 7 buyer-initiated agentic scenarios (conflict-aware slot presentation, multi-service coordination, smart rescheduling, travel-time-aware scheduling, availability-first discovery, recurring pattern matching, group scheduling) to strengthen the motivation for the extension and illustrate its value for AI-driven scheduling agents.
+- Renumbered §11.2.3–11.2.8 to §11.2.4–11.2.9 to accommodate the new sub-section.
+
+---
+
 ## 19/03/26 at 18:03:50 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Expanded `USPError` definition in `openrpc/usp-mcp.json` with a fully-typed `data` schema: `code` (string enum of all 22 §9.4 error codes including the 5 new profile error codes), `messages` (array of `$ref: Message`), and `severity` (enum). Previously the `data` field was an unstructured description string, making the error contract unvalidatable.

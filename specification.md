@@ -179,7 +179,9 @@ The following terms are used throughout this document:
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Booking**         | A confirmed or pending reservation of a specific service at a specific time for a specific buyer. A booking has a lifecycle (create, confirm, reschedule, cancel, complete).                                                                                                                                                                                     |
 | **Business**        | The entity offering time-based services. The business owns the schedule, resources, and booking policies. For payment purposes, the business is the Merchant of Record.                                                                                                                                                                                          |
+| **BusyBlock**       | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                                                                        |
 | **Buyer**           | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). The buyer is the primary contact for booking management, payment, and notifications. When no separate `recipient` is specified, the buyer is also the person receiving the service.                                               |
+| **BuyerFreeBusy**   | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                      |
 | **Capability**      | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
 | **Action**          | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
@@ -586,6 +588,15 @@ USP uses reverse-domain notation for capability names:
 
 The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use
 their own domain (e.g., `com.wix.services.courses`).
+
+Within the `dev.usp.*` namespace, capabilities are organized by scope:
+
+- `dev.usp.services.*` — Business-facing capabilities that the business
+  declares and platforms consume (e.g., `dev.usp.services.catalog`,
+  `dev.usp.services.availability`).
+- `dev.usp.platform.*` — Platform-scoped capabilities that the platform
+  declares and implements internally. These do not require business-side
+  support (e.g., `dev.usp.platform.calendar_freebusy`).
 
 ### 2.6 Multi-Location Businesses
 
@@ -4441,7 +4452,9 @@ Buyers **MUST** be able to revoke linked access at any time per [RFC 7009].
 Extensions are optional capabilities that build on the core scheduling
 functionality defined in Sections 3-5 and the infrastructure in Sections 9-10.
 Each extension uses the `extends` field to declare which base capability it
-augments.
+augments. Extensions may be **business-scoped** (declared by the business,
+consumed by platforms) or **platform-scoped** (declared and implemented
+entirely by the platform).
 
 Extensions are not required for a conforming USP implementation. Implementers *
 *SHOULD** add extensions based on the needs of their service verticals and buyer
@@ -4509,6 +4522,248 @@ cancellation fee for the original booking.
 | `waitlist.converted`        | A waitlist entry was converted to a booking                |
 | `waitlist.expired`          | An offer expired without acceptance                        |
 | `waitlist.position_changed` | A buyer's position in the waitlist changed                 |
+
+---
+
+### 11.2 Buyer Calendar Free/Busy Extension
+
+**Capability:** `dev.usp.platform.calendar_freebusy` (extends
+`dev.usp.services.availability`)
+
+This platform-scoped extension enables platforms to access a buyer's calendar
+for free/busy information only, then cross-reference that data with business
+availability to suggest only mutually free times. The business is not involved
+in this flow and does not receive the buyer's calendar data.
+
+Platforms **MAY** implement this extension. It is entirely platform-side — no
+business implementation is required.
+
+#### 11.2.1 Overview
+
+When a buyer connects their calendar, the platform obtains an OAuth token scoped
+to free/busy access only. The platform uses this token to retrieve opaque busy
+blocks — `[{start, end}]` pairs with no event details — and filters the
+business's available slots against them. This ensures the buyer is only
+presented with times that work for both parties.
+
+The extension is provider-agnostic. The following table lists well-known
+calendar providers and their free/busy-only access mechanisms (informative):
+
+| Provider ID   | Calendar Service                  | OAuth Scope / Access Method                                          |
+|---------------|-----------------------------------|----------------------------------------------------------------------|
+| `google`      | Google Calendar                   | `https://www.googleapis.com/auth/calendar.freebusy` (REST)           |
+| `microsoft`   | Microsoft Outlook / Exchange      | `Calendars.ReadBasic` (Microsoft Graph)                              |
+| `apple`       | Apple iCloud Calendar             | CalDAV `VFREEBUSY` query ([RFC 4791] REPORT method)                  |
+
+Platforms **MAY** support additional providers using vendor-prefixed identifiers
+(e.g., `com.fastmail.calendar`).
+
+> **Future extension:** A future version of USP **MAY** extend this capability
+> to allow platforms to pass opaque busy blocks to the business in
+> `POST /availability/query`, enabling server-side pre-filtering. This would be
+> a non-breaking change (new optional field) under the versioning rules in
+> [Section 8.4](#84-versioning).
+
+#### 11.2.2 Proactive Agent Use Cases
+
+Buyer calendar access is particularly valuable for AI agents that orchestrate
+scheduling proactively. The following table summarizes key use cases enabled by
+this extension:
+
+**Buyer-initiated scenarios:**
+
+| #  | Use Case                                  | Agent Scenario                                                            | How Calendar Free/Busy Helps                                                                                                                                                          |
+|----|-------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1  | **Conflict-aware slot presentation**      | "Book me a haircut next Tuesday."                                         | The agent filters business slots against the buyer's busy blocks and only presents times the buyer is actually free — no back-and-forth to reject conflicting options.                |
+| 2  | **Multi-service coordination**            | "Schedule a dentist appointment and a haircut on the same day."           | The agent books the first service, then queries the second business with the buyer's updated calendar (now including the first booking) to find a non-overlapping slot.               |
+| 3  | **Smart rescheduling suggestions**        | "I need to move my Thursday appointment."                                 | The agent knows the buyer's free windows around the original time and can suggest concrete alternatives ("You're free Wednesday 2-4pm and Friday 10am-12pm") in the first message.    |
+| 4  | **Travel-time-aware scheduling**          | Buyer has a meeting across town at 2pm, wants to book a nearby lunch.     | The agent sees the 2pm busy block and its location context (if available from surrounding schedule density) and suggests booking the lunch with enough buffer for travel.              |
+| 5  | **Availability-first business discovery** | "Find me a yoga class this week."                                         | The agent cross-references the buyer's free windows with multiple businesses' availability hints, ranking results by mutual availability rather than just proximity or ratings.        |
+| 6  | **Recurring availability pattern matching** | "Book me a weekly personal training session."                           | The agent analyzes the buyer's recurring free windows across multiple weeks to suggest a consistent time slot that avoids calendar conflicts long-term.                                |
+| 7  | **Group scheduling**                      | "Find a time for me and two friends to book an escape room."              | When multiple buyers have linked calendars, the agent intersects all participants' busy blocks with the business's availability to find times that work for everyone.                 |
+
+**Business-initiated scenarios (reactive via webhooks):**
+
+These use cases combine calendar free/busy access with USP webhooks
+([Section 5.4](#54-webhooks)) and the waitlist extension
+([Section 11.1](#111-waitlist-extension)) to enable autonomous agent responses
+to business-side events:
+
+| #  | Use Case                                       | Trigger                                                                       | How Calendar Free/Busy Helps                                                                                                                                                                                                   |
+|----|-------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 8  | **Calendar-aware waitlist acceptance**          | `waitlist.spot_offered` webhook — a spot opens for a waitlisted buyer.        | The agent checks the buyer's calendar against the offered slot. If the buyer is free, the agent auto-accepts before the offer expires. If the buyer has a conflict, the agent declines immediately so the next person is offered. |
+| 9  | **Proactive rebooking on business cancellation**| `booking.canceled` webhook — the business cancels (e.g., provider is sick).   | The agent immediately queries the buyer's calendar and the business's (or alternative businesses') availability to suggest replacement times that fit, without waiting for the buyer to initiate.                               |
+| 10 | **Smart reschedule on business-initiated move** | `booking.rescheduled` webhook — the business moves the appointment.           | The agent checks whether the new time conflicts with the buyer's calendar. If it does, the agent proactively negotiates an alternative with the business on the buyer's behalf.                                                |
+| 11 | **Waitlist priority optimization**              | `waitlist.position_changed` webhook — buyer moves up in the queue.            | As the buyer nears the front, the agent pre-fetches their calendar for the likely offer window. When the offer arrives, the agent can respond instantly rather than fetching calendar data under time pressure (offers have TTL). |
+
+#### 11.2.3 BusyBlock and BuyerFreeBusy Schemas
+
+> **JSON Schema:**
+> [`schemas/calendar_freebusy.json`](schemas/calendar_freebusy.json)
+
+**BusyBlock** — an opaque busy time block from the buyer's calendar:
+
+| Field   | Type   | Required | Description                       |
+|---------|--------|----------|-----------------------------------|
+| `start` | string | **Yes**  | RFC 3339 start of the busy period |
+| `end`   | string | **Yes**  | RFC 3339 end of the busy period   |
+
+`BusyBlock` uses `additionalProperties: false` to enforce that no event details
+(titles, descriptions, attendees, locations) can be included.
+
+**BuyerFreeBusy** — aggregated free/busy data for a buyer:
+
+| Field         | Type              | Required | Description                                                                                                            |
+|---------------|-------------------|----------|------------------------------------------------------------------------------------------------------------------------|
+| `buyer_ref`   | string            | **Yes**  | Opaque platform-generated buyer correlation ID. **MUST NOT** contain personally identifiable information.              |
+| `timezone`    | string            | **Yes**  | IANA timezone identifier for the buyer.                                                                                |
+| `queried_at`  | string            | **Yes**  | RFC 3339 timestamp of when the free/busy data was fetched. Used as a freshness indicator.                              |
+| `busy_blocks` | Array\[BusyBlock\]| **Yes**  | Busy time blocks merged across all connected calendar providers. Empty array means no conflicts in the queried range.  |
+
+All times in `BusyBlock` **MUST** use RFC 3339 with explicit UTC offsets to
+ensure correct cross-timezone handling when the buyer and business are in
+different timezones.
+
+#### 11.2.4 Platform Capability Advertisement
+
+Platforms advertise this capability in their platform profile (see
+[Section 8.2.3](#823-platform-profile)):
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.catalog": [{ "version": "2026-02-09" }],
+      "dev.usp.services.availability": [{ "version": "2026-02-09" }],
+      "dev.usp.platform.calendar_freebusy": [
+        {
+          "version": "2026-02-09",
+          "extends": "dev.usp.services.availability",
+          "supported_providers": ["google", "microsoft", "apple"]
+        }
+      ]
+    }
+  }
+}
+```
+
+The `supported_providers` field is an informational array listing the calendar
+providers the platform supports. It is not required for protocol correctness.
+
+#### 11.2.5 Buyer Consent and Token Management
+
+Platforms **MUST** obtain explicit buyer consent before accessing calendar
+free/busy data. The consent and token management requirements are:
+
+| Requirement | Level        | Description                                                                                                                          |
+|-------------|--------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| Consent     | **MUST**     | Obtain explicit buyer consent before accessing calendar free/busy data.                                                              |
+| Scope       | **MUST**     | Use the narrowest available OAuth scope for each provider (e.g., `calendar.freebusy` for Google, **not** `calendar.readonly`).       |
+| No details  | **MUST NOT** | Access, store, or transmit event details (titles, descriptions, attendees, locations). Only `{start, end}` pairs.                    |
+| Encryption  | **MUST**     | Store refresh tokens server-side, encrypted at rest. Tokens **MUST NOT** be exposed to client-side code.                             |
+| Revocation  | **MUST**     | Allow the buyer to revoke calendar access at any time. Revocation **MUST** invalidate stored tokens promptly.                        |
+| Re-consent  | **SHOULD**   | Re-verify buyer consent periodically (RECOMMENDED: every 90 days).                                                                   |
+| Audit       | **SHOULD**   | Maintain an audit log of calendar access (timestamp, buyer_ref, provider, date range queried).                                        |
+
+The OAuth flow for connecting a buyer's calendar is between the platform and
+the calendar provider — it follows standard OAuth 2.0 Authorization Code flow
+([RFC 6749]) and is outside the scope of USP protocol exchanges. The flow is
+analogous to the identity linking flow described in
+[Section 10.2.4](#1024-identity-linking), but scoped to the calendar provider
+rather than the business.
+
+#### 11.2.6 Integration with Availability Query
+
+The platform cross-references buyer free/busy data with business availability
+entirely on the platform side. The recommended pattern is:
+
+1. Platform obtains the buyer's busy blocks from the calendar provider.
+2. Platform queries business availability via `POST /availability/query`.
+3. Platform filters business slots against the buyer's busy blocks.
+4. Platform presents only mutually available slots to the buyer.
+
+**No changes to `POST /availability/query` are required.** The business
+endpoint remains unchanged. Filtering happens entirely on the platform side.
+
+Platforms **MUST NOT** send the buyer's free/busy data to the business. The
+buyer's calendar data never leaves the platform. This is a firm privacy
+boundary.
+
+**Filtering algorithm (informative):**
+
+```
+for each slot in business_slots:
+    is_conflicting = false
+    for each block in buyer_busy_blocks:
+        if slot.start < block.end AND slot.end > block.start:
+            is_conflicting = true
+            break
+    if not is_conflicting:
+        include slot in filtered_results
+```
+
+Platforms **MAY** apply more sophisticated logic, such as adding buffer time
+around busy blocks or weighting partially-overlapping slots lower rather than
+excluding them entirely.
+
+#### 11.2.7 Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Bu as Buyer
+    participant P as Platform / Agent
+    participant CP as Calendar Provider
+    participant B as Business
+
+    rect rgb(255, 243, 224)
+    Note over Bu,CP: One-time: Calendar Linking (OAuth 2.0)
+    Bu->>P: "Connect my calendar"
+    P->>CP: OAuth authorize (scope: freebusy only)
+    Bu->>CP: Grant consent
+    CP-->>P: Authorization code
+    P->>CP: Exchange for tokens
+    CP-->>P: access_token + refresh_token
+    Note over P: Store refresh_token encrypted, server-side
+    end
+
+    rect rgb(230, 245, 255)
+    Note over Bu,B: Scheduling Flow
+    Bu->>P: "Book a haircut for next Tuesday"
+    P->>CP: Query free/busy (next Tuesday)
+    CP-->>P: Busy blocks [{10:00-11:00}, {14:00-15:00}]
+    P->>B: POST /availability/query (next Tuesday)
+    B-->>P: Available slots [09:00, 10:00, 11:00, 13:00, 14:00, 15:00]
+    Note over P: Filter: remove 10:00 (conflicts 10-11)<br/>remove 14:00 (conflicts 14-15)
+    P->>Bu: "You're free at 09:00, 11:00, 13:00, and 15:00"
+    end
+```
+
+#### 11.2.8 Caching
+
+Buyer calendar data changes frequently. Platforms **SHOULD** apply short cache
+TTLs:
+
+| Query Range        | Recommended TTL | Rationale                                    |
+|--------------------|-----------------|----------------------------------------------|
+| Same-day queries   | 5 minutes       | Buyer's schedule may change on short notice  |
+| Future dates (1d+) | 30 minutes      | Longer horizon tolerates slightly stale data |
+
+Platforms **SHOULD** re-fetch free/busy data before committing to a hold or
+booking to minimize the risk of conflicts arising from stale cached data.
+
+#### 11.2.9 Security and Privacy
+
+| Requirement                        | Level          | Description                                                                                                   |
+|------------------------------------|----------------|---------------------------------------------------------------------------------------------------------------|
+| Narrowest OAuth scope              | **MUST**       | Use free/busy-only scopes. Never request full calendar read access for this feature.                          |
+| No event details                   | **MUST NOT**   | Store, transmit, or log event details (titles, descriptions, attendees, locations).                           |
+| Token encryption                   | **MUST**       | Encrypt stored refresh tokens at rest.                                                                        |
+| Buyer revocation                   | **MUST**       | Support buyer-initiated revocation of calendar access at any time.                                            |
+| No sharing with business           | **MUST NOT**   | Send buyer free/busy data to the business or any third party.                                                 |
+| Short-lived access tokens          | **SHOULD**     | Use short-lived access tokens and refresh as needed.                                                          |
+| Audit logging                      | **SHOULD**     | Log calendar access events (timestamp, buyer\_ref, provider, date range).                                     |
+| Data minimization                  | **MUST**       | Comply with GDPR / CCPA data minimization principles. Only store what is necessary for the free/busy feature. |
 
 ---
 
@@ -4647,6 +4902,15 @@ registration of:
   Type". https://schema.org/Service
 - **[UCP]** Universal Commerce Protocol, "UCP Specification", Version
   2026-01-11. https://ucp.dev/latest/specification/overview/
+- **[RFC 4791]** Daboo, C., Desruisseaux, B., and L. Dusseault, "Calendaring
+  Extensions to WebDAV (CalDAV)", RFC 4791, DOI 10.17487/RFC4791, March
+  2007. https://www.rfc-editor.org/rfc/rfc4791
+- **[Google Calendar FreeBusy API]** Google, "Freebusy: query", Google Calendar
+  API
+  Reference. https://developers.google.com/calendar/api/v3/reference/freebusy/query
+- **[Microsoft Graph getSchedule]** Microsoft, "Get free/busy schedule of
+  users and resources", Microsoft Graph API
+  Reference. https://learn.microsoft.com/en-us/graph/api/calendar-getschedule
 
 ---
 
