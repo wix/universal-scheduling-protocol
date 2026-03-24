@@ -736,6 +736,13 @@ Response:
 | `feed_meta.total_services`    | integer | **Yes**  | Total number of active (non-deleted) services in the business's catalog. Aggregators can use this to verify completeness of their index.                                                                                                                     |
 | `feed_meta.feed_status`       | string  | **Yes**  | Health status of the feed. `healthy`: feed is fully up-to-date. `degraded`: feed may be missing recent changes (e.g., partial index rebuild in progress). `rebuilding`: feed is being regenerated from scratch; aggregators **SHOULD** expect a full resync. |
 
+> **Note:** The feed endpoint uses `pagination.next_cursor` (a timestamp
+> string) rather than the generic `cursor` used by all other paginated USP
+> operations. This is intentional: the feed cursor is a `modified_at` timestamp
+> that enables incremental RPDE-style synchronization, and its semantics differ
+> from the opaque cursor used for interactive paging. See
+> [Section 9.1.2](#912-pagination) for the shared cursor model.
+
 The `List Services` operation ([Section 3.12](#312-operations)) remains
 available for interactive use by platform UIs and AI agents. The feed endpoint
 is designed for bulk indexing by aggregators.
@@ -1749,6 +1756,16 @@ A time slot represents a specific, bookable window for a service. Slots are
 computed dynamically by the business from schedules, resource calendars, and
 existing bookings.
 
+> **Non-transactional:** Availability responses are **not** transactional
+> commitments. A slot returned as `available` reflects the business's state at
+> query time; by the time `create_booking` is called the slot may have been
+> taken by another platform or buyer. Platforms **MUST NOT** assume that an
+> `available` slot will remain bookable. The optional hold mechanism
+> ([Section 4.2](#42-hold)) provides a short-lived, best-effort reservation to
+> reduce — but not eliminate — this race window. Businesses **MUST** validate
+> slot availability at booking creation time regardless of whether a hold was
+> placed.
+
 | Field        | Type            | Required | Description                                                                                                                                                                                                                                    |
 |--------------|-----------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `id`         | string          | **Yes**  | Unique slot identifier, opaque to the platform. The business generates this and it is used to reference the slot in hold and booking operations.                                                                                               |
@@ -1789,6 +1806,24 @@ when they expire, are explicitly released, or are converted to a booking.
 | `expires_at` | string  | **Yes**  | RFC 3339 expiration time. After this time, the hold is automatically released. Businesses **SHOULD** set hold TTL between 5 and 10 minutes.                                                                                       |
 | `status`     | string  | **Yes**  | `active`: hold is in effect and the slot is reserved. `expired`: hold TTL has elapsed; the slot is released. `released`: hold was explicitly released by the platform. `converted`: hold was successfully converted to a booking. |
 
+#### Concurrent Holds
+
+The business **MUST** enforce hold concurrency rules that match the service's
+capacity model:
+
+- **`appointment` type:** A slot represents a single bookable unit (one
+  resource at one time). The business **MUST NOT** accept more than one active
+  hold per slot. A second hold request on the same slot **MUST** be rejected
+  with `slot_unavailable`.
+- **`group` and `reservation` types:** Multiple concurrent holds are permitted
+  up to the slot's remaining capacity. A hold requesting `spots` that would
+  exceed `capacity.remaining` **MUST** be rejected with `slot_unavailable`.
+  Businesses **MUST** decrement `capacity.remaining` immediately when a hold is
+  created and restore it on expiry, release, or failure.
+- **`rental` type:** Holds on the same resource that overlap in time **MUST**
+  be rejected with `slot_unavailable`, treating the resource as equivalent to an
+  appointment-type slot for concurrency purposes.
+
 ### 4.3 Operations
 
 #### 4.3.1 Query Availability - `POST /availability/query`
@@ -1805,6 +1840,23 @@ the date range before querying.
 | `timezone`    | string  | No       | IANA timezone. Defaults to business timezone.                                                                                        |
 | `resource_id` | string  | No       | Preferred resource (e.g., specific staff member). If provided, only slots where this resource is available are returned.             |
 | `party_size`  | integer | No       | Number of participants. Default: 1. For `group` and `reservation` types, only slots with sufficient remaining capacity are returned. |
+| `location_id` | string  | No       | Location filter. When provided, only slots at the specified location are returned. Applies to multi-location businesses (see [Section 2.6](#26-multi-location-businesses)). |
+| `locale`      | string  | No       | BCP 47 language tag (e.g., `"en-US"`). When provided, the business **SHOULD** return human-readable content (resource names, slot labels, `opening_hours` day names) in the requested locale. |
+| `cursor`      | string  | No       | Opaque pagination cursor returned by a previous response. See [Section 9.1.2](#912-pagination). |
+
+> **Date Range Guidance:** Platforms **SHOULD** query at most 7 calendar days
+> per request, consistent with the slot-query tier's intended use (see
+> [Section 4.4](#44-caching-strategy)). Businesses **MAY** reject queries
+> spanning more than their configured maximum by returning HTTP 422 with error
+> code `range_too_wide`. Platforms that need broader coverage should use the
+> [Availability Hint](#36-availability-hint) to identify productive date ranges
+> before issuing multiple bounded queries.
+
+> **Single-Service Design:** Each query targets exactly one service. For
+> multi-service scenarios (e.g., booking a haircut followed by a color
+> treatment), platforms **SHOULD** issue separate queries per service and
+> correlate results client-side. A future multi-service availability extension
+> is under consideration.
 
 Request:
 
@@ -1812,9 +1864,11 @@ Request:
 {
   "service_id": "svc_haircut_001",
   "start_date": "2026-03-15",
-  "end_date": "2026-03-16",
+  "end_date": "2026-03-21",
   "timezone": "America/New_York",
-  "resource_id": "staff_jane"
+  "resource_id": "staff_jane",
+  "location_id": "loc_main",
+  "locale": "en-US"
 }
 ```
 
@@ -1899,6 +1953,26 @@ Response:
   }
 }
 ```
+
+**Response fields:**
+
+| Field                          | Type            | Required | Description                                                                                                                                                                                           |
+|--------------------------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service_id`                   | string          | **Yes**  | Echoes the queried service identifier.                                                                                                                                                                |
+| `slots`                        | array           | **Yes**  | List of available time slots. See [Section 4.1](#41-time-slot) for the slot schema. Empty array when no slots match the query.                                                                        |
+| `opening_hours`                | array           | No       | Regular business hours for the queried period. See table below. Special closures are reflected by the absence of slots, not by this field.                                                            |
+| `messages`                     | array           | No       | Optional informational or warning messages about the result set (e.g., reduced availability due to staff absence, holiday hours in effect). See `messages[]` schema in [Section 9.1](#91-rest-binding). |
+| `pagination`                   | object          | No       | Pagination state. See [Section 9.1.2](#912-pagination). `cursor`: opaque string for the next page (null when no more pages). `has_more`: boolean.                                                     |
+
+**`opening_hours[]` fields:**
+
+| Field         | Type            | Required | Description                                                                                                                                     |
+|---------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `day_of_week` | array\[string\] | **Yes**  | Days this entry applies to. Values are lowercase English day names: `"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"`. |
+| `opens`       | string          | **Yes**  | Opening time in `HH:MM` 24-hour format (local business time).                                                                                   |
+| `closes`      | string          | **Yes**  | Closing time in `HH:MM` 24-hour format (local business time). A value of `"00:00"` or `"24:00"` indicates midnight (end of day).                |
+
+Slots are returned in ascending `start` order. For pagination behavior see [Section 9.1.2](#912-pagination).
 
 #### 4.3.2 Hold Slot - `POST /availability/holds`
 
@@ -1996,6 +2070,7 @@ Response:
     "id": "hold_abc123",
     "slot_id": "slot_20260315_0900",
     "service_id": "svc_haircut_001",
+    "spots": 1,
     "expires_at": "2026-03-15T08:10:00-04:00",
     "status": "released"
   }
@@ -4202,6 +4277,43 @@ Idempotency is critical for booking operations where network retries could
 create duplicate reservations. For read-only operations (`GET`,
 `POST /services/list`, `POST /availability/query`), idempotency keys are not
 required.
+
+#### 9.1.2 Pagination
+
+Several USP operations return paginated result sets. All paginated operations
+use the same cursor-based model described here.
+
+**Request fields (for paginated operations):**
+
+| Field    | Type    | Required | Description                                                                                               |
+|----------|---------|----------|-----------------------------------------------------------------------------------------------------------|
+| `cursor` | string  | No       | Opaque cursor string from the previous response's `pagination.cursor`. Omit on the first request.         |
+| `limit`  | integer | No       | Requested page size. Businesses **MAY** apply a lower or upper cap and **SHOULD** document their default. |
+
+**Response fields:**
+
+| Field              | Type    | Required | Description                                                                       |
+|--------------------|---------|----------|-----------------------------------------------------------------------------------|
+| `pagination.cursor`    | string\|null | **Yes** | Opaque cursor to pass in the next request. `null` when there are no more pages. |
+| `pagination.has_more`  | boolean | **Yes** | `true` if additional pages exist; `false` on the last page.                       |
+
+**Semantics:**
+
+- Cursors are opaque strings. Platforms **MUST NOT** attempt to parse or
+  construct them.
+- Businesses **SHOULD** honor a cursor for at least 60 seconds after it is
+  issued. Platforms that retry after cursor expiry **MAY** receive a
+  `cursor_expired` error and **SHOULD** restart from the first page.
+- Result ordering is operation-specific and is stated at each operation. For
+  `POST /availability/query`, slots are returned in ascending `start` order.
+- Businesses **SHOULD** use a default page size of 50 items for slot queries
+  and 20 items for service lists.
+
+> **Feed endpoint exception:** The `GET /services/feed` endpoint
+> ([Section 3.1](#31-service-catalog-feed)) uses a timestamp-based cursor
+> named `next_cursor` (not `cursor`) because its pagination semantics are tied
+> to the RPDE incremental-sync model. All other paginated USP operations use
+> the `cursor`/`has_more` pattern described above.
 
 ### 9.2 MCP Binding
 
