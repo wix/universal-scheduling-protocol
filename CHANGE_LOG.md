@@ -1,5 +1,19 @@
 # Change Log
 
+## 24/03/26 at 23:03:02 by [kobym707](mailto:kobym@wix.com)
+
+- Added non-transactional disclaimer to §4.1 (Gap 3.1): slots are advisory-only; platforms MUST NOT treat availability responses as booking commitments, and businesses MUST validate slot availability at booking creation time regardless of holds.
+- Added `location_id` to §4.3.1 request field table (Gap 3.2): was already in OpenAPI/OpenRPC but absent from the normative prose; now synced across all artifacts.
+- Added date range guidance to §4.3.1 (Gap 3.3): platforms SHOULD query at most 7 calendar days per request; businesses MAY reject wider ranges with HTTP 422 and error code `range_too_wide`.
+- Added optional `messages` array to §4.3.1 query response (Gap 3.4): consistent with hold response; enables businesses to return soft warnings (e.g., holiday hours, reduced staffing) alongside slots.
+- Added single-service design note to §4.3.1 (Gap 3.5): documents the deliberate single-service-per-query design choice and notes that a future multi-service availability extension is under consideration.
+- Added §9.1.2 Pagination to the REST Binding section (Gap 3.6): defines shared cursor semantics (opaque cursors, 60s minimum TTL, ordering note, default page sizes) used by all paginated USP operations; added cross-reference in §4.3.1; noted the intentional `next_cursor` vs `cursor` distinction between the feed and all other endpoints in §3.1.
+- Added `spots: 1` to §4.3.3 release response example (Gap 3.7): release response now matches hold response schema for consistency.
+- Added "Concurrent Holds" subsection to §4.2 (Gap 3.8): normative MUST/MUST NOT rules for concurrent hold behavior by service type — `appointment` allows one active hold maximum, `group`/`reservation` allows multiple up to remaining capacity, `rental` treats resource overlap as unavailable.
+- Added `opening_hours[]` field table to §4.3.1 response (Gap 3.9): defines `day_of_week` (lowercase day names), `opens` (HH:MM), `closes` (HH:MM), and clarifies the field reflects regular hours only; special closures are surfaced via absent slots. Fixed OpenRPC `usp_availability_query` result to include full item schema (was previously `"type": "array"` with no properties).
+- Added optional `locale` (BCP 47) parameter to §4.3.1 (Gap 3.10): allows platforms to request locale-specific human-readable content; narrowed UCP's full context/signals suggestion to only the scheduling-relevant subset.
+- Added `locale`, `cursor`, and `limit` parameters to `usp_availability_query` in `openrpc/usp-mcp.json` and `openapi/usp-rest.json` to keep all artifacts in sync.
+- Expanded `Pagination` schema descriptions in both `usp-rest.json` and `usp-mcp.json`.
 ## 24/03/26 at 13:47:43 by [kobym707](mailto:kobym@wix.com)
 
 - **Gap 2.10:** Added optional `tags` (array of strings) and `metadata` (freeform object) to Service schema, aligning with UCP. Enables freeform categorization and business-defined custom data.

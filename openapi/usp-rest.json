@@ -101,30 +101,31 @@
       },
       "PaginationRequest": {
         "type": "object",
+        "description": "Cursor-based pagination request fields. See Section 9.1.2 of the USP specification.",
         "properties": {
+          "cursor": {
+            "type": ["string", "null"],
+            "description": "Opaque pagination cursor from the previous response. Omit on the first request."
+          },
           "limit": {
             "type": "integer",
-            "default": 20
-          },
-          "cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "default": 20,
+            "description": "Requested page size. Businesses MAY apply a lower or upper cap."
           }
         }
       },
       "Pagination": {
         "type": "object",
+        "description": "Cursor-based pagination state. See Section 9.1.2 of the USP specification.",
+        "required": ["cursor", "has_more"],
         "properties": {
           "cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"],
+            "description": "Opaque cursor for the next page. Pass this value as the cursor field in the next request body. null when there are no more pages."
           },
           "has_more": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "true if additional pages exist beyond this one; false on the last page."
           }
         }
       },
@@ -3254,6 +3255,7 @@
           "Availability"
         ],
         "summary": "Query Availability",
+        "description": "Returns available time slots for a service within a date range. Platforms SHOULD query at most 7 calendar days per request. Businesses MAY reject wider ranges with HTTP 422 and error code range_too_wide. Slots are returned in ascending start order. See Section 9.1.2 of the specification for pagination semantics.",
         "operationId": "queryAvailability",
         "parameters": [
           {
@@ -3299,7 +3301,19 @@
                   },
                   "location_id": {
                     "type": "string",
-                    "description": "Location ID to filter by (for multi-location businesses)."
+                    "description": "Location filter. Only slots at this location are returned. Applies to multi-location businesses."
+                  },
+                  "locale": {
+                    "type": "string",
+                    "description": "BCP 47 language tag (e.g., en-US). When provided, the business SHOULD return human-readable content (resource names, slot labels, opening_hours day names) in the requested locale."
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Omit on the first request. See Section 9.1.2 of the specification."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Requested page size. Businesses MAY apply a lower or upper cap."
                   }
                 }
               }
@@ -3334,25 +3348,35 @@
                         },
                         "opening_hours": {
                           "type": "array",
-                          "description": "Business opening hours for the queried date range.",
+                          "description": "Regular business hours for the queried period. Special closures are reflected by the absence of slots, not by this field.",
                           "items": {
                             "type": "object",
+                            "required": ["day_of_week", "opens", "closes"],
                             "properties": {
                               "day_of_week": {
                                 "type": "array",
+                                "description": "Days this entry applies to. Lowercase English day names: monday, tuesday, wednesday, thursday, friday, saturday, sunday.",
                                 "items": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
                                 }
                               },
                               "opens": {
                                 "type": "string",
-                                "description": "Opening time in HH:MM format."
+                                "description": "Opening time in HH:MM 24-hour format (local business time)."
                               },
                               "closes": {
                                 "type": "string",
-                                "description": "Closing time in HH:MM format."
+                                "description": "Closing time in HH:MM 24-hour format (local business time). 00:00 or 24:00 indicates midnight (end of day)."
                               }
                             }
+                          }
+                        },
+                        "messages": {
+                          "type": "array",
+                          "description": "Optional informational or warning messages about the result set (e.g., reduced availability due to staff absence, holiday hours in effect).",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
                           }
                         },
                         "pagination": {

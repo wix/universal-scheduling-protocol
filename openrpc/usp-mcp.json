@@ -608,7 +608,7 @@
     {
       "name": "usp_availability_query",
       "summary": "Query Availability",
-      "description": "Returns available time slots for a service within a date range. Maps to POST /availability/query.",
+      "description": "Returns available time slots for a service within a date range. Maps to POST /availability/query. Platforms SHOULD query at most 7 calendar days per request. Businesses MAY reject wider ranges with error code range_too_wide. Slots are returned in ascending start order.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -639,35 +639,40 @@
           "name": "service_id",
           "required": true,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "The service to query."
           }
         },
         {
           "name": "start_date",
           "required": true,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "Start of range (RFC 3339 date or datetime)."
           }
         },
         {
           "name": "end_date",
           "required": true,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "End of range (RFC 3339 date or datetime)."
           }
         },
         {
           "name": "timezone",
           "required": false,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "IANA timezone. Defaults to business timezone."
           }
         },
         {
           "name": "resource_id",
           "required": false,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "Preferred resource. If provided, only slots where this resource is available are returned."
           }
         },
         {
@@ -675,14 +680,40 @@
           "required": false,
           "schema": {
             "type": "integer",
-            "default": 1
+            "default": 1,
+            "description": "Number of participants. For group/reservation types, only slots with sufficient remaining capacity are returned."
           }
         },
         {
           "name": "location_id",
           "required": false,
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "Location filter. Only slots at this location are returned. Applies to multi-location businesses."
+          }
+        },
+        {
+          "name": "locale",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "BCP 47 language tag (e.g., en-US). When provided, the business SHOULD return human-readable content (resource names, slot labels, opening_hours day names) in the requested locale."
+          }
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "Opaque pagination cursor from a previous response. Omit on the first request."
+          }
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "description": "Requested page size. Businesses MAY apply a lower or upper cap."
           }
         }
       ],
@@ -709,7 +740,37 @@
               }
             },
             "opening_hours": {
-              "type": "array"
+              "type": "array",
+              "description": "Regular business hours for the queried period. Special closures are reflected by the absence of slots, not by this field.",
+              "items": {
+                "type": "object",
+                "required": ["day_of_week", "opens", "closes"],
+                "properties": {
+                  "day_of_week": {
+                    "type": "array",
+                    "description": "Days this entry applies to. Lowercase English day names.",
+                    "items": {
+                      "type": "string",
+                      "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                    }
+                  },
+                  "opens": {
+                    "type": "string",
+                    "description": "Opening time in HH:MM 24-hour format (local business time)."
+                  },
+                  "closes": {
+                    "type": "string",
+                    "description": "Closing time in HH:MM 24-hour format (local business time). 00:00 or 24:00 indicates midnight (end of day)."
+                  }
+                }
+              }
+            },
+            "messages": {
+              "type": "array",
+              "description": "Optional informational or warning messages about the result set.",
+              "items": {
+                "$ref": "#/components/schemas/Message"
+              }
             },
             "pagination": {
               "$ref": "#/components/schemas/Pagination"
@@ -2540,15 +2601,16 @@
       },
       "Pagination": {
         "type": "object",
+        "description": "Cursor-based pagination state. See Section 9.1.2 of the USP specification.",
+        "required": ["cursor", "has_more"],
         "properties": {
           "cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"],
+            "description": "Opaque cursor for the next page. Pass this value as the cursor param in the next request. null when there are no more pages."
           },
           "has_more": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "true if additional pages exist beyond this one; false on the last page."
           }
         }
       }
