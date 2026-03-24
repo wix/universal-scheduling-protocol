@@ -1,5 +1,99 @@
 # Change Log
 
+## 24/03/26 at 13:47:43 by [kobym707](mailto:kobym@wix.com)
+
+- **Gap 2.10:** Added optional `tags` (array of strings) and `metadata` (freeform object) to Service schema, aligning with UCP. Enables freeform categorization and business-defined custom data.
+- **Gap 2.11:** Fixed space-in-URL typo in feed example (`cursor=2026-03-10T08: 00: 00Z`). Changed feed cursor examples to opaque values (`crs_...`) since the spec says cursors are opaque. Removed `format: date-time` from feed cursor parameter in OpenAPI.
+- **Gap 2.12:** Standardized feed pagination from `next_cursor` to `cursor` to match the `Pagination` component used by `/services/list`. Both endpoints now use `{cursor, has_more}`.
+- **Gap 2.13:** Added §3.13 Catalog Conformance Requirements with 10 numbered MUST/SHOULD requirements for `dev.usp.services.catalog` implementations.
+- **Gap 2.14:** Already addressed — formal filter table was added in the earlier catalog_search alignment commit.
+- **Gap 2.15:** Added optional `categories` array (multi-taxonomy, `{value, taxonomy}` entries) to Service schema alongside existing `category`. If both present, `categories` is authoritative. Aligns with UCP.
+- **Gap 2.16:** Added optional `handle` (URL-friendly slug) and `url` (canonical page) fields to Service schema. Aligns with UCP.
+- **Gap 2.17:** Added `status` field to Service schema with values `active` (default), `suspended`, `archived`. Formally defines the `suspended` state referenced by `service.suspended` webhook events.
+- **Gap 2.18:** Added formal webhook payload schema table for catalog change events, defining `event`, `service_id`, `subscription_id`, `timestamp`, and `data` fields with required/optional semantics.
+
+---
+
+## 24/03/26 at 12:12:11 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `rating` object to the Service schema with `value` (required), `scale_min` (default 1), `scale_max` (required), and `count`. Matches UCP's rating schema exactly. Enables platforms and AI agents to display and compare service ratings without external lookups.
+- Added `Rating` $def to `schemas/catalog.json` and `rating` field to `openapi/usp-rest.json` and `openrpc/usp-mcp.json`.
+
+---
+
+## 24/03/26 at 12:03:55 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `provider` object to the Service schema (§3.3.3) with `name` (required), `url`, and `links` (array of typed links to policy pages). Aligns with UCP's `seller` object on product variants. Enables platforms to display business name, website, and policy links alongside services without a separate profile fetch — critical for multi-business search results, cached catalogs, and AI agent descriptions.
+- Added `Provider` and `Link` $defs to `schemas/catalog.json`, and `provider` field to `openapi/usp-rest.json` and `openrpc/usp-mcp.json`.
+- Link types follow UCP pattern: `privacy_policy`, `terms_of_service`, `refund_policy`, `cancellation_policy`, `faq`, with optional `title` for display text and graceful handling of unknown types.
+
+---
+
+## 24/03/26 at 09:40:22 by [kobym707](mailto:kobym@wix.com)
+
+- Extended `description` field on the Service schema to accept either a plain string (backward compatible) or a structured `Description` object with `plain` (required), `markdown`, and `html` variants. Aligns with UCP's `Description` type which supports multi-format content. Platforms prefer the richest format they can safely render, falling back to `plain`.
+- Added §3.3.2 Description Schema to `specification.md` documenting the structured format, backward compatibility rules, and HTML sanitization requirements.
+- Added `Description` $def to `schemas/catalog.json` and updated `description` field in `openapi/usp-rest.json` and `openrpc/usp-mcp.json` with `oneOf` (string | object).
+
+---
+
+## 24/03/26 at 09:36:31 by [kobym707](mailto:kobym@wix.com)
+
+- Added `media` array to the Service schema (§3.3.1), replacing `images`. Each media entry has `type` (format: `image`/`video`), `url`, `alt_text`, `role` (display: `hero`/`gallery`/`thumbnail`), and optional `width`/`height`. Aligns with UCP's typed media model. The previous `images` field (`{url, alt, type}`) is retained as a deprecated alias for backward compatibility.
+- Separated media format type (`type`: image/video) from display role (`role`: hero/gallery/thumbnail) — the old `images.type` conflated both concepts.
+- Renamed `alt` to `alt_text` for consistency with UCP and accessibility standards.
+- Updated schema.org mapping to handle both image and video media types.
+- Updated `schemas/catalog.json`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json`.
+
+---
+
+## 24/03/26 at 09:33:08 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `price_range` (`{min, max}` in minor currency units) to the Pricing object in §3.8, `schemas/catalog.json`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json`. RECOMMENDED when pricing model is `variable`, `hourly`, or `per_person`, so platforms can display "from $50 – $150" without querying availability. Aligns with UCP's `price_range` on products. Closes the gap where USP services with variable pricing had no displayable price at catalog level.
+
+---
+
+## 24/03/26 at 09:30:00 by [kobym707](mailto:kobym@wix.com)
+
+- Added `coordinates` field (`latitude`/`longitude`, WGS 84) to the `context` object, enabling proximity-based ranking and "near me" queries for scheduling services. Addresses the gap where USP had no mechanism for platforms to signal buyer geographic location beyond postal code.
+- Extended `context` object to `POST /services/lookup` (previously only on `/services/list`), so both catalog request endpoints support buyer locale/intent signals for localization of returned content.
+- Documented that the `context` object is shared across all catalog request payloads with the same field definitions, and that businesses MUST ignore unrecognized context fields without error for forward compatibility.
+
+---
+
+## 24/03/26 at 09:26:45 by [kobym707](mailto:kobym@wix.com)
+
+- Extended `POST /services/list` filters to align with UCP `catalog_search`: added `categories` (array, OR logic) alongside existing `category_id`, and added `price` range filter (`min`/`max` in minor currency units). All filters combine with AND logic; within `categories`, values combine with OR logic.
+- Added `context` object to `POST /services/list` request, aligning with UCP's context pattern. Carries buyer locale and intent signals (`address_country`, `address_region`, `postal_code`, `language`, `currency`, `intent`) that businesses use for relevance, localization, and personalization. Businesses MUST ignore unrecognized context fields without error.
+- Updated §3.12.1 in `specification.md` with filter and context field tables, updated request examples, and documented precedence rules (`categories` over `category_id`, `context.currency` as denomination for price filters).
+
+---
+
+## 24/03/26 at 09:21:23 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `query` free-text search parameter to `POST /services/list` in `specification.md` (§3.12.1), `openapi/usp-rest.json`, and `openrpc/usp-mcp.json` — aligns with UCP's `catalog_search` pattern. When present, business ranks results by relevance; when combined with filters, filters are hard constraints and query determines ranking within the filtered set.
+- Defined graceful degradation: businesses that do not support search MUST ignore the `query` field (not error). Businesses that support it SHOULD advertise `"search": true` in their catalog capability entry.
+
+---
+
+## 24/03/26 at 08:55:39 by [kobym707](mailto:kobym@wix.com)
+
+- Added `POST /services/lookup` batch endpoint (§3.12.4) to `specification.md`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json` — analogous to UCP's `catalog_lookup`. Accepts an array of service IDs and returns matching services with partial-success semantics (unresolved IDs reported via `messages[]` with `code: service_not_found`). Closes the gap where USP only offered single-service retrieval via `GET /services/{service_id}`.
+- Defined batch size limits (MUST accept at least 50), deduplication rules (silent dedup), and ordering contract (unordered response) for the new lookup endpoint.
+- Added `Lookup Services` to the §12 Operation Reference table.
+
+---
+
+## 24/03/26 at 08:48:29 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `messages[]` array to all three catalog endpoint responses (`/services/list`, `/services/{service_id}`, `/services/feed`) in both `openapi/usp-rest.json` and `openrpc/usp-mcp.json`, aligning with the UCP message model where `catalog_lookup` and `catalog_search` responses carry structured messages for partial-success signalling, filter feedback, and service-level warnings.
+- Updated the `Message` schema in both OpenAPI and MCP specs to match UCP: added `content_type` field (`plain`/`markdown`), added `unrecoverable` severity level, changed `path` field from JSON Pointer to RFC 9535 JSONPath, made `type` and `content` required fields, and expanded severity descriptions to match UCP's semantics.
+- Added a formal Message field reference table and severity level table to §9.4 in `specification.md`, so the message contract is fully documented in the spec prose (previously only in the OpenAPI/MCP schemas).
+- Updated §9.1 error model description to clarify that `messages[]` is available on all USP response envelopes including catalog responses, not only state-modifying operations.
+- Added `messages[]` notes to §3.1 (feed), §3.12.1 (list), and §3.12.3 (get service) endpoint descriptions.
+
+---
+
 ## 21/03/26 at 14:05:04 by [kobym707](mailto:kobym@wix.com)
 
 - Added §11.2 Buyer Calendar Free/Busy Extension to `specification.md` — a MAY-level, platform-scoped extension that enables platforms to access a buyer's calendar for opaque free/busy blocks only, then cross-reference with business availability to suggest mutually free times. Addresses issue #18 requesting privacy-preserving calendar access for scheduling agents.

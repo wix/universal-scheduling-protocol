@@ -634,7 +634,7 @@ availability operations **SHOULD** accept an optional `location_id` filter so
 platforms can scope requests to a specific location:
 
 ```
-GET /services/feed?cursor=2026-03-10T08:00:00Z&limit=50&location_id=loc_nyc
+GET /services/feed?cursor=crs_a1b2c3d4e5f6&limit=50&location_id=loc_nyc
 ```
 
 Similarly, `POST /services/list` and `POST /availability/query` **SHOULD**accept
@@ -669,12 +669,13 @@ than re-fetching the entire catalog.
 The feed returns a paginated, chronologically ordered list of service records,
 sorted by `modified_at` ascending. This design follows the Realtime Paged Data
 Exchange (RPDE) pattern used by [OpenActive] and is analogous to product feeds
-in commerce platforms.
+in commerce platforms. The response **MAY** include an optional `messages[]`
+array (e.g., partial results when `feed_status` is `degraded`).
 
 Request:
 
 ```json
-GET /services/feed?cursor=2026-03-10T08: 00: 00Z&limit=50
+GET /services/feed?cursor=crs_a1b2c3d4e5f6&limit=50
 ```
 
 Response:
@@ -713,7 +714,7 @@ Response:
     }
   ],
   "pagination": {
-    "next_cursor": "2026-03-10T10:00:00Z",
+    "cursor": "crs_f7g8h9i0j1k2",
     "has_more": true
   },
   "feed_meta": {
@@ -789,7 +790,8 @@ properties:
 | `channel.type: in_person`               | `schema:availableChannel.serviceLocation`      | Map to `schema:Place` with address.                                                                   |
 | `locations[]`                           | `schema:areaServed` / `schema:serviceLocation` | Map each location to a `schema:Place`.                                                                |
 | `availability_hint.next_available_date` | `schema:availabilityStarts`                    | Approximate; use with `schema:Offer`.                                                                 |
-| `images[].url`                          | `schema:image`                                 | Direct mapping.                                                                                       |
+| `media[].url` (type=image)              | `schema:image`                                 | Direct mapping. Filter to `type: "image"` entries.                                                    |
+| `media[].url` (type=video)              | `schema:video`                                 | Map to `schema:VideoObject`.                                                                          |
 | `policies.cancellation`                 | `schema:cancellationPolicy`                    | Map `free_cancellation_until` to a human-readable string or use `schema:MerchantReturnPolicy`.        |
 | `duration.fixed`                        | `schema:providerMobility` / custom             | No direct schema.org equivalent; use `schema:duration` on the `Event` if modeling as an event.        |
 | `capacity.max`                          | `schema:maximumAttendeeCapacity`               | For `group` and `reservation` types.                                                                  |
@@ -809,10 +811,12 @@ requirements.
 |---------------------|------------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `id`                | string                       | **Yes**  | Unique service identifier, scoped to the business. Opaque to the platform. The composite key `(business_id, id)` is globally unique.                                                                                                                                                                                                       |
 | `business_id`       | string                       | **Yes**  | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.4](#34-business-id-and-cross-business-discovery). |
+| `provider`          | Provider                     | No       | Inline business metadata for display without a separate profile fetch. See [Section 3.3.3](#333-provider-schema). Aligns with UCP's seller object.                                                                                                                                                                                        |
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
-| `description`       | string                       | No       | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents.                                                                                                                                                                            |
+| `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
 | `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
-| `category`          | object                       | No       | `{id, name, parent_id}` - business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization.                                                                                                                                                                            |
+| `category`          | object                       | No       | `{id, name, parent_id}` - business's canonical classification for the service (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization.                                                                                                                                                                                |
+| `categories`        | Array\[object\]              | No       | Array of `{value, taxonomy}` category entries. Supports multiple taxonomy systems (e.g., `{"value": "beauty > hair", "taxonomy": "merchant"}`, `{"value": "596", "taxonomy": "google_product_category"}`). Aligns with UCP categories. If both `category` and `categories` are present, `categories` is the authoritative set.             |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
 | `locations`         | Array\[Location\]            | No       | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`.                                                                                                                                                                                                                          |
@@ -820,7 +824,14 @@ requirements.
 | `channel`           | object                       | **Yes**  | Delivery channel for the service. See channel types below.                                                                                                                                                                                                                                                                                 |
 | `policies`          | ServicePolicies              | **Yes**  | Booking, cancellation, rescheduling, and payment policies. See [Section 3.9](#39-service-policies).                                                                                                                                                                                                                                        |
 | `capacity`          | object                       | No       | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full.                                                                                                       |
-| `images`            | Array\[object\]              | No       | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`.                                                                                                                                                                                                                                                   |
+| `media`             | Array\[Media\]               | No       | Service media items (images, videos). See [Section 3.3.1](#331-media-schema). Replaces the previous `images` field.                                                                                                                                                                                                                         |
+| `images`            | Array\[object\]              | No       | **Deprecated.** Alias for `media` for backward compatibility. If both `images` and `media` are present, `media` takes precedence. New implementations **SHOULD** use `media`.                                                                                                                                                               |
+| `rating`            | object                       | No       | Aggregate service rating. `value` (number, required): average rating. `scale_min` (number, default 1): minimum scale value. `scale_max` (number, required): maximum scale value (e.g., 5). `count` (integer): number of reviews. Aligns with UCP rating object.                                                                            |
+| `status`            | string                       | No       | Service lifecycle status: `active` (default, bookable), `suspended` (temporarily unavailable), `archived` (no longer offered, retained for history). Absent means `active`. A `service.suspended` webhook event **MUST** set this to `suspended`.                                                                                          |
+| `handle`            | string                       | No       | URL-friendly slug for the service (e.g., `womens-haircut-style`). Aligns with UCP handle.                                                                                                                                                                                                                                                  |
+| `url`               | string                       | No       | Canonical service page URL on the business's website. Aligns with UCP url.                                                                                                                                                                                                                                                                  |
+| `tags`              | Array\[string\]              | No       | Freeform tags for categorization and search (e.g., `["relaxation", "deep-tissue", "prenatal"]`). Aligns with UCP tags.                                                                                                                                                                                                                     |
+| `metadata`          | object                       | No       | Business-defined custom data extending the standard service model. Freeform key-value object. Platforms **SHOULD** pass through opaquely. Aligns with UCP metadata.                                                                                                                                                                         |
 | `availability_hint` | AvailabilityHint             | No       | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint).                                                                                                                                                                                                                                   |
 | `localized`         | LocalizedFields              | No       | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization).                                                                                       |
 
@@ -832,6 +843,111 @@ requirements.
 | `virtual`      | Service is delivered remotely via video/audio call.                                                                          | `virtual_provider`: platform name (e.g., "Zoom", "Google Meet"). `instructions`: join instructions or a link provided after booking. |
 | `phone`        | Service is delivered via phone call.                                                                                         | `instructions`: optional call-in details.                                                                                            |
 | `hybrid`       | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference.                           |
+
+#### 3.3.1 Media Schema
+
+The `media` array contains typed media items for the service. Each entry
+describes a single image, video, or other media resource. This aligns with
+UCP's media model.
+
+| Field      | Type    | Required | Description                                                                                                                 |
+|------------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `type`     | string  | **Yes**  | Media format type: `image`, `video`. Additional types **MAY** be added in the future; platforms **MUST** ignore unknown types. |
+| `url`      | string  | **Yes**  | URL to the media resource (HTTPS).                                                                                          |
+| `alt_text` | string  | No       | Accessibility text describing the media. **RECOMMENDED** for all media items.                                               |
+| `role`     | string  | No       | Display role: `hero` (primary banner), `gallery` (additional images/videos), `thumbnail` (small preview). Default: `gallery`. |
+| `width`    | integer | No       | Width in pixels. **RECOMMENDED** for images and videos to enable responsive layouts without fetching the resource.           |
+| `height`   | integer | No       | Height in pixels. **RECOMMENDED** for images and videos.                                                                    |
+
+**Migration from `images`:** The previous `images` field used `{url, alt, type}`
+where `type` was the display role (`hero`, `gallery`, `thumbnail`). The new
+`media` field separates the media format (`type`) from the display role
+(`role`), and renames `alt` to `alt_text` for consistency with UCP and
+accessibility standards. Businesses **SHOULD** migrate to `media`. If both
+`images` and `media` are present on a service, platforms **MUST** use `media`.
+
+#### 3.3.2 Description Schema
+
+The `description` field accepts either a plain string (backward compatible) or
+a structured object with multiple format variants. This aligns with UCP's
+`Description` type.
+
+**Plain string (backward compatible):**
+
+```json
+"description": "A full haircut and styling session with one of our experienced stylists."
+```
+
+**Structured object:**
+
+```json
+"description": {
+  "plain": "A full haircut and styling session with one of our experienced stylists.",
+  "markdown": "A full **haircut and styling** session with one of our experienced stylists.\n\n- Consultation\n- Shampoo\n- Cut & blow-dry"
+}
+```
+
+| Field      | Type   | Required    | Description                                                                                                                                   |
+|------------|--------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `plain`    | string | **Yes**     | Plain text content. Always required as the universal fallback.                                                                                |
+| `markdown` | string | No          | Markdown-formatted content.                                                                                                                  |
+| `html`     | string | No          | HTML-formatted content. Platforms **MUST** sanitize before rendering — strip scripts, event handlers, and untrusted elements.                 |
+
+At least `plain` **MUST** be provided. Platforms **SHOULD** prefer the richest
+format they can safely render (`html` > `markdown` > `plain`), falling back to
+`plain` for unsupported formats.
+
+When a plain string is provided instead of an object, platforms **MUST** treat
+it as equivalent to `{"plain": "<the string>"}`.
+
+#### 3.3.3 Provider Schema
+
+The optional `provider` object carries inline business metadata on the service,
+so platforms can display the business name, website, and policy links without a
+separate profile fetch. This is particularly valuable for multi-business search
+results, cached catalogs, and AI agents describing services to buyers. Aligns
+with UCP's `seller` object on product variants.
+
+The `provider` is a lightweight subset of the business profile — not a
+replacement. Platforms that need the full profile (capabilities, endpoints,
+signing keys) **MUST** still fetch `/.well-known/usp`.
+
+| Field   | Type          | Required | Description                                                                                            |
+|---------|---------------|----------|--------------------------------------------------------------------------------------------------------|
+| `name`  | string        | **Yes**  | Business display name (e.g., "Glamour Salon NYC").                                                     |
+| `url`   | string        | No       | Business website URL.                                                                                  |
+| `links` | Array\[Link\] | No       | Typed links to policy and information pages. See link types below.                                     |
+
+**Link object:**
+
+| Field   | Type   | Required | Description                                                                                                          |
+|---------|--------|----------|----------------------------------------------------------------------------------------------------------------------|
+| `type`  | string | **Yes**  | Link type. Well-known values: `privacy_policy`, `terms_of_service`, `refund_policy`, `cancellation_policy`, `faq`.   |
+| `url`   | string | **Yes**  | URL to the linked page.                                                                                              |
+| `title` | string | No       | Display text for the link. When provided, use instead of generating from `type`.                                     |
+
+Platforms **SHOULD** handle unknown `type` values gracefully by displaying
+them using the `title` field or omitting the link.
+
+Example:
+
+```json
+"provider": {
+  "name": "Glamour Salon NYC",
+  "url": "https://glamoursalon.nyc",
+  "links": [
+    {
+      "type": "cancellation_policy",
+      "url": "https://glamoursalon.nyc/policies/cancellation"
+    },
+    {
+      "type": "terms_of_service",
+      "url": "https://glamoursalon.nyc/terms",
+      "title": "Booking Terms"
+    }
+  ]
+}
+```
 
 ### 3.4 Business ID and Cross-Business Discovery
 
@@ -1020,12 +1136,31 @@ The pricing object defines how a service is priced. The combination of `model`
 and the service's `requires_payment` / `payment_timing` fields **MUST** conform
 to the validation rules in [Section 3.11](#311-validation-rules).
 
-| Field      | Type    | Required    | Description                                                                                                                                                                                                                                                                                                                     |
-|------------|---------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `model`    | string  | **Yes**     | The pricing model. See pricing model values below.                                                                                                                                                                                                                                                                              |
-| `amount`   | integer | Conditional | Price in minor currency units (e.g., `7500` = $75.00). **REQUIRED** when `model` is `fixed`, `hourly`, or `per_person`. **MUST NOT** be present when `model` is `free`. **MAY** be absent when `model` is `variable` (price is determined at slot query time).                                                                  |
-| `currency` | string  | **Yes**     | ISO 4217 currency code (e.g., `USD`, `EUR`, `GBP`). **REQUIRED** even when `model` is `free` (to establish the business's operating currency).                                                                                                                                                                                  |
-| `deposit`  | object  | No          | `{type, value, refundable}` - **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
+| Field         | Type    | Required    | Description                                                                                                                                                                                                                                                                                                                     |
+|---------------|---------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `model`       | string  | **Yes**     | The pricing model. See pricing model values below.                                                                                                                                                                                                                                                                              |
+| `amount`      | integer | Conditional | Price in minor currency units (e.g., `7500` = $75.00). **REQUIRED** when `model` is `fixed`, `hourly`, or `per_person`. **MUST NOT** be present when `model` is `free`. **MAY** be absent when `model` is `variable` (price is determined at slot query time).                                                                  |
+| `currency`    | string  | **Yes**     | ISO 4217 currency code (e.g., `USD`, `EUR`, `GBP`). **REQUIRED** even when `model` is `free` (to establish the business's operating currency).                                                                                                                                                                                  |
+| `price_range` | object  | No          | `{min, max}` — displayable price range in minor currency units (same currency as `currency`). **RECOMMENDED** when `model` is `variable`, `hourly`, or `per_person`, so platforms can display a price range without querying availability. Aligns with UCP's `price_range` on products. See below.                              |
+| `deposit`     | object  | No          | `{type, value, refundable}` - **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
+
+**Price range:**
+
+When `model` is `variable`, `hourly`, or `per_person`, the catalog-level
+`amount` may not represent the actual price the buyer will pay (it depends on
+slot, duration, or party size). The optional `price_range` object provides a
+displayable min/max so platforms can show "from $50 – $150" without querying
+availability first.
+
+| Field | Type    | Required | Description                                    |
+|-------|---------|----------|------------------------------------------------|
+| `min` | integer | **Yes**  | Minimum price in minor currency units.         |
+| `max` | integer | **Yes**  | Maximum price in minor currency units.         |
+
+Both `min` and `max` are denominated in the same currency as `pricing.currency`.
+When `model` is `fixed`, `price_range` is redundant (min = max = amount) and
+**SHOULD** be omitted. When `model` is `free`, `price_range` **MUST NOT** be
+present.
 
 **Pricing model values:**
 
@@ -1118,9 +1253,57 @@ composition.
 #### 3.12.1 List Services - `POST /services/list`
 
 Returns a filtered, paginated list of services from the business catalog.
-Designed for interactive use by platforms and AI agents.
+Designed for interactive use by platforms and AI agents. The response **MAY**
+include an optional `messages[]` array with errors, warnings, or informational
+notices (e.g., partial results, filter feedback, service-level warnings).
 
-Request:
+**Free-text search:** The request **MAY** include an optional `query` field for
+free-text search across service names, descriptions, and categories. This
+aligns with UCP's `catalog_search` pattern. When `query` is present, the
+business **SHOULD** rank results by relevance. When both `query` and `filters`
+are provided, the business **MUST** apply filters as hard constraints and use
+the query for relevance ranking within the filtered set.
+
+Businesses that support free-text search **SHOULD** advertise this by including
+`"search": true` in their `dev.usp.services.catalog` capability entry.
+Businesses that do not support search **MUST** ignore the `query` field and
+return results as if it were omitted (they **MUST NOT** return an error).
+
+**Filters:**
+
+| Field         | Type            | Description                                                                                                                                          |
+|---------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `type`        | string          | Service vertical to filter by (e.g., `appointment`, `group`, `reservation`).                                                                        |
+| `category_id` | string          | Single category ID to filter by. Shorthand for `categories: ["<value>"]`. If both `category_id` and `categories` are provided, `categories` takes precedence. |
+| `categories`  | Array\[string\] | Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP's `catalog_search` filters.                         |
+| `location_id` | string          | Location ID to filter by (for multi-location businesses).                                                                                            |
+| `price`       | object          | Price range filter. Contains optional `min` and `max` fields in minor currency units. Currency is determined by `context.currency` or the business's default currency. |
+
+All specified filters combine with AND logic (e.g., `type` AND `categories`
+AND `price` must all match). Within `categories`, values combine with OR logic.
+
+**Context:** The request **MAY** include an optional `context` object with
+buyer locale and intent signals that inform relevance, localization, and
+personalization. This aligns with UCP's context pattern. Businesses **SHOULD**
+use context when available and **MUST** ignore unrecognized context fields
+without error.
+
+| Field             | Type            | Description                                                                                                                                                           |
+|-------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `address_country` | string          | Buyer's country (ISO 3166-1 alpha-2, e.g., `US`). Hint for market context — higher-resolution data (e.g., `location_id`) supersedes.                                |
+| `address_region`  | string          | Region within the country (e.g., `California`). Optional hint for localization.                                                                                       |
+| `postal_code`     | string          | Postal code (e.g., `94043`). Optional hint for regional refinement.                                                                                                  |
+| `coordinates`     | object          | Buyer's geographic coordinates. Contains `latitude` (number, WGS 84) and `longitude` (number, WGS 84). Enables proximity-based ranking and "near me" queries. Higher-resolution than postal code; `location_id` filter supersedes for multi-location businesses. |
+| `language`        | string          | Preferred language (IETF BCP 47, e.g., `en`, `fr-CA`). Businesses **MAY** return content in a different language if the requested language is unavailable.            |
+| `currency`        | string          | Preferred currency (ISO 4217, e.g., `USD`, `EUR`). Used as denomination for price filter values. Response prices include explicit currency confirming the resolution. |
+| `intent`          | string          | Free-text description of the buyer's intent (e.g., `"looking for a relaxing spa treatment"`). Informs relevance and recommendations.                                 |
+
+The `context` object is available on all catalog request payloads
+(`/services/list`, `/services/lookup`). The same context definition applies to
+both endpoints. Businesses **MUST** ignore unrecognized context fields without
+error; this ensures forward compatibility as new context fields are added.
+
+Request (structured filters only):
 
 ```json
 {
@@ -1130,6 +1313,37 @@ Request:
   },
   "pagination": {
     "limit": 20,
+    "cursor": null
+  }
+}
+```
+
+Request (free-text search with context and extended filters):
+
+```json
+{
+  "query": "deep tissue massage",
+  "filters": {
+    "type": "appointment",
+    "categories": ["wellness", "spa"],
+    "price": {
+      "min": 5000,
+      "max": 15000
+    }
+  },
+  "context": {
+    "address_country": "US",
+    "address_region": "California",
+    "coordinates": {
+      "latitude": 37.4419,
+      "longitude": -122.1430
+    },
+    "language": "en",
+    "currency": "USD",
+    "intent": "looking for a relaxing post-workout massage"
+  },
+  "pagination": {
+    "limit": 10,
     "cursor": null
   }
 }
@@ -1311,7 +1525,8 @@ Businesses that support feed subscriptions **SHOULD** declare the
 
 #### 3.12.3 Get Service - `GET /services/{service_id}`
 
-Returns the full service object for a single service.
+Returns the full service object for a single service. The response **MAY**
+include an optional `messages[]` array with service-level notices.
 
 Request:
 
@@ -1378,6 +1593,123 @@ Response:
   }
 }
 ```
+
+#### 3.12.4 Lookup Services - `POST /services/lookup`
+
+Returns full service objects for a batch of service IDs in a single request.
+Analogous to UCP's `catalog_lookup` capability. Designed for platforms that
+need to hydrate multiple service references at once (e.g., after a search,
+when rendering a shortlist, or when resolving services from booking history).
+
+The response **MAY** include an optional `messages[]` array. If some IDs
+cannot be resolved, the business **SHOULD** return the services it can resolve
+and include `messages` entries with `code: "service_not_found"` and `path`
+pointing to the unresolved ID for each missing service.
+
+**Batch limits:**
+
+- Businesses **MUST** accept requests with at least 50 IDs.
+- Businesses **MAY** accept more; the maximum **SHOULD** be documented in the
+  business profile.
+- If the request exceeds the business's limit, the business **MUST** return
+  `422 Unprocessable Entity` with a `ProblemDetails` response indicating the
+  maximum allowed batch size.
+
+**Deduplication:** If the `ids` array contains duplicate values, the business
+**MUST** return each unique service at most once. Duplicates are silently
+ignored.
+
+**Ordering:** The response `services` array is unordered. Platforms **MUST
+NOT** rely on the response order matching the request `ids` order.
+
+**Context:** The request **MAY** include an optional `context` object (same
+definition as in [Section 3.12.1](#3121-list-services---post-serviceslist))
+for localization of the returned service content (e.g., language, currency).
+
+Request:
+
+```json
+POST /services/lookup
+
+{
+  "ids": [
+    "svc_haircut_001",
+    "svc_massage_002",
+    "svc_nonexistent_999"
+  ],
+  "context": {
+    "language": "es",
+    "currency": "EUR"
+  }
+}
+```
+
+Response (partial success):
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.catalog": [
+        {
+          "version": "2026-02-09"
+        }
+      ]
+    }
+  },
+  "services": [
+    {
+      "id": "svc_haircut_001",
+      "business_id": "biz_glamour_salon_nyc",
+      "name": "Women's Haircut & Style",
+      "type": "appointment"
+    },
+    {
+      "id": "svc_massage_002",
+      "business_id": "biz_glamour_salon_nyc",
+      "name": "Deep Tissue Massage",
+      "type": "appointment"
+    }
+  ],
+  "messages": [
+    {
+      "type": "warning",
+      "code": "service_not_found",
+      "content": "Service ID 'svc_nonexistent_999' was not found.",
+      "path": "$.ids[2]"
+    }
+  ]
+}
+```
+
+### 3.13 Catalog Conformance Requirements
+
+A conforming implementation of the `dev.usp.services.catalog` capability
+**MUST** satisfy the following requirements:
+
+1. **MUST** implement `POST /services/list` returning a paginated list of
+   services with the `usp` envelope, `services` array, and `pagination` object.
+2. **MUST** implement `GET /services/{service_id}` returning a single service
+   with the `usp` envelope.
+3. **MUST** implement `POST /services/lookup` accepting at least 50 IDs and
+   returning matching services with partial-success semantics.
+4. **SHOULD** implement `GET /services/feed` for incremental catalog
+   synchronization.
+5. **MUST** include all required fields on each `Service` object: `id`,
+   `business_id`, `name`, `type`, `duration`, `pricing`, `channel`, `policies`.
+6. **MUST** conform to the validation rules in [Section 3.11](#311-validation-rules)
+   for `requires_payment`, `payment_timing`, and `pricing.model` combinations.
+7. **MUST** return valid `messages[]` entries (with `type` and `content`) when
+   including messages on catalog responses.
+8. **MUST** ignore unrecognized `query`, `context`, and `filters` fields on
+   `POST /services/list` without returning an error, to ensure forward
+   compatibility.
+9. **SHOULD** populate `provider`, `rating`, `availability_hint`, and
+   `price_range` when the data is available, to support rich platform
+   rendering and agent-assisted discovery.
+10. **MUST** use opaque cursors for pagination across all catalog endpoints.
+    Platforms **MUST NOT** construct or parse cursor values.
 
 ---
 
@@ -2143,12 +2475,15 @@ flow) defined in [Section 10.1.1](#1011-webhook-security).
 | `service.deleted`   | A service has been permanently removed from the catalog                         |
 | `service.suspended` | A service is temporarily unavailable (e.g., seasonal, staffing shortage)        |
 
-The webhook payload for catalog change events **MUST** include the `service_id`
-and the `event` type. For `service.created` and `service.updated` events, the
-payload **SHOULD** include the full service object (same schema
-as [Section 3.3](#33-service-schema)). For `service.deleted` and
-`service.suspended` events, the payload **MUST** include at minimum the
-`service_id`.
+**Webhook payload schema:**
+
+| Field             | Type    | Required | Description                                                                                                                        |
+|-------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------|
+| `event`           | string  | **Yes**  | Event type (e.g., `service.created`, `service.updated`, `service.deleted`, `service.suspended`).                                   |
+| `service_id`      | string  | **Yes**  | The service this event relates to.                                                                                                 |
+| `subscription_id` | string  | **Yes**  | The subscription that triggered this notification.                                                                                 |
+| `timestamp`       | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                     |
+| `data`            | object  | No       | Full service object for `service.created` and `service.updated` (same schema as [Section 3.3](#33-service-schema)). **SHOULD** be included for create/update events. For `service.deleted` and `service.suspended`, **MAY** be omitted (the `service_id` is sufficient). |
 
 ```json
 {
@@ -3811,9 +4146,17 @@ Content-Type: application/json
   **Business outcome errors** (e.g., slot unavailable, hold expired, capacity
   exceeded, booking not found) return **HTTP 200** with a `messages[]` array on
   the **response** object. The `messages[]` array is a response-level
-  construct — it is not a field on the booking object. Each message has `type` (
-  `error`, `warning`), `code`, `content`, `severity`, and an optional `path`
-  field.
+  construct — it is not a field on the booking or service object. Each message
+  has `type` (`error`, `warning`, `info`), `code`, `content`, optional
+  `content_type` (`plain` or `markdown`, default `plain`), optional `severity`,
+  and an optional `path` field (RFC 9535 JSONPath).
+
+  The `messages[]` array is available on **all** USP response envelopes,
+  including catalog responses (`/services/list`, `/services/{service_id}`,
+  `/services/feed`), not only state-modifying operations. On catalog responses,
+  messages enable partial-success signalling (e.g., some services could not be
+  loaded), filter feedback, service-level warnings, and deprecation notices.
+  This aligns with the UCP message model.
 
   **Protocol errors** (e.g., malformed requests, authentication failures) use
   standard HTTP status codes with [RFC 9457] Problem Details:
@@ -4039,7 +4382,27 @@ business agent to maintain state across the multi-step flow.
 
 ### 9.4 Error Code Mapping
 
-USP defines the following error codes, which are transport-independent:
+USP defines the following error codes, which are transport-independent.
+
+Each message in the `messages[]` array carries the following fields:
+
+| Field          | Type   | Required | Description                                                                                                             |
+|----------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------|
+| `type`         | string | **Yes**  | Message type discriminator: `error`, `warning`, or `info`.                                                              |
+| `code`         | string | No       | Machine-readable code identifying the message (e.g., `slot_unavailable`). Standard codes listed below; freeform codes permitted. |
+| `content`      | string | **Yes**  | Human-readable message text.                                                                                            |
+| `content_type` | string | No       | Content format: `plain` (default) or `markdown`.                                                                         |
+| `severity`     | string | No       | `recoverable`, `requires_buyer_input`, `requires_buyer_review`, or `unrecoverable`. See severity descriptions below.    |
+| `path`         | string | No       | RFC 9535 JSONPath to the field this message relates to (e.g., `$.services[0].pricing`).                                  |
+
+**Severity levels:**
+
+| Severity               | Description                                                                                                   |
+|------------------------|---------------------------------------------------------------------------------------------------------------|
+| `recoverable`          | Platform can resolve by modifying inputs and retrying.                                                        |
+| `requires_buyer_input` | Buyer must provide information before proceeding.                                                             |
+| `requires_buyer_review`| Buyer must authorize before proceeding due to policy or regulatory rules.                                     |
+| `unrecoverable`        | No valid resource exists to act on; retry with new resource or inputs.                                        |
 
 **Business outcome errors** (returned via `messages[]` in an HTTP 200 response):
 
@@ -4773,6 +5136,7 @@ booking to minimize the risk of conflicts arising from stale cached data.
 |--------------------------|----------|---------------------------------------------------------|------------------------------|
 | List Services            | `POST`   | `/services/list`                                        | catalog                      |
 | Get Service              | `GET`    | `/services/{service_id}`                                | catalog                      |
+| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                      |
 | Service Feed             | `GET`    | `/services/feed`                                        | catalog                      |
 | Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions)      |
 | Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
