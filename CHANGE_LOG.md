@@ -1,5 +1,30 @@
 # Change Log
 
+## 25/03/26 at 12:17:34 by [kobym707](mailto:kobym@wix.com)
+
+- Added `> **JSON Schema:** [/$defs/TypeName](schemas/file.json)` blockquotes to every schema-describing and operation section in `specification.md` that was missing one: §3.12.1, §3.12.3, §3.12.4, §4.1, §4.2, §4.3.1, §4.3.2, §5.3.1–5.3.7, §7.4, §8.5.2, §8.5.5 — making it easy for implementors to jump directly to the machine-readable `$defs` entry for any section.
+- Updated all 8 existing `> **JSON Schema:**` blockquotes from bare file links to specific `/$defs/TypeName` links (§3.3, §4 availability intro, §5.2, §5.5.2, §8.5.1, §10.1.1 signing keys, §11.1.1, §11.2.3), consistent with the new pattern.
+
+---
+
+## 25/03/26 at 12:08:27 by [kobym707](mailto:kobym@wix.com)
+
+- Added `links[]` to the `Service` schema (§3.3, `catalog.json`, OpenAPI, OpenRPC): service-specific policy links (cancellation policy, waiver, ToS) belong at the service level so platforms can surface them during the booking flow before the buyer confirms, not after.
+- Added `booking_url` to the `Booking` schema (§5.2, `booking.json`, OpenAPI, OpenRPC): stable permalink for the buyer to view and manage their booking, used in confirmation emails, calendar events, and buyer portals.
+- Added `messages[]` to the `Booking` schema (§5.2, `booking.json`, OpenAPI, OpenRPC): soft informational messages from the business about booking state (e.g., manual confirmation pending), consistent with how `messages[]` is already documented on hold responses.
+- Added `dispute` field and `Dispute` schema to the `Booking` object (§5.5.2, `booking.json`, OpenAPI, OpenRPC): formalizes the dispute lifecycle with structured `status`, `reason`, `opened_at`, and `resolved_at` fields; clarifies that opening a dispute does NOT change `payment.status`.
+- Added `tax_amount` to `BookingPayment` (§8.5.1, `booking.json`, OpenAPI, OpenRPC) and clarified that `amount` is the pre-tax service fee: resolves ambiguity about whether pricing amounts are tax-inclusive.
+- Added "Booking Expiry" behavioral rules to §5.2: business MUST transition to `canceled`, SHOULD send `booking.canceled` webhook, MUST keep expired booking retrievable via GET, and MUST release the slot.
+- Added idempotency note to §5.3.1: `hold_id` serves as a natural idempotency key; second POST with same `hold_id` MUST return existing booking; no-hold flows SHOULD use `Idempotency-Key` header.
+- Expanded §5.3.3 Update Booking with request field table and response description: documents the three mutable fields (`buyer`, `recipient`, `notes`) and partial-update semantics.
+- Expanded §5.3.4 Confirm Booking with request field table, eligible status guidance, and response example.
+- Expanded §5.3.5 Cancel Booking with request field table (`reason`, `canceled_by`), eligible statuses, slot-release requirement, and cancel/refund response example.
+- Expanded §5.3.6 Reschedule Booking with eligible status guidance, booking-ID-preservation note, response description, and price-change handling for peak/off-peak rescheduling.
+- Added webhook payload schema and example to §5.4.1 Booking Webhooks, mirroring the existing §5.4.2 Catalog Webhooks structure.
+- Added single-service design note to §5 intro (Gap 4.14): USP bookings are single-service by design; multi-service coordination is handled by the platform issuing separate bookings.
+
+---
+
 ## 24/03/26 at 23:03:02 by [kobym707](mailto:kobym@wix.com)
 
 - Added non-transactional disclaimer to §4.1 (Gap 3.1): slots are advisory-only; platforms MUST NOT treat availability responses as booking commitments, and businesses MUST validate slot availability at booking creation time regardless of holds.

@@ -2049,6 +2049,29 @@
             "type": "object",
             "description": "Business-defined custom data. Platforms SHOULD pass through opaquely."
           },
+          "links": {
+            "type": "array",
+            "description": "Typed links to policy and information pages specific to this service. Platforms SHOULD surface these during the booking flow. Well-known types: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq.",
+            "items": {
+              "type": "object",
+              "required": ["type", "url"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Link type. Well-known values: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to the linked page."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Display text for the link."
+                }
+              }
+            }
+          },
           "localized": {
             "type": "object",
             "description": "Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags."
@@ -2284,6 +2307,22 @@
             "type": "string",
             "description": "Buyer-provided special requests or notes."
           },
+          "booking_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Stable URL where the buyer can view and manage this booking. Used in confirmation emails, calendar events, and buyer portals."
+          },
+          "dispute": {
+            "$ref": "#/components/schemas/Dispute",
+            "description": "Present when a payment dispute has been opened for this booking."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "Soft messages from the business providing context about the booking state. Informational only; do not block booking creation."
+          },
           "cancellation": {
             "type": "object",
             "description": "Present when the booking has been canceled.",
@@ -2354,7 +2393,7 @@
           },
           "amount": {
             "type": "integer",
-            "description": "Total service amount in minor currency units."
+            "description": "Service fee in minor currency units, before tax. Does not include tax_amount."
           },
           "currency": {
             "type": "string",
@@ -2363,6 +2402,10 @@
           "amount_due": {
             "type": "integer",
             "description": "Amount due now in minor currency units."
+          },
+          "tax_amount": {
+            "type": "integer",
+            "description": "Tax amount in minor currency units. When present, total charged = amount + tax_amount. Must use the same currency as amount."
           },
           "deposit_amount": {
             "type": "integer",
@@ -2537,6 +2580,33 @@
           "path": {
             "type": "string",
             "description": "RFC 9535 JSONPath to the field this message relates to (e.g., $.services[0].pricing)."
+          }
+        }
+      },
+      "Dispute": {
+        "type": "object",
+        "title": "Dispute",
+        "description": "A payment dispute (chargeback) opened against a booking. Opening a dispute does NOT change payment.status — the payment remains paid. Status MAY change to refunded or partially_refunded only if the dispute resolves in the buyer's favor.",
+        "required": ["status", "reason", "opened_at"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["opened", "under_review", "resolved_buyer", "resolved_business"],
+            "description": "Current dispute status."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Machine-readable reason code. Well-known values: service_not_provided, quality_issue, unauthorized, duplicate."
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp of when the dispute was opened."
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp of when the dispute was resolved. Present only when status is resolved_buyer or resolved_business."
           }
         }
       },

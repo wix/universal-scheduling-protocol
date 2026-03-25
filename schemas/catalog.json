@@ -150,6 +150,11 @@
           "$ref": "#/$defs/AvailabilityHint",
           "description": "Approximate availability summary for agent-assisted discovery."
         },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Link" },
+          "description": "Typed links to policy and information pages specific to this service (e.g., cancellation policy, waiver, terms of service). Platforms SHOULD surface these during the booking flow so the buyer can review terms before confirming. Well-known types: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq. Complements provider.links[], which carries business-level policies."
+        },
         "localized": {
           "$ref": "#/$defs/LocalizedFields",
           "description": "Per-locale overrides for human-readable text fields. The top-level fields (name, description, etc.) serve as the default/fallback locale."
