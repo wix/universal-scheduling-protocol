@@ -1,5 +1,16 @@
 # Change Log
 
+## 25/03/26 at 17:11:29 by [kobym707](mailto:kobym@wix.com)
+
+- Adopted strict slot-per-resource model (§4.1, §5.3.1): a slot now represents a specific bookable combination of time window + assigned resources, eliminating the race condition and undefined behaviour caused by a separate `resource_id` selection at booking time.
+- Added "One slot per resource combination" normative note to §4.1 (TimeSlot): when the same time window is available for multiple resources, the business MUST return a separate slot per option, each with its specific resource in the `resources` array.
+- Expanded `resources` field description in §4.1 to make clear that each slot carries at most one resource of each type and that picking a slot is equivalent to picking both the time and the resource.
+- Removed `resource_id` from the CreateBookingRequest field table (§5.3.1) — resource selection is now fully encoded in `slot_id`, making the field redundant.
+- Updated all three `POST /bookings` request examples (§5.3.1) to remove `resource_id`, keeping the examples in sync with the new schema.
+- Added introductory note to §5.3.1 explaining that resource selection happens at availability query time (via slot choice), not at booking time.
+
+---
+
 ## 25/03/26 at 12:17:34 by [kobym707](mailto:kobym@wix.com)
 
 - Added `> **JSON Schema:** [/$defs/TypeName](schemas/file.json)` blockquotes to every schema-describing and operation section in `specification.md` that was missing one: §3.12.1, §3.12.3, §3.12.4, §4.1, §4.2, §4.3.1, §4.3.2, §5.3.1–5.3.7, §7.4, §8.5.2, §8.5.5 — making it easy for implementors to jump directly to the machine-readable `$defs` entry for any section.

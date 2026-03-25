@@ -1761,9 +1761,16 @@ query to booking creation without an intermediate hold step.
 
 > **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json)
 
-A time slot represents a specific, bookable window for a service. Slots are
-computed dynamically by the business from schedules, resource calendars, and
-existing bookings.
+A time slot represents a specific, bookable combination of a time window and
+assigned resources, computed dynamically by the business from schedules,
+resource calendars, and existing bookings.
+
+> **One slot per resource combination:** If the same time window is available
+> with multiple resource options (e.g., three stylists are all free at 3 pm),
+> the business **MUST** return a separate slot for each option. Each slot's
+> `resources` array carries exactly the resources assigned to that slot.
+> Picking a slot is therefore equivalent to picking both the time and the
+> resource — no second selection step is needed at booking time.
 
 > **Non-transactional:** Availability responses are **not** transactional
 > commitments. A slot returned as `available` reflects the business's state at
@@ -1784,7 +1791,7 @@ existing bookings.
 | `duration`   | string          | **Yes**  | ISO 8601 duration of the slot (e.g., `PT60M`).                                                                                                                                                                                                 |
 | `state`      | string          | **Yes**  | The availability state of the slot. See state values below.                                                                                                                                                                                    |
 | `capacity`   | object          | No       | `{total, remaining, held}` - present for `group` and `reservation` types. `total`: maximum number of spots. `remaining`: spots still available. `held`: spots currently in active holds.                                                       |
-| `resources`  | Array\[object\] | No       | `{id, type, name}` - resources available for this slot (e.g., which staff members or rooms are free).                                                                                                                                          |
+| `resources`  | Array\[object\] | No       | `{id, type, name}` - the specific resources assigned to this slot (e.g., the staff member or room committed to this booking). Each slot carries at most one resource of each type. When the same time window is available with multiple resource options, the business returns a separate slot per option. |
 | `location`   | object          | No       | `{id, name}` - the specific location for this slot, when a service is offered at multiple locations.                                                                                                                                           |
 | `pricing`    | object          | No       | `{amount, currency, label}` - slot-specific pricing that overrides the service-level pricing. Used for peak/off-peak pricing, demand-based pricing, or promotional rates. `label` is an optional human-readable note (e.g., "Peak hour rate"). |
 
@@ -2214,12 +2221,14 @@ For hold-backed bookings, the hold's `expires_at` (see [Section 4.2](#42-hold)) 
 
 > **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
-Creates a new booking for a service at a specific time slot. When the business
-supports holds (`"holds": true`), the platform **SHOULD** hold the slot before
-creating the booking to prevent race conditions. When holds are not supported,
-the platform proceeds directly from slot query to booking creation. When the
-person receiving the service is different from the buyer, the platform **SHOULD
-** include a `recipient` object.
+Creates a new booking for a service at a specific time slot. Resource selection
+(e.g., which staff member or room) is encoded in the `slot_id` — the platform
+selects resources by choosing the appropriate slot at availability query time,
+not at booking time. When the business supports holds (`"holds": true`), the
+platform **SHOULD** hold the slot before creating the booking to prevent race
+conditions. When holds are not supported, the platform proceeds directly from
+slot query to booking creation. When the person receiving the service is
+different from the buyer, the platform **SHOULD** include a `recipient` object.
 
 | Field                         | Type    | Required | Description                                                                                                                                                                                                                                 |
 |-------------------------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -2229,7 +2238,6 @@ person receiving the service is different from the buyer, the platform **SHOULD
 | `buyer`                       | object  | **Yes**  | Buyer contact information.                                                                                                                                                                                                                  |
 | `recipient`                   | object  | No       | The person receiving the service, when different from the buyer.                                                                                                                                                                            |
 | `party_size`                  | integer | No       | Number of participants. Default: 1.                                                                                                                                                                                                         |
-| `resource_id`                 | string  | No       | Preferred resource.                                                                                                                                                                                                                         |
 | `notes`                       | string  | No       | Free-text notes for the business.                                                                                                                                                                                                           |
 | `post_payment_return_request` | object  | No       | The platform's return instruction for when `checkout_systems: redirect` is in use. The platform **SHOULD** always include this field when using the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation. If present, the business **MUST** redirect the buyer's browser (via GET) to the specified URL — with the specified query parameters appended — after payment completes **or** after the buyer cancels or abandons payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return). |
 
@@ -2252,7 +2260,6 @@ Request (with hold):
     "phone_number": "+12125551234"
   },
   "party_size": 1,
-  "resource_id": "staff_jane",
   "notes": "First time visit"
 }
 ```
@@ -2270,7 +2277,6 @@ Request (without hold - business does not support holds):
     "phone_number": "+12125551234"
   },
   "party_size": 1,
-  "resource_id": "staff_jane",
   "notes": "First time visit"
 }
 ```
@@ -2293,7 +2299,6 @@ Request (booking on behalf of another person):
     "last_name": "Williams"
   },
   "party_size": 1,
-  "resource_id": "staff_tom",
   "notes": "He is 7 years old"
 }
 ```
