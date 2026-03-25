@@ -808,7 +808,7 @@ USP API provides the programmatic booking flow.
 
 ### 3.3 Service Schema
 
-> **JSON Schema:** [`schemas/catalog.json`](schemas/catalog.json)
+> **JSON Schema:** [/$defs/Service](schemas/catalog.json)
 
 The service object represents a bookable offering from a business. Each service
 has a type (vertical), duration, pricing, policies, and optional resource
@@ -840,6 +840,7 @@ requirements.
 | `tags`              | Array\[string\]              | No       | Freeform tags for categorization and search (e.g., `["relaxation", "deep-tissue", "prenatal"]`). Aligns with UCP tags.                                                                                                                                                                                                                     |
 | `metadata`          | object                       | No       | Business-defined custom data extending the standard service model. Freeform key-value object. Platforms **SHOULD** pass through opaquely. Aligns with UCP metadata.                                                                                                                                                                         |
 | `availability_hint` | AvailabilityHint             | No       | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint).                                                                                                                                                                                                                                   |
+| `links`             | Array\[Link\]                | No       | Typed links to policy and information pages specific to this service (e.g., cancellation policy page, waiver form). Each entry: `{type, url, title}`. Platforms **SHOULD** surface these during the booking flow — before the buyer confirms — so terms are visible at decision time. Well-known `type` values: `cancellation_policy`, `rescheduling_policy`, `terms_of_service`, `privacy_policy`, `waiver`, `faq`. Complements `provider.links[]` which carries business-level policies. |
 | `localized`         | LocalizedFields              | No       | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization).                                                                                       |
 
 **Channel types:**
@@ -1259,6 +1260,8 @@ composition.
 
 #### 3.12.1 List Services - `POST /services/list`
 
+> **JSON Schema:** Response items — [/$defs/Service](schemas/catalog.json)
+
 Returns a filtered, paginated list of services from the business catalog.
 Designed for interactive use by platforms and AI agents. The response **MAY**
 include an optional `messages[]` array with errors, warnings, or informational
@@ -1532,6 +1535,8 @@ Businesses that support feed subscriptions **SHOULD** declare the
 
 #### 3.12.3 Get Service - `GET /services/{service_id}`
 
+> **JSON Schema:** Response — [/$defs/Service](schemas/catalog.json)
+
 Returns the full service object for a single service. The response **MAY**
 include an optional `messages[]` array with service-level notices.
 
@@ -1602,6 +1607,8 @@ Response:
 ```
 
 #### 3.12.4 Lookup Services - `POST /services/lookup`
+
+> **JSON Schema:** Response items — [/$defs/Service](schemas/catalog.json)
 
 Returns full service objects for a batch of service IDs in a single request.
 Analogous to UCP's `catalog_lookup` capability. Designed for platforms that
@@ -1724,7 +1731,7 @@ A conforming implementation of the `dev.usp.services.catalog` capability
 
 **Capability:** `dev.usp.services.availability`
 
-> **JSON Schema:** [`schemas/availability.json`](schemas/availability.json)
+> **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json) · [/$defs/Hold](schemas/availability.json)
 
 The availability capability lets platforms **query when services are available**
 and, optionally, **hold slots** to prevent double-booking during the booking
@@ -1751,6 +1758,8 @@ When `holds` is `false` or absent, the booking flow proceeds directly from slot
 query to booking creation without an intermediate hold step.
 
 ### 4.1 Time Slot
+
+> **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json)
 
 A time slot represents a specific, bookable window for a service. Slots are
 computed dynamically by the business from schedules, resource calendars, and
@@ -1788,6 +1797,8 @@ existing bookings.
 | `waitlist`  | The slot is fully booked but the service has waitlist enabled (`capacity.waitlist: true`). The platform **MAY** allow the buyer to join the waitlist via the waitlist extension ([Section 11.1](#111-waitlist-extension)). Businesses **MUST NOT** return `waitlist` state unless the `dev.usp.services.waitlist` capability is supported. |
 
 ### 4.2 Hold
+
+> **JSON Schema:** [/$defs/Hold](schemas/availability.json)
 
 > **Feature flag:** This section applies only when the business advertises
 `"holds": true` in its `dev.usp.services.availability` capability entry.
@@ -1827,6 +1838,8 @@ capacity model:
 ### 4.3 Operations
 
 #### 4.3.1 Query Availability - `POST /availability/query`
+
+> **JSON Schema:** Response slots — [/$defs/TimeSlot](schemas/availability.json)
 
 Returns available time slots for a service within a date range. Use
 the [Availability Hint](#36-availability-hint) on the service entity to narrow
@@ -1976,6 +1989,8 @@ Slots are returned in ascending `start` order. For pagination behavior see [Sect
 
 #### 4.3.2 Hold Slot - `POST /availability/holds`
 
+> **JSON Schema:** Response — [/$defs/Hold](schemas/availability.json)
+
 > **Requires:** `"holds": true` on the `dev.usp.services.availability`
 > capability. Platforms **MUST NOT** call this endpoint unless the business
 > profile advertises hold support.
@@ -2115,6 +2130,8 @@ creation through completion. For paid services, the bookings capability also
 defines the `actions` array (including payment actions with `payment_context`)
 and the `confirm-payment` operation for payment confirmation.
 
+> **Single-service design:** USP bookings are single-service by design. Each `POST /bookings` creates exactly one booking for one service at one time slot. This reflects the reality of scheduling flows — buyers typically book one service at a time, and each service occupies a discrete resource (staff, room, equipment) for a specific time window. Multi-service coordination (e.g., a haircut followed by a color treatment, or a gym class plus a personal training session) is handled by the platform issuing separate bookings. A future multi-service booking extension is under consideration.
+
 ### 5.1 Booking Status Lifecycle
 
 ```
@@ -2141,7 +2158,7 @@ and the `confirm-payment` operation for payment confirmation.
 
 ### 5.2 Booking Schema
 
-> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json)
+> **JSON Schema:** [/$defs/Booking](schemas/booking.json)
 
 The booking object represents a scheduled service instance for a specific buyer
 at a specific time.
@@ -2172,14 +2189,30 @@ at a specific time.
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
 | `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.2](#92-error-handling) for the distinction.                                                                                                                                                                                 |
+| `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. If not resolved by this time, the booking transitions to `canceled`.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+**Booking Expiry**
+
+When a `pending` or `requires_action` booking reaches its `expires_at` deadline without being resolved:
+
+1. The business **MUST** transition the booking to `status: canceled`.
+2. The business **SHOULD** send a `booking.canceled` webhook so the platform can update its state.
+3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled` — platforms and businesses need this for audit and reconciliation purposes.
+4. The business **MUST** release the underlying slot hold when the booking expires, making the slot available for new bookings.
+
+For hold-backed bookings, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
 ### 5.3 Operations
 
 #### 5.3.1 Create Booking - `POST /bookings`
+
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
 Creates a new booking for a service at a specific time slot. When the business
 supports holds (`"holds": true`), the platform **SHOULD** hold the slot before
@@ -2199,6 +2232,11 @@ person receiving the service is different from the buyer, the platform **SHOULD
 | `resource_id`                 | string  | No       | Preferred resource.                                                                                                                                                                                                                         |
 | `notes`                       | string  | No       | Free-text notes for the business.                                                                                                                                                                                                           |
 | `post_payment_return_request` | object  | No       | The platform's return instruction for when `checkout_systems: redirect` is in use. The platform **SHOULD** always include this field when using the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation. If present, the business **MUST** redirect the buyer's browser (via GET) to the specified URL — with the specified query parameters appended — after payment completes **or** after the buyer cancels or abandons payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return). |
+
+> **Idempotency:** Duplicate booking submissions are a real concern — network retries can cause a buyer to be double-booked, which is a serious problem in scheduling (e.g., a patient booked twice for a medical appointment).
+>
+> - **With a hold:** When `hold_id` is present, the business **SHOULD** treat it as a natural idempotency key. A second `POST /bookings` with the same `hold_id` **MUST** return the existing booking rather than creating a duplicate.
+> - **Without a hold:** Platforms **SHOULD** send an `Idempotency-Key` header per [Section 9.1.1](#911-idempotency). The business **MUST** honor it — a second request with the same key **MUST** return the same booking that was created by the first request.
 
 Request (with hold):
 
@@ -2410,37 +2448,148 @@ Response (free service, `requires_payment: false`):
 
 #### 5.3.2 Get Booking - `GET /bookings/{booking_id}`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Returns the current state of a booking. Same structure as the booking object
 above.
 
 #### 5.3.3 Update Booking - `PUT /bookings/{booking_id}`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are
-mutable after creation.
+mutable after creation. Fields omitted from the request body are left unchanged
+(partial update semantics). Returns the full updated booking object.
+
+| Field       | Type   | Required | Description                                                    |
+|-------------|--------|----------|----------------------------------------------------------------|
+| `buyer`     | object | No       | Updated buyer contact information (`first_name`, `last_name`, `email`, `phone_number`). |
+| `recipient` | object | No       | Updated recipient information, when different from the buyer.  |
+| `notes`     | string | No       | Updated buyer-provided special requests or notes.              |
+
+Response: the full updated `booking` object with `updated_at` reflecting the modification time.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "notes": "Please use hypoallergenic products",
+    "buyer": {
+      "first_name": "Alice",
+      "last_name": "Williams",
+      "email": "alice.new@example.com",
+      "phone_number": "+12125551234"
+    },
+    "updated_at": "2026-03-15T10:00:00Z"
+  }
+}
+```
 
 #### 5.3.4 Confirm Booking - `POST /bookings/{booking_id}/confirm`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Business-initiated confirmation for bookings with `confirmation_mode: manual`.
-Transitions the booking from `pending` to `confirmed`.
+Transitions the booking from `pending` to `confirmed`. Only applicable when
+`confirmation_mode` is `manual` — calling this on an `auto`-mode booking that is
+already `confirmed` **MUST** return the current booking state (idempotent). The
+business **SHOULD** send a `booking.confirmed` webhook after confirming.
+
+| Field   | Type   | Required | Description                                         |
+|---------|--------|----------|-----------------------------------------------------|
+| `notes` | string | No       | Optional message from the business to the buyer (e.g., "Your appointment is confirmed. Please arrive 10 minutes early."). |
+
+Response: the full updated `booking` object with `status: confirmed`.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "status": "confirmed",
+    "confirmation_mode": "manual",
+    "updated_at": "2026-03-15T09:00:00Z"
+  }
+}
+```
 
 #### 5.3.5 Cancel Booking - `POST /bookings/{booking_id}/cancel`
 
-Cancels a booking. Cancellation fees are applied per the service's cancellation
-policy.
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
+Cancels a booking. Eligible from `pending`, `requires_action`, or `confirmed`
+status. Cancellation fees are applied per the service's cancellation policy (see
+[Section 3.9](#39-service-policies)). The business **SHOULD** send a
+`booking.canceled` webhook after cancellation. The business **MUST** release the
+underlying slot so it becomes available for new bookings.
+
+| Field         | Type   | Required | Description                                                                                   |
+|---------------|--------|----------|-----------------------------------------------------------------------------------------------|
+| `reason`      | string | No       | Human-readable cancellation reason from the initiating party.                                 |
+| `canceled_by` | string | No       | Who initiated the cancellation: `buyer`, `business`, or `system`. Default: `buyer`.           |
+
+Response: the full updated `booking` object with `status: canceled` and the `cancellation` object populated.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "status": "canceled",
+    "cancellation": {
+      "reason": "Schedule conflict",
+      "canceled_by": "buyer",
+      "fee": 0,
+      "refund_amount": 12000,
+      "canceled_at": "2026-03-15T08:30:00Z"
+    },
+    "payment": {
+      "status": "refunded",
+      "timing": "at_booking",
+      "amount": 12000,
+      "currency": "USD",
+      "amount_due": 0,
+      "transaction_id": "txn_abc123"
+    },
+    "updated_at": "2026-03-15T08:30:00Z"
+  }
+}
+```
 
 #### 5.3.6 Reschedule Booking - `POST /bookings/{booking_id}/reschedule`
 
-Moves a booking to a different time slot. When the business supports holds, the
-platform **SHOULD** hold the new slot before rescheduling. When holds are not
-supported, the platform provides only the new `slot_id`. Rescheduling limits and
-fees are governed by the service's rescheduling policy.
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
+Moves a booking to a different time slot. Rescheduling preserves the booking
+`id` — this is not a cancel + rebook. The original slot is released and the new
+slot is occupied. Rescheduling limits and fees are governed by the service's
+rescheduling policy (see [Section 3.9](#39-service-policies)).
+
+**Eligible statuses:** `confirmed` (**MUST** be supported). `pending`
+**SHOULD** be allowed. `requires_action` is at the business's discretion.
+Rescheduling a `canceled` or terminal-state booking **MUST** return a 409 error.
+
+When the business supports holds, the platform **SHOULD** hold the new slot
+before rescheduling to prevent a race condition. When holds are not supported,
+the platform provides only the new `slot_id`. The business **SHOULD** send a
+`booking.rescheduled` webhook after the operation.
 
 | Field     | Type   | Required | Description                                                              |
 |-----------|--------|----------|--------------------------------------------------------------------------|
 | `slot_id` | string | **Yes**  | The new slot to reschedule to.                                           |
 | `hold_id` | string | No       | Hold ID for the new slot. Present only when the business supports holds. |
 
+Response: the full updated `booking` object with `slot` updated to the new time.
+
+**Price changes on reschedule:** When slot-level pricing differs between the
+original and new slot (e.g., rescheduling from an off-peak to a peak slot), the
+business **SHOULD** update `payment.amount` to reflect the new price. If
+additional payment is required, the business **MUST** set a new
+`payment.amount_due` and add a new `payment`-type action to `actions[]`,
+transitioning the booking to `requires_action` until the additional payment is
+collected.
+
 #### 5.3.7 Confirm Payment - `POST /bookings/{booking_id}/confirm-payment`
+
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
 The universal callback that the platform calls after payment succeeds. This
 completes the payment action in the booking's `actions` array. Per the
@@ -2535,6 +2684,44 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | `booking.dispute_opened`   | A dispute or chargeback has been opened for this booking |
 | `booking.dispute_resolved` | A dispute has been resolved                              |
 
+**Webhook payload schema:**
+
+| Field          | Type    | Required | Description                                                                                                                                                                                                               |
+|----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `event`        | string  | **Yes**  | Event type (e.g., `booking.confirmed`, `booking.canceled`).                                                                                                                                                               |
+| `booking_id`   | string  | **Yes**  | The booking this event relates to.                                                                                                                                                                                        |
+| `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
+| `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). |
+
+```json
+{
+  "event": "booking.confirmed",
+  "booking_id": "bkg_456def",
+  "timestamp": "2026-03-15T09:00:00Z",
+  "data": {
+    "id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_name": "Deep Tissue Massage",
+    "slot": {
+      "id": "slot_20260316_1400",
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "buyer": {
+      "first_name": "Alice",
+      "last_name": "Williams",
+      "email": "alice@example.com"
+    },
+    "party_size": 1,
+    "status": "confirmed",
+    "confirmation_mode": "manual",
+    "created_at": "2026-03-14T22:05:00Z",
+    "updated_at": "2026-03-15T09:00:00Z"
+  }
+}
+```
+
 #### 5.4.2 Catalog Change Webhooks
 
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
@@ -2605,15 +2792,28 @@ payment object links back to the checkout system's order for refund operations.
 
 #### 5.5.2 Dispute Resolution
 
-When a payment dispute (chargeback) is opened against a booking, the business *
-*SHOULD** update the booking with dispute information and notify the platform:
+When a payment dispute (chargeback) is opened against a booking, the business
+**SHOULD** update the booking with dispute information and notify the platform
+via the `booking.dispute_opened` webhook.
 
-| Field                 | Type   | Description                                                                                  |
-|-----------------------|--------|----------------------------------------------------------------------------------------------|
-| `dispute.status`      | string | `opened`, `under_review`, `resolved_buyer`, `resolved_business`                              |
-| `dispute.reason`      | string | Machine-readable reason code (e.g., `service_not_provided`, `quality_issue`, `unauthorized`) |
-| `dispute.opened_at`   | string | RFC 3339 timestamp of when the dispute was opened                                            |
-| `dispute.resolved_at` | string | RFC 3339 timestamp of when the dispute was resolved                                          |
+> **JSON Schema:** [/$defs/Dispute](schemas/booking.json)
+
+The `dispute` object on the booking:
+
+| Field         | Type   | Required | Description                                                                                                            |
+|---------------|--------|----------|------------------------------------------------------------------------------------------------------------------------|
+| `status`      | string | **Yes**  | `opened`, `under_review`, `resolved_buyer` (resolved in buyer's favor), `resolved_business` (resolved in business's favor). |
+| `reason`      | string | **Yes**  | Machine-readable reason code. Well-known values: `service_not_provided`, `quality_issue`, `unauthorized`, `duplicate`. |
+| `opened_at`   | string | **Yes**  | RFC 3339 timestamp of when the dispute was opened.                                                                     |
+| `resolved_at` | string | No       | RFC 3339 timestamp of when the dispute was resolved. Present only when `status` is `resolved_buyer` or `resolved_business`. |
+
+**Payment status and disputes:** Opening a dispute does **NOT** change
+`payment.status` — the payment remains `paid` while the dispute is under review.
+`payment.status` **MAY** change to `refunded` or `partially_refunded` only if
+the dispute resolves in the buyer's favor (i.e., `dispute.status:
+resolved_buyer`). If the dispute resolves in the business's favor, `payment.status`
+remains `paid`. The business **MUST** send a `booking.dispute_resolved` webhook
+when the dispute is resolved.
 
 #### 5.5.3 Service Delivery Events
 
@@ -3118,6 +3318,8 @@ and [10.2](#102-security-infrastructure-for-standalone-mode)** - these are
 > infrastructure requirements for Standalone Mode that UCP already provides.
 
 ### 7.4 Paid Bookings Extension Schema
+
+> **JSON Schema:** [schemas/paid_bookings.json](schemas/paid_bookings.json)
 
 **Capability:** `dev.usp.services.paid_bookings` (extends
 `dev.ucp.shopping.checkout`)
@@ -3805,8 +4007,7 @@ section applies only when `requires_payment` is `true` and `payment_timing` is
 
 #### 8.5.1 Booking Payment Schema
 
-> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json) (see
-`BookingPayment` and `PaymentContext` definitions)
+> **JSON Schema:** [/$defs/BookingPayment](schemas/booking.json) · [/$defs/PaymentContext](schemas/booking.json)
 
 The `payment` object on the booking tracks the lifecycle of payment:
 
@@ -3814,14 +4015,17 @@ The `payment` object on the booking tracks the lifecycle of payment:
 |-------------------|---------|-------------|----------------------------------------------------------------------------------------|
 | `status`          | string  | **Yes**     | `not_required`, `pending`, `deposit_paid`, `paid`, `refunded`, `partially_refunded`    |
 | `timing`          | string  | **Yes**     | Mirrors the service's `payment_timing`: `at_booking`, `at_service`, `deposit_required` |
-| `amount`          | integer | Conditional | Total service amount in minor currency units.                                          |
-| `currency`        | string  | Conditional | ISO 4217 currency code.                                                                |
-| `amount_due`      | integer | Conditional | Amount due now in minor currency units.                                                |
+| `amount`          | integer | Conditional | Service fee in minor currency units, **before tax**. Does not include `tax_amount`. **REQUIRED** when `timing` is `at_booking` or `deposit_required`. |
+| `currency`        | string  | Conditional | ISO 4217 currency code. **REQUIRED** when `amount` is present.                         |
+| `amount_due`      | integer | Conditional | Amount due now in minor currency units. **REQUIRED** when `timing` is `at_booking` or `deposit_required`. |
+| `tax_amount`      | integer | No          | Tax amount in minor currency units. When present, the total charged to the buyer is `amount + tax_amount`. **MUST** use the same currency as `amount`. |
 | `deposit_amount`  | integer | No          | Deposit amount when `timing` is `deposit_required`.                                    |
 | `transaction_id`  | string  | No          | Transaction ID from the payment provider, set after `confirm-payment`.                 |
 | `order_reference` | string  | No          | External order ID from the checkout system.                                            |
 
 #### 8.5.2 Payment Context
+
+> **JSON Schema:** [/$defs/PaymentContext](schemas/booking.json)
 
 The `PaymentContext` is a **handoff object** nested inside a payment action in
 the booking's `actions` array. It contains everything a checkout system needs to
@@ -3885,6 +4089,8 @@ the action with `type: payment`). The action's `expires_at` indicates the
 payment deadline.
 
 #### 8.5.5 Redirect Flow and Post-Payment Return
+
+> **JSON Schema:** [/$defs/PostPaymentReturnRequest](schemas/booking.json)
 
 > **Applies to:** Businesses that declare `checkout_systems: ["redirect"]`. This section is not applicable to the `acp` or `embedded` checkout paths.
 
@@ -4749,8 +4955,7 @@ containing one or more public keys in JWK format [RFC 7517]. See
 structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
 hosting requirements.
 
-> **JSON Schema:** [`schemas/profile.json`](schemas/profile.json) (see
-> `$defs/SigningKey`) and [`schemas/usp.json`](schemas/usp.json)
+> **JSON Schema:** [/$defs/SigningKey](schemas/profile.json) · [schemas/usp.json](schemas/usp.json)
 
 ```json
 {
@@ -4946,7 +5151,7 @@ business offers it to the next eligible waitlisted buyer.
 
 #### 11.1.1 WaitlistEntry Schema
 
-> **JSON Schema:** [`schemas/waitlist.json`](schemas/waitlist.json)
+> **JSON Schema:** [/$defs/WaitlistEntry](schemas/waitlist.json)
 
 The waitlist entry tracks a buyer's position and preferences.
 
@@ -5073,8 +5278,7 @@ to business-side events:
 
 #### 11.2.3 BusyBlock and BuyerFreeBusy Schemas
 
-> **JSON Schema:**
-> [`schemas/calendar_freebusy.json`](schemas/calendar_freebusy.json)
+> **JSON Schema:** [/$defs/BusyBlock](schemas/calendar_freebusy.json) · [/$defs/BuyerFreeBusy](schemas/calendar_freebusy.json)
 
 **BusyBlock** — an opaque busy time block from the buyer's calendar:
 
