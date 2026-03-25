@@ -179,7 +179,9 @@ The following terms are used throughout this document:
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Booking**         | A confirmed or pending reservation of a specific service at a specific time for a specific buyer. A booking has a lifecycle (create, confirm, reschedule, cancel, complete).                                                                                                                                                                                     |
 | **Business**        | The entity offering time-based services. The business owns the schedule, resources, and booking policies. For payment purposes, the business is the Merchant of Record.                                                                                                                                                                                          |
+| **BusyBlock**       | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                                                                        |
 | **Buyer**           | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). The buyer is the primary contact for booking management, payment, and notifications. When no separate `recipient` is specified, the buyer is also the person receiving the service.                                               |
+| **BuyerFreeBusy**   | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                      |
 | **Capability**      | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
 | **Action**          | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
@@ -587,6 +589,15 @@ USP uses reverse-domain notation for capability names:
 The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use
 their own domain (e.g., `com.wix.services.courses`).
 
+Within the `dev.usp.*` namespace, capabilities are organized by scope:
+
+- `dev.usp.services.*` — Business-facing capabilities that the business
+  declares and platforms consume (e.g., `dev.usp.services.catalog`,
+  `dev.usp.services.availability`).
+- `dev.usp.platform.*` — Platform-scoped capabilities that the platform
+  declares and implements internally. These do not require business-side
+  support (e.g., `dev.usp.platform.calendar_freebusy`).
+
 ### 2.6 Multi-Location Businesses
 
 For businesses with multiple locations (chains, franchises), a single USP
@@ -623,7 +634,7 @@ availability operations **SHOULD** accept an optional `location_id` filter so
 platforms can scope requests to a specific location:
 
 ```
-GET /services/feed?cursor=2026-03-10T08:00:00Z&limit=50&location_id=loc_nyc
+GET /services/feed?cursor=crs_a1b2c3d4e5f6&limit=50&location_id=loc_nyc
 ```
 
 Similarly, `POST /services/list` and `POST /availability/query` **SHOULD**accept
@@ -658,12 +669,13 @@ than re-fetching the entire catalog.
 The feed returns a paginated, chronologically ordered list of service records,
 sorted by `modified_at` ascending. This design follows the Realtime Paged Data
 Exchange (RPDE) pattern used by [OpenActive] and is analogous to product feeds
-in commerce platforms.
+in commerce platforms. The response **MAY** include an optional `messages[]`
+array (e.g., partial results when `feed_status` is `degraded`).
 
 Request:
 
 ```json
-GET /services/feed?cursor=2026-03-10T08: 00: 00Z&limit=50
+GET /services/feed?cursor=crs_a1b2c3d4e5f6&limit=50
 ```
 
 Response:
@@ -702,7 +714,7 @@ Response:
     }
   ],
   "pagination": {
-    "next_cursor": "2026-03-10T10:00:00Z",
+    "cursor": "crs_f7g8h9i0j1k2",
     "has_more": true
   },
   "feed_meta": {
@@ -723,6 +735,13 @@ Response:
 | `feed_meta.feed_generated_at` | string  | **Yes**  | RFC 3339 timestamp of when this feed page was computed. Aggregators can use this to detect stale feeds.                                                                                                                                                      |
 | `feed_meta.total_services`    | integer | **Yes**  | Total number of active (non-deleted) services in the business's catalog. Aggregators can use this to verify completeness of their index.                                                                                                                     |
 | `feed_meta.feed_status`       | string  | **Yes**  | Health status of the feed. `healthy`: feed is fully up-to-date. `degraded`: feed may be missing recent changes (e.g., partial index rebuild in progress). `rebuilding`: feed is being regenerated from scratch; aggregators **SHOULD** expect a full resync. |
+
+> **Note:** The feed endpoint uses `pagination.next_cursor` (a timestamp
+> string) rather than the generic `cursor` used by all other paginated USP
+> operations. This is intentional: the feed cursor is a `modified_at` timestamp
+> that enables incremental RPDE-style synchronization, and its semantics differ
+> from the opaque cursor used for interactive paging. See
+> [Section 9.1.2](#912-pagination) for the shared cursor model.
 
 The `List Services` operation ([Section 3.12](#312-operations)) remains
 available for interactive use by platform UIs and AI agents. The feed endpoint
@@ -778,7 +797,8 @@ properties:
 | `channel.type: in_person`               | `schema:availableChannel.serviceLocation`      | Map to `schema:Place` with address.                                                                   |
 | `locations[]`                           | `schema:areaServed` / `schema:serviceLocation` | Map each location to a `schema:Place`.                                                                |
 | `availability_hint.next_available_date` | `schema:availabilityStarts`                    | Approximate; use with `schema:Offer`.                                                                 |
-| `images[].url`                          | `schema:image`                                 | Direct mapping.                                                                                       |
+| `media[].url` (type=image)              | `schema:image`                                 | Direct mapping. Filter to `type: "image"` entries.                                                    |
+| `media[].url` (type=video)              | `schema:video`                                 | Map to `schema:VideoObject`.                                                                          |
 | `policies.cancellation`                 | `schema:cancellationPolicy`                    | Map `free_cancellation_until` to a human-readable string or use `schema:MerchantReturnPolicy`.        |
 | `duration.fixed`                        | `schema:providerMobility` / custom             | No direct schema.org equivalent; use `schema:duration` on the `Event` if modeling as an event.        |
 | `capacity.max`                          | `schema:maximumAttendeeCapacity`               | For `group` and `reservation` types.                                                                  |
@@ -788,7 +808,7 @@ USP API provides the programmatic booking flow.
 
 ### 3.3 Service Schema
 
-> **JSON Schema:** [`schemas/catalog.json`](schemas/catalog.json)
+> **JSON Schema:** [/$defs/Service](schemas/catalog.json)
 
 The service object represents a bookable offering from a business. Each service
 has a type (vertical), duration, pricing, policies, and optional resource
@@ -798,10 +818,12 @@ requirements.
 |---------------------|------------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `id`                | string                       | **Yes**  | Unique service identifier, scoped to the business. Opaque to the platform. The composite key `(business_id, id)` is globally unique.                                                                                                                                                                                                       |
 | `business_id`       | string                       | **Yes**  | Identifier of the business that owns this service. Populated by the provider in API responses. Together with `id`, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off. See [Section 3.4](#34-business-id-and-cross-business-discovery). |
+| `provider`          | Provider                     | No       | Inline business metadata for display without a separate profile fetch. See [Section 3.3.3](#333-provider-schema). Aligns with UCP's seller object.                                                                                                                                                                                        |
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
-| `description`       | string                       | No       | Human-readable description providing details about what the service includes, what to expect, and any prerequisites. Aimed at both human readers and AI agents.                                                                                                                                                                            |
+| `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
 | `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
-| `category`          | object                       | No       | `{id, name, parent_id}` - business-defined classification for organizing services (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization.                                                                                                                                                                            |
+| `category`          | object                       | No       | `{id, name, parent_id}` - business's canonical classification for the service (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization.                                                                                                                                                                                |
+| `categories`        | Array\[object\]              | No       | Array of `{value, taxonomy}` category entries. Supports multiple taxonomy systems (e.g., `{"value": "beauty > hair", "taxonomy": "merchant"}`, `{"value": "596", "taxonomy": "google_product_category"}`). Aligns with UCP categories. If both `category` and `categories` are present, `categories` is the authoritative set.             |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
 | `locations`         | Array\[Location\]            | No       | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`.                                                                                                                                                                                                                          |
@@ -809,8 +831,16 @@ requirements.
 | `channel`           | object                       | **Yes**  | Delivery channel for the service. See channel types below.                                                                                                                                                                                                                                                                                 |
 | `policies`          | ServicePolicies              | **Yes**  | Booking, cancellation, rescheduling, and payment policies. See [Section 3.9](#39-service-policies).                                                                                                                                                                                                                                        |
 | `capacity`          | object                       | No       | `{min, max, waitlist}` - **REQUIRED** for `group` and `reservation` types. `min`: minimum party size accepted. `max`: maximum participants per slot. `waitlist`: boolean indicating whether waitlist is enabled when slots are full.                                                                                                       |
-| `images`            | Array\[object\]              | No       | `{url, alt, type}` - service images. `type` is one of `hero`, `gallery`, or `thumbnail`.                                                                                                                                                                                                                                                   |
+| `media`             | Array\[Media\]               | No       | Service media items (images, videos). See [Section 3.3.1](#331-media-schema). Replaces the previous `images` field.                                                                                                                                                                                                                         |
+| `images`            | Array\[object\]              | No       | **Deprecated.** Alias for `media` for backward compatibility. If both `images` and `media` are present, `media` takes precedence. New implementations **SHOULD** use `media`.                                                                                                                                                               |
+| `rating`            | object                       | No       | Aggregate service rating. `value` (number, required): average rating. `scale_min` (number, default 1): minimum scale value. `scale_max` (number, required): maximum scale value (e.g., 5). `count` (integer): number of reviews. Aligns with UCP rating object.                                                                            |
+| `status`            | string                       | No       | Service lifecycle status: `active` (default, bookable), `suspended` (temporarily unavailable), `archived` (no longer offered, retained for history). Absent means `active`. A `service.suspended` webhook event **MUST** set this to `suspended`.                                                                                          |
+| `handle`            | string                       | No       | URL-friendly slug for the service (e.g., `womens-haircut-style`). Aligns with UCP handle.                                                                                                                                                                                                                                                  |
+| `url`               | string                       | No       | Canonical service page URL on the business's website. Aligns with UCP url.                                                                                                                                                                                                                                                                  |
+| `tags`              | Array\[string\]              | No       | Freeform tags for categorization and search (e.g., `["relaxation", "deep-tissue", "prenatal"]`). Aligns with UCP tags.                                                                                                                                                                                                                     |
+| `metadata`          | object                       | No       | Business-defined custom data extending the standard service model. Freeform key-value object. Platforms **SHOULD** pass through opaquely. Aligns with UCP metadata.                                                                                                                                                                         |
 | `availability_hint` | AvailabilityHint             | No       | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint).                                                                                                                                                                                                                                   |
+| `links`             | Array\[Link\]                | No       | Typed links to policy and information pages specific to this service (e.g., cancellation policy page, waiver form). Each entry: `{type, url, title}`. Platforms **SHOULD** surface these during the booking flow — before the buyer confirms — so terms are visible at decision time. Well-known `type` values: `cancellation_policy`, `rescheduling_policy`, `terms_of_service`, `privacy_policy`, `waiver`, `faq`. Complements `provider.links[]` which carries business-level policies. |
 | `localized`         | LocalizedFields              | No       | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization).                                                                                       |
 
 **Channel types:**
@@ -821,6 +851,111 @@ requirements.
 | `virtual`      | Service is delivered remotely via video/audio call.                                                                          | `virtual_provider`: platform name (e.g., "Zoom", "Google Meet"). `instructions`: join instructions or a link provided after booking. |
 | `phone`        | Service is delivered via phone call.                                                                                         | `instructions`: optional call-in details.                                                                                            |
 | `hybrid`       | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference.                           |
+
+#### 3.3.1 Media Schema
+
+The `media` array contains typed media items for the service. Each entry
+describes a single image, video, or other media resource. This aligns with
+UCP's media model.
+
+| Field      | Type    | Required | Description                                                                                                                 |
+|------------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `type`     | string  | **Yes**  | Media format type: `image`, `video`. Additional types **MAY** be added in the future; platforms **MUST** ignore unknown types. |
+| `url`      | string  | **Yes**  | URL to the media resource (HTTPS).                                                                                          |
+| `alt_text` | string  | No       | Accessibility text describing the media. **RECOMMENDED** for all media items.                                               |
+| `role`     | string  | No       | Display role: `hero` (primary banner), `gallery` (additional images/videos), `thumbnail` (small preview). Default: `gallery`. |
+| `width`    | integer | No       | Width in pixels. **RECOMMENDED** for images and videos to enable responsive layouts without fetching the resource.           |
+| `height`   | integer | No       | Height in pixels. **RECOMMENDED** for images and videos.                                                                    |
+
+**Migration from `images`:** The previous `images` field used `{url, alt, type}`
+where `type` was the display role (`hero`, `gallery`, `thumbnail`). The new
+`media` field separates the media format (`type`) from the display role
+(`role`), and renames `alt` to `alt_text` for consistency with UCP and
+accessibility standards. Businesses **SHOULD** migrate to `media`. If both
+`images` and `media` are present on a service, platforms **MUST** use `media`.
+
+#### 3.3.2 Description Schema
+
+The `description` field accepts either a plain string (backward compatible) or
+a structured object with multiple format variants. This aligns with UCP's
+`Description` type.
+
+**Plain string (backward compatible):**
+
+```json
+"description": "A full haircut and styling session with one of our experienced stylists."
+```
+
+**Structured object:**
+
+```json
+"description": {
+  "plain": "A full haircut and styling session with one of our experienced stylists.",
+  "markdown": "A full **haircut and styling** session with one of our experienced stylists.\n\n- Consultation\n- Shampoo\n- Cut & blow-dry"
+}
+```
+
+| Field      | Type   | Required    | Description                                                                                                                                   |
+|------------|--------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `plain`    | string | **Yes**     | Plain text content. Always required as the universal fallback.                                                                                |
+| `markdown` | string | No          | Markdown-formatted content.                                                                                                                  |
+| `html`     | string | No          | HTML-formatted content. Platforms **MUST** sanitize before rendering — strip scripts, event handlers, and untrusted elements.                 |
+
+At least `plain` **MUST** be provided. Platforms **SHOULD** prefer the richest
+format they can safely render (`html` > `markdown` > `plain`), falling back to
+`plain` for unsupported formats.
+
+When a plain string is provided instead of an object, platforms **MUST** treat
+it as equivalent to `{"plain": "<the string>"}`.
+
+#### 3.3.3 Provider Schema
+
+The optional `provider` object carries inline business metadata on the service,
+so platforms can display the business name, website, and policy links without a
+separate profile fetch. This is particularly valuable for multi-business search
+results, cached catalogs, and AI agents describing services to buyers. Aligns
+with UCP's `seller` object on product variants.
+
+The `provider` is a lightweight subset of the business profile — not a
+replacement. Platforms that need the full profile (capabilities, endpoints,
+signing keys) **MUST** still fetch `/.well-known/usp`.
+
+| Field   | Type          | Required | Description                                                                                            |
+|---------|---------------|----------|--------------------------------------------------------------------------------------------------------|
+| `name`  | string        | **Yes**  | Business display name (e.g., "Glamour Salon NYC").                                                     |
+| `url`   | string        | No       | Business website URL.                                                                                  |
+| `links` | Array\[Link\] | No       | Typed links to policy and information pages. See link types below.                                     |
+
+**Link object:**
+
+| Field   | Type   | Required | Description                                                                                                          |
+|---------|--------|----------|----------------------------------------------------------------------------------------------------------------------|
+| `type`  | string | **Yes**  | Link type. Well-known values: `privacy_policy`, `terms_of_service`, `refund_policy`, `cancellation_policy`, `faq`.   |
+| `url`   | string | **Yes**  | URL to the linked page.                                                                                              |
+| `title` | string | No       | Display text for the link. When provided, use instead of generating from `type`.                                     |
+
+Platforms **SHOULD** handle unknown `type` values gracefully by displaying
+them using the `title` field or omitting the link.
+
+Example:
+
+```json
+"provider": {
+  "name": "Glamour Salon NYC",
+  "url": "https://glamoursalon.nyc",
+  "links": [
+    {
+      "type": "cancellation_policy",
+      "url": "https://glamoursalon.nyc/policies/cancellation"
+    },
+    {
+      "type": "terms_of_service",
+      "url": "https://glamoursalon.nyc/terms",
+      "title": "Booking Terms"
+    }
+  ]
+}
+```
 
 ### 3.4 Business ID and Cross-Business Discovery
 
@@ -1009,12 +1144,31 @@ The pricing object defines how a service is priced. The combination of `model`
 and the service's `requires_payment` / `payment_timing` fields **MUST** conform
 to the validation rules in [Section 3.11](#311-validation-rules).
 
-| Field      | Type    | Required    | Description                                                                                                                                                                                                                                                                                                                     |
-|------------|---------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `model`    | string  | **Yes**     | The pricing model. See pricing model values below.                                                                                                                                                                                                                                                                              |
-| `amount`   | integer | Conditional | Price in minor currency units (e.g., `7500` = $75.00). **REQUIRED** when `model` is `fixed`, `hourly`, or `per_person`. **MUST NOT** be present when `model` is `free`. **MAY** be absent when `model` is `variable` (price is determined at slot query time).                                                                  |
-| `currency` | string  | **Yes**     | ISO 4217 currency code (e.g., `USD`, `EUR`, `GBP`). **REQUIRED** even when `model` is `free` (to establish the business's operating currency).                                                                                                                                                                                  |
-| `deposit`  | object  | No          | `{type, value, refundable}` - **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
+| Field         | Type    | Required    | Description                                                                                                                                                                                                                                                                                                                     |
+|---------------|---------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `model`       | string  | **Yes**     | The pricing model. See pricing model values below.                                                                                                                                                                                                                                                                              |
+| `amount`      | integer | Conditional | Price in minor currency units (e.g., `7500` = $75.00). **REQUIRED** when `model` is `fixed`, `hourly`, or `per_person`. **MUST NOT** be present when `model` is `free`. **MAY** be absent when `model` is `variable` (price is determined at slot query time).                                                                  |
+| `currency`    | string  | **Yes**     | ISO 4217 currency code (e.g., `USD`, `EUR`, `GBP`). **REQUIRED** even when `model` is `free` (to establish the business's operating currency).                                                                                                                                                                                  |
+| `price_range` | object  | No          | `{min, max}` — displayable price range in minor currency units (same currency as `currency`). **RECOMMENDED** when `model` is `variable`, `hourly`, or `per_person`, so platforms can display a price range without querying availability. Aligns with UCP's `price_range` on products. See below.                              |
+| `deposit`     | object  | No          | `{type, value, refundable}` - **REQUIRED** when `payment_timing` is `deposit_required`. `type`: `fixed` (absolute amount) or `percentage` (of the total price). `value`: the deposit amount or percentage. `refundable`: boolean indicating if the deposit is refundable upon cancellation within the free cancellation window. |
+
+**Price range:**
+
+When `model` is `variable`, `hourly`, or `per_person`, the catalog-level
+`amount` may not represent the actual price the buyer will pay (it depends on
+slot, duration, or party size). The optional `price_range` object provides a
+displayable min/max so platforms can show "from $50 – $150" without querying
+availability first.
+
+| Field | Type    | Required | Description                                    |
+|-------|---------|----------|------------------------------------------------|
+| `min` | integer | **Yes**  | Minimum price in minor currency units.         |
+| `max` | integer | **Yes**  | Maximum price in minor currency units.         |
+
+Both `min` and `max` are denominated in the same currency as `pricing.currency`.
+When `model` is `fixed`, `price_range` is redundant (min = max = amount) and
+**SHOULD** be omitted. When `model` is `free`, `price_range` **MUST NOT** be
+present.
 
 **Pricing model values:**
 
@@ -1106,10 +1260,60 @@ composition.
 
 #### 3.12.1 List Services - `POST /services/list`
 
-Returns a filtered, paginated list of services from the business catalog.
-Designed for interactive use by platforms and AI agents.
+> **JSON Schema:** Response items — [/$defs/Service](schemas/catalog.json)
 
-Request:
+Returns a filtered, paginated list of services from the business catalog.
+Designed for interactive use by platforms and AI agents. The response **MAY**
+include an optional `messages[]` array with errors, warnings, or informational
+notices (e.g., partial results, filter feedback, service-level warnings).
+
+**Free-text search:** The request **MAY** include an optional `query` field for
+free-text search across service names, descriptions, and categories. This
+aligns with UCP's `catalog_search` pattern. When `query` is present, the
+business **SHOULD** rank results by relevance. When both `query` and `filters`
+are provided, the business **MUST** apply filters as hard constraints and use
+the query for relevance ranking within the filtered set.
+
+Businesses that support free-text search **SHOULD** advertise this by including
+`"search": true` in their `dev.usp.services.catalog` capability entry.
+Businesses that do not support search **MUST** ignore the `query` field and
+return results as if it were omitted (they **MUST NOT** return an error).
+
+**Filters:**
+
+| Field         | Type            | Description                                                                                                                                          |
+|---------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `type`        | string          | Service vertical to filter by (e.g., `appointment`, `group`, `reservation`).                                                                        |
+| `category_id` | string          | Single category ID to filter by. Shorthand for `categories: ["<value>"]`. If both `category_id` and `categories` are provided, `categories` takes precedence. |
+| `categories`  | Array\[string\] | Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP's `catalog_search` filters.                         |
+| `location_id` | string          | Location ID to filter by (for multi-location businesses).                                                                                            |
+| `price`       | object          | Price range filter. Contains optional `min` and `max` fields in minor currency units. Currency is determined by `context.currency` or the business's default currency. |
+
+All specified filters combine with AND logic (e.g., `type` AND `categories`
+AND `price` must all match). Within `categories`, values combine with OR logic.
+
+**Context:** The request **MAY** include an optional `context` object with
+buyer locale and intent signals that inform relevance, localization, and
+personalization. This aligns with UCP's context pattern. Businesses **SHOULD**
+use context when available and **MUST** ignore unrecognized context fields
+without error.
+
+| Field             | Type            | Description                                                                                                                                                           |
+|-------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `address_country` | string          | Buyer's country (ISO 3166-1 alpha-2, e.g., `US`). Hint for market context — higher-resolution data (e.g., `location_id`) supersedes.                                |
+| `address_region`  | string          | Region within the country (e.g., `California`). Optional hint for localization.                                                                                       |
+| `postal_code`     | string          | Postal code (e.g., `94043`). Optional hint for regional refinement.                                                                                                  |
+| `coordinates`     | object          | Buyer's geographic coordinates. Contains `latitude` (number, WGS 84) and `longitude` (number, WGS 84). Enables proximity-based ranking and "near me" queries. Higher-resolution than postal code; `location_id` filter supersedes for multi-location businesses. |
+| `language`        | string          | Preferred language (IETF BCP 47, e.g., `en`, `fr-CA`). Businesses **MAY** return content in a different language if the requested language is unavailable.            |
+| `currency`        | string          | Preferred currency (ISO 4217, e.g., `USD`, `EUR`). Used as denomination for price filter values. Response prices include explicit currency confirming the resolution. |
+| `intent`          | string          | Free-text description of the buyer's intent (e.g., `"looking for a relaxing spa treatment"`). Informs relevance and recommendations.                                 |
+
+The `context` object is available on all catalog request payloads
+(`/services/list`, `/services/lookup`). The same context definition applies to
+both endpoints. Businesses **MUST** ignore unrecognized context fields without
+error; this ensures forward compatibility as new context fields are added.
+
+Request (structured filters only):
 
 ```json
 {
@@ -1119,6 +1323,37 @@ Request:
   },
   "pagination": {
     "limit": 20,
+    "cursor": null
+  }
+}
+```
+
+Request (free-text search with context and extended filters):
+
+```json
+{
+  "query": "deep tissue massage",
+  "filters": {
+    "type": "appointment",
+    "categories": ["wellness", "spa"],
+    "price": {
+      "min": 5000,
+      "max": 15000
+    }
+  },
+  "context": {
+    "address_country": "US",
+    "address_region": "California",
+    "coordinates": {
+      "latitude": 37.4419,
+      "longitude": -122.1430
+    },
+    "language": "en",
+    "currency": "USD",
+    "intent": "looking for a relaxing post-workout massage"
+  },
+  "pagination": {
+    "limit": 10,
     "cursor": null
   }
 }
@@ -1300,7 +1535,10 @@ Businesses that support feed subscriptions **SHOULD** declare the
 
 #### 3.12.3 Get Service - `GET /services/{service_id}`
 
-Returns the full service object for a single service.
+> **JSON Schema:** Response — [/$defs/Service](schemas/catalog.json)
+
+Returns the full service object for a single service. The response **MAY**
+include an optional `messages[]` array with service-level notices.
 
 Request:
 
@@ -1368,13 +1606,132 @@ Response:
 }
 ```
 
+#### 3.12.4 Lookup Services - `POST /services/lookup`
+
+> **JSON Schema:** Response items — [/$defs/Service](schemas/catalog.json)
+
+Returns full service objects for a batch of service IDs in a single request.
+Analogous to UCP's `catalog_lookup` capability. Designed for platforms that
+need to hydrate multiple service references at once (e.g., after a search,
+when rendering a shortlist, or when resolving services from booking history).
+
+The response **MAY** include an optional `messages[]` array. If some IDs
+cannot be resolved, the business **SHOULD** return the services it can resolve
+and include `messages` entries with `code: "service_not_found"` and `path`
+pointing to the unresolved ID for each missing service.
+
+**Batch limits:**
+
+- Businesses **MUST** accept requests with at least 50 IDs.
+- Businesses **MAY** accept more; the maximum **SHOULD** be documented in the
+  business profile.
+- If the request exceeds the business's limit, the business **MUST** return
+  `422 Unprocessable Entity` with a `ProblemDetails` response indicating the
+  maximum allowed batch size.
+
+**Deduplication:** If the `ids` array contains duplicate values, the business
+**MUST** return each unique service at most once. Duplicates are silently
+ignored.
+
+**Ordering:** The response `services` array is unordered. Platforms **MUST
+NOT** rely on the response order matching the request `ids` order.
+
+**Context:** The request **MAY** include an optional `context` object (same
+definition as in [Section 3.12.1](#3121-list-services---post-serviceslist))
+for localization of the returned service content (e.g., language, currency).
+
+Request:
+
+```json
+POST /services/lookup
+
+{
+  "ids": [
+    "svc_haircut_001",
+    "svc_massage_002",
+    "svc_nonexistent_999"
+  ],
+  "context": {
+    "language": "es",
+    "currency": "EUR"
+  }
+}
+```
+
+Response (partial success):
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.catalog": [
+        {
+          "version": "2026-02-09"
+        }
+      ]
+    }
+  },
+  "services": [
+    {
+      "id": "svc_haircut_001",
+      "business_id": "biz_glamour_salon_nyc",
+      "name": "Women's Haircut & Style",
+      "type": "appointment"
+    },
+    {
+      "id": "svc_massage_002",
+      "business_id": "biz_glamour_salon_nyc",
+      "name": "Deep Tissue Massage",
+      "type": "appointment"
+    }
+  ],
+  "messages": [
+    {
+      "type": "warning",
+      "code": "service_not_found",
+      "content": "Service ID 'svc_nonexistent_999' was not found.",
+      "path": "$.ids[2]"
+    }
+  ]
+}
+```
+
+### 3.13 Catalog Conformance Requirements
+
+A conforming implementation of the `dev.usp.services.catalog` capability
+**MUST** satisfy the following requirements:
+
+1. **MUST** implement `POST /services/list` returning a paginated list of
+   services with the `usp` envelope, `services` array, and `pagination` object.
+2. **MUST** implement `GET /services/{service_id}` returning a single service
+   with the `usp` envelope.
+3. **MUST** implement `POST /services/lookup` accepting at least 50 IDs and
+   returning matching services with partial-success semantics.
+4. **SHOULD** implement `GET /services/feed` for incremental catalog
+   synchronization.
+5. **MUST** include all required fields on each `Service` object: `id`,
+   `business_id`, `name`, `type`, `duration`, `pricing`, `channel`, `policies`.
+6. **MUST** conform to the validation rules in [Section 3.11](#311-validation-rules)
+   for `requires_payment`, `payment_timing`, and `pricing.model` combinations.
+7. **MUST** return valid `messages[]` entries (with `type` and `content`) when
+   including messages on catalog responses.
+8. **MUST** ignore unrecognized `query`, `context`, and `filters` fields on
+   `POST /services/list` without returning an error, to ensure forward
+   compatibility.
+9. **SHOULD** populate `provider`, `rating`, `availability_hint`, and
+   `price_range` when the data is available, to support rich platform
+   rendering and agent-assisted discovery.
+10. **MUST** use opaque cursors for pagination across all catalog endpoints.
+    Platforms **MUST NOT** construct or parse cursor values.
+
 ---
 
 ## 4. Availability
 
 **Capability:** `dev.usp.services.availability`
 
-> **JSON Schema:** [`schemas/availability.json`](schemas/availability.json)
+> **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json) · [/$defs/Hold](schemas/availability.json)
 
 The availability capability lets platforms **query when services are available**
 and, optionally, **hold slots** to prevent double-booking during the booking
@@ -1402,9 +1759,28 @@ query to booking creation without an intermediate hold step.
 
 ### 4.1 Time Slot
 
-A time slot represents a specific, bookable window for a service. Slots are
-computed dynamically by the business from schedules, resource calendars, and
-existing bookings.
+> **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json)
+
+A time slot represents a specific, bookable combination of a time window and
+assigned resources, computed dynamically by the business from schedules,
+resource calendars, and existing bookings.
+
+> **One slot per resource combination:** If the same time window is available
+> with multiple resource options (e.g., three stylists are all free at 3 pm),
+> the business **MUST** return a separate slot for each option. Each slot's
+> `resources` array carries exactly the resources assigned to that slot.
+> Picking a slot is therefore equivalent to picking both the time and the
+> resource — no second selection step is needed at booking time.
+
+> **Non-transactional:** Availability responses are **not** transactional
+> commitments. A slot returned as `available` reflects the business's state at
+> query time; by the time `create_booking` is called the slot may have been
+> taken by another platform or buyer. Platforms **MUST NOT** assume that an
+> `available` slot will remain bookable. The optional hold mechanism
+> ([Section 4.2](#42-hold)) provides a short-lived, best-effort reservation to
+> reduce — but not eliminate — this race window. Businesses **MUST** validate
+> slot availability at booking creation time regardless of whether a hold was
+> placed.
 
 | Field        | Type            | Required | Description                                                                                                                                                                                                                                    |
 |--------------|-----------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -1415,7 +1791,7 @@ existing bookings.
 | `duration`   | string          | **Yes**  | ISO 8601 duration of the slot (e.g., `PT60M`).                                                                                                                                                                                                 |
 | `state`      | string          | **Yes**  | The availability state of the slot. See state values below.                                                                                                                                                                                    |
 | `capacity`   | object          | No       | `{total, remaining, held}` - present for `group` and `reservation` types. `total`: maximum number of spots. `remaining`: spots still available. `held`: spots currently in active holds.                                                       |
-| `resources`  | Array\[object\] | No       | `{id, type, name}` - resources available for this slot (e.g., which staff members or rooms are free).                                                                                                                                          |
+| `resources`  | Array\[object\] | No       | `{id, type, name}` - the specific resources assigned to this slot (e.g., the staff member or room committed to this booking). Each slot carries at most one resource of each type. When the same time window is available with multiple resource options, the business returns a separate slot per option. |
 | `location`   | object          | No       | `{id, name}` - the specific location for this slot, when a service is offered at multiple locations.                                                                                                                                           |
 | `pricing`    | object          | No       | `{amount, currency, label}` - slot-specific pricing that overrides the service-level pricing. Used for peak/off-peak pricing, demand-based pricing, or promotional rates. `label` is an optional human-readable note (e.g., "Peak hour rate"). |
 
@@ -1428,6 +1804,8 @@ existing bookings.
 | `waitlist`  | The slot is fully booked but the service has waitlist enabled (`capacity.waitlist: true`). The platform **MAY** allow the buyer to join the waitlist via the waitlist extension ([Section 11.1](#111-waitlist-extension)). Businesses **MUST NOT** return `waitlist` state unless the `dev.usp.services.waitlist` capability is supported. |
 
 ### 4.2 Hold
+
+> **JSON Schema:** [/$defs/Hold](schemas/availability.json)
 
 > **Feature flag:** This section applies only when the business advertises
 `"holds": true` in its `dev.usp.services.availability` capability entry.
@@ -1446,9 +1824,29 @@ when they expire, are explicitly released, or are converted to a booking.
 | `expires_at` | string  | **Yes**  | RFC 3339 expiration time. After this time, the hold is automatically released. Businesses **SHOULD** set hold TTL between 5 and 10 minutes.                                                                                       |
 | `status`     | string  | **Yes**  | `active`: hold is in effect and the slot is reserved. `expired`: hold TTL has elapsed; the slot is released. `released`: hold was explicitly released by the platform. `converted`: hold was successfully converted to a booking. |
 
+#### Concurrent Holds
+
+The business **MUST** enforce hold concurrency rules that match the service's
+capacity model:
+
+- **`appointment` type:** A slot represents a single bookable unit (one
+  resource at one time). The business **MUST NOT** accept more than one active
+  hold per slot. A second hold request on the same slot **MUST** be rejected
+  with `slot_unavailable`.
+- **`group` and `reservation` types:** Multiple concurrent holds are permitted
+  up to the slot's remaining capacity. A hold requesting `spots` that would
+  exceed `capacity.remaining` **MUST** be rejected with `slot_unavailable`.
+  Businesses **MUST** decrement `capacity.remaining` immediately when a hold is
+  created and restore it on expiry, release, or failure.
+- **`rental` type:** Holds on the same resource that overlap in time **MUST**
+  be rejected with `slot_unavailable`, treating the resource as equivalent to an
+  appointment-type slot for concurrency purposes.
+
 ### 4.3 Operations
 
 #### 4.3.1 Query Availability - `POST /availability/query`
+
+> **JSON Schema:** Response slots — [/$defs/TimeSlot](schemas/availability.json)
 
 Returns available time slots for a service within a date range. Use
 the [Availability Hint](#36-availability-hint) on the service entity to narrow
@@ -1462,6 +1860,23 @@ the date range before querying.
 | `timezone`    | string  | No       | IANA timezone. Defaults to business timezone.                                                                                        |
 | `resource_id` | string  | No       | Preferred resource (e.g., specific staff member). If provided, only slots where this resource is available are returned.             |
 | `party_size`  | integer | No       | Number of participants. Default: 1. For `group` and `reservation` types, only slots with sufficient remaining capacity are returned. |
+| `location_id` | string  | No       | Location filter. When provided, only slots at the specified location are returned. Applies to multi-location businesses (see [Section 2.6](#26-multi-location-businesses)). |
+| `locale`      | string  | No       | BCP 47 language tag (e.g., `"en-US"`). When provided, the business **SHOULD** return human-readable content (resource names, slot labels, `opening_hours` day names) in the requested locale. |
+| `cursor`      | string  | No       | Opaque pagination cursor returned by a previous response. See [Section 9.1.2](#912-pagination). |
+
+> **Date Range Guidance:** Platforms **SHOULD** query at most 7 calendar days
+> per request, consistent with the slot-query tier's intended use (see
+> [Section 4.4](#44-caching-strategy)). Businesses **MAY** reject queries
+> spanning more than their configured maximum by returning HTTP 422 with error
+> code `range_too_wide`. Platforms that need broader coverage should use the
+> [Availability Hint](#36-availability-hint) to identify productive date ranges
+> before issuing multiple bounded queries.
+
+> **Single-Service Design:** Each query targets exactly one service. For
+> multi-service scenarios (e.g., booking a haircut followed by a color
+> treatment), platforms **SHOULD** issue separate queries per service and
+> correlate results client-side. A future multi-service availability extension
+> is under consideration.
 
 Request:
 
@@ -1469,9 +1884,11 @@ Request:
 {
   "service_id": "svc_haircut_001",
   "start_date": "2026-03-15",
-  "end_date": "2026-03-16",
+  "end_date": "2026-03-21",
   "timezone": "America/New_York",
-  "resource_id": "staff_jane"
+  "resource_id": "staff_jane",
+  "location_id": "loc_main",
+  "locale": "en-US"
 }
 ```
 
@@ -1557,7 +1974,29 @@ Response:
 }
 ```
 
+**Response fields:**
+
+| Field                          | Type            | Required | Description                                                                                                                                                                                           |
+|--------------------------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service_id`                   | string          | **Yes**  | Echoes the queried service identifier.                                                                                                                                                                |
+| `slots`                        | array           | **Yes**  | List of available time slots. See [Section 4.1](#41-time-slot) for the slot schema. Empty array when no slots match the query.                                                                        |
+| `opening_hours`                | array           | No       | Regular business hours for the queried period. See table below. Special closures are reflected by the absence of slots, not by this field.                                                            |
+| `messages`                     | array           | No       | Optional informational or warning messages about the result set (e.g., reduced availability due to staff absence, holiday hours in effect). See `messages[]` schema in [Section 9.1](#91-rest-binding). |
+| `pagination`                   | object          | No       | Pagination state. See [Section 9.1.2](#912-pagination). `cursor`: opaque string for the next page (null when no more pages). `has_more`: boolean.                                                     |
+
+**`opening_hours[]` fields:**
+
+| Field         | Type            | Required | Description                                                                                                                                     |
+|---------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `day_of_week` | array\[string\] | **Yes**  | Days this entry applies to. Values are lowercase English day names: `"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"`. |
+| `opens`       | string          | **Yes**  | Opening time in `HH:MM` 24-hour format (local business time).                                                                                   |
+| `closes`      | string          | **Yes**  | Closing time in `HH:MM` 24-hour format (local business time). A value of `"00:00"` or `"24:00"` indicates midnight (end of day).                |
+
+Slots are returned in ascending `start` order. For pagination behavior see [Section 9.1.2](#912-pagination).
+
 #### 4.3.2 Hold Slot - `POST /availability/holds`
+
+> **JSON Schema:** Response — [/$defs/Hold](schemas/availability.json)
 
 > **Requires:** `"holds": true` on the `dev.usp.services.availability`
 > capability. Platforms **MUST NOT** call this endpoint unless the business
@@ -1653,6 +2092,7 @@ Response:
     "id": "hold_abc123",
     "slot_id": "slot_20260315_0900",
     "service_id": "svc_haircut_001",
+    "spots": 1,
     "expires_at": "2026-03-15T08:10:00-04:00",
     "status": "released"
   }
@@ -1697,6 +2137,8 @@ creation through completion. For paid services, the bookings capability also
 defines the `actions` array (including payment actions with `payment_context`)
 and the `confirm-payment` operation for payment confirmation.
 
+> **Single-service design:** USP bookings are single-service by design. Each `POST /bookings` creates exactly one booking for one service at one time slot. This reflects the reality of scheduling flows — buyers typically book one service at a time, and each service occupies a discrete resource (staff, room, equipment) for a specific time window. Multi-service coordination (e.g., a haircut followed by a color treatment, or a gym class plus a personal training session) is handled by the platform issuing separate bookings. A future multi-service booking extension is under consideration.
+
 ### 5.1 Booking Status Lifecycle
 
 ```
@@ -1723,7 +2165,7 @@ and the `confirm-payment` operation for payment confirmation.
 
 ### 5.2 Booking Schema
 
-> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json)
+> **JSON Schema:** [/$defs/Booking](schemas/booking.json)
 
 The booking object represents a scheduled service instance for a specific buyer
 at a specific time.
@@ -1754,21 +2196,39 @@ at a specific time.
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
 | `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.2](#92-error-handling) for the distinction.                                                                                                                                                                                 |
+| `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. If not resolved by this time, the booking transitions to `canceled`.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+**Booking Expiry**
+
+When a `pending` or `requires_action` booking reaches its `expires_at` deadline without being resolved:
+
+1. The business **MUST** transition the booking to `status: canceled`.
+2. The business **SHOULD** send a `booking.canceled` webhook so the platform can update its state.
+3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled` — platforms and businesses need this for audit and reconciliation purposes.
+4. The business **MUST** release the underlying slot hold when the booking expires, making the slot available for new bookings.
+
+For hold-backed bookings, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
 ### 5.3 Operations
 
 #### 5.3.1 Create Booking - `POST /bookings`
 
-Creates a new booking for a service at a specific time slot. When the business
-supports holds (`"holds": true`), the platform **SHOULD** hold the slot before
-creating the booking to prevent race conditions. When holds are not supported,
-the platform proceeds directly from slot query to booking creation. When the
-person receiving the service is different from the buyer, the platform **SHOULD
-** include a `recipient` object.
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
+Creates a new booking for a service at a specific time slot. Resource selection
+(e.g., which staff member or room) is encoded in the `slot_id` — the platform
+selects resources by choosing the appropriate slot at availability query time,
+not at booking time. When the business supports holds (`"holds": true`), the
+platform **SHOULD** hold the slot before creating the booking to prevent race
+conditions. When holds are not supported, the platform proceeds directly from
+slot query to booking creation. When the person receiving the service is
+different from the buyer, the platform **SHOULD** include a `recipient` object.
 
 | Field                         | Type    | Required | Description                                                                                                                                                                                                                                 |
 |-------------------------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -1778,9 +2238,13 @@ person receiving the service is different from the buyer, the platform **SHOULD
 | `buyer`                       | object  | **Yes**  | Buyer contact information.                                                                                                                                                                                                                  |
 | `recipient`                   | object  | No       | The person receiving the service, when different from the buyer.                                                                                                                                                                            |
 | `party_size`                  | integer | No       | Number of participants. Default: 1.                                                                                                                                                                                                         |
-| `resource_id`                 | string  | No       | Preferred resource.                                                                                                                                                                                                                         |
 | `notes`                       | string  | No       | Free-text notes for the business.                                                                                                                                                                                                           |
 | `post_payment_return_request` | object  | No       | The platform's return instruction for when `checkout_systems: redirect` is in use. The platform **SHOULD** always include this field when using the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation. If present, the business **MUST** redirect the buyer's browser (via GET) to the specified URL — with the specified query parameters appended — after payment completes **or** after the buyer cancels or abandons payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return). |
+
+> **Idempotency:** Duplicate booking submissions are a real concern — network retries can cause a buyer to be double-booked, which is a serious problem in scheduling (e.g., a patient booked twice for a medical appointment).
+>
+> - **With a hold:** When `hold_id` is present, the business **SHOULD** treat it as a natural idempotency key. A second `POST /bookings` with the same `hold_id` **MUST** return the existing booking rather than creating a duplicate.
+> - **Without a hold:** Platforms **SHOULD** send an `Idempotency-Key` header per [Section 9.1.1](#911-idempotency). The business **MUST** honor it — a second request with the same key **MUST** return the same booking that was created by the first request.
 
 Request (with hold):
 
@@ -1796,7 +2260,6 @@ Request (with hold):
     "phone_number": "+12125551234"
   },
   "party_size": 1,
-  "resource_id": "staff_jane",
   "notes": "First time visit"
 }
 ```
@@ -1814,7 +2277,6 @@ Request (without hold - business does not support holds):
     "phone_number": "+12125551234"
   },
   "party_size": 1,
-  "resource_id": "staff_jane",
   "notes": "First time visit"
 }
 ```
@@ -1837,7 +2299,6 @@ Request (booking on behalf of another person):
     "last_name": "Williams"
   },
   "party_size": 1,
-  "resource_id": "staff_tom",
   "notes": "He is 7 years old"
 }
 ```
@@ -1992,37 +2453,148 @@ Response (free service, `requires_payment: false`):
 
 #### 5.3.2 Get Booking - `GET /bookings/{booking_id}`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Returns the current state of a booking. Same structure as the booking object
 above.
 
 #### 5.3.3 Update Booking - `PUT /bookings/{booking_id}`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are
-mutable after creation.
+mutable after creation. Fields omitted from the request body are left unchanged
+(partial update semantics). Returns the full updated booking object.
+
+| Field       | Type   | Required | Description                                                    |
+|-------------|--------|----------|----------------------------------------------------------------|
+| `buyer`     | object | No       | Updated buyer contact information (`first_name`, `last_name`, `email`, `phone_number`). |
+| `recipient` | object | No       | Updated recipient information, when different from the buyer.  |
+| `notes`     | string | No       | Updated buyer-provided special requests or notes.              |
+
+Response: the full updated `booking` object with `updated_at` reflecting the modification time.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "notes": "Please use hypoallergenic products",
+    "buyer": {
+      "first_name": "Alice",
+      "last_name": "Williams",
+      "email": "alice.new@example.com",
+      "phone_number": "+12125551234"
+    },
+    "updated_at": "2026-03-15T10:00:00Z"
+  }
+}
+```
 
 #### 5.3.4 Confirm Booking - `POST /bookings/{booking_id}/confirm`
 
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
 Business-initiated confirmation for bookings with `confirmation_mode: manual`.
-Transitions the booking from `pending` to `confirmed`.
+Transitions the booking from `pending` to `confirmed`. Only applicable when
+`confirmation_mode` is `manual` — calling this on an `auto`-mode booking that is
+already `confirmed` **MUST** return the current booking state (idempotent). The
+business **SHOULD** send a `booking.confirmed` webhook after confirming.
+
+| Field   | Type   | Required | Description                                         |
+|---------|--------|----------|-----------------------------------------------------|
+| `notes` | string | No       | Optional message from the business to the buyer (e.g., "Your appointment is confirmed. Please arrive 10 minutes early."). |
+
+Response: the full updated `booking` object with `status: confirmed`.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "status": "confirmed",
+    "confirmation_mode": "manual",
+    "updated_at": "2026-03-15T09:00:00Z"
+  }
+}
+```
 
 #### 5.3.5 Cancel Booking - `POST /bookings/{booking_id}/cancel`
 
-Cancels a booking. Cancellation fees are applied per the service's cancellation
-policy.
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
+Cancels a booking. Eligible from `pending`, `requires_action`, or `confirmed`
+status. Cancellation fees are applied per the service's cancellation policy (see
+[Section 3.9](#39-service-policies)). The business **SHOULD** send a
+`booking.canceled` webhook after cancellation. The business **MUST** release the
+underlying slot so it becomes available for new bookings.
+
+| Field         | Type   | Required | Description                                                                                   |
+|---------------|--------|----------|-----------------------------------------------------------------------------------------------|
+| `reason`      | string | No       | Human-readable cancellation reason from the initiating party.                                 |
+| `canceled_by` | string | No       | Who initiated the cancellation: `buyer`, `business`, or `system`. Default: `buyer`.           |
+
+Response: the full updated `booking` object with `status: canceled` and the `cancellation` object populated.
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "status": "canceled",
+    "cancellation": {
+      "reason": "Schedule conflict",
+      "canceled_by": "buyer",
+      "fee": 0,
+      "refund_amount": 12000,
+      "canceled_at": "2026-03-15T08:30:00Z"
+    },
+    "payment": {
+      "status": "refunded",
+      "timing": "at_booking",
+      "amount": 12000,
+      "currency": "USD",
+      "amount_due": 0,
+      "transaction_id": "txn_abc123"
+    },
+    "updated_at": "2026-03-15T08:30:00Z"
+  }
+}
+```
 
 #### 5.3.6 Reschedule Booking - `POST /bookings/{booking_id}/reschedule`
 
-Moves a booking to a different time slot. When the business supports holds, the
-platform **SHOULD** hold the new slot before rescheduling. When holds are not
-supported, the platform provides only the new `slot_id`. Rescheduling limits and
-fees are governed by the service's rescheduling policy.
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
+
+Moves a booking to a different time slot. Rescheduling preserves the booking
+`id` — this is not a cancel + rebook. The original slot is released and the new
+slot is occupied. Rescheduling limits and fees are governed by the service's
+rescheduling policy (see [Section 3.9](#39-service-policies)).
+
+**Eligible statuses:** `confirmed` (**MUST** be supported). `pending`
+**SHOULD** be allowed. `requires_action` is at the business's discretion.
+Rescheduling a `canceled` or terminal-state booking **MUST** return a 409 error.
+
+When the business supports holds, the platform **SHOULD** hold the new slot
+before rescheduling to prevent a race condition. When holds are not supported,
+the platform provides only the new `slot_id`. The business **SHOULD** send a
+`booking.rescheduled` webhook after the operation.
 
 | Field     | Type   | Required | Description                                                              |
 |-----------|--------|----------|--------------------------------------------------------------------------|
 | `slot_id` | string | **Yes**  | The new slot to reschedule to.                                           |
 | `hold_id` | string | No       | Hold ID for the new slot. Present only when the business supports holds. |
 
+Response: the full updated `booking` object with `slot` updated to the new time.
+
+**Price changes on reschedule:** When slot-level pricing differs between the
+original and new slot (e.g., rescheduling from an off-peak to a peak slot), the
+business **SHOULD** update `payment.amount` to reflect the new price. If
+additional payment is required, the business **MUST** set a new
+`payment.amount_due` and add a new `payment`-type action to `actions[]`,
+transitioning the booking to `requires_action` until the additional payment is
+collected.
+
 #### 5.3.7 Confirm Payment - `POST /bookings/{booking_id}/confirm-payment`
+
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
 The universal callback that the platform calls after payment succeeds. This
 completes the payment action in the booking's `actions` array. Per the
@@ -2117,6 +2689,44 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | `booking.dispute_opened`   | A dispute or chargeback has been opened for this booking |
 | `booking.dispute_resolved` | A dispute has been resolved                              |
 
+**Webhook payload schema:**
+
+| Field          | Type    | Required | Description                                                                                                                                                                                                               |
+|----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `event`        | string  | **Yes**  | Event type (e.g., `booking.confirmed`, `booking.canceled`).                                                                                                                                                               |
+| `booking_id`   | string  | **Yes**  | The booking this event relates to.                                                                                                                                                                                        |
+| `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
+| `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). |
+
+```json
+{
+  "event": "booking.confirmed",
+  "booking_id": "bkg_456def",
+  "timestamp": "2026-03-15T09:00:00Z",
+  "data": {
+    "id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_name": "Deep Tissue Massage",
+    "slot": {
+      "id": "slot_20260316_1400",
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "buyer": {
+      "first_name": "Alice",
+      "last_name": "Williams",
+      "email": "alice@example.com"
+    },
+    "party_size": 1,
+    "status": "confirmed",
+    "confirmation_mode": "manual",
+    "created_at": "2026-03-14T22:05:00Z",
+    "updated_at": "2026-03-15T09:00:00Z"
+  }
+}
+```
+
 #### 5.4.2 Catalog Change Webhooks
 
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
@@ -2132,12 +2742,15 @@ flow) defined in [Section 10.1.1](#1011-webhook-security).
 | `service.deleted`   | A service has been permanently removed from the catalog                         |
 | `service.suspended` | A service is temporarily unavailable (e.g., seasonal, staffing shortage)        |
 
-The webhook payload for catalog change events **MUST** include the `service_id`
-and the `event` type. For `service.created` and `service.updated` events, the
-payload **SHOULD** include the full service object (same schema
-as [Section 3.3](#33-service-schema)). For `service.deleted` and
-`service.suspended` events, the payload **MUST** include at minimum the
-`service_id`.
+**Webhook payload schema:**
+
+| Field             | Type    | Required | Description                                                                                                                        |
+|-------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------|
+| `event`           | string  | **Yes**  | Event type (e.g., `service.created`, `service.updated`, `service.deleted`, `service.suspended`).                                   |
+| `service_id`      | string  | **Yes**  | The service this event relates to.                                                                                                 |
+| `subscription_id` | string  | **Yes**  | The subscription that triggered this notification.                                                                                 |
+| `timestamp`       | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                     |
+| `data`            | object  | No       | Full service object for `service.created` and `service.updated` (same schema as [Section 3.3](#33-service-schema)). **SHOULD** be included for create/update events. For `service.deleted` and `service.suspended`, **MAY** be omitted (the `service_id` is sufficient). |
 
 ```json
 {
@@ -2184,15 +2797,28 @@ payment object links back to the checkout system's order for refund operations.
 
 #### 5.5.2 Dispute Resolution
 
-When a payment dispute (chargeback) is opened against a booking, the business *
-*SHOULD** update the booking with dispute information and notify the platform:
+When a payment dispute (chargeback) is opened against a booking, the business
+**SHOULD** update the booking with dispute information and notify the platform
+via the `booking.dispute_opened` webhook.
 
-| Field                 | Type   | Description                                                                                  |
-|-----------------------|--------|----------------------------------------------------------------------------------------------|
-| `dispute.status`      | string | `opened`, `under_review`, `resolved_buyer`, `resolved_business`                              |
-| `dispute.reason`      | string | Machine-readable reason code (e.g., `service_not_provided`, `quality_issue`, `unauthorized`) |
-| `dispute.opened_at`   | string | RFC 3339 timestamp of when the dispute was opened                                            |
-| `dispute.resolved_at` | string | RFC 3339 timestamp of when the dispute was resolved                                          |
+> **JSON Schema:** [/$defs/Dispute](schemas/booking.json)
+
+The `dispute` object on the booking:
+
+| Field         | Type   | Required | Description                                                                                                            |
+|---------------|--------|----------|------------------------------------------------------------------------------------------------------------------------|
+| `status`      | string | **Yes**  | `opened`, `under_review`, `resolved_buyer` (resolved in buyer's favor), `resolved_business` (resolved in business's favor). |
+| `reason`      | string | **Yes**  | Machine-readable reason code. Well-known values: `service_not_provided`, `quality_issue`, `unauthorized`, `duplicate`. |
+| `opened_at`   | string | **Yes**  | RFC 3339 timestamp of when the dispute was opened.                                                                     |
+| `resolved_at` | string | No       | RFC 3339 timestamp of when the dispute was resolved. Present only when `status` is `resolved_buyer` or `resolved_business`. |
+
+**Payment status and disputes:** Opening a dispute does **NOT** change
+`payment.status` — the payment remains `paid` while the dispute is under review.
+`payment.status` **MAY** change to `refunded` or `partially_refunded` only if
+the dispute resolves in the buyer's favor (i.e., `dispute.status:
+resolved_buyer`). If the dispute resolves in the business's favor, `payment.status`
+remains `paid`. The business **MUST** send a `booking.dispute_resolved` webhook
+when the dispute is resolved.
 
 #### 5.5.3 Service Delivery Events
 
@@ -2697,6 +3323,8 @@ and [10.2](#102-security-infrastructure-for-standalone-mode)** - these are
 > infrastructure requirements for Standalone Mode that UCP already provides.
 
 ### 7.4 Paid Bookings Extension Schema
+
+> **JSON Schema:** [schemas/paid_bookings.json](schemas/paid_bookings.json)
 
 **Capability:** `dev.usp.services.paid_bookings` (extends
 `dev.ucp.shopping.checkout`)
@@ -3384,8 +4012,7 @@ section applies only when `requires_payment` is `true` and `payment_timing` is
 
 #### 8.5.1 Booking Payment Schema
 
-> **JSON Schema:** [`schemas/booking.json`](schemas/booking.json) (see
-`BookingPayment` and `PaymentContext` definitions)
+> **JSON Schema:** [/$defs/BookingPayment](schemas/booking.json) · [/$defs/PaymentContext](schemas/booking.json)
 
 The `payment` object on the booking tracks the lifecycle of payment:
 
@@ -3393,14 +4020,17 @@ The `payment` object on the booking tracks the lifecycle of payment:
 |-------------------|---------|-------------|----------------------------------------------------------------------------------------|
 | `status`          | string  | **Yes**     | `not_required`, `pending`, `deposit_paid`, `paid`, `refunded`, `partially_refunded`    |
 | `timing`          | string  | **Yes**     | Mirrors the service's `payment_timing`: `at_booking`, `at_service`, `deposit_required` |
-| `amount`          | integer | Conditional | Total service amount in minor currency units.                                          |
-| `currency`        | string  | Conditional | ISO 4217 currency code.                                                                |
-| `amount_due`      | integer | Conditional | Amount due now in minor currency units.                                                |
+| `amount`          | integer | Conditional | Service fee in minor currency units, **before tax**. Does not include `tax_amount`. **REQUIRED** when `timing` is `at_booking` or `deposit_required`. |
+| `currency`        | string  | Conditional | ISO 4217 currency code. **REQUIRED** when `amount` is present.                         |
+| `amount_due`      | integer | Conditional | Amount due now in minor currency units. **REQUIRED** when `timing` is `at_booking` or `deposit_required`. |
+| `tax_amount`      | integer | No          | Tax amount in minor currency units. When present, the total charged to the buyer is `amount + tax_amount`. **MUST** use the same currency as `amount`. |
 | `deposit_amount`  | integer | No          | Deposit amount when `timing` is `deposit_required`.                                    |
 | `transaction_id`  | string  | No          | Transaction ID from the payment provider, set after `confirm-payment`.                 |
 | `order_reference` | string  | No          | External order ID from the checkout system.                                            |
 
 #### 8.5.2 Payment Context
+
+> **JSON Schema:** [/$defs/PaymentContext](schemas/booking.json)
 
 The `PaymentContext` is a **handoff object** nested inside a payment action in
 the booking's `actions` array. It contains everything a checkout system needs to
@@ -3464,6 +4094,8 @@ the action with `type: payment`). The action's `expires_at` indicates the
 payment deadline.
 
 #### 8.5.5 Redirect Flow and Post-Payment Return
+
+> **JSON Schema:** [/$defs/PostPaymentReturnRequest](schemas/booking.json)
 
 > **Applies to:** Businesses that declare `checkout_systems: ["redirect"]`. This section is not applicable to the `acp` or `embedded` checkout paths.
 
@@ -3800,9 +4432,17 @@ Content-Type: application/json
   **Business outcome errors** (e.g., slot unavailable, hold expired, capacity
   exceeded, booking not found) return **HTTP 200** with a `messages[]` array on
   the **response** object. The `messages[]` array is a response-level
-  construct — it is not a field on the booking object. Each message has `type` (
-  `error`, `warning`), `code`, `content`, `severity`, and an optional `path`
-  field.
+  construct — it is not a field on the booking or service object. Each message
+  has `type` (`error`, `warning`, `info`), `code`, `content`, optional
+  `content_type` (`plain` or `markdown`, default `plain`), optional `severity`,
+  and an optional `path` field (RFC 9535 JSONPath).
+
+  The `messages[]` array is available on **all** USP response envelopes,
+  including catalog responses (`/services/list`, `/services/{service_id}`,
+  `/services/feed`), not only state-modifying operations. On catalog responses,
+  messages enable partial-success signalling (e.g., some services could not be
+  loaded), filter feedback, service-level warnings, and deprecation notices.
+  This aligns with the UCP message model.
 
   **Protocol errors** (e.g., malformed requests, authentication failures) use
   standard HTTP status codes with [RFC 9457] Problem Details:
@@ -3848,6 +4488,43 @@ Idempotency is critical for booking operations where network retries could
 create duplicate reservations. For read-only operations (`GET`,
 `POST /services/list`, `POST /availability/query`), idempotency keys are not
 required.
+
+#### 9.1.2 Pagination
+
+Several USP operations return paginated result sets. All paginated operations
+use the same cursor-based model described here.
+
+**Request fields (for paginated operations):**
+
+| Field    | Type    | Required | Description                                                                                               |
+|----------|---------|----------|-----------------------------------------------------------------------------------------------------------|
+| `cursor` | string  | No       | Opaque cursor string from the previous response's `pagination.cursor`. Omit on the first request.         |
+| `limit`  | integer | No       | Requested page size. Businesses **MAY** apply a lower or upper cap and **SHOULD** document their default. |
+
+**Response fields:**
+
+| Field              | Type    | Required | Description                                                                       |
+|--------------------|---------|----------|-----------------------------------------------------------------------------------|
+| `pagination.cursor`    | string\|null | **Yes** | Opaque cursor to pass in the next request. `null` when there are no more pages. |
+| `pagination.has_more`  | boolean | **Yes** | `true` if additional pages exist; `false` on the last page.                       |
+
+**Semantics:**
+
+- Cursors are opaque strings. Platforms **MUST NOT** attempt to parse or
+  construct them.
+- Businesses **SHOULD** honor a cursor for at least 60 seconds after it is
+  issued. Platforms that retry after cursor expiry **MAY** receive a
+  `cursor_expired` error and **SHOULD** restart from the first page.
+- Result ordering is operation-specific and is stated at each operation. For
+  `POST /availability/query`, slots are returned in ascending `start` order.
+- Businesses **SHOULD** use a default page size of 50 items for slot queries
+  and 20 items for service lists.
+
+> **Feed endpoint exception:** The `GET /services/feed` endpoint
+> ([Section 3.1](#31-service-catalog-feed)) uses a timestamp-based cursor
+> named `next_cursor` (not `cursor`) because its pagination semantics are tied
+> to the RPDE incremental-sync model. All other paginated USP operations use
+> the `cursor`/`has_more` pattern described above.
 
 ### 9.2 MCP Binding
 
@@ -4028,7 +4705,27 @@ business agent to maintain state across the multi-step flow.
 
 ### 9.4 Error Code Mapping
 
-USP defines the following error codes, which are transport-independent:
+USP defines the following error codes, which are transport-independent.
+
+Each message in the `messages[]` array carries the following fields:
+
+| Field          | Type   | Required | Description                                                                                                             |
+|----------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------|
+| `type`         | string | **Yes**  | Message type discriminator: `error`, `warning`, or `info`.                                                              |
+| `code`         | string | No       | Machine-readable code identifying the message (e.g., `slot_unavailable`). Standard codes listed below; freeform codes permitted. |
+| `content`      | string | **Yes**  | Human-readable message text.                                                                                            |
+| `content_type` | string | No       | Content format: `plain` (default) or `markdown`.                                                                         |
+| `severity`     | string | No       | `recoverable`, `requires_buyer_input`, `requires_buyer_review`, or `unrecoverable`. See severity descriptions below.    |
+| `path`         | string | No       | RFC 9535 JSONPath to the field this message relates to (e.g., `$.services[0].pricing`).                                  |
+
+**Severity levels:**
+
+| Severity               | Description                                                                                                   |
+|------------------------|---------------------------------------------------------------------------------------------------------------|
+| `recoverable`          | Platform can resolve by modifying inputs and retrying.                                                        |
+| `requires_buyer_input` | Buyer must provide information before proceeding.                                                             |
+| `requires_buyer_review`| Buyer must authorize before proceeding due to policy or regulatory rules.                                     |
+| `unrecoverable`        | No valid resource exists to act on; retry with new resource or inputs.                                        |
 
 **Business outcome errors** (returned via `messages[]` in an HTTP 200 response):
 
@@ -4263,8 +4960,7 @@ containing one or more public keys in JWK format [RFC 7517]. See
 structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
 hosting requirements.
 
-> **JSON Schema:** [`schemas/profile.json`](schemas/profile.json) (see
-> `$defs/SigningKey`) and [`schemas/usp.json`](schemas/usp.json)
+> **JSON Schema:** [/$defs/SigningKey](schemas/profile.json) · [schemas/usp.json](schemas/usp.json)
 
 ```json
 {
@@ -4441,7 +5137,9 @@ Buyers **MUST** be able to revoke linked access at any time per [RFC 7009].
 Extensions are optional capabilities that build on the core scheduling
 functionality defined in Sections 3-5 and the infrastructure in Sections 9-10.
 Each extension uses the `extends` field to declare which base capability it
-augments.
+augments. Extensions may be **business-scoped** (declared by the business,
+consumed by platforms) or **platform-scoped** (declared and implemented
+entirely by the platform).
 
 Extensions are not required for a conforming USP implementation. Implementers *
 *SHOULD** add extensions based on the needs of their service verticals and buyer
@@ -4458,7 +5156,7 @@ business offers it to the next eligible waitlisted buyer.
 
 #### 11.1.1 WaitlistEntry Schema
 
-> **JSON Schema:** [`schemas/waitlist.json`](schemas/waitlist.json)
+> **JSON Schema:** [/$defs/WaitlistEntry](schemas/waitlist.json)
 
 The waitlist entry tracks a buyer's position and preferences.
 
@@ -4512,12 +5210,254 @@ cancellation fee for the original booking.
 
 ---
 
+### 11.2 Buyer Calendar Free/Busy Extension
+
+**Capability:** `dev.usp.platform.calendar_freebusy` (extends
+`dev.usp.services.availability`)
+
+This platform-scoped extension enables platforms to access a buyer's calendar
+for free/busy information only, then cross-reference that data with business
+availability to suggest only mutually free times. The business is not involved
+in this flow and does not receive the buyer's calendar data.
+
+Platforms **MAY** implement this extension. It is entirely platform-side — no
+business implementation is required.
+
+#### 11.2.1 Overview
+
+When a buyer connects their calendar, the platform obtains an OAuth token scoped
+to free/busy access only. The platform uses this token to retrieve opaque busy
+blocks — `[{start, end}]` pairs with no event details — and filters the
+business's available slots against them. This ensures the buyer is only
+presented with times that work for both parties.
+
+The extension is provider-agnostic. The following table lists well-known
+calendar providers and their free/busy-only access mechanisms (informative):
+
+| Provider ID   | Calendar Service                  | OAuth Scope / Access Method                                          |
+|---------------|-----------------------------------|----------------------------------------------------------------------|
+| `google`      | Google Calendar                   | `https://www.googleapis.com/auth/calendar.freebusy` (REST)           |
+| `microsoft`   | Microsoft Outlook / Exchange      | `Calendars.ReadBasic` (Microsoft Graph)                              |
+| `apple`       | Apple iCloud Calendar             | CalDAV `VFREEBUSY` query ([RFC 4791] REPORT method)                  |
+
+Platforms **MAY** support additional providers using vendor-prefixed identifiers
+(e.g., `com.fastmail.calendar`).
+
+> **Future extension:** A future version of USP **MAY** extend this capability
+> to allow platforms to pass opaque busy blocks to the business in
+> `POST /availability/query`, enabling server-side pre-filtering. This would be
+> a non-breaking change (new optional field) under the versioning rules in
+> [Section 8.4](#84-versioning).
+
+#### 11.2.2 Proactive Agent Use Cases
+
+Buyer calendar access is particularly valuable for AI agents that orchestrate
+scheduling proactively. The following table summarizes key use cases enabled by
+this extension:
+
+**Buyer-initiated scenarios:**
+
+| #  | Use Case                                  | Agent Scenario                                                            | How Calendar Free/Busy Helps                                                                                                                                                          |
+|----|-------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1  | **Conflict-aware slot presentation**      | "Book me a haircut next Tuesday."                                         | The agent filters business slots against the buyer's busy blocks and only presents times the buyer is actually free — no back-and-forth to reject conflicting options.                |
+| 2  | **Multi-service coordination**            | "Schedule a dentist appointment and a haircut on the same day."           | The agent books the first service, then queries the second business with the buyer's updated calendar (now including the first booking) to find a non-overlapping slot.               |
+| 3  | **Smart rescheduling suggestions**        | "I need to move my Thursday appointment."                                 | The agent knows the buyer's free windows around the original time and can suggest concrete alternatives ("You're free Wednesday 2-4pm and Friday 10am-12pm") in the first message.    |
+| 4  | **Travel-time-aware scheduling**          | Buyer has a meeting across town at 2pm, wants to book a nearby lunch.     | The agent sees the 2pm busy block and its location context (if available from surrounding schedule density) and suggests booking the lunch with enough buffer for travel.              |
+| 5  | **Availability-first business discovery** | "Find me a yoga class this week."                                         | The agent cross-references the buyer's free windows with multiple businesses' availability hints, ranking results by mutual availability rather than just proximity or ratings.        |
+| 6  | **Recurring availability pattern matching** | "Book me a weekly personal training session."                           | The agent analyzes the buyer's recurring free windows across multiple weeks to suggest a consistent time slot that avoids calendar conflicts long-term.                                |
+| 7  | **Group scheduling**                      | "Find a time for me and two friends to book an escape room."              | When multiple buyers have linked calendars, the agent intersects all participants' busy blocks with the business's availability to find times that work for everyone.                 |
+
+**Business-initiated scenarios (reactive via webhooks):**
+
+These use cases combine calendar free/busy access with USP webhooks
+([Section 5.4](#54-webhooks)) and the waitlist extension
+([Section 11.1](#111-waitlist-extension)) to enable autonomous agent responses
+to business-side events:
+
+| #  | Use Case                                       | Trigger                                                                       | How Calendar Free/Busy Helps                                                                                                                                                                                                   |
+|----|-------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 8  | **Calendar-aware waitlist acceptance**          | `waitlist.spot_offered` webhook — a spot opens for a waitlisted buyer.        | The agent checks the buyer's calendar against the offered slot. If the buyer is free, the agent auto-accepts before the offer expires. If the buyer has a conflict, the agent declines immediately so the next person is offered. |
+| 9  | **Proactive rebooking on business cancellation**| `booking.canceled` webhook — the business cancels (e.g., provider is sick).   | The agent immediately queries the buyer's calendar and the business's (or alternative businesses') availability to suggest replacement times that fit, without waiting for the buyer to initiate.                               |
+| 10 | **Smart reschedule on business-initiated move** | `booking.rescheduled` webhook — the business moves the appointment.           | The agent checks whether the new time conflicts with the buyer's calendar. If it does, the agent proactively negotiates an alternative with the business on the buyer's behalf.                                                |
+| 11 | **Waitlist priority optimization**              | `waitlist.position_changed` webhook — buyer moves up in the queue.            | As the buyer nears the front, the agent pre-fetches their calendar for the likely offer window. When the offer arrives, the agent can respond instantly rather than fetching calendar data under time pressure (offers have TTL). |
+
+#### 11.2.3 BusyBlock and BuyerFreeBusy Schemas
+
+> **JSON Schema:** [/$defs/BusyBlock](schemas/calendar_freebusy.json) · [/$defs/BuyerFreeBusy](schemas/calendar_freebusy.json)
+
+**BusyBlock** — an opaque busy time block from the buyer's calendar:
+
+| Field   | Type   | Required | Description                       |
+|---------|--------|----------|-----------------------------------|
+| `start` | string | **Yes**  | RFC 3339 start of the busy period |
+| `end`   | string | **Yes**  | RFC 3339 end of the busy period   |
+
+`BusyBlock` uses `additionalProperties: false` to enforce that no event details
+(titles, descriptions, attendees, locations) can be included.
+
+**BuyerFreeBusy** — aggregated free/busy data for a buyer:
+
+| Field         | Type              | Required | Description                                                                                                            |
+|---------------|-------------------|----------|------------------------------------------------------------------------------------------------------------------------|
+| `buyer_ref`   | string            | **Yes**  | Opaque platform-generated buyer correlation ID. **MUST NOT** contain personally identifiable information.              |
+| `timezone`    | string            | **Yes**  | IANA timezone identifier for the buyer.                                                                                |
+| `queried_at`  | string            | **Yes**  | RFC 3339 timestamp of when the free/busy data was fetched. Used as a freshness indicator.                              |
+| `busy_blocks` | Array\[BusyBlock\]| **Yes**  | Busy time blocks merged across all connected calendar providers. Empty array means no conflicts in the queried range.  |
+
+All times in `BusyBlock` **MUST** use RFC 3339 with explicit UTC offsets to
+ensure correct cross-timezone handling when the buyer and business are in
+different timezones.
+
+#### 11.2.4 Platform Capability Advertisement
+
+Platforms advertise this capability in their platform profile (see
+[Section 8.2.3](#823-platform-profile)):
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.catalog": [{ "version": "2026-02-09" }],
+      "dev.usp.services.availability": [{ "version": "2026-02-09" }],
+      "dev.usp.platform.calendar_freebusy": [
+        {
+          "version": "2026-02-09",
+          "extends": "dev.usp.services.availability",
+          "supported_providers": ["google", "microsoft", "apple"]
+        }
+      ]
+    }
+  }
+}
+```
+
+The `supported_providers` field is an informational array listing the calendar
+providers the platform supports. It is not required for protocol correctness.
+
+#### 11.2.5 Buyer Consent and Token Management
+
+Platforms **MUST** obtain explicit buyer consent before accessing calendar
+free/busy data. The consent and token management requirements are:
+
+| Requirement | Level        | Description                                                                                                                          |
+|-------------|--------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| Consent     | **MUST**     | Obtain explicit buyer consent before accessing calendar free/busy data.                                                              |
+| Scope       | **MUST**     | Use the narrowest available OAuth scope for each provider (e.g., `calendar.freebusy` for Google, **not** `calendar.readonly`).       |
+| No details  | **MUST NOT** | Access, store, or transmit event details (titles, descriptions, attendees, locations). Only `{start, end}` pairs.                    |
+| Encryption  | **MUST**     | Store refresh tokens server-side, encrypted at rest. Tokens **MUST NOT** be exposed to client-side code.                             |
+| Revocation  | **MUST**     | Allow the buyer to revoke calendar access at any time. Revocation **MUST** invalidate stored tokens promptly.                        |
+| Re-consent  | **SHOULD**   | Re-verify buyer consent periodically (RECOMMENDED: every 90 days).                                                                   |
+| Audit       | **SHOULD**   | Maintain an audit log of calendar access (timestamp, buyer_ref, provider, date range queried).                                        |
+
+The OAuth flow for connecting a buyer's calendar is between the platform and
+the calendar provider — it follows standard OAuth 2.0 Authorization Code flow
+([RFC 6749]) and is outside the scope of USP protocol exchanges. The flow is
+analogous to the identity linking flow described in
+[Section 10.2.4](#1024-identity-linking), but scoped to the calendar provider
+rather than the business.
+
+#### 11.2.6 Integration with Availability Query
+
+The platform cross-references buyer free/busy data with business availability
+entirely on the platform side. The recommended pattern is:
+
+1. Platform obtains the buyer's busy blocks from the calendar provider.
+2. Platform queries business availability via `POST /availability/query`.
+3. Platform filters business slots against the buyer's busy blocks.
+4. Platform presents only mutually available slots to the buyer.
+
+**No changes to `POST /availability/query` are required.** The business
+endpoint remains unchanged. Filtering happens entirely on the platform side.
+
+Platforms **MUST NOT** send the buyer's free/busy data to the business. The
+buyer's calendar data never leaves the platform. This is a firm privacy
+boundary.
+
+**Filtering algorithm (informative):**
+
+```
+for each slot in business_slots:
+    is_conflicting = false
+    for each block in buyer_busy_blocks:
+        if slot.start < block.end AND slot.end > block.start:
+            is_conflicting = true
+            break
+    if not is_conflicting:
+        include slot in filtered_results
+```
+
+Platforms **MAY** apply more sophisticated logic, such as adding buffer time
+around busy blocks or weighting partially-overlapping slots lower rather than
+excluding them entirely.
+
+#### 11.2.7 Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Bu as Buyer
+    participant P as Platform / Agent
+    participant CP as Calendar Provider
+    participant B as Business
+
+    rect rgb(255, 243, 224)
+    Note over Bu,CP: One-time: Calendar Linking (OAuth 2.0)
+    Bu->>P: "Connect my calendar"
+    P->>CP: OAuth authorize (scope: freebusy only)
+    Bu->>CP: Grant consent
+    CP-->>P: Authorization code
+    P->>CP: Exchange for tokens
+    CP-->>P: access_token + refresh_token
+    Note over P: Store refresh_token encrypted, server-side
+    end
+
+    rect rgb(230, 245, 255)
+    Note over Bu,B: Scheduling Flow
+    Bu->>P: "Book a haircut for next Tuesday"
+    P->>CP: Query free/busy (next Tuesday)
+    CP-->>P: Busy blocks [{10:00-11:00}, {14:00-15:00}]
+    P->>B: POST /availability/query (next Tuesday)
+    B-->>P: Available slots [09:00, 10:00, 11:00, 13:00, 14:00, 15:00]
+    Note over P: Filter: remove 10:00 (conflicts 10-11)<br/>remove 14:00 (conflicts 14-15)
+    P->>Bu: "You're free at 09:00, 11:00, 13:00, and 15:00"
+    end
+```
+
+#### 11.2.8 Caching
+
+Buyer calendar data changes frequently. Platforms **SHOULD** apply short cache
+TTLs:
+
+| Query Range        | Recommended TTL | Rationale                                    |
+|--------------------|-----------------|----------------------------------------------|
+| Same-day queries   | 5 minutes       | Buyer's schedule may change on short notice  |
+| Future dates (1d+) | 30 minutes      | Longer horizon tolerates slightly stale data |
+
+Platforms **SHOULD** re-fetch free/busy data before committing to a hold or
+booking to minimize the risk of conflicts arising from stale cached data.
+
+#### 11.2.9 Security and Privacy
+
+| Requirement                        | Level          | Description                                                                                                   |
+|------------------------------------|----------------|---------------------------------------------------------------------------------------------------------------|
+| Narrowest OAuth scope              | **MUST**       | Use free/busy-only scopes. Never request full calendar read access for this feature.                          |
+| No event details                   | **MUST NOT**   | Store, transmit, or log event details (titles, descriptions, attendees, locations).                           |
+| Token encryption                   | **MUST**       | Encrypt stored refresh tokens at rest.                                                                        |
+| Buyer revocation                   | **MUST**       | Support buyer-initiated revocation of calendar access at any time.                                            |
+| No sharing with business           | **MUST NOT**   | Send buyer free/busy data to the business or any third party.                                                 |
+| Short-lived access tokens          | **SHOULD**     | Use short-lived access tokens and refresh as needed.                                                          |
+| Audit logging                      | **SHOULD**     | Log calendar access events (timestamp, buyer\_ref, provider, date range).                                     |
+| Data minimization                  | **MUST**       | Comply with GDPR / CCPA data minimization principles. Only store what is necessary for the free/busy feature. |
+
+---
+
 ## 12. Operation Reference
 
 | Operation                | Method   | Path                                                    | Capability                   |
 |--------------------------|----------|---------------------------------------------------------|------------------------------|
 | List Services            | `POST`   | `/services/list`                                        | catalog                      |
 | Get Service              | `GET`    | `/services/{service_id}`                                | catalog                      |
+| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                      |
 | Service Feed             | `GET`    | `/services/feed`                                        | catalog                      |
 | Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions)      |
 | Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
@@ -4647,6 +5587,15 @@ registration of:
   Type". https://schema.org/Service
 - **[UCP]** Universal Commerce Protocol, "UCP Specification", Version
   2026-01-11. https://ucp.dev/latest/specification/overview/
+- **[RFC 4791]** Daboo, C., Desruisseaux, B., and L. Dusseault, "Calendaring
+  Extensions to WebDAV (CalDAV)", RFC 4791, DOI 10.17487/RFC4791, March
+  2007. https://www.rfc-editor.org/rfc/rfc4791
+- **[Google Calendar FreeBusy API]** Google, "Freebusy: query", Google Calendar
+  API
+  Reference. https://developers.google.com/calendar/api/v3/reference/freebusy/query
+- **[Microsoft Graph getSchedule]** Microsoft, "Get free/busy schedule of
+  users and resources", Microsoft Graph API
+  Reference. https://learn.microsoft.com/en-us/graph/api/calendar-getschedule
 
 ---
 

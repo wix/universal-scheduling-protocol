@@ -115,6 +115,22 @@
           "type": "string",
           "description": "Buyer-provided special requests or notes."
         },
+        "booking_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals."
+        },
+        "dispute": {
+          "$ref": "#/$defs/Dispute",
+          "description": "Present when a payment dispute has been opened for this booking."
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "description": "Soft messages from the business providing context about the booking state (e.g., manual confirmation pending, cancellation window closing). These are informational and do not block booking creation. MUST NOT be present for protocol errors — those are returned as HTTP error codes."
+        },
         "cancellation": {
           "$ref": "#/$defs/Cancellation",
           "description": "Present when the booking has been canceled."
@@ -221,7 +237,7 @@
         },
         "amount": {
           "type": "integer",
-          "description": "Total service amount in minor currency units. REQUIRED when timing is at_booking or deposit_required."
+          "description": "Service fee in minor currency units, before tax. REQUIRED when timing is at_booking or deposit_required. Does not include tax_amount."
         },
         "currency": {
           "type": "string",
@@ -234,6 +250,10 @@
         "deposit_amount": {
           "type": "integer",
           "description": "The deposit amount in minor currency units. Present when timing is deposit_required."
+        },
+        "tax_amount": {
+          "type": "integer",
+          "description": "Tax amount in minor currency units. When present, the total charged to the buyer is amount + tax_amount. MUST use the same currency as amount."
         },
         "transaction_id": {
           "type": "string",
@@ -433,6 +453,33 @@
           "type": "string",
           "format": "date-time",
           "description": "RFC 3339 timestamp."
+        }
+      }
+    },
+    "Dispute": {
+      "type": "object",
+      "title": "Dispute",
+      "description": "A payment dispute (chargeback) opened against a booking. Opening a dispute does NOT change payment.status — the payment remains in its current state (e.g., paid). Payment status MAY change to refunded or partially_refunded only if the dispute resolves in the buyer's favor.",
+      "required": ["status", "reason", "opened_at"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["opened", "under_review", "resolved_buyer", "resolved_business"],
+          "description": "Current dispute status. resolved_buyer: resolved in the buyer's favor (refund issued). resolved_business: resolved in the business's favor (no refund)."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Machine-readable reason code. Well-known values: service_not_provided, quality_issue, unauthorized, duplicate."
+        },
+        "opened_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp of when the dispute was opened."
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp of when the dispute was resolved. Present only when status is resolved_buyer or resolved_business."
         }
       }
     },
