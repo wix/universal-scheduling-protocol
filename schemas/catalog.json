@@ -18,13 +18,25 @@
           "type": "string",
           "description": "Identifier of the business that owns this service. Populated by the provider in API responses. Together with id, forms the globally unique composite key for a service. Required for cross-business discovery, cached catalog aggregation, and agent-to-agent hand-off."
         },
+        "provider": {
+          "$ref": "#/$defs/Provider",
+          "description": "Inline business metadata for display without a separate profile fetch. Aligns with UCP seller object."
+        },
         "name": {
           "type": "string",
           "description": "Human-readable display name for the service (e.g., \"Women's Haircut & Style\")."
         },
         "description": {
-          "type": "string",
-          "description": "Human-readable description providing details about what the service includes, what to expect, and any prerequisites."
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Plain text description (backward compatible)."
+            },
+            {
+              "$ref": "#/$defs/Description"
+            }
+          ],
+          "description": "Service description. Accepts either a plain string or a structured Description object with plain, markdown, and html variants. Aligns with UCP Description type."
         },
         "type": {
           "type": "string",
@@ -38,6 +50,18 @@
             "name": { "type": "string" },
             "parent_id": { "type": "string" }
           }
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["value"],
+            "properties": {
+              "value": { "type": "string", "description": "Category value or path (e.g., 'beauty > hair', '596')." },
+              "taxonomy": { "type": "string", "description": "Source taxonomy. Well-known values: google_product_category, merchant." }
+            }
+          },
+          "description": "Multi-taxonomy category entries. Aligns with UCP categories. If both category and categories are present, categories is authoritative."
         },
         "duration": {
           "$ref": "#/$defs/Duration",
@@ -74,6 +98,13 @@
             "waitlist": { "type": "boolean" }
           }
         },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Media"
+          },
+          "description": "Service media items (images, videos). Replaces the previous images field. Aligns with UCP media model."
+        },
         "images": {
           "type": "array",
           "items": {
@@ -84,11 +115,45 @@
               "type": { "type": "string", "enum": ["hero", "gallery", "thumbnail"] }
             }
           },
-          "description": "Service images."
+          "description": "Deprecated. Alias for media for backward compatibility. If both images and media are present, media takes precedence. New implementations SHOULD use media.",
+          "deprecated": true
+        },
+        "rating": {
+          "$ref": "#/$defs/Rating",
+          "description": "Aggregate service rating. Aligns with UCP rating object."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "archived"],
+          "default": "active",
+          "description": "Service lifecycle status. active: bookable (default). suspended: temporarily unavailable. archived: no longer offered."
+        },
+        "handle": {
+          "type": "string",
+          "description": "URL-friendly slug for the service (e.g., womens-haircut-style)."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical service page URL on the business's website."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Freeform tags for categorization and search."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Business-defined custom data extending the standard service model. Platforms SHOULD pass through opaquely."
         },
         "availability_hint": {
           "$ref": "#/$defs/AvailabilityHint",
           "description": "Approximate availability summary for agent-assisted discovery."
+        },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Link" },
+          "description": "Typed links to policy and information pages specific to this service (e.g., cancellation policy, waiver, terms of service). Platforms SHOULD surface these during the booking flow so the buyer can review terms before confirming. Well-known types: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq. Complements provider.links[], which carries business-level policies."
         },
         "localized": {
           "$ref": "#/$defs/LocalizedFields",
@@ -123,6 +188,135 @@
         "buffer_after": { "type": "string", "description": "ISO 8601 duration. Non-bookable cleanup time." }
       }
     },
+    "Rating": {
+      "type": "object",
+      "title": "Rating",
+      "description": "Aggregate service rating. Aligns with UCP rating object.",
+      "required": ["value", "scale_max"],
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average rating value."
+        },
+        "scale_min": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1,
+          "description": "Minimum value on the rating scale (e.g., 1 for 1-5 stars)."
+        },
+        "scale_max": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Maximum value on the rating scale (e.g., 5 for 5-star)."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of reviews contributing to the rating."
+        }
+      }
+    },
+    "Provider": {
+      "type": "object",
+      "title": "Provider",
+      "description": "Inline business metadata for display alongside a service. A lightweight subset of the business profile. Aligns with UCP seller object.",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Business display name."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Business website URL."
+        },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Link" },
+          "description": "Typed links to policy and information pages."
+        }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "title": "Link",
+      "description": "A typed link to a policy or information page. Aligns with UCP link type.",
+      "required": ["type", "url"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Link type. Well-known values: privacy_policy, terms_of_service, refund_policy, cancellation_policy, faq."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the linked page."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display text for the link. When provided, use instead of generating from type."
+        }
+      }
+    },
+    "Description": {
+      "type": "object",
+      "title": "Description",
+      "description": "Structured description content in one or more formats. At least plain MUST be provided. Aligns with UCP Description type.",
+      "required": ["plain"],
+      "properties": {
+        "plain": {
+          "type": "string",
+          "description": "Plain text content. Always required as the universal fallback."
+        },
+        "markdown": {
+          "type": "string",
+          "description": "Markdown-formatted content."
+        },
+        "html": {
+          "type": "string",
+          "description": "HTML-formatted content. Platforms MUST sanitize before rendering — strip scripts, event handlers, and untrusted elements."
+        }
+      }
+    },
+    "Media": {
+      "type": "object",
+      "title": "Media",
+      "description": "A typed media item for a service (image, video, etc.). Aligns with UCP media model.",
+      "required": ["type", "url"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Media format type. Well-known values: image, video."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the media resource (HTTPS)."
+        },
+        "alt_text": {
+          "type": "string",
+          "description": "Accessibility text describing the media."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["hero", "gallery", "thumbnail"],
+          "default": "gallery",
+          "description": "Display role: hero (primary banner), gallery (additional), thumbnail (small preview)."
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Width in pixels."
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Height in pixels."
+        }
+      }
+    },
     "Pricing": {
       "type": "object",
       "title": "Pricing",
@@ -141,6 +335,15 @@
         "currency": {
           "type": "string",
           "description": "ISO 4217 currency code (e.g., USD, EUR, GBP)."
+        },
+        "price_range": {
+          "type": "object",
+          "description": "Displayable price range in minor currency units (same currency as pricing.currency). RECOMMENDED when model is variable, hourly, or per_person. MUST NOT be present when model is free. Aligns with UCP price_range.",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer", "description": "Minimum price in minor currency units." },
+            "max": { "type": "integer", "description": "Maximum price in minor currency units." }
+          }
         },
         "deposit": {
           "type": "object",

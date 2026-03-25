@@ -1,5 +1,175 @@
 # Change Log
 
+## 25/03/26 at 17:11:29 by [kobym707](mailto:kobym@wix.com)
+
+- Adopted strict slot-per-resource model (§4.1, §5.3.1): a slot now represents a specific bookable combination of time window + assigned resources, eliminating the race condition and undefined behaviour caused by a separate `resource_id` selection at booking time.
+- Added "One slot per resource combination" normative note to §4.1 (TimeSlot): when the same time window is available for multiple resources, the business MUST return a separate slot per option, each with its specific resource in the `resources` array.
+- Expanded `resources` field description in §4.1 to make clear that each slot carries at most one resource of each type and that picking a slot is equivalent to picking both the time and the resource.
+- Removed `resource_id` from the CreateBookingRequest field table (§5.3.1) — resource selection is now fully encoded in `slot_id`, making the field redundant.
+- Updated all three `POST /bookings` request examples (§5.3.1) to remove `resource_id`, keeping the examples in sync with the new schema.
+- Added introductory note to §5.3.1 explaining that resource selection happens at availability query time (via slot choice), not at booking time.
+
+---
+
+## 25/03/26 at 12:17:34 by [kobym707](mailto:kobym@wix.com)
+
+- Added `> **JSON Schema:** [/$defs/TypeName](schemas/file.json)` blockquotes to every schema-describing and operation section in `specification.md` that was missing one: §3.12.1, §3.12.3, §3.12.4, §4.1, §4.2, §4.3.1, §4.3.2, §5.3.1–5.3.7, §7.4, §8.5.2, §8.5.5 — making it easy for implementors to jump directly to the machine-readable `$defs` entry for any section.
+- Updated all 8 existing `> **JSON Schema:**` blockquotes from bare file links to specific `/$defs/TypeName` links (§3.3, §4 availability intro, §5.2, §5.5.2, §8.5.1, §10.1.1 signing keys, §11.1.1, §11.2.3), consistent with the new pattern.
+
+---
+
+## 25/03/26 at 12:08:27 by [kobym707](mailto:kobym@wix.com)
+
+- Added `links[]` to the `Service` schema (§3.3, `catalog.json`, OpenAPI, OpenRPC): service-specific policy links (cancellation policy, waiver, ToS) belong at the service level so platforms can surface them during the booking flow before the buyer confirms, not after.
+- Added `booking_url` to the `Booking` schema (§5.2, `booking.json`, OpenAPI, OpenRPC): stable permalink for the buyer to view and manage their booking, used in confirmation emails, calendar events, and buyer portals.
+- Added `messages[]` to the `Booking` schema (§5.2, `booking.json`, OpenAPI, OpenRPC): soft informational messages from the business about booking state (e.g., manual confirmation pending), consistent with how `messages[]` is already documented on hold responses.
+- Added `dispute` field and `Dispute` schema to the `Booking` object (§5.5.2, `booking.json`, OpenAPI, OpenRPC): formalizes the dispute lifecycle with structured `status`, `reason`, `opened_at`, and `resolved_at` fields; clarifies that opening a dispute does NOT change `payment.status`.
+- Added `tax_amount` to `BookingPayment` (§8.5.1, `booking.json`, OpenAPI, OpenRPC) and clarified that `amount` is the pre-tax service fee: resolves ambiguity about whether pricing amounts are tax-inclusive.
+- Added "Booking Expiry" behavioral rules to §5.2: business MUST transition to `canceled`, SHOULD send `booking.canceled` webhook, MUST keep expired booking retrievable via GET, and MUST release the slot.
+- Added idempotency note to §5.3.1: `hold_id` serves as a natural idempotency key; second POST with same `hold_id` MUST return existing booking; no-hold flows SHOULD use `Idempotency-Key` header.
+- Expanded §5.3.3 Update Booking with request field table and response description: documents the three mutable fields (`buyer`, `recipient`, `notes`) and partial-update semantics.
+- Expanded §5.3.4 Confirm Booking with request field table, eligible status guidance, and response example.
+- Expanded §5.3.5 Cancel Booking with request field table (`reason`, `canceled_by`), eligible statuses, slot-release requirement, and cancel/refund response example.
+- Expanded §5.3.6 Reschedule Booking with eligible status guidance, booking-ID-preservation note, response description, and price-change handling for peak/off-peak rescheduling.
+- Added webhook payload schema and example to §5.4.1 Booking Webhooks, mirroring the existing §5.4.2 Catalog Webhooks structure.
+- Added single-service design note to §5 intro (Gap 4.14): USP bookings are single-service by design; multi-service coordination is handled by the platform issuing separate bookings.
+
+---
+
+## 24/03/26 at 23:03:02 by [kobym707](mailto:kobym@wix.com)
+
+- Added non-transactional disclaimer to §4.1 (Gap 3.1): slots are advisory-only; platforms MUST NOT treat availability responses as booking commitments, and businesses MUST validate slot availability at booking creation time regardless of holds.
+- Added `location_id` to §4.3.1 request field table (Gap 3.2): was already in OpenAPI/OpenRPC but absent from the normative prose; now synced across all artifacts.
+- Added date range guidance to §4.3.1 (Gap 3.3): platforms SHOULD query at most 7 calendar days per request; businesses MAY reject wider ranges with HTTP 422 and error code `range_too_wide`.
+- Added optional `messages` array to §4.3.1 query response (Gap 3.4): consistent with hold response; enables businesses to return soft warnings (e.g., holiday hours, reduced staffing) alongside slots.
+- Added single-service design note to §4.3.1 (Gap 3.5): documents the deliberate single-service-per-query design choice and notes that a future multi-service availability extension is under consideration.
+- Added §9.1.2 Pagination to the REST Binding section (Gap 3.6): defines shared cursor semantics (opaque cursors, 60s minimum TTL, ordering note, default page sizes) used by all paginated USP operations; added cross-reference in §4.3.1; noted the intentional `next_cursor` vs `cursor` distinction between the feed and all other endpoints in §3.1.
+- Added `spots: 1` to §4.3.3 release response example (Gap 3.7): release response now matches hold response schema for consistency.
+- Added "Concurrent Holds" subsection to §4.2 (Gap 3.8): normative MUST/MUST NOT rules for concurrent hold behavior by service type — `appointment` allows one active hold maximum, `group`/`reservation` allows multiple up to remaining capacity, `rental` treats resource overlap as unavailable.
+- Added `opening_hours[]` field table to §4.3.1 response (Gap 3.9): defines `day_of_week` (lowercase day names), `opens` (HH:MM), `closes` (HH:MM), and clarifies the field reflects regular hours only; special closures are surfaced via absent slots. Fixed OpenRPC `usp_availability_query` result to include full item schema (was previously `"type": "array"` with no properties).
+- Added optional `locale` (BCP 47) parameter to §4.3.1 (Gap 3.10): allows platforms to request locale-specific human-readable content; narrowed UCP's full context/signals suggestion to only the scheduling-relevant subset.
+- Added `locale`, `cursor`, and `limit` parameters to `usp_availability_query` in `openrpc/usp-mcp.json` and `openapi/usp-rest.json` to keep all artifacts in sync.
+- Expanded `Pagination` schema descriptions in both `usp-rest.json` and `usp-mcp.json`.
+## 24/03/26 at 13:47:43 by [kobym707](mailto:kobym@wix.com)
+
+- **Gap 2.10:** Added optional `tags` (array of strings) and `metadata` (freeform object) to Service schema, aligning with UCP. Enables freeform categorization and business-defined custom data.
+- **Gap 2.11:** Fixed space-in-URL typo in feed example (`cursor=2026-03-10T08: 00: 00Z`). Changed feed cursor examples to opaque values (`crs_...`) since the spec says cursors are opaque. Removed `format: date-time` from feed cursor parameter in OpenAPI.
+- **Gap 2.12:** Standardized feed pagination from `next_cursor` to `cursor` to match the `Pagination` component used by `/services/list`. Both endpoints now use `{cursor, has_more}`.
+- **Gap 2.13:** Added §3.13 Catalog Conformance Requirements with 10 numbered MUST/SHOULD requirements for `dev.usp.services.catalog` implementations.
+- **Gap 2.14:** Already addressed — formal filter table was added in the earlier catalog_search alignment commit.
+- **Gap 2.15:** Added optional `categories` array (multi-taxonomy, `{value, taxonomy}` entries) to Service schema alongside existing `category`. If both present, `categories` is authoritative. Aligns with UCP.
+- **Gap 2.16:** Added optional `handle` (URL-friendly slug) and `url` (canonical page) fields to Service schema. Aligns with UCP.
+- **Gap 2.17:** Added `status` field to Service schema with values `active` (default), `suspended`, `archived`. Formally defines the `suspended` state referenced by `service.suspended` webhook events.
+- **Gap 2.18:** Added formal webhook payload schema table for catalog change events, defining `event`, `service_id`, `subscription_id`, `timestamp`, and `data` fields with required/optional semantics.
+
+---
+
+## 24/03/26 at 12:12:11 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `rating` object to the Service schema with `value` (required), `scale_min` (default 1), `scale_max` (required), and `count`. Matches UCP's rating schema exactly. Enables platforms and AI agents to display and compare service ratings without external lookups.
+- Added `Rating` $def to `schemas/catalog.json` and `rating` field to `openapi/usp-rest.json` and `openrpc/usp-mcp.json`.
+
+---
+
+## 24/03/26 at 12:03:55 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `provider` object to the Service schema (§3.3.3) with `name` (required), `url`, and `links` (array of typed links to policy pages). Aligns with UCP's `seller` object on product variants. Enables platforms to display business name, website, and policy links alongside services without a separate profile fetch — critical for multi-business search results, cached catalogs, and AI agent descriptions.
+- Added `Provider` and `Link` $defs to `schemas/catalog.json`, and `provider` field to `openapi/usp-rest.json` and `openrpc/usp-mcp.json`.
+- Link types follow UCP pattern: `privacy_policy`, `terms_of_service`, `refund_policy`, `cancellation_policy`, `faq`, with optional `title` for display text and graceful handling of unknown types.
+
+---
+
+## 24/03/26 at 09:40:22 by [kobym707](mailto:kobym@wix.com)
+
+- Extended `description` field on the Service schema to accept either a plain string (backward compatible) or a structured `Description` object with `plain` (required), `markdown`, and `html` variants. Aligns with UCP's `Description` type which supports multi-format content. Platforms prefer the richest format they can safely render, falling back to `plain`.
+- Added §3.3.2 Description Schema to `specification.md` documenting the structured format, backward compatibility rules, and HTML sanitization requirements.
+- Added `Description` $def to `schemas/catalog.json` and updated `description` field in `openapi/usp-rest.json` and `openrpc/usp-mcp.json` with `oneOf` (string | object).
+
+---
+
+## 24/03/26 at 09:36:31 by [kobym707](mailto:kobym@wix.com)
+
+- Added `media` array to the Service schema (§3.3.1), replacing `images`. Each media entry has `type` (format: `image`/`video`), `url`, `alt_text`, `role` (display: `hero`/`gallery`/`thumbnail`), and optional `width`/`height`. Aligns with UCP's typed media model. The previous `images` field (`{url, alt, type}`) is retained as a deprecated alias for backward compatibility.
+- Separated media format type (`type`: image/video) from display role (`role`: hero/gallery/thumbnail) — the old `images.type` conflated both concepts.
+- Renamed `alt` to `alt_text` for consistency with UCP and accessibility standards.
+- Updated schema.org mapping to handle both image and video media types.
+- Updated `schemas/catalog.json`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json`.
+
+---
+
+## 24/03/26 at 09:33:08 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `price_range` (`{min, max}` in minor currency units) to the Pricing object in §3.8, `schemas/catalog.json`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json`. RECOMMENDED when pricing model is `variable`, `hourly`, or `per_person`, so platforms can display "from $50 – $150" without querying availability. Aligns with UCP's `price_range` on products. Closes the gap where USP services with variable pricing had no displayable price at catalog level.
+
+---
+
+## 24/03/26 at 09:30:00 by [kobym707](mailto:kobym@wix.com)
+
+- Added `coordinates` field (`latitude`/`longitude`, WGS 84) to the `context` object, enabling proximity-based ranking and "near me" queries for scheduling services. Addresses the gap where USP had no mechanism for platforms to signal buyer geographic location beyond postal code.
+- Extended `context` object to `POST /services/lookup` (previously only on `/services/list`), so both catalog request endpoints support buyer locale/intent signals for localization of returned content.
+- Documented that the `context` object is shared across all catalog request payloads with the same field definitions, and that businesses MUST ignore unrecognized context fields without error for forward compatibility.
+
+---
+
+## 24/03/26 at 09:26:45 by [kobym707](mailto:kobym@wix.com)
+
+- Extended `POST /services/list` filters to align with UCP `catalog_search`: added `categories` (array, OR logic) alongside existing `category_id`, and added `price` range filter (`min`/`max` in minor currency units). All filters combine with AND logic; within `categories`, values combine with OR logic.
+- Added `context` object to `POST /services/list` request, aligning with UCP's context pattern. Carries buyer locale and intent signals (`address_country`, `address_region`, `postal_code`, `language`, `currency`, `intent`) that businesses use for relevance, localization, and personalization. Businesses MUST ignore unrecognized context fields without error.
+- Updated §3.12.1 in `specification.md` with filter and context field tables, updated request examples, and documented precedence rules (`categories` over `category_id`, `context.currency` as denomination for price filters).
+
+---
+
+## 24/03/26 at 09:21:23 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `query` free-text search parameter to `POST /services/list` in `specification.md` (§3.12.1), `openapi/usp-rest.json`, and `openrpc/usp-mcp.json` — aligns with UCP's `catalog_search` pattern. When present, business ranks results by relevance; when combined with filters, filters are hard constraints and query determines ranking within the filtered set.
+- Defined graceful degradation: businesses that do not support search MUST ignore the `query` field (not error). Businesses that support it SHOULD advertise `"search": true` in their catalog capability entry.
+
+---
+
+## 24/03/26 at 08:55:39 by [kobym707](mailto:kobym@wix.com)
+
+- Added `POST /services/lookup` batch endpoint (§3.12.4) to `specification.md`, `openapi/usp-rest.json`, and `openrpc/usp-mcp.json` — analogous to UCP's `catalog_lookup`. Accepts an array of service IDs and returns matching services with partial-success semantics (unresolved IDs reported via `messages[]` with `code: service_not_found`). Closes the gap where USP only offered single-service retrieval via `GET /services/{service_id}`.
+- Defined batch size limits (MUST accept at least 50), deduplication rules (silent dedup), and ordering contract (unordered response) for the new lookup endpoint.
+- Added `Lookup Services` to the §12 Operation Reference table.
+
+---
+
+## 24/03/26 at 08:48:29 by [kobym707](mailto:kobym@wix.com)
+
+- Added optional `messages[]` array to all three catalog endpoint responses (`/services/list`, `/services/{service_id}`, `/services/feed`) in both `openapi/usp-rest.json` and `openrpc/usp-mcp.json`, aligning with the UCP message model where `catalog_lookup` and `catalog_search` responses carry structured messages for partial-success signalling, filter feedback, and service-level warnings.
+- Updated the `Message` schema in both OpenAPI and MCP specs to match UCP: added `content_type` field (`plain`/`markdown`), added `unrecoverable` severity level, changed `path` field from JSON Pointer to RFC 9535 JSONPath, made `type` and `content` required fields, and expanded severity descriptions to match UCP's semantics.
+- Added a formal Message field reference table and severity level table to §9.4 in `specification.md`, so the message contract is fully documented in the spec prose (previously only in the OpenAPI/MCP schemas).
+- Updated §9.1 error model description to clarify that `messages[]` is available on all USP response envelopes including catalog responses, not only state-modifying operations.
+- Added `messages[]` notes to §3.1 (feed), §3.12.1 (list), and §3.12.3 (get service) endpoint descriptions.
+
+---
+
+## 21/03/26 at 14:05:04 by [kobym707](mailto:kobym@wix.com)
+
+- Added §11.2 Buyer Calendar Free/Busy Extension to `specification.md` — a MAY-level, platform-scoped extension that enables platforms to access a buyer's calendar for opaque free/busy blocks only, then cross-reference with business availability to suggest mutually free times. Addresses issue #18 requesting privacy-preserving calendar access for scheduling agents.
+- Introduced the `dev.usp.platform.*` capability namespace in §2.5 to distinguish platform-scoped capabilities (implemented entirely by the platform) from business-facing `dev.usp.services.*` capabilities. Needed because the calendar free/busy extension is the first capability that does not require any business-side implementation.
+- Created `schemas/calendar_freebusy.json` defining `BusyBlock` (opaque `{start, end}` with `additionalProperties: false` to enforce no event detail leakage), `BuyerFreeBusy` (aggregated buyer availability), and `CalendarProviderConfig` (informative provider reference).
+- Added `BusyBlock` and `BuyerFreeBusy` component schemas to `openapi/usp-rest.json` for schema registry completeness, even though no new endpoints are introduced (the feature is platform-internal).
+- Added `BusyBlock` and `BuyerFreeBusy` to the §1.2 Terminology table so the new types are discoverable alongside existing protocol terms.
+- Updated §11 Extensions intro to note that extensions can be platform-scoped, not just business-scoped.
+- Added informative references to §14.2 for RFC 4791 (CalDAV), Google Calendar FreeBusy API, and Microsoft Graph getSchedule API.
+
+---
+
+## 21/03/26 at 16:27:55 by [kobym707](mailto:kobym@wix.com)
+
+- Expanded §11.2.2 Proactive Agent Use Cases with 4 business-initiated reactive scenarios (#8–#11) that compose calendar free/busy with USP webhooks and the waitlist extension: calendar-aware waitlist auto-accept/decline, proactive rebooking on business cancellation, smart conflict detection on business-initiated reschedule, and waitlist priority pre-fetching. These demonstrate the extension's value beyond buyer-initiated flows.
+- Reorganized the use cases table into two groups — "Buyer-initiated scenarios" and "Business-initiated scenarios (reactive via webhooks)" — with cross-references to §5.4 (Webhooks) and §11.1 (Waitlist Extension).
+
+---
+
+## 21/03/26 at 14:12:18 by [kobym707](mailto:kobym@wix.com)
+
+- Added §11.2.2 Proactive Agent Use Cases to the calendar free/busy extension, describing 7 buyer-initiated agentic scenarios (conflict-aware slot presentation, multi-service coordination, smart rescheduling, travel-time-aware scheduling, availability-first discovery, recurring pattern matching, group scheduling) to strengthen the motivation for the extension and illustrate its value for AI-driven scheduling agents.
+- Renumbered §11.2.3–11.2.8 to §11.2.4–11.2.9 to accommodate the new sub-section.
+
+---
+
 ## 19/03/26 at 18:03:50 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Expanded `USPError` definition in `openrpc/usp-mcp.json` with a fully-typed `data` schema: `code` (string enum of all 22 §9.4 error codes including the 5 new profile error codes), `messages` (array of `$ref: Message`), and `severity` (enum). Previously the `data` field was an unstructured description string, making the error contract unvalidatable.

@@ -101,30 +101,31 @@
       },
       "PaginationRequest": {
         "type": "object",
+        "description": "Cursor-based pagination request fields. See Section 9.1.2 of the USP specification.",
         "properties": {
+          "cursor": {
+            "type": ["string", "null"],
+            "description": "Opaque pagination cursor from the previous response. Omit on the first request."
+          },
           "limit": {
             "type": "integer",
-            "default": 20
-          },
-          "cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "default": 20,
+            "description": "Requested page size. Businesses MAY apply a lower or upper cap."
           }
         }
       },
       "Pagination": {
         "type": "object",
+        "description": "Cursor-based pagination state. See Section 9.1.2 of the USP specification.",
+        "required": ["cursor", "has_more"],
         "properties": {
           "cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"],
+            "description": "Opaque cursor for the next page. Pass this value as the cursor field in the next request body. null when there are no more pages."
           },
           "has_more": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "true if additional pages exist beyond this one; false on the last page."
           }
         }
       },
@@ -149,13 +150,83 @@
             "type": "string",
             "description": "Identifier of the business that owns this service. Populated by the provider in API responses. Together with id, forms the globally unique composite key."
           },
+          "provider": {
+            "type": "object",
+            "description": "Inline business metadata for display without a separate profile fetch. Aligns with UCP seller object.",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Business display name."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Business website URL."
+              },
+              "links": {
+                "type": "array",
+                "description": "Typed links to policy and information pages.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "url"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "Link type. Well-known values: privacy_policy, terms_of_service, refund_policy, cancellation_policy, faq."
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL to the linked page."
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Display text for the link."
+                    }
+                  }
+                }
+              }
+            }
+          },
           "name": {
             "type": "string",
             "description": "Human-readable display name for the service."
           },
           "description": {
-            "type": "string",
-            "description": "Human-readable description of the service, aimed at both human readers and AI agents."
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Plain text description (backward compatible)."
+              },
+              {
+                "type": "object",
+                "description": "Structured description with multiple format variants. Aligns with UCP Description type.",
+                "required": [
+                  "plain"
+                ],
+                "properties": {
+                  "plain": {
+                    "type": "string",
+                    "description": "Plain text content. Always required as the universal fallback."
+                  },
+                  "markdown": {
+                    "type": "string",
+                    "description": "Markdown-formatted content."
+                  },
+                  "html": {
+                    "type": "string",
+                    "description": "HTML-formatted content. Platforms MUST sanitize before rendering."
+                  }
+                }
+              }
+            ],
+            "description": "Service description. Accepts either a plain string or a structured Description object with plain, markdown, and html variants."
           },
           "type": {
             "type": "string",
@@ -221,8 +292,56 @@
               }
             }
           },
+          "media": {
+            "type": "array",
+            "description": "Service media items (images, videos). Replaces the previous images field. Aligns with UCP media model.",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "url"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Media format type. Well-known values: image, video."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to the media resource (HTTPS)."
+                },
+                "alt_text": {
+                  "type": "string",
+                  "description": "Accessibility text describing the media."
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "hero",
+                    "gallery",
+                    "thumbnail"
+                  ],
+                  "default": "gallery",
+                  "description": "Display role: hero (primary banner), gallery (additional), thumbnail (small preview)."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Width in pixels."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Height in pixels."
+                }
+              }
+            }
+          },
           "images": {
             "type": "array",
+            "deprecated": true,
+            "description": "Deprecated. Alias for media for backward compatibility. If both images and media are present, media takes precedence.",
             "items": {
               "type": "object",
               "properties": {
@@ -244,8 +363,92 @@
               }
             }
           },
+          "rating": {
+            "type": "object",
+            "description": "Aggregate service rating. Aligns with UCP rating object.",
+            "required": [
+              "value",
+              "scale_max"
+            ],
+            "properties": {
+              "value": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Average rating value."
+              },
+              "scale_min": {
+                "type": "number",
+                "minimum": 0,
+                "default": 1,
+                "description": "Minimum value on the rating scale (e.g., 1 for 1-5 stars)."
+              },
+              "scale_max": {
+                "type": "number",
+                "minimum": 1,
+                "description": "Maximum value on the rating scale (e.g., 5 for 5-star)."
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of reviews contributing to the rating."
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended",
+              "archived"
+            ],
+            "default": "active",
+            "description": "Service lifecycle status. active: bookable (default). suspended: temporarily unavailable. archived: no longer offered."
+          },
+          "handle": {
+            "type": "string",
+            "description": "URL-friendly slug for the service (e.g., womens-haircut-style)."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Canonical service page URL on the business's website."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Freeform tags for categorization and search."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Business-defined custom data extending the standard service model. Platforms SHOULD pass through opaquely."
+          },
           "availability_hint": {
             "$ref": "#/components/schemas/AvailabilityHint"
+          },
+          "links": {
+            "type": "array",
+            "description": "Typed links to policy and information pages specific to this service. Platforms SHOULD surface these during the booking flow. Well-known types: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq.",
+            "items": {
+              "type": "object",
+              "required": ["type", "url"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Link type. Well-known values: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to the linked page."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Display text for the link."
+                }
+              }
+            }
           },
           "localized": {
             "$ref": "#/components/schemas/LocalizedFields"
@@ -351,6 +554,24 @@
           "currency": {
             "type": "string",
             "description": "ISO 4217 currency code."
+          },
+          "price_range": {
+            "type": "object",
+            "description": "Displayable price range in minor currency units (same currency as pricing.currency). Recommended when model is variable, hourly, or per_person so platforms can show a price range without querying availability. Aligns with UCP price_range.",
+            "required": [
+              "min",
+              "max"
+            ],
+            "properties": {
+              "min": {
+                "type": "integer",
+                "description": "Minimum price in minor currency units."
+              },
+              "max": {
+                "type": "integer",
+                "description": "Maximum price in minor currency units."
+              }
+            }
           },
           "deposit": {
             "type": "object",
@@ -931,6 +1152,22 @@
             "type": "string",
             "description": "Buyer-provided special requests or notes."
           },
+          "booking_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Stable URL where the buyer can view and manage this booking. Used in confirmation emails, calendar events, and buyer portals."
+          },
+          "dispute": {
+            "$ref": "#/components/schemas/Dispute",
+            "description": "Present when a payment dispute has been opened for this booking."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "Soft messages from the business providing context about the booking state. Informational only; do not block booking creation."
+          },
           "cancellation": {
             "type": "object",
             "description": "Present when the booking has been canceled.",
@@ -1001,7 +1238,7 @@
           },
           "amount": {
             "type": "integer",
-            "description": "Total service amount in minor currency units."
+            "description": "Service fee in minor currency units, before tax. Does not include tax_amount."
           },
           "currency": {
             "type": "string",
@@ -1010,6 +1247,10 @@
           "amount_due": {
             "type": "integer",
             "description": "Amount due now in minor currency units."
+          },
+          "tax_amount": {
+            "type": "integer",
+            "description": "Tax amount in minor currency units. When present, total charged = amount + tax_amount. Must use the same currency as amount."
           },
           "deposit_amount": {
             "type": "integer",
@@ -1138,7 +1379,12 @@
       },
       "Message": {
         "type": "object",
-        "description": "Message used in response-level messages arrays and on action objects.",
+        "title": "Message",
+        "description": "Structured message for errors, warnings, or informational notices on any USP response. Aligned with the UCP message model.",
+        "required": [
+          "type",
+          "content"
+        ],
         "properties": {
           "type": {
             "type": "string",
@@ -1146,27 +1392,66 @@
               "error",
               "warning",
               "info"
-            ]
+            ],
+            "description": "Message type discriminator."
           },
           "code": {
             "type": "string",
-            "description": "Machine-readable error/info code."
+            "description": "Machine-readable code identifying the message type (e.g., slot_unavailable, service_suspended). Standard codes are defined in §9.4; freeform codes are permitted."
           },
           "content": {
             "type": "string",
             "description": "Human-readable message text."
           },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "markdown"
+            ],
+            "default": "plain",
+            "description": "Content format. Defaults to plain."
+          },
           "severity": {
             "type": "string",
             "enum": [
-              "requires_buyer_input",
               "recoverable",
-              "requires_buyer_review"
-            ]
+              "requires_buyer_input",
+              "requires_buyer_review",
+              "unrecoverable"
+            ],
+            "description": "Reflects the resource state and recommended action. 'recoverable': platform can resolve by modifying inputs and retrying. 'requires_buyer_input': buyer must provide information before proceeding. 'requires_buyer_review': buyer must authorize before proceeding due to policy or regulatory rules. 'unrecoverable': no valid resource exists; retry with new resource or inputs."
           },
           "path": {
             "type": "string",
-            "description": "Optional JSON Pointer to the field this message relates to."
+            "description": "RFC 9535 JSONPath to the field this message relates to (e.g., $.services[0].pricing)."
+          }
+        }
+      },
+      "Dispute": {
+        "type": "object",
+        "title": "Dispute",
+        "description": "A payment dispute (chargeback) opened against a booking. Opening a dispute does NOT change payment.status — the payment remains paid. Status MAY change to refunded or partially_refunded only if the dispute resolves in the buyer's favor.",
+        "required": ["status", "reason", "opened_at"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["opened", "under_review", "resolved_buyer", "resolved_business"],
+            "description": "Current dispute status."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Machine-readable reason code. Well-known values: service_not_provided, quality_issue, unauthorized, duplicate."
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp of when the dispute was opened."
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp of when the dispute was resolved. Present only when status is resolved_buyer or resolved_business."
           }
         }
       },
@@ -2016,6 +2301,61 @@
             }
           }
         }
+      },
+      "BusyBlock": {
+        "type": "object",
+        "title": "BusyBlock",
+        "description": "An opaque busy time block from a buyer's calendar. Contains only start and end times. Implementations MUST NOT include event details (titles, descriptions, attendees, locations). Part of the platform-scoped calendar free/busy extension (dev.usp.platform.calendar_freebusy).",
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 start of the busy period."
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 end of the busy period."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BuyerFreeBusy": {
+        "type": "object",
+        "title": "BuyerFreeBusy",
+        "description": "Aggregated free/busy data for a buyer across one or more calendar providers. The platform queries the buyer's calendar provider(s) and merges the results into a single set of busy blocks. Part of the platform-scoped calendar free/busy extension (dev.usp.platform.calendar_freebusy).",
+        "required": [
+          "buyer_ref",
+          "timezone",
+          "queried_at",
+          "busy_blocks"
+        ],
+        "properties": {
+          "buyer_ref": {
+            "type": "string",
+            "description": "Opaque platform-generated buyer correlation ID. MUST NOT contain personally identifiable information."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier for the buyer (e.g., America/New_York)."
+          },
+          "queried_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp of when the free/busy data was fetched from the calendar provider. Used as a freshness indicator for caching."
+          },
+          "busy_blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BusyBlock"
+            },
+            "description": "Array of busy time blocks merged across all connected calendar providers. An empty array means the buyer has no calendar conflicts in the queried range."
+          }
+        }
       }
     }
   },
@@ -2038,22 +2378,101 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Free-text search query across service names, descriptions, and categories. When present, the business SHOULD rank results by relevance. Businesses that do not support search MUST ignore this field (not return an error). Aligns with UCP catalog_search."
+                  },
                   "filters": {
                     "type": "object",
+                    "description": "Filter criteria to narrow results. All specified filters combine with AND logic.",
                     "properties": {
                       "type": {
                         "type": "string",
-                        "description": "Service vertical to filter by."
+                        "description": "Service vertical to filter by (e.g., appointment, group, reservation)."
                       },
                       "category_id": {
                         "type": "string",
-                        "description": "Category ID to filter by."
+                        "description": "Single category ID to filter by. Shorthand for categories with one value. If both category_id and categories are provided, categories takes precedence."
+                      },
+                      "categories": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP catalog_search filters."
                       },
                       "location_id": {
                         "type": "string",
                         "description": "Location ID to filter by (for multi-location businesses)."
+                      },
+                      "price": {
+                        "type": "object",
+                        "description": "Price range filter in minor currency units. Currency determined by context.currency or the business's default currency.",
+                        "properties": {
+                          "min": {
+                            "type": "integer",
+                            "description": "Minimum price in minor currency units (e.g., 5000 = $50.00)."
+                          },
+                          "max": {
+                            "type": "integer",
+                            "description": "Maximum price in minor currency units (e.g., 15000 = $150.00)."
+                          }
+                        }
                       }
                     }
+                  },
+                  "context": {
+                    "type": "object",
+                    "description": "Buyer locale and intent signals for relevance, localization, and personalization. Aligns with UCP context pattern. Businesses SHOULD use context when available and MUST ignore unrecognized fields without error.",
+                    "properties": {
+                      "address_country": {
+                        "type": "string",
+                        "description": "Buyer's country (ISO 3166-1 alpha-2, e.g., US). Hint for market context."
+                      },
+                      "address_region": {
+                        "type": "string",
+                        "description": "Region within the country (e.g., California). Optional localization hint."
+                      },
+                      "postal_code": {
+                        "type": "string",
+                        "description": "Postal code (e.g., 94043). Optional regional refinement hint."
+                      },
+                      "coordinates": {
+                        "type": "object",
+                        "description": "Buyer's geographic coordinates for proximity-based ranking. Higher-resolution than postal code; location_id filter supersedes for multi-location businesses.",
+                        "required": [
+                          "latitude",
+                          "longitude"
+                        ],
+                        "properties": {
+                          "latitude": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90,
+                            "description": "Latitude in WGS 84 decimal degrees."
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180,
+                            "description": "Longitude in WGS 84 decimal degrees."
+                          }
+                        }
+                      },
+                      "language": {
+                        "type": "string",
+                        "description": "Preferred language (IETF BCP 47, e.g., en, fr-CA). Business MAY return content in a different language if unavailable."
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "Preferred currency (ISO 4217, e.g., USD, EUR). Used as denomination for price filter values. Response prices include explicit currency."
+                      },
+                      "intent": {
+                        "type": "string",
+                        "description": "Free-text description of the buyer's intent (e.g., 'looking for a relaxing spa treatment'). Informs relevance and recommendations."
+                      }
+                    },
+                    "additionalProperties": true
                   },
                   "pagination": {
                     "$ref": "#/components/schemas/PaginationRequest"
@@ -2088,6 +2507,13 @@
                         },
                         "pagination": {
                           "$ref": "#/components/schemas/Pagination"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional errors, warnings, or informational messages about the response (e.g., partial results, filter feedback, service-level notices)."
                         }
                       }
                     }
@@ -2158,6 +2584,13 @@
                       "properties": {
                         "service": {
                           "$ref": "#/components/schemas/Service"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional errors, warnings, or informational messages about the service (e.g., temporarily suspended, pricing provisional)."
                         }
                       }
                     }
@@ -2190,6 +2623,156 @@
         }
       }
     },
+    "/services/lookup": {
+      "post": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "Lookup Services",
+        "operationId": "lookupServices",
+        "description": "Returns full service objects for a batch of service IDs. Analogous to UCP catalog_lookup. Designed for hydrating multiple service references in a single request.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "Service IDs to look up. Businesses MUST accept at least 50 IDs. Duplicates are silently deduplicated."
+                  },
+                  "context": {
+                    "type": "object",
+                    "description": "Buyer locale and intent signals for localization of returned service content. Same definition as on POST /services/list. Businesses MUST ignore unrecognized fields without error.",
+                    "properties": {
+                      "address_country": {
+                        "type": "string",
+                        "description": "Buyer's country (ISO 3166-1 alpha-2, e.g., US)."
+                      },
+                      "address_region": {
+                        "type": "string",
+                        "description": "Region within the country (e.g., California)."
+                      },
+                      "postal_code": {
+                        "type": "string",
+                        "description": "Postal code (e.g., 94043)."
+                      },
+                      "coordinates": {
+                        "type": "object",
+                        "description": "Buyer's geographic coordinates for proximity context.",
+                        "required": [
+                          "latitude",
+                          "longitude"
+                        ],
+                        "properties": {
+                          "latitude": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90,
+                            "description": "Latitude in WGS 84 decimal degrees."
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180,
+                            "description": "Longitude in WGS 84 decimal degrees."
+                          }
+                        }
+                      },
+                      "language": {
+                        "type": "string",
+                        "description": "Preferred language (IETF BCP 47, e.g., en, fr-CA)."
+                      },
+                      "currency": {
+                        "type": "string",
+                        "description": "Preferred currency (ISO 4217, e.g., USD, EUR)."
+                      },
+                      "intent": {
+                        "type": "string",
+                        "description": "Free-text buyer intent."
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lookup results. May contain fewer services than requested IDs if some IDs were not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "services"
+                      ],
+                      "properties": {
+                        "services": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Service"
+                          },
+                          "description": "Services matching the requested IDs. May contain fewer items than requested if some IDs were not found. Unordered."
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Errors, warnings, or informational messages about the lookup (e.g., service_not_found for unresolved IDs)."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/services/feed": {
       "get": {
         "tags": [
@@ -2204,9 +2787,9 @@
           {
             "name": "cursor",
             "in": "query",
+            "description": "Opaque cursor from a previous feed response's next_cursor field. Omit on the first request.",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "type": "string"
             }
           },
           {
@@ -2274,13 +2857,16 @@
                         "pagination": {
                           "type": "object",
                           "required": [
-                            "next_cursor",
+                            "cursor",
                             "has_more"
                           ],
                           "properties": {
-                            "next_cursor": {
-                              "type": "string",
-                              "description": "Opaque cursor to pass on the next request."
+                            "cursor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Opaque cursor to pass on the next request. Null when no more pages."
                             },
                             "has_more": {
                               "type": "boolean"
@@ -2310,6 +2896,13 @@
                               ]
                             }
                           }
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional errors, warnings, or informational messages about the feed response (e.g., partial results due to degraded feed status)."
                         }
                       }
                     }
@@ -2732,6 +3325,7 @@
           "Availability"
         ],
         "summary": "Query Availability",
+        "description": "Returns available time slots for a service within a date range. Platforms SHOULD query at most 7 calendar days per request. Businesses MAY reject wider ranges with HTTP 422 and error code range_too_wide. Slots are returned in ascending start order. See Section 9.1.2 of the specification for pagination semantics.",
         "operationId": "queryAvailability",
         "parameters": [
           {
@@ -2777,7 +3371,19 @@
                   },
                   "location_id": {
                     "type": "string",
-                    "description": "Location ID to filter by (for multi-location businesses)."
+                    "description": "Location filter. Only slots at this location are returned. Applies to multi-location businesses."
+                  },
+                  "locale": {
+                    "type": "string",
+                    "description": "BCP 47 language tag (e.g., en-US). When provided, the business SHOULD return human-readable content (resource names, slot labels, opening_hours day names) in the requested locale."
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Omit on the first request. See Section 9.1.2 of the specification."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Requested page size. Businesses MAY apply a lower or upper cap."
                   }
                 }
               }
@@ -2812,25 +3418,35 @@
                         },
                         "opening_hours": {
                           "type": "array",
-                          "description": "Business opening hours for the queried date range.",
+                          "description": "Regular business hours for the queried period. Special closures are reflected by the absence of slots, not by this field.",
                           "items": {
                             "type": "object",
+                            "required": ["day_of_week", "opens", "closes"],
                             "properties": {
                               "day_of_week": {
                                 "type": "array",
+                                "description": "Days this entry applies to. Lowercase English day names: monday, tuesday, wednesday, thursday, friday, saturday, sunday.",
                                 "items": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
                                 }
                               },
                               "opens": {
                                 "type": "string",
-                                "description": "Opening time in HH:MM format."
+                                "description": "Opening time in HH:MM 24-hour format (local business time)."
                               },
                               "closes": {
                                 "type": "string",
-                                "description": "Closing time in HH:MM format."
+                                "description": "Closing time in HH:MM 24-hour format (local business time). 00:00 or 24:00 indicates midnight (end of day)."
                               }
                             }
+                          }
+                        },
+                        "messages": {
+                          "type": "array",
+                          "description": "Optional informational or warning messages about the result set (e.g., reduced availability due to staff absence, holiday hours in effect).",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
                           }
                         },
                         "pagination": {
