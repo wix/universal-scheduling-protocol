@@ -284,6 +284,50 @@
           }
         }
       }
+    },
+    "USPEnvelope": {
+      "type": "object",
+      "title": "USP response envelope",
+      "description": "Wrapper for REST responses that include a usp metadata object alongside payload data.",
+      "required": ["usp"],
+      "properties": {
+        "usp": {
+          "$ref": "#/$defs/response_schema",
+          "description": "USP metadata for this response (version and negotiated capabilities)."
+        }
+      }
+    },
+    "PaginationRequest": {
+      "type": "object",
+      "title": "PaginationRequest",
+      "description": "Cursor-based pagination request fields. See Section 9.1.2 of the USP specification.",
+      "properties": {
+        "cursor": {
+          "type": ["string", "null"],
+          "description": "Opaque pagination cursor from the previous response. Omit on the first request."
+        },
+        "limit": {
+          "type": "integer",
+          "default": 20,
+          "description": "Requested page size. Businesses MAY apply a lower or upper cap."
+        }
+      }
+    },
+    "Pagination": {
+      "type": "object",
+      "title": "Pagination",
+      "description": "Cursor-based pagination state in list responses. See Section 9.1.2 of the USP specification.",
+      "required": ["cursor", "has_more"],
+      "properties": {
+        "cursor": {
+          "type": ["string", "null"],
+          "description": "Opaque cursor for the next page. null when there are no more pages."
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "True if additional pages exist beyond this one."
+        }
+      }
     }
   },
   "$ref": "#/$defs/base"

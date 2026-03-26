@@ -89,7 +89,10 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [6.1 Business Registration](#61-business-registration---post-registrybusinesses)
     - [6.2 Business Search](#62-business-search---post-registrysearch_business)
     - [6.3 Service Search](#63-service-search---post-registrysearch_services)
-    - [6.4 Registry Governance](#64-registry-governance)
+    - [6.4 Get Registration](#64-get-registration---get-registrybusinessesid)
+    - [6.5 Update Registration](#65-update-registration---put-registrybusinessesid)
+    - [6.6 Delete Registration](#66-delete-registration---delete-registrybusinessesid)
+    - [6.7 Registry Governance](#67-registry-governance)
 
 **PART II: DEPLOYMENT MODES**
 
@@ -2852,6 +2855,8 @@ category, or keyword.
 
 ### 6.1 Business Registration - `POST /registry/businesses`
 
+> **JSON Schema:** Request — [/$defs/RegistrationRequest](schemas/registry.json) · Response `registration` — [/$defs/RegistryEntry](schemas/registry.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`POST /registry/businesses`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_register`)
+
 Request:
 
 ```json
@@ -2859,6 +2864,7 @@ Request:
   "profile_url": "https://sunrisewellness.com/.well-known/usp",
   "deployment_mode": "standalone",
   "name": "Sunrise Wellness Studio",
+  "description": "Full-service wellness studio offering massage, facials, and yoga classes.",
   "verticals": [
     "appointment",
     "group"
@@ -2879,15 +2885,18 @@ Request:
 }
 ```
 
-| Field             | Type            | Required | Description                                                                                                                                                    |
-|-------------------|-----------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `profile_url`     | string (URL)    | **Yes**  | The URL of the business's USP profile. For Standalone Mode businesses, this is `/.well-known/usp`. For UCP-Native Mode businesses, this is `/.well-known/ucp`. |
-| `deployment_mode` | string          | **Yes**  | The deployment mode of the business. **MUST** be one of `standalone` or `ucp_native`.                                                                          |
-| `name`            | string          | **Yes**  | Human-readable business name.                                                                                                                                  |
-| `verticals`       | Array\[string\] | **Yes**  | Service verticals offered by the business (e.g., `appointment`, `group`).                                                                                      |
-| `categories`      | Array\[string\] | **Yes**  | Business categories for search and filtering.                                                                                                                  |
-| `location`        | object          | **Yes**  | Physical location with `address` (string) and `coordinates` (`{lat, lng}`).                                                                                    |
-| `timezone`        | string          | **Yes**  | IANA timezone identifier (e.g., `America/New_York`).                                                                                                           |
+| Field             | Type            | Required    | Description                                                                                                                                                    |
+|-------------------|-----------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `profile_url`     | string (URL)    | **Yes**     | The URL of the business's USP profile. For Standalone Mode businesses, this is `/.well-known/usp`. For UCP-Native Mode businesses, this is `/.well-known/ucp`. |
+| `deployment_mode` | string          | **Yes**     | The deployment mode of the business. **MUST** be one of `standalone` or `ucp_native`.                                                                          |
+| `name`            | string          | **Yes**     | Human-readable business name.                                                                                                                                  |
+| `description`     | string          | No          | Brief human-readable description of the business (e.g., for discovery cards and search snippets).                                                              |
+| `verticals`       | Array\[string\] | **Yes**     | Service verticals offered by the business (e.g., `appointment`, `group`).                                                                                      |
+| `categories`      | Array\[string\] | **Yes**     | Business categories for search and filtering.                                                                                                                  |
+| `location`        | object          | Conditional | Physical location with `address` (string) and `coordinates` (`{lat, lng}`). **REQUIRED** when the business offers any `in_person` or `hybrid` channel services. **MAY** be omitted for businesses offering only `virtual` or `phone` services. |
+| `timezone`        | string          | **Yes**     | IANA timezone identifier (e.g., `America/New_York`).                                                                                                           |
+
+Registries indexing virtual-only businesses (no `location`) **MUST** exclude them from location-filtered search results and **SHOULD** return them only when no geographic filter is applied.
 
 Response:
 
@@ -2908,6 +2917,7 @@ Response:
     "profile_url": "https://sunrisewellness.com/.well-known/usp",
     "deployment_mode": "standalone",
     "name": "Sunrise Wellness Studio",
+    "description": "Full-service wellness studio offering massage, facials, and yoga classes.",
     "verticals": [
       "appointment",
       "group"
@@ -2931,11 +2941,17 @@ Response:
 }
 ```
 
+The `usp` envelope in registry responses describes the **registry's own** protocol and capability declaration, not the registered business's capabilities. It follows the standard USP response envelope ([Section 9](#9-transport-bindings)).
+
 The registry **MUST** validate that the `profile_url` is reachable and returns a
 valid USP or UCP profile (depending on the declared `deployment_mode`) before
 accepting the registration.
 
+Registration failures (e.g., unreachable `profile_url`, invalid `deployment_mode`) **MUST** be reported using the error model defined in [Section 9.4](#94-error-code-mapping). The `profile_unreachable` and `validation_error` codes apply.
+
 ### 6.2 Business Search - `POST /registry/search_business`
+
+> **JSON Schema:** [/$defs/BusinessSearchRequest](schemas/registry.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`POST /registry/search_business`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_search_business`)
 
 Request:
 
@@ -2956,6 +2972,10 @@ Request:
   ],
   "query": "massage",
   "deployment_mode": "standalone",
+  "context": {
+    "locale": "en-US",
+    "currency": "USD"
+  },
   "pagination": {
     "limit": 20,
     "cursor": null
@@ -2963,8 +2983,26 @@ Request:
 }
 ```
 
-The `deployment_mode` filter is **OPTIONAL**. When omitted, the search returns
-businesses in both deployment modes.
+| Field             | Type            | Required | Description                                                                 |
+|-------------------|-----------------|----------|-----------------------------------------------------------------------------|
+| `location`        | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (number).    |
+| `verticals`       | Array\[string\] | No       | Filter by service verticals.                                                |
+| `categories`      | Array\[string\] | No       | Filter by business categories.                                              |
+| `query`           | string          | No       | Free-text search across business names and categories.                      |
+| `deployment_mode` | string          | No       | Filter by `standalone` or `ucp_native`. When omitted, returns both modes. |
+| `context`         | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See below. |
+| `pagination`      | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                 |
+
+**`context` object (optional):**
+
+| Field      | Type   | Description                                                                 |
+|------------|--------|-----------------------------------------------------------------------------|
+| `locale`   | string | BCP 47 language tag (e.g., `en-US`). Influences result ranking and display. |
+| `currency` | string | ISO 4217 currency code (e.g., `USD`). Influences price display where relevant. |
+
+The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
+
+Search operations that match no results **MUST** return HTTP 200 with an empty `businesses[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
 
 Response:
 
@@ -2986,6 +3024,7 @@ Response:
       "profile_url": "https://sunrisewellness.com/.well-known/usp",
       "deployment_mode": "standalone",
       "name": "Sunrise Wellness Studio",
+      "description": "Full-service wellness studio offering massage, facials, and yoga classes.",
       "verticals": [
         "appointment",
         "group"
@@ -3011,6 +3050,7 @@ Response:
       "profile_url": "https://serenityspa.example.com/.well-known/usp",
       "deployment_mode": "standalone",
       "name": "Serenity Spa & Massage",
+      "description": "Boutique spa and massage therapy in Manhattan.",
       "verticals": [
         "appointment"
       ],
@@ -3044,6 +3084,8 @@ registered businesses. This enables more granular discovery -- rather than
 finding businesses and then querying each one for services, the platform can
 directly search across all registered businesses' services.
 
+> **JSON Schema:** Request — [/$defs/ServiceSearchRequest](schemas/registry.json) · Response items — [/$defs/ServiceSearchResult](schemas/registry.json) · Pricing aligns with [/$defs/Pricing](schemas/catalog.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`POST /registry/search_services`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_search_services`)
+
 Request:
 
 ```json
@@ -3071,12 +3113,31 @@ Request:
     "min_minutes": 30,
     "max_minutes": 90
   },
+  "context": {
+    "locale": "en-US",
+    "currency": "USD"
+  },
   "pagination": {
     "limit": 20,
     "cursor": null
   }
 }
 ```
+
+| Field            | Type            | Required | Description                                                                   |
+|------------------|-----------------|----------|-------------------------------------------------------------------------------|
+| `location`       | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km`.               |
+| `verticals`      | Array\[string\] | No       | Filter by service verticals.                                                  |
+| `categories`     | Array\[string\] | No       | Filter by service categories.                                                 |
+| `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
+| `price_range`    | object          | No       | Price filter: `{min, max, currency}` (amounts in minor currency units).       |
+| `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes}`.                                  |
+| `context`        | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See [Section 6.2](#62-business-search---post-registrysearch_business). |
+| `pagination`     | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                     |
+
+The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
+
+Search operations that match no results **MUST** return HTTP 200 with an empty `services[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
 
 Response:
 
@@ -3104,7 +3165,8 @@ Response:
       },
       "category": "wellness",
       "duration_minutes": 60,
-      "price": {
+      "pricing": {
+        "model": "fixed",
         "amount": 12000,
         "currency": "USD"
       },
@@ -3115,7 +3177,8 @@ Response:
           "lng": -73.9967
         }
       },
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "last_indexed_at": "2026-03-14T08:00:00Z"
     },
     {
       "service_id": "svc_massage_90",
@@ -3128,9 +3191,13 @@ Response:
       },
       "category": "wellness",
       "duration_minutes": 90,
-      "price": {
-        "amount": 18000,
-        "currency": "USD"
+      "pricing": {
+        "model": "variable",
+        "currency": "USD",
+        "price_range": {
+          "min": 15000,
+          "max": 22000
+        }
       },
       "location": {
         "address": "456 Oak Ave, New York, NY 10002",
@@ -3139,7 +3206,8 @@ Response:
           "lng": -73.9812
         }
       },
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "last_indexed_at": "2026-03-14T07:30:00Z"
     }
   ],
   "pagination": {
@@ -3149,12 +3217,44 @@ Response:
 }
 ```
 
-The registry **SHOULD** index services from registered businesses by
-periodically fetching their USP profiles and caching service metadata. The
-`query` field performs a full-text search across service names, descriptions,
+The `query` field performs a full-text search across service names, descriptions,
 and categories.
 
-### 6.4 Registry Governance
+Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness.
+
+### 6.4 Get Registration - `GET /registry/businesses/{id}`
+
+Returns the full registration record for a previously registered business.
+
+> **JSON Schema:** [/$defs/RegistryEntry](schemas/registry.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`GET /registry/businesses/{id}`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_get`)
+
+| Parameter | Type   | Location | Description                          |
+|-----------|--------|----------|--------------------------------------|
+| `id`      | string | path     | Registration identifier (`reg_*`). |
+
+The response body matches the `registration` object in [Section 6.1](#61-business-registration---post-registrybusinesses), wrapped in the standard `usp` envelope. If no registration exists for `id`, the registry **MUST** return `404 Not Found` with Problem Details ([Section 9.1](#91-rest-binding)).
+
+### 6.5 Update Registration - `PUT /registry/businesses/{id}`
+
+Updates an existing registration. The request body is the same as [Section 6.1](#61-business-registration---post-registrybusinesses) (registration fields only; the path supplies `id`).
+
+> **JSON Schema:** Request — [/$defs/RegistrationRequest](schemas/registry.json) · Response — [/$defs/RegistryEntry](schemas/registry.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`PUT /registry/businesses/{id}`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_update`)
+
+The registry **MUST** re-validate that `profile_url` is reachable and returns a valid profile when `profile_url` or `deployment_mode` changes. Successful responses return HTTP 200 with the updated `registration` object.
+
+### 6.6 Delete Registration - `DELETE /registry/businesses/{id}`
+
+Removes a business from the registry.
+
+> **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`DELETE /registry/businesses/{id}`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_delete`)
+
+| Parameter | Type   | Location | Description                          |
+|-----------|--------|----------|--------------------------------------|
+| `id`      | string | path     | Registration identifier (`reg_*`). |
+
+On success the registry **MUST** return `204 No Content`. Registries **SHOULD** remove cached service metadata for the deleted business.
+
+### 6.7 Registry Governance
 
 Registries are **independent** from USP-enabled businesses and from deployment
 mode. Multiple registries **MAY** coexist (federated model). A business **MAY**
@@ -4412,6 +4512,7 @@ The REST binding uses HTTP/1.1 (or higher) with JSON request/response bodies.
 All examples in this specification use the REST binding.
 
 - **Schema format:** OpenAPI 3.x (JSON)
+- **Authoritative data shapes:** Normative JSON Schema definitions for domain objects live under [`schemas/`](schemas/) (`$defs` per file). The machine-readable [`openapi/usp-rest.json`](openapi/usp-rest.json) references those documents with relative JSON Pointer URIs (for example `../schemas/catalog.json#/$defs/Service`) and is **not** self-contained unless **bundled**. Implementations and tools MUST resolve external `$ref`s against the repository layout (or use a pre-bundled copy). A single-file bundle can be produced with OpenAPI bundlers (for example [Redocly CLI](https://redocly.com/docs/cli/) `bundle` or `@apidevtools/swagger-cli`).
 - **Content type:** `application/json`
 - **Capability negotiation:** Platform advertises its profile URI via the
   `USP-Agent` header using Dictionary Structured Field syntax ([RFC 8941]):
@@ -4532,6 +4633,7 @@ The MCP (Model Context Protocol) binding uses JSON-RPC 2.0 over stdio or
 HTTP-SSE, designed for AI agents that interact with USP via tool calls.
 
 - **Schema format:** OpenRPC (JSON)
+- **Authoritative data shapes:** As with the REST binding, domain types are defined once under [`schemas/`](schemas/); [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) uses relative `$ref`s into those `$defs` and requires the same multi-file resolution (or bundling) as [`openapi/usp-rest.json`](openapi/usp-rest.json).
 - **Transport:** JSON-RPC 2.0
 
 #### 9.2.1 Method Mapping
@@ -4559,6 +4661,12 @@ Each USP REST operation maps to a JSON-RPC method:
 | `DELETE /waitlist/{entry_id}`                 | `usp_waitlist_leave`           | Leave waitlist                          |
 | `POST /waitlist/{entry_id}/accept`            | `usp_waitlist_accept`          | Accept a waitlist offer                 |
 | `POST /waitlist/{entry_id}/decline`           | `usp_waitlist_decline`         | Decline a waitlist offer                |
+| `POST /registry/businesses`                   | `usp_registry_register`        | Register business (discovery registry)  |
+| `POST /registry/search_business`              | `usp_registry_search_business` | Search businesses (discovery registry)  |
+| `POST /registry/search_services`              | `usp_registry_search_services` | Search services (discovery registry)    |
+| `GET /registry/businesses/{id}`             | `usp_registry_get`             | Get registration by ID                  |
+| `PUT /registry/businesses/{id}`               | `usp_registry_update`          | Update registration                     |
+| `DELETE /registry/businesses/{id}`          | `usp_registry_delete`          | Delete registration                     |
 
 #### 9.2.2 Request/Response Format
 
