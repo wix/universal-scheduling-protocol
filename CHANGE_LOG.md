@@ -1,5 +1,29 @@
 # Change Log
 
+## 26/03/26 at 16:06:42 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Fixed transport binding gaps 8.1–8.14 from issue #20, aligning §9 with UCP patterns
+- **Gap 8.1**: Adopted `structuredContent`/`content` dual-envelope pattern for MCP responses so AI clients get both typed data and human-readable text
+- **Gap 8.2**: Updated MCP binding to use `tools/call` wrapper instead of raw JSON-RPC methods, matching the MCP specification
+- **Gap 8.3**: Added `idempotency_key` to `_meta.usp` for state-modifying MCP operations, providing parity with REST `Idempotency-Key` header
+- **Gap 8.4**: Fixed MCP error model — business outcome errors now return in `result.structuredContent.messages[]`, not as JSON-RPC `error`; only protocol errors use JSON-RPC `error`
+- **Gap 8.5**: Resolved JSON-RPC error code collisions — removed JSON-RPC codes from business errors table (they use `messages[]` now), assigned unique codes to all protocol errors
+- **Gap 8.6**: Expanded A2A binding with Agent Card specification (§9.3.3), DataPart conventions (§9.3.4), and session management (§9.3.5)
+- **Gap 8.7**: Added `403 Forbidden`, `503 Service Unavailable` to REST status code table; added `ServiceUnavailable` response component to OpenAPI; added `service_unavailable` protocol error
+- **Gap 8.8**: Added `201 Created` to REST status code table; changed OpenAPI creation endpoints (bookings, holds, registry, waitlist, feed subscriptions) from 200 to 201
+- **Gap 8.9**: Added §9.1.3 Discovery cross-referencing §8.2 business profiles and `USP-Agent` header
+- **Gap 8.10**: Added §9.1.4 Request Signing for state-modifying REST requests using RFC 9421; added `signing_keys` to PlatformProfile in `schemas/profile.json`
+- **Gap 8.11**: Added conformance subsections to all transport bindings: §9.1.5 REST, §9.2.4 MCP, §9.3.6 A2A, §9.5.6 ESP
+- **Gap 8.12**: Fixed missing spaces between backtick-delimited `Idempotency-Key` and following words in §9.1.1
+- **Gap 8.13**: Added ESP error handling (§9.5.5) with `esp.error`, `esp.cancel`, `esp.timeout` messages and well-known error codes
+- **Gap 8.14**: Expanded webhook notifications (§9.2.3) with at-least-once delivery semantics, retry policy, acknowledgment requirements, URL registration, and signature verification; added `webhook_url` to PlatformProfile in `schemas/profile.json`
+- Updated `openrpc/usp-mcp.json`: renamed `USPError` to `USPProtocolError` with only protocol error codes, wrapped all method results in `structuredContent` envelope, added `idempotency_key` to state-modifying methods, updated `info.description` for `tools/call`
+- Updated `openapi/usp-rest.json`: added `ServiceUnavailable` (503) response to all endpoints, changed creation endpoints to return 201
+- Updated `schemas/profile.json`: added `webhook_url` and `signing_keys` to `PlatformProfile`
+- Updated specification.md Table of Contents with all new subsections
+
+---
+
 ## 26/03/26 at 13:56:57 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed the GitHub Actions OpenAPI bundle workflow (`.github/workflows/openapi-bundle.yml`) and the root `.gitignore` that ignored `openapi/usp-rest.bundled.json`, reverting those additions while keeping the §9.1/§9.2 specification text on multi-file schema references and bundling.
