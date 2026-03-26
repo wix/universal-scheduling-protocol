@@ -64,2090 +64,85 @@
     },
     "schemas": {
       "USPEnvelope": {
-        "type": "object",
-        "required": [
-          "usp"
-        ],
-        "properties": {
-          "usp": {
-            "type": "object",
-            "required": [
-              "version"
-            ],
-            "properties": {
-              "version": {
-                "type": "string",
-                "description": "USP protocol version (date-based, YYYY-MM-DD format)."
-              },
-              "capabilities": {
-                "type": "object",
-                "description": "Active capabilities for this response.",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "version": {
-                        "type": "string",
-                        "description": "Capability version."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        "$ref": "../schemas/usp.json#/$defs/USPEnvelope"
       },
       "PaginationRequest": {
-        "type": "object",
-        "description": "Cursor-based pagination request fields. See Section 9.1.2 of the USP specification.",
-        "properties": {
-          "cursor": {
-            "type": ["string", "null"],
-            "description": "Opaque pagination cursor from the previous response. Omit on the first request."
-          },
-          "limit": {
-            "type": "integer",
-            "default": 20,
-            "description": "Requested page size. Businesses MAY apply a lower or upper cap."
-          }
-        }
+        "$ref": "../schemas/usp.json#/$defs/PaginationRequest"
       },
       "Pagination": {
-        "type": "object",
-        "description": "Cursor-based pagination state. See Section 9.1.2 of the USP specification.",
-        "required": ["cursor", "has_more"],
-        "properties": {
-          "cursor": {
-            "type": ["string", "null"],
-            "description": "Opaque cursor for the next page. Pass this value as the cursor field in the next request body. null when there are no more pages."
-          },
-          "has_more": {
-            "type": "boolean",
-            "description": "true if additional pages exist beyond this one; false on the last page."
-          }
-        }
+        "$ref": "../schemas/usp.json#/$defs/Pagination"
       },
       "Service": {
-        "type": "object",
-        "required": [
-          "id",
-          "business_id",
-          "name",
-          "type",
-          "duration",
-          "pricing",
-          "channel",
-          "policies"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique service identifier, scoped to the business. The composite key (business_id, id) is globally unique."
-          },
-          "business_id": {
-            "type": "string",
-            "description": "Identifier of the business that owns this service. Populated by the provider in API responses. Together with id, forms the globally unique composite key."
-          },
-          "provider": {
-            "type": "object",
-            "description": "Inline business metadata for display without a separate profile fetch. Aligns with UCP seller object.",
-            "required": [
-              "name"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Business display name."
-              },
-              "url": {
-                "type": "string",
-                "format": "uri",
-                "description": "Business website URL."
-              },
-              "links": {
-                "type": "array",
-                "description": "Typed links to policy and information pages.",
-                "items": {
-                  "type": "object",
-                  "required": [
-                    "type",
-                    "url"
-                  ],
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "description": "Link type. Well-known values: privacy_policy, terms_of_service, refund_policy, cancellation_policy, faq."
-                    },
-                    "url": {
-                      "type": "string",
-                      "format": "uri",
-                      "description": "URL to the linked page."
-                    },
-                    "title": {
-                      "type": "string",
-                      "description": "Display text for the link."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "name": {
-            "type": "string",
-            "description": "Human-readable display name for the service."
-          },
-          "description": {
-            "oneOf": [
-              {
-                "type": "string",
-                "description": "Plain text description (backward compatible)."
-              },
-              {
-                "type": "object",
-                "description": "Structured description with multiple format variants. Aligns with UCP Description type.",
-                "required": [
-                  "plain"
-                ],
-                "properties": {
-                  "plain": {
-                    "type": "string",
-                    "description": "Plain text content. Always required as the universal fallback."
-                  },
-                  "markdown": {
-                    "type": "string",
-                    "description": "Markdown-formatted content."
-                  },
-                  "html": {
-                    "type": "string",
-                    "description": "HTML-formatted content. Platforms MUST sanitize before rendering."
-                  }
-                }
-              }
-            ],
-            "description": "Service description. Accepts either a plain string or a structured Description object with plain, markdown, and html variants."
-          },
-          "type": {
-            "type": "string",
-            "description": "Service vertical. One of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses). Platforms encountering an unrecognized vertical SHOULD fall back to appointment semantics."
-          },
-          "category": {
-            "type": "object",
-            "description": "Business-defined classification for organizing services.",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "parent_id": {
-                "type": "string",
-                "description": "Enables hierarchical categorization."
-              }
-            }
-          },
-          "duration": {
-            "$ref": "#/components/schemas/Duration"
-          },
-          "pricing": {
-            "$ref": "#/components/schemas/Pricing"
-          },
-          "locations": {
-            "type": "array",
-            "description": "Physical or virtual locations where the service is offered.",
-            "items": {
-              "$ref": "#/components/schemas/Location"
-            }
-          },
-          "resources": {
-            "type": "array",
-            "description": "Required staff, rooms, or equipment.",
-            "items": {
-              "$ref": "#/components/schemas/ResourceRequirement"
-            }
-          },
-          "channel": {
-            "$ref": "#/components/schemas/Channel"
-          },
-          "policies": {
-            "$ref": "#/components/schemas/ServicePolicies"
-          },
-          "capacity": {
-            "type": "object",
-            "description": "Required for group and reservation types.",
-            "properties": {
-              "min": {
-                "type": "integer",
-                "description": "Minimum party size accepted."
-              },
-              "max": {
-                "type": "integer",
-                "description": "Maximum participants per slot."
-              },
-              "waitlist": {
-                "type": "boolean",
-                "description": "Whether waitlist is enabled when slots are full."
-              }
-            }
-          },
-          "media": {
-            "type": "array",
-            "description": "Service media items (images, videos). Replaces the previous images field. Aligns with UCP media model.",
-            "items": {
-              "type": "object",
-              "required": [
-                "type",
-                "url"
-              ],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Media format type. Well-known values: image, video."
-                },
-                "url": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "URL to the media resource (HTTPS)."
-                },
-                "alt_text": {
-                  "type": "string",
-                  "description": "Accessibility text describing the media."
-                },
-                "role": {
-                  "type": "string",
-                  "enum": [
-                    "hero",
-                    "gallery",
-                    "thumbnail"
-                  ],
-                  "default": "gallery",
-                  "description": "Display role: hero (primary banner), gallery (additional), thumbnail (small preview)."
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "description": "Width in pixels."
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "description": "Height in pixels."
-                }
-              }
-            }
-          },
-          "images": {
-            "type": "array",
-            "deprecated": true,
-            "description": "Deprecated. Alias for media for backward compatibility. If both images and media are present, media takes precedence.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "url": {
-                  "type": "string",
-                  "format": "uri"
-                },
-                "alt": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string",
-                  "enum": [
-                    "hero",
-                    "gallery",
-                    "thumbnail"
-                  ]
-                }
-              }
-            }
-          },
-          "rating": {
-            "type": "object",
-            "description": "Aggregate service rating. Aligns with UCP rating object.",
-            "required": [
-              "value",
-              "scale_max"
-            ],
-            "properties": {
-              "value": {
-                "type": "number",
-                "minimum": 0,
-                "description": "Average rating value."
-              },
-              "scale_min": {
-                "type": "number",
-                "minimum": 0,
-                "default": 1,
-                "description": "Minimum value on the rating scale (e.g., 1 for 1-5 stars)."
-              },
-              "scale_max": {
-                "type": "number",
-                "minimum": 1,
-                "description": "Maximum value on the rating scale (e.g., 5 for 5-star)."
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Number of reviews contributing to the rating."
-              }
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "suspended",
-              "archived"
-            ],
-            "default": "active",
-            "description": "Service lifecycle status. active: bookable (default). suspended: temporarily unavailable. archived: no longer offered."
-          },
-          "handle": {
-            "type": "string",
-            "description": "URL-friendly slug for the service (e.g., womens-haircut-style)."
-          },
-          "url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Canonical service page URL on the business's website."
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Freeform tags for categorization and search."
-          },
-          "metadata": {
-            "type": "object",
-            "description": "Business-defined custom data extending the standard service model. Platforms SHOULD pass through opaquely."
-          },
-          "availability_hint": {
-            "$ref": "#/components/schemas/AvailabilityHint"
-          },
-          "links": {
-            "type": "array",
-            "description": "Typed links to policy and information pages specific to this service. Platforms SHOULD surface these during the booking flow. Well-known types: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq.",
-            "items": {
-              "type": "object",
-              "required": ["type", "url"],
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Link type. Well-known values: cancellation_policy, rescheduling_policy, terms_of_service, privacy_policy, waiver, faq."
-                },
-                "url": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "URL to the linked page."
-                },
-                "title": {
-                  "type": "string",
-                  "description": "Display text for the link."
-                }
-              }
-            }
-          },
-          "localized": {
-            "$ref": "#/components/schemas/LocalizedFields"
-          }
-        }
-      },
-      "LocalizedFields": {
-        "type": "object",
-        "description": "Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags.",
-        "properties": {
-          "name": {
-            "type": "object",
-            "description": "Per-locale overrides for the service name.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "description": {
-            "type": "object",
-            "description": "Per-locale overrides for the service description.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "category_name": {
-            "type": "object",
-            "description": "Per-locale overrides for the category name.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "channel_instructions": {
-            "type": "object",
-            "description": "Per-locale overrides for channel instructions.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "Duration": {
-        "type": "object",
-        "description": "Duration configuration. Provide exactly one of fixed, range, or undetermined.",
-        "properties": {
-          "fixed": {
-            "type": "string",
-            "description": "ISO 8601 duration. Required if neither range nor undetermined is present."
-          },
-          "range": {
-            "type": "object",
-            "description": "Required if neither fixed nor undetermined is present. Buyer selects a duration within this range.",
-            "properties": {
-              "min": {
-                "type": "string",
-                "description": "ISO 8601 minimum duration."
-              },
-              "max": {
-                "type": "string",
-                "description": "ISO 8601 maximum duration."
-              },
-              "step": {
-                "type": "string",
-                "description": "ISO 8601 duration increment."
-              }
-            }
-          },
-          "undetermined": {
-            "type": "boolean",
-            "description": "Set to true when the service has no meaningful duration to display (e.g., consultations, custom quotes). Must not be combined with fixed or range."
-          },
-          "buffer_before": {
-            "type": "string",
-            "description": "ISO 8601 non-bookable prep time before the service."
-          },
-          "buffer_after": {
-            "type": "string",
-            "description": "ISO 8601 non-bookable cleanup time after the service."
-          }
-        }
-      },
-      "Pricing": {
-        "type": "object",
-        "required": [
-          "model",
-          "currency"
-        ],
-        "properties": {
-          "model": {
-            "type": "string",
-            "enum": [
-              "fixed",
-              "hourly",
-              "per_person",
-              "variable",
-              "free"
-            ],
-            "description": "The pricing model."
-          },
-          "amount": {
-            "type": "integer",
-            "description": "Price in minor currency units (e.g. 7500 = $75.00). Required when model is fixed, hourly, or per_person. Must not be present when model is free."
-          },
-          "currency": {
-            "type": "string",
-            "description": "ISO 4217 currency code."
-          },
-          "price_range": {
-            "type": "object",
-            "description": "Displayable price range in minor currency units (same currency as pricing.currency). Recommended when model is variable, hourly, or per_person so platforms can show a price range without querying availability. Aligns with UCP price_range.",
-            "required": [
-              "min",
-              "max"
-            ],
-            "properties": {
-              "min": {
-                "type": "integer",
-                "description": "Minimum price in minor currency units."
-              },
-              "max": {
-                "type": "integer",
-                "description": "Maximum price in minor currency units."
-              }
-            }
-          },
-          "deposit": {
-            "type": "object",
-            "description": "Required when payment_timing is deposit_required.",
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "fixed",
-                  "percentage"
-                ]
-              },
-              "value": {
-                "type": "number",
-                "description": "The deposit amount or percentage."
-              },
-              "refundable": {
-                "type": "boolean",
-                "description": "Whether the deposit is refundable upon free-window cancellation."
-              }
-            }
-          }
-        }
-      },
-      "Location": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "address": {
-            "type": "string"
-          },
-          "coordinates": {
-            "type": "object",
-            "properties": {
-              "lat": {
-                "type": "number"
-              },
-              "lng": {
-                "type": "number"
-              }
-            }
-          }
-        }
-      },
-      "Channel": {
-        "type": "object",
-        "required": [
-          "type"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "in_person",
-              "virtual",
-              "phone",
-              "hybrid"
-            ],
-            "description": "Delivery channel for the service."
-          },
-          "virtual_provider": {
-            "type": "string",
-            "description": "Platform name (e.g. Zoom, Google Meet). Relevant for virtual and hybrid channels."
-          },
-          "instructions": {
-            "type": "string",
-            "description": "Arrival, join, or call-in instructions."
-          }
-        }
-      },
-      "ServicePolicies": {
-        "type": "object",
-        "required": [
-          "cancellation",
-          "rescheduling",
-          "booking_window",
-          "confirmation_mode",
-          "requires_payment"
-        ],
-        "properties": {
-          "cancellation": {
-            "type": "object",
-            "required": [
-              "allowed"
-            ],
-            "properties": {
-              "allowed": {
-                "type": "boolean"
-              },
-              "free_cancellation_until": {
-                "type": "string",
-                "description": "ISO 8601 duration before service start for free cancellation."
-              },
-              "late_cancellation_fee": {
-                "type": "integer",
-                "description": "Fee in minor currency units for late cancellation."
-              },
-              "no_cancellation_after": {
-                "type": "string",
-                "description": "ISO 8601 duration after which cancellation is no longer permitted."
-              }
-            }
-          },
-          "rescheduling": {
-            "type": "object",
-            "required": [
-              "allowed"
-            ],
-            "properties": {
-              "allowed": {
-                "type": "boolean"
-              },
-              "free_reschedule_until": {
-                "type": "string",
-                "description": "ISO 8601 duration before start for free rescheduling."
-              },
-              "max_reschedules": {
-                "type": "integer",
-                "description": "Maximum number of reschedules allowed."
-              },
-              "fee": {
-                "type": "integer",
-                "description": "Fee in minor currency units for rescheduling outside the free window."
-              }
-            }
-          },
-          "no_show": {
-            "type": "object",
-            "properties": {
-              "fee": {
-                "type": "integer",
-                "description": "Fixed fee in minor currency units."
-              },
-              "fee_percentage": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 100,
-                "description": "Percentage of service price charged as no-show fee."
-              },
-              "grace_period": {
-                "type": "string",
-                "description": "ISO 8601 duration after scheduled start before marking as no-show."
-              }
-            }
-          },
-          "booking_window": {
-            "type": "object",
-            "required": [
-              "min_advance",
-              "max_advance"
-            ],
-            "properties": {
-              "min_advance": {
-                "type": "string",
-                "description": "ISO 8601 minimum advance booking time."
-              },
-              "max_advance": {
-                "type": "string",
-                "description": "ISO 8601 maximum advance booking time."
-              },
-              "slot_interval": {
-                "type": "string",
-                "description": "ISO 8601 interval at which slots are generated."
-              }
-            }
-          },
-          "confirmation_mode": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "manual"
-            ],
-            "description": "auto: confirmed immediately. manual: requires business approval."
-          },
-          "requires_payment": {
-            "type": "boolean",
-            "description": "Whether this service requires any payment."
-          },
-          "payment_timing": {
-            "type": "string",
-            "enum": [
-              "at_booking",
-              "at_service",
-              "deposit_required"
-            ],
-            "description": "Required when requires_payment is true. Must not be present when requires_payment is false."
-          }
-        }
-      },
-      "AvailabilityHint": {
-        "type": "object",
-        "required": [
-          "summary",
-          "generated_at"
-        ],
-        "description": "Approximate availability summary for agent-assisted discovery. Not a substitute for real-time availability queries.",
-        "properties": {
-          "summary": {
-            "type": "string",
-            "description": "Natural-language description of near-term availability, aimed at AI agents."
-          },
-          "generated_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "When this hint was generated. Hints older than 6 hours should be treated with lower confidence."
-          },
-          "next_available_date": {
-            "type": "string",
-            "format": "date",
-            "description": "YYYY-MM-DD date of the next day with known availability."
-          }
-        }
+        "$ref": "../schemas/catalog.json#/$defs/Service"
       },
       "FeedSubscription": {
-        "type": "object",
-        "required": [
-          "id",
-          "callback_url",
-          "status",
-          "created_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique subscription identifier."
-          },
-          "callback_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Webhook URL where catalog change events are delivered. Must be HTTPS."
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Category IDs to receive events for. If omitted, receives events for all categories."
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "service.created",
-                "service.updated",
-                "service.deleted",
-                "service.suspended"
-              ]
-            },
-            "description": "Event types to subscribe to. If omitted, defaults to all service.* events."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "paused",
-              "canceled"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
+        "$ref": "../schemas/rest_common.json#/$defs/FeedSubscription"
       },
       "TimeSlot": {
-        "type": "object",
-        "required": [
-          "id",
-          "service_id",
-          "start",
-          "end",
-          "duration",
-          "state"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique slot identifier, opaque to the platform."
-          },
-          "service_id": {
-            "type": "string",
-            "description": "The service this slot belongs to."
-          },
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 start time of the slot."
-          },
-          "end": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 end time of the slot."
-          },
-          "duration": {
-            "type": "string",
-            "description": "ISO 8601 duration of the slot."
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "available",
-              "limited",
-              "waitlist"
-            ],
-            "description": "available: open for booking. limited: low remaining capacity. waitlist: fully booked but waitlist enabled."
-          },
-          "capacity": {
-            "type": "object",
-            "description": "Present for group and reservation types.",
-            "properties": {
-              "total": {
-                "type": "integer",
-                "description": "Maximum number of spots."
-              },
-              "remaining": {
-                "type": "integer",
-                "description": "Spots still available."
-              },
-              "held": {
-                "type": "integer",
-                "description": "Spots currently in active holds."
-              }
-            }
-          },
-          "resources": {
-            "type": "array",
-            "description": "Resources available for this slot.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "location": {
-            "type": "object",
-            "description": "Specific location for this slot, when a service is offered at multiple locations.",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "pricing": {
-            "type": "object",
-            "description": "Slot-specific pricing that overrides service-level pricing. Used for peak/off-peak or demand-based pricing.",
-            "properties": {
-              "amount": {
-                "type": "integer",
-                "description": "Price in minor currency units."
-              },
-              "currency": {
-                "type": "string",
-                "description": "ISO 4217 currency code."
-              },
-              "label": {
-                "type": "string",
-                "description": "Human-readable note (e.g. 'Peak hour rate')."
-              }
-            }
-          }
-        }
+        "$ref": "../schemas/availability.json#/$defs/TimeSlot"
       },
       "Hold": {
-        "type": "object",
-        "required": [
-          "id",
-          "slot_id",
-          "service_id",
-          "expires_at",
-          "status"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique hold identifier."
-          },
-          "slot_id": {
-            "type": "string",
-            "description": "The held slot."
-          },
-          "service_id": {
-            "type": "string",
-            "description": "The service."
-          },
-          "spots": {
-            "type": "integer",
-            "default": 1,
-            "description": "Number of spots held. For group and reservation types, this is the number of capacity units reserved."
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 expiration time. Hold TTL is typically 5-10 minutes."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "expired",
-              "released",
-              "converted"
-            ],
-            "description": "active: hold is in effect. expired: TTL elapsed. released: explicitly released. converted: converted to a booking."
-          }
-        }
+        "$ref": "../schemas/availability.json#/$defs/Hold"
       },
       "Buyer": {
-        "type": "object",
-        "required": [
-          "first_name",
-          "last_name",
-          "email"
-        ],
-        "properties": {
-          "first_name": {
-            "type": "string"
-          },
-          "last_name": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "phone_number": {
-            "type": "string",
-            "description": "E.164 format phone number."
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/Buyer"
       },
       "Booking": {
-        "type": "object",
-        "required": [
-          "id",
-          "service_id",
-          "service_name",
-          "slot",
-          "buyer",
-          "party_size",
-          "status",
-          "confirmation_mode",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique booking identifier, generated by the business."
-          },
-          "service_id": {
-            "type": "string"
-          },
-          "service_name": {
-            "type": "string",
-            "description": "Service display name, captured at booking time. Does not change if the service name is later updated."
-          },
-          "slot": {
-            "type": "object",
-            "required": [
-              "id",
-              "start",
-              "end",
-              "duration"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "start": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "end": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "duration": {
-                "type": "string"
-              }
-            }
-          },
-          "buyer": {
-            "$ref": "#/components/schemas/Buyer"
-          },
-          "recipient": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Buyer"
-              }
-            ],
-            "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient."
-          },
-          "party_size": {
-            "type": "integer",
-            "default": 1,
-            "description": "Total number of attendees."
-          },
-          "resources": {
-            "type": "array",
-            "description": "Specific resources assigned to this booking.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "location": {
-            "type": "object",
-            "description": "Specific location for this booking.",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "confirmed",
-              "requires_action",
-              "in_progress",
-              "canceled",
-              "completed",
-              "no_show"
-            ],
-            "description": "Current booking status."
-          },
-          "confirmation_mode": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "manual"
-            ],
-            "description": "Reflects the service's confirmation policy at booking time."
-          },
-          "payment": {
-            "$ref": "#/components/schemas/BookingPayment"
-          },
-          "actions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Action"
-            },
-            "description": "Ordered array of pending tasks the buyer must complete. Must be present and non-empty when status is requires_action; must be absent or empty otherwise."
-          },
-          "notes": {
-            "type": "string",
-            "description": "Buyer-provided special requests or notes."
-          },
-          "booking_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Stable URL where the buyer can view and manage this booking. Used in confirmation emails, calendar events, and buyer portals."
-          },
-          "dispute": {
-            "$ref": "#/components/schemas/Dispute",
-            "description": "Present when a payment dispute has been opened for this booking."
-          },
-          "messages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Message"
-            },
-            "description": "Soft messages from the business providing context about the booking state. Informational only; do not block booking creation."
-          },
-          "cancellation": {
-            "type": "object",
-            "description": "Present when the booking has been canceled.",
-            "properties": {
-              "reason": {
-                "type": "string"
-              },
-              "canceled_by": {
-                "type": "string",
-                "description": "Who initiated the cancellation (e.g. buyer, business)."
-              },
-              "fee": {
-                "type": "integer",
-                "description": "Cancellation fee in minor currency units."
-              },
-              "refund_amount": {
-                "type": "integer",
-                "description": "Refund amount in minor currency units."
-              },
-              "canceled_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Present for pending and requires_action bookings. If not resolved by this time, the booking transitions to canceled."
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/Booking"
       },
       "BookingPayment": {
-        "type": "object",
-        "required": [
-          "status",
-          "timing"
-        ],
-        "description": "Payment state on the booking. Present when the service requires_payment is true and payment_timing is at_booking or deposit_required. Omitted when requires_payment is false.",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "not_required",
-              "pending",
-              "deposit_paid",
-              "paid",
-              "refunded",
-              "partially_refunded"
-            ]
-          },
-          "timing": {
-            "type": "string",
-            "enum": [
-              "at_booking",
-              "at_service",
-              "deposit_required"
-            ],
-            "description": "Mirrors the service's payment_timing."
-          },
-          "amount": {
-            "type": "integer",
-            "description": "Service fee in minor currency units, before tax. Does not include tax_amount."
-          },
-          "currency": {
-            "type": "string",
-            "description": "ISO 4217 currency code."
-          },
-          "amount_due": {
-            "type": "integer",
-            "description": "Amount due now in minor currency units."
-          },
-          "tax_amount": {
-            "type": "integer",
-            "description": "Tax amount in minor currency units. When present, total charged = amount + tax_amount. Must use the same currency as amount."
-          },
-          "deposit_amount": {
-            "type": "integer",
-            "description": "Deposit amount when timing is deposit_required."
-          },
-          "transaction_id": {
-            "type": "string",
-            "description": "Transaction ID from the payment provider, set after confirm-payment."
-          },
-          "order_reference": {
-            "type": "string",
-            "description": "External order ID from the checkout system."
-          }
-        }
-      },
-      "PaymentContext": {
-        "type": "object",
-        "required": [
-          "amount_due",
-          "currency",
-          "description",
-          "line_items",
-          "metadata"
-        ],
-        "description": "Universal payment handoff object nested inside a payment action. Contains everything a checkout system needs to process payment. The payment expiry deadline is carried on the action's expires_at field.",
-        "properties": {
-          "amount_due": {
-            "type": "integer",
-            "description": "Amount to collect in minor currency units."
-          },
-          "currency": {
-            "type": "string",
-            "description": "ISO 4217 currency code."
-          },
-          "description": {
-            "type": "string",
-            "description": "Human-readable description of the payment."
-          },
-          "line_items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "label",
-                "amount",
-                "quantity"
-              ],
-              "properties": {
-                "label": {
-                  "type": "string"
-                },
-                "amount": {
-                  "type": "integer"
-                },
-                "quantity": {
-                  "type": "integer"
-                },
-                "item_id": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "metadata": {
-            "type": "object",
-            "description": "Machine-readable context.",
-            "properties": {
-              "booking_id": {
-                "type": "string"
-              },
-              "service_id": {
-                "type": "string"
-              },
-              "service_type": {
-                "type": "string"
-              },
-              "slot_start": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/BookingPayment"
       },
       "Action": {
-        "type": "object",
-        "required": [
-          "type",
-          "status",
-          "continue_url",
-          "expires_at"
-        ],
-        "description": "A pending task the buyer must complete before a booking can be confirmed.",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Action type identifier (e.g., payment, waiver)."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "completed",
-              "expired"
-            ],
-            "description": "Action status."
-          },
-          "continue_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "Business-hosted URL for completing this specific action."
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 deadline for this action."
-          },
-          "message": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "payment_context": {
-            "$ref": "#/components/schemas/PaymentContext",
-            "description": "Payment handoff object. Must be present when type is payment (Standalone Mode only)."
-          }
-        }
-      },
-      "Message": {
-        "type": "object",
-        "title": "Message",
-        "description": "Structured message for errors, warnings, or informational notices on any USP response. Aligned with the UCP message model.",
-        "required": [
-          "type",
-          "content"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "error",
-              "warning",
-              "info"
-            ],
-            "description": "Message type discriminator."
-          },
-          "code": {
-            "type": "string",
-            "description": "Machine-readable code identifying the message type (e.g., slot_unavailable, service_suspended). Standard codes are defined in §9.4; freeform codes are permitted."
-          },
-          "content": {
-            "type": "string",
-            "description": "Human-readable message text."
-          },
-          "content_type": {
-            "type": "string",
-            "enum": [
-              "plain",
-              "markdown"
-            ],
-            "default": "plain",
-            "description": "Content format. Defaults to plain."
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "recoverable",
-              "requires_buyer_input",
-              "requires_buyer_review",
-              "unrecoverable"
-            ],
-            "description": "Reflects the resource state and recommended action. 'recoverable': platform can resolve by modifying inputs and retrying. 'requires_buyer_input': buyer must provide information before proceeding. 'requires_buyer_review': buyer must authorize before proceeding due to policy or regulatory rules. 'unrecoverable': no valid resource exists; retry with new resource or inputs."
-          },
-          "path": {
-            "type": "string",
-            "description": "RFC 9535 JSONPath to the field this message relates to (e.g., $.services[0].pricing)."
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/Action"
       },
       "Dispute": {
-        "type": "object",
-        "title": "Dispute",
-        "description": "A payment dispute (chargeback) opened against a booking. Opening a dispute does NOT change payment.status — the payment remains paid. Status MAY change to refunded or partially_refunded only if the dispute resolves in the buyer's favor.",
-        "required": ["status", "reason", "opened_at"],
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["opened", "under_review", "resolved_buyer", "resolved_business"],
-            "description": "Current dispute status."
-          },
-          "reason": {
-            "type": "string",
-            "description": "Machine-readable reason code. Well-known values: service_not_provided, quality_issue, unauthorized, duplicate."
-          },
-          "opened_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 timestamp of when the dispute was opened."
-          },
-          "resolved_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 timestamp of when the dispute was resolved. Present only when status is resolved_buyer or resolved_business."
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/Dispute"
+      },
+      "Message": {
+        "$ref": "../schemas/booking.json#/$defs/Message"
+      },
+      "PaymentContext": {
+        "$ref": "../schemas/booking.json#/$defs/PaymentContext"
       },
       "PostPaymentReturnRequest": {
-        "type": "object",
-        "title": "PostPaymentReturnRequest",
-        "description": "Applicable when checkout_systems: redirect is in use. Instructs the business where to redirect the buyer's browser after payment completes, is cancelled, or is abandoned. The platform SHOULD always include this field on the redirect path — without it, the platform cannot predict or control where the buyer lands after the payment flow. The business MUST issue an HTTP GET redirect to url (with all params appended as URL query parameters) in both terminal outcomes: payment completed and payment cancelled/abandoned.",
-        "required": [
-          "url"
-        ],
-        "properties": {
-          "url": {
-            "type": "string",
-            "format": "uri",
-            "description": "The platform's return URL. The business MUST redirect the buyer's browser to this URL (via HTTP GET) after payment completes, is cancelled, or is abandoned, appending any params as query parameters."
-          },
-          "params": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Query parameter key-value pairs the business MUST append verbatim to url when issuing the return redirect. Keys and values are opaque to the business — the platform uses them to carry whatever correlation state it needs (e.g. a token generated before the booking request) so it can map the returning buyer back to its session."
-          }
-        }
+        "$ref": "../schemas/booking.json#/$defs/PostPaymentReturnRequest"
       },
       "WaitlistEntry": {
-        "type": "object",
-        "required": [
-          "id",
-          "service_id",
-          "buyer",
-          "status",
-          "position",
-          "created_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique waitlist entry identifier."
-          },
-          "service_id": {
-            "type": "string",
-            "description": "The service the buyer is waitlisted for."
-          },
-          "buyer": {
-            "$ref": "#/components/schemas/Buyer"
-          },
-          "preferred_slots": {
-            "type": "array",
-            "description": "Preferred time windows. If omitted, the buyer accepts any available slot.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "start_date": {
-                  "type": "string",
-                  "format": "date"
-                },
-                "end_date": {
-                  "type": "string",
-                  "format": "date"
-                },
-                "time_of_day": {
-                  "type": "string",
-                  "description": "Preferred time of day (e.g. morning, afternoon, evening)."
-                }
-              }
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "waiting",
-              "offered",
-              "accepted",
-              "expired",
-              "declined",
-              "removed"
-            ]
-          },
-          "position": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Current position in the waitlist queue (1-based)."
-          },
-          "offered_slot": {
-            "type": "object",
-            "description": "The slot being offered. Present when status is offered.",
-            "properties": {
-              "slot_id": {
-                "type": "string"
-              },
-              "start": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "end": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          },
-          "offer_expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Expiration time for the current offer. Present when status is offered."
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ResourceRequirement": {
-        "type": "object",
-        "required": [
-          "type"
-        ],
-        "description": "Defines what staff, rooms, or equipment are needed for a service.",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "staff",
-              "room",
-              "equipment",
-              "other"
-            ],
-            "description": "The kind of resource."
-          },
-          "name": {
-            "type": "string",
-            "description": "Human-readable label for this resource type (e.g. 'Stylist')."
-          },
-          "selectable": {
-            "type": "boolean",
-            "default": false,
-            "description": "Whether the buyer can choose a specific resource during booking. When true, options must be populated."
-          },
-          "options": {
-            "type": "array",
-            "description": "Available resource instances. Required when selectable is true.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                },
-                "image_url": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "RegistryEntry": {
-        "type": "object",
-        "required": [
-          "id",
-          "usp_profile_url",
-          "name",
-          "status",
-          "created_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique registration identifier."
-          },
-          "usp_profile_url": {
-            "type": "string",
-            "format": "uri",
-            "description": "The business's /.well-known/usp profile URL."
-          },
-          "name": {
-            "type": "string",
-            "description": "Business display name."
-          },
-          "verticals": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Service verticals the business supports."
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Service categories the business offers."
-          },
-          "location": {
-            "type": "object",
-            "properties": {
-              "address": {
-                "type": "string"
-              },
-              "coordinates": {
-                "type": "object",
-                "properties": {
-                  "lat": {
-                    "type": "number"
-                  },
-                  "lng": {
-                    "type": "number"
-                  }
-                }
-              }
-            }
-          },
-          "timezone": {
-            "type": "string",
-            "description": "IANA timezone identifier."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "inactive"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ServiceSearchResult": {
-        "type": "object",
-        "required": [
-          "service_id",
-          "service_name",
-          "business",
-          "category"
-        ],
-        "properties": {
-          "service_id": {
-            "type": "string"
-          },
-          "service_name": {
-            "type": "string"
-          },
-          "business": {
-            "type": "object",
-            "required": [
-              "id",
-              "usp_profile_url",
-              "name"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "usp_profile_url": {
-                "type": "string",
-                "format": "uri"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "category": {
-            "type": "string"
-          },
-          "duration_minutes": {
-            "type": "integer"
-          },
-          "price": {
-            "type": "object",
-            "properties": {
-              "amount": {
-                "type": "number",
-                "description": "Price in minor currency units."
-              },
-              "currency": {
-                "type": "string",
-                "description": "ISO 4217 currency code."
-              }
-            }
-          },
-          "location": {
-            "type": "object",
-            "properties": {
-              "address": {
-                "type": "string"
-              },
-              "coordinates": {
-                "type": "object",
-                "properties": {
-                  "lat": {
-                    "type": "number"
-                  },
-                  "lng": {
-                    "type": "number"
-                  }
-                }
-              }
-            }
-          },
-          "timezone": {
-            "type": "string",
-            "description": "IANA timezone identifier."
-          }
-        }
+        "$ref": "../schemas/waitlist.json#/$defs/WaitlistEntry"
       },
       "ProblemDetails": {
-        "type": "object",
-        "description": "RFC 9457 Problem Details",
-        "required": [
-          "type",
-          "title",
-          "status"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri-reference",
-            "description": "URI reference identifying the problem type."
-          },
-          "title": {
-            "type": "string",
-            "description": "Short, human-readable summary of the problem."
-          },
-          "status": {
-            "type": "integer",
-            "description": "HTTP status code."
-          },
-          "detail": {
-            "type": "string",
-            "description": "Human-readable explanation specific to this occurrence."
-          },
-          "instance": {
-            "type": "string",
-            "format": "uri-reference",
-            "description": "URI reference identifying the specific occurrence."
-          },
-          "errors": {
-            "type": "array",
-            "description": "Detailed validation errors.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "field": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
+        "$ref": "../schemas/rest_common.json#/$defs/ProblemDetails"
       },
       "SigningKey": {
-        "type": "object",
-        "title": "SigningKey",
-        "description": "A public key in JWK format (RFC 7517) used to verify HTTP Message Signatures (RFC 9421) on webhook payloads. The keyid parameter in the Signature-Input header MUST match the kid of one of the signing_keys in the business profile.",
-        "required": [
-          "kid",
-          "kty"
-        ],
-        "properties": {
-          "kid": {
-            "type": "string",
-            "description": "Key ID. Matched against the keyid parameter in the Signature-Input header."
-          },
-          "kty": {
-            "type": "string",
-            "enum": [
-              "EC",
-              "RSA"
-            ],
-            "description": "Key type."
-          },
-          "crv": {
-            "type": "string",
-            "enum": [
-              "P-256",
-              "P-384"
-            ],
-            "description": "Elliptic curve. REQUIRED when kty is EC."
-          },
-          "x": {
-            "type": "string",
-            "description": "X coordinate (base64url). REQUIRED for EC keys."
-          },
-          "y": {
-            "type": "string",
-            "description": "Y coordinate (base64url). REQUIRED for EC keys."
-          },
-          "n": {
-            "type": "string",
-            "description": "Modulus (base64url). REQUIRED for RSA keys."
-          },
-          "e": {
-            "type": "string",
-            "description": "Exponent (base64url). REQUIRED for RSA keys."
-          },
-          "use": {
-            "type": "string",
-            "enum": [
-              "sig",
-              "enc"
-            ],
-            "description": "Intended key usage."
-          },
-          "alg": {
-            "type": "string",
-            "enum": [
-              "ES256",
-              "ES384",
-              "RS256"
-            ],
-            "description": "Algorithm. ES256 is RECOMMENDED. Implementations MUST support ES256."
-          }
-        }
+        "$ref": "../schemas/profile.json#/$defs/SigningKey"
       },
       "ServiceBinding": {
-        "type": "object",
-        "title": "ServiceBinding",
-        "description": "A transport-specific binding for a USP service endpoint, as declared in a profile services registry.",
-        "required": [
-          "version",
-          "transport"
-        ],
-        "properties": {
-          "version": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Protocol version implemented at this endpoint (YYYY-MM-DD)."
-          },
-          "transport": {
-            "type": "string",
-            "enum": [
-              "rest",
-              "mcp",
-              "a2a",
-              "embedded"
-            ],
-            "description": "Transport protocol."
-          },
-          "endpoint": {
-            "type": "string",
-            "format": "uri",
-            "description": "Base URL of the endpoint. REQUIRED for rest, mcp, and a2a transports."
-          },
-          "spec": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the human-readable specification."
-          },
-          "schema": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the machine-readable schema (OpenAPI or OpenRPC)."
-          }
-        },
-        "additionalProperties": true
+        "$ref": "../schemas/usp.json#/$defs/ServiceBinding"
       },
       "CapabilityEntry": {
-        "type": "object",
-        "title": "CapabilityEntry",
-        "description": "Declares support for a specific version of a USP capability, as listed in a profile capabilities registry.",
-        "required": [
-          "version"
-        ],
-        "properties": {
-          "version": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Capability version (YYYY-MM-DD)."
-          },
-          "spec": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the capability specification. RECOMMENDED in profiles."
-          },
-          "schema": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the capability JSON Schema. RECOMMENDED in profiles."
-          },
-          "extends": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Base capability name(s) this capability extends, in reverse-domain format."
-          }
-        },
-        "additionalProperties": true
+        "$ref": "../schemas/usp.json#/$defs/CapabilityEntry"
       },
       "BusinessProfile": {
-        "type": "object",
-        "title": "BusinessProfile",
-        "description": "The USP business profile document. MUST be published at /.well-known/usp over HTTPS with Cache-Control: public, max-age>=60 and no redirects.",
-        "required": [
-          "usp"
-        ],
-        "properties": {
-          "usp": {
-            "type": "object",
-            "required": [
-              "version",
-              "services",
-              "capabilities",
-              "business"
-            ],
-            "description": "USP metadata for this business.",
-            "properties": {
-              "version": {
-                "type": "string",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                "description": "USP protocol version implemented by this business (YYYY-MM-DD)."
-              },
-              "services": {
-                "type": "object",
-                "description": "Service endpoint registry. Keys are reverse-domain service names; values are arrays of ServiceBinding.",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "": "#/components/schemas/ServiceBinding"
-                  }
-                }
-              },
-              "capabilities": {
-                "type": "object",
-                "description": "Capability registry. Keys are reverse-domain capability names; values are arrays of CapabilityEntry.",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "": "#/components/schemas/CapabilityEntry"
-                  }
-                }
-              },
-              "checkout_systems": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "acp",
-                    "redirect",
-                    "embedded"
-                  ]
-                },
-                "description": "OPTIONAL. Checkout systems integrated for paid bookings. Omit for free or pay-at-service services."
-              },
-              "business": {
-                "type": "object",
-                "required": [
-                  "name",
-                  "timezone",
-                  "currency"
-                ],
-                "description": "Business identity and locale information.",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Business display name."
-                  },
-                  "timezone": {
-                    "type": "string",
-                    "description": "IANA Time Zone Database identifier."
-                  },
-                  "currency": {
-                    "type": "string",
-                    "description": "ISO 4217 default currency code."
-                  },
-                  "locations": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "name"
-                      ],
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "address": {
-                          "type": "string"
-                        },
-                        "coordinates": {
-                          "type": "object",
-                          "properties": {
-                            "lat": {
-                              "type": "number"
-                            },
-                            "lng": {
-                              "type": "number"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "description": "Multi-location extension."
-                  }
-                }
-              },
-              "supported_versions": {
-                "type": "object",
-                "description": "OPTIONAL. Backward-compatibility map. Keys are older protocol versions (YYYY-MM-DD); values are URIs to version-specific profiles.",
-                "additionalProperties": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          },
-          "signing_keys": {
-            "type": "array",
-            "items": {
-              "": "#/components/schemas/SigningKey"
-            },
-            "description": "CONDITIONAL. Public keys for webhook signature verification. MUST be present when the business sends signed webhooks. See Section 10.1.1."
-          }
-        }
+        "$ref": "../schemas/profile.json#/$defs/BusinessProfile"
       },
       "PlatformProfile": {
-        "type": "object",
-        "title": "PlatformProfile",
-        "description": "The USP platform profile document. Published at a stable HTTPS URI advertised via the USP-Agent header (REST) or _meta.usp.profile field (MCP).",
-        "required": [
-          "usp"
-        ],
-        "properties": {
-          "usp": {
-            "type": "object",
-            "required": [
-              "version",
-              "capabilities"
-            ],
-            "description": "USP metadata for this platform.",
-            "properties": {
-              "version": {
-                "type": "string",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                "description": "The highest USP protocol version this platform supports (YYYY-MM-DD)."
-              },
-              "capabilities": {
-                "type": "object",
-                "description": "Capabilities the platform can consume. Same format as business profile.",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "": "#/components/schemas/CapabilityEntry"
-                  }
-                }
-              },
-              "services": {
-                "type": "object",
-                "description": "OPTIONAL. Service consumption preferences.",
-                "additionalProperties": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "transport"
-                    ],
-                    "properties": {
-                      "transport": {
-                        "type": "string",
-                        "enum": [
-                          "rest",
-                          "mcp",
-                          "a2a",
-                          "embedded"
-                        ]
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        "$ref": "../schemas/profile.json#/$defs/PlatformProfile"
+      },
+      "RegistryContext": {
+        "$ref": "../schemas/registry.json#/$defs/RegistryContext"
+      },
+      "RegistryEntry": {
+        "$ref": "../schemas/registry.json#/$defs/RegistryEntry"
+      },
+      "ServiceSearchResult": {
+        "$ref": "../schemas/registry.json#/$defs/ServiceSearchResult"
+      },
+      "BusyBlock": {
+        "$ref": "../schemas/calendar_freebusy.json#/$defs/BusyBlock"
+      },
+      "BuyerFreeBusy": {
+        "$ref": "../schemas/calendar_freebusy.json#/$defs/BuyerFreeBusy"
       }
     },
     "responses": {
@@ -2301,61 +296,6 @@
             }
           }
         }
-      },
-      "BusyBlock": {
-        "type": "object",
-        "title": "BusyBlock",
-        "description": "An opaque busy time block from a buyer's calendar. Contains only start and end times. Implementations MUST NOT include event details (titles, descriptions, attendees, locations). Part of the platform-scoped calendar free/busy extension (dev.usp.platform.calendar_freebusy).",
-        "required": [
-          "start",
-          "end"
-        ],
-        "properties": {
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 start of the busy period."
-          },
-          "end": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 end of the busy period."
-          }
-        },
-        "additionalProperties": false
-      },
-      "BuyerFreeBusy": {
-        "type": "object",
-        "title": "BuyerFreeBusy",
-        "description": "Aggregated free/busy data for a buyer across one or more calendar providers. The platform queries the buyer's calendar provider(s) and merges the results into a single set of busy blocks. Part of the platform-scoped calendar free/busy extension (dev.usp.platform.calendar_freebusy).",
-        "required": [
-          "buyer_ref",
-          "timezone",
-          "queried_at",
-          "busy_blocks"
-        ],
-        "properties": {
-          "buyer_ref": {
-            "type": "string",
-            "description": "Opaque platform-generated buyer correlation ID. MUST NOT contain personally identifiable information."
-          },
-          "timezone": {
-            "type": "string",
-            "description": "IANA timezone identifier for the buyer (e.g., America/New_York)."
-          },
-          "queried_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 timestamp of when the free/busy data was fetched from the calendar provider. Used as a freshness indicator for caching."
-          },
-          "busy_blocks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BusyBlock"
-            },
-            "description": "Array of busy time blocks merged across all connected calendar providers. An empty array means the buyer has no calendar conflicts in the queried range."
-          }
-        }
       }
     }
   },
@@ -2399,7 +339,7 @@
                         "items": {
                           "type": "string"
                         },
-                        "description": "Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP catalog_search filters."
+                        "description": "Category IDs to filter by (OR logic \u2014 matches services in any listed category). Aligns with UCP catalog_search filters."
                       },
                       "location_id": {
                         "type": "string",
@@ -3421,14 +1361,26 @@
                           "description": "Regular business hours for the queried period. Special closures are reflected by the absence of slots, not by this field.",
                           "items": {
                             "type": "object",
-                            "required": ["day_of_week", "opens", "closes"],
+                            "required": [
+                              "day_of_week",
+                              "opens",
+                              "closes"
+                            ],
                             "properties": {
                               "day_of_week": {
                                 "type": "array",
                                 "description": "Days this entry applies to. Lowercase English day names: monday, tuesday, wednesday, thursday, friday, saturday, sunday.",
                                 "items": {
                                   "type": "string",
-                                  "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                                  "enum": [
+                                    "monday",
+                                    "tuesday",
+                                    "wednesday",
+                                    "thursday",
+                                    "friday",
+                                    "saturday",
+                                    "sunday"
+                                  ]
                                 }
                               },
                               "opens": {
@@ -3742,7 +1694,7 @@
                         "$ref": "#/components/schemas/PostPaymentReturnRequest"
                       }
                     ],
-                    "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation."
+                    "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path \u2014 without it, the platform has no way to predict where the buyer will land after payment or cancellation."
                   }
                 }
               }
@@ -4822,18 +2774,34 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "usp_profile_url",
-                  "name"
+                  "profile_url",
+                  "deployment_mode",
+                  "name",
+                  "verticals",
+                  "categories",
+                  "timezone"
                 ],
                 "properties": {
-                  "usp_profile_url": {
+                  "profile_url": {
                     "type": "string",
                     "format": "uri",
-                    "description": "The business's /.well-known/usp profile URL. Must be reachable and return a valid USP profile."
+                    "description": "The business's /.well-known/usp or /.well-known/ucp profile URL. Must be reachable and return a valid profile."
+                  },
+                  "deployment_mode": {
+                    "type": "string",
+                    "enum": [
+                      "standalone",
+                      "ucp_native"
+                    ],
+                    "description": "Deployment mode of the business."
                   },
                   "name": {
                     "type": "string",
                     "description": "Business display name."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional brief description of the business."
                   },
                   "verticals": {
                     "type": "array",
@@ -4851,6 +2819,7 @@
                   },
                   "location": {
                     "type": "object",
+                    "description": "Physical location. Required when the business offers in_person or hybrid services.",
                     "properties": {
                       "address": {
                         "type": "string"
@@ -4895,6 +2864,13 @@
                       "properties": {
                         "registration": {
                           "$ref": "#/components/schemas/RegistryEntry"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional informational messages (Section 9.4)."
                         }
                       }
                     }
@@ -4938,6 +2914,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "description": "At least one of: location, verticals, categories, query, deployment_mode must be present (not only pagination and/or context).",
                 "properties": {
                   "location": {
                     "type": "object",
@@ -4981,6 +2958,17 @@
                     "type": "string",
                     "description": "Free-text search query."
                   },
+                  "deployment_mode": {
+                    "type": "string",
+                    "enum": [
+                      "standalone",
+                      "ucp_native"
+                    ],
+                    "description": "Filter by deployment mode. When omitted, returns both."
+                  },
+                  "context": {
+                    "$ref": "#/components/schemas/RegistryContext"
+                  },
                   "pagination": {
                     "$ref": "#/components/schemas/PaginationRequest"
                   }
@@ -5014,6 +3002,13 @@
                         },
                         "pagination": {
                           "$ref": "#/components/schemas/Pagination"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional messages (Section 9.4)."
                         }
                       }
                     }
@@ -5054,9 +3049,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "query"
-                ],
+                "description": "At least one of: location, verticals, categories, query, price_range, duration_range must be present (not only pagination and/or context).",
                 "properties": {
                   "location": {
                     "type": "object",
@@ -5130,6 +3123,9 @@
                       }
                     }
                   },
+                  "context": {
+                    "$ref": "#/components/schemas/RegistryContext"
+                  },
                   "pagination": {
                     "$ref": "#/components/schemas/PaginationRequest"
                   }
@@ -5163,6 +3159,13 @@
                         },
                         "pagination": {
                           "$ref": "#/components/schemas/Pagination"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          },
+                          "description": "Optional messages (Section 9.4)."
                         }
                       }
                     }
@@ -5176,6 +3179,232 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/registry/businesses/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Registration identifier."
+        },
+        {
+          "$ref": "#/components/parameters/USP-Agent"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Get Registration",
+        "operationId": "getRegistryRegistration",
+        "responses": {
+          "200": {
+            "description": "Registration found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "registration"
+                      ],
+                      "properties": {
+                        "registration": {
+                          "$ref": "#/components/schemas/RegistryEntry"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Update Registration",
+        "operationId": "updateRegistryRegistration",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "profile_url",
+                  "deployment_mode",
+                  "name",
+                  "verticals",
+                  "categories",
+                  "timezone"
+                ],
+                "properties": {
+                  "profile_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "deployment_mode": {
+                    "type": "string",
+                    "enum": [
+                      "standalone",
+                      "ucp_native"
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "verticals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string"
+                      },
+                      "coordinates": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number"
+                          },
+                          "lng": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "timezone": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "registration"
+                      ],
+                      "properties": {
+                        "registration": {
+                          "$ref": "#/components/schemas/RegistryEntry"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Delete Registration",
+        "operationId": "deleteRegistryRegistration",
+        "responses": {
+          "204": {
+            "description": "Registration deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -5208,7 +3437,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "": "#/components/schemas/BusinessProfile"
+                  "$ref": "#/components/schemas/BusinessProfile"
                 },
                 "example": {
                   "usp": {

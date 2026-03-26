@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usp.dev/schemas/services/registry.json",
+  "title": "USP Discovery Registry",
+  "description": "Discovery registry types for the optional dev.usp.discovery.registry capability. See specification Section 6.",
+  "$defs": {
+    "RegistryLocation": {
+      "type": "object",
+      "title": "RegistryLocation",
+      "description": "Physical location for registry registration and search. Omitted for virtual-only businesses when no in_person or hybrid services are offered.",
+      "properties": {
+        "address": {
+          "type": "string",
+          "description": "Human-readable street address."
+        },
+        "coordinates": {
+          "type": "object",
+          "required": ["lat", "lng"],
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      }
+    },
+    "RegistrySearchLocation": {
+      "type": "object",
+      "title": "RegistrySearchLocation",
+      "description": "Geographic filter for registry search: center point and radius.",
+      "properties": {
+        "coordinates": {
+          "type": "object",
+          "required": ["lat", "lng"],
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "radius_km": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Search radius in kilometers."
+        }
+      }
+    },
+    "RegistryContext": {
+      "type": "object",
+      "title": "RegistryContext",
+      "description": "Optional localization and relevance hints for registry search. Aligns with UCP context (language, currency).",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "description": "IETF BCP 47 language tag (e.g., en-US). Influences result ranking and display language."
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 currency code (e.g., USD). Influences price display currency in results."
+        }
+      }
+    },
+    "PriceRangeFilter": {
+      "type": "object",
+      "title": "PriceRangeFilter",
+      "description": "Filter services by price range (minor currency units).",
+      "properties": {
+        "min": { "type": "integer", "description": "Minimum price in minor currency units." },
+        "max": { "type": "integer", "description": "Maximum price in minor currency units." },
+        "currency": { "type": "string", "description": "ISO 4217 currency code for min/max." }
+      }
+    },
+    "DurationRangeFilter": {
+      "type": "object",
+      "title": "DurationRangeFilter",
+      "description": "Filter services by duration in minutes.",
+      "properties": {
+        "min_minutes": { "type": "integer", "minimum": 0 },
+        "max_minutes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "RegistrationRequest": {
+      "type": "object",
+      "title": "RegistrationRequest",
+      "description": "Request body for POST /registry/businesses and PUT /registry/businesses/{id}.",
+      "required": ["profile_url", "deployment_mode", "name", "verticals", "categories", "timezone"],
+      "properties": {
+        "profile_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the business USP profile (/.well-known/usp) or UCP profile (/.well-known/ucp) depending on deployment_mode."
+        },
+        "deployment_mode": {
+          "type": "string",
+          "enum": ["standalone", "ucp_native"],
+          "description": "Deployment mode of the business."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable business name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional brief description of the business for discovery display."
+        },
+        "verticals": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Service verticals offered by the business."
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Business categories for search and filtering."
+        },
+        "location": {
+          "$ref": "#/$defs/RegistryLocation",
+          "description": "Physical location. REQUIRED when the business offers in_person or hybrid channel services; MAY be omitted for virtual-only or phone-only businesses."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone identifier (e.g., America/New_York)."
+        }
+      }
+    },
+    "RegistryEntry": {
+      "type": "object",
+      "title": "RegistryEntry",
+      "description": "Stored business registration returned by the registry.",
+      "required": [
+        "id",
+        "profile_url",
+        "deployment_mode",
+        "name",
+        "verticals",
+        "categories",
+        "timezone",
+        "status",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Opaque registration identifier assigned by the registry."
+        },
+        "profile_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "deployment_mode": {
+          "type": "string",
+          "enum": ["standalone", "ucp_native"]
+        },
+        "name": { "type": "string" },
+        "description": {
+          "type": "string",
+          "description": "Optional brief description of the business."
+        },
+        "verticals": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "location": {
+          "$ref": "#/$defs/RegistryLocation"
+        },
+        "timezone": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["active", "inactive"],
+          "description": "Registration lifecycle status."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp when the registration was created."
+        }
+      }
+    },
+    "BusinessSearchRequest": {
+      "type": "object",
+      "title": "BusinessSearchRequest",
+      "description": "Request body for POST /registry/search_business. At least one search filter MUST be present (not only pagination and/or context).",
+      "properties": {
+        "location": { "$ref": "#/$defs/RegistrySearchLocation" },
+        "verticals": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "query": {
+          "type": "string",
+          "description": "Free-text search across business names and categories."
+        },
+        "deployment_mode": {
+          "type": "string",
+          "enum": ["standalone", "ucp_native"],
+          "description": "When omitted, search returns businesses in both deployment modes."
+        },
+        "context": { "$ref": "#/$defs/RegistryContext" },
+        "pagination": {
+          "type": "object",
+          "description": "Cursor-based pagination. See USP specification Section 9.1.2.",
+          "properties": {
+            "cursor": { "type": ["string", "null"] },
+            "limit": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "ServiceSearchRequest": {
+      "type": "object",
+      "title": "ServiceSearchRequest",
+      "description": "Request body for POST /registry/search_services. At least one search filter MUST be present (not only pagination and/or context).",
+      "properties": {
+        "location": { "$ref": "#/$defs/RegistrySearchLocation" },
+        "verticals": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "query": {
+          "type": "string",
+          "description": "Free-text search across service names, descriptions, and categories."
+        },
+        "price_range": { "$ref": "#/$defs/PriceRangeFilter" },
+        "duration_range": { "$ref": "#/$defs/DurationRangeFilter" },
+        "context": { "$ref": "#/$defs/RegistryContext" },
+        "pagination": {
+          "type": "object",
+          "description": "Cursor-based pagination. See USP specification Section 9.1.2.",
+          "properties": {
+            "cursor": { "type": ["string", "null"] },
+            "limit": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "RegistryBusinessRef": {
+      "type": "object",
+      "title": "RegistryBusinessRef",
+      "description": "Minimal business identity embedded in a service search result.",
+      "required": ["id", "profile_url", "deployment_mode", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "profile_url": { "type": "string", "format": "uri" },
+        "deployment_mode": {
+          "type": "string",
+          "enum": ["standalone", "ucp_native"]
+        },
+        "name": { "type": "string" }
+      }
+    },
+    "ServiceSearchResult": {
+      "type": "object",
+      "title": "ServiceSearchResult",
+      "description": "A single service hit from POST /registry/search_services. pricing aligns with the catalog Pricing model (Section 3.8).",
+      "required": [
+        "service_id",
+        "service_name",
+        "business",
+        "category",
+        "pricing",
+        "timezone"
+      ],
+      "properties": {
+        "service_id": { "type": "string" },
+        "service_name": { "type": "string" },
+        "business": { "$ref": "#/$defs/RegistryBusinessRef" },
+        "category": { "type": "string" },
+        "duration_minutes": { "type": "integer", "minimum": 0 },
+        "pricing": {
+          "$ref": "catalog.json#/$defs/Pricing",
+          "description": "Pricing summary aligned with the service catalog Pricing type."
+        },
+        "location": { "$ref": "#/$defs/RegistryLocation" },
+        "timezone": { "type": "string" },
+        "last_indexed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the registry last indexed this service metadata from the business catalog. Optional but RECOMMENDED."
+        }
+      }
+    }
+  }
+}
