@@ -120,10 +120,31 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 - [9. Transport Bindings](#9-transport-bindings)
     - [9.1 REST Binding](#91-rest-binding)
+        - [9.1.1 Idempotency](#911-idempotency)
+        - [9.1.2 Pagination](#912-pagination)
+        - [9.1.3 Discovery](#913-discovery)
+        - [9.1.4 Request Signing](#914-request-signing)
+        - [9.1.5 REST Binding Conformance](#915-rest-binding-conformance)
     - [9.2 MCP Binding](#92-mcp-binding)
+        - [9.2.1 Method Mapping](#921-method-mapping)
+        - [9.2.2 Request/Response Format](#922-requestresponse-format)
+        - [9.2.3 Webhook Notifications](#923-webhook-notifications)
+        - [9.2.4 MCP Binding Conformance](#924-mcp-binding-conformance)
     - [9.3 A2A Binding](#93-a2a-binding)
+        - [9.3.1 Task-Type Mapping](#931-task-type-mapping)
+        - [9.3.2 End-to-End Example: Booking Flow via A2A](#932-end-to-end-example-booking-flow-via-a2a)
+        - [9.3.3 Agent Card](#933-agent-card)
+        - [9.3.4 DataPart Conventions](#934-datapart-conventions)
+        - [9.3.5 Session Management](#935-session-management)
+        - [9.3.6 A2A Binding Conformance](#936-a2a-binding-conformance)
     - [9.4 Error Code Mapping](#94-error-code-mapping)
     - [9.5 Embedded Scheduling Protocol (ESP)](#95-embedded-scheduling-protocol-esp)
+        - [9.5.1 Message Schemas](#951-message-schemas)
+        - [9.5.2 Delegation Negotiation](#952-delegation-negotiation)
+        - [9.5.3 Iframe Security](#953-iframe-security)
+        - [9.5.4 Example Flow](#954-example-flow)
+        - [9.5.5 Error Handling and Timeouts](#955-error-handling-and-timeouts)
+        - [9.5.6 ESP Conformance](#956-esp-conformance)
     - [9.6 Transport Infrastructure for Standalone Mode](#96-transport-infrastructure-for-standalone-mode)
 - [10. Security](#10-security)
     - [10.1 USP Security Requirements](#101-usp-security-requirements)
@@ -4551,12 +4572,15 @@ Content-Type: application/json
 | HTTP Status                 | USP Meaning                                                                          |
 |-----------------------------|--------------------------------------------------------------------------------------|
 | `200 OK`                    | Operation succeeded, or business outcome error (check `messages[]` array for errors) |
+| `201 Created`               | Resource successfully created (bookings, holds, registry entries, waitlist entries, feed subscriptions) |
 | `400 Bad Request`           | Protocol error: malformed JSON, missing required fields, invalid profile URL         |
 | `401 Unauthorized`          | Protocol error: authentication required or invalid credentials                       |
+| `403 Forbidden`             | Protocol error: platform profile not in business allowlist                           |
 | `422 Unprocessable Entity`  | Protocol error: request is syntactically valid but structurally invalid              |
 | `424 Failed Dependency`     | Protocol error: business profile unreachable                                         |
 | `429 Too Many Requests`     | Protocol error: rate limited; retry after `Retry-After` header                       |
 | `500 Internal Server Error` | Protocol error: unexpected server failure                                            |
+| `503 Service Unavailable`   | Protocol error: business temporarily unable to handle requests; retry after `Retry-After` header |
 
 #### 9.1.1 Idempotency
 
@@ -4569,10 +4593,10 @@ with [draft-ietf-httpapi-idempotency-key-header]:
   with all state-modifying requests.
 - The business **MUST** store the idempotency key with the operation result for
   at least 24 hours.
-- If the business receives a request with a previously seen `Idempotency-Key`and
+- If the business receives a request with a previously seen `Idempotency-Key` and
   the same parameters, it **MUST** return the cached result without re-executing
   the operation.
-- If the business receives a request with a previously seen `Idempotency-Key`but
+- If the business receives a request with a previously seen `Idempotency-Key` but
   different parameters, it **MUST** return `409 Conflict`.
 
 ```
@@ -4627,6 +4651,65 @@ use the same cursor-based model described here.
 > to the RPDE incremental-sync model. All other paginated USP operations use
 > the `cursor`/`has_more` pattern described above.
 
+#### 9.1.3 Discovery
+
+Platforms discover a business's REST endpoints through the business profile published at `/.well-known/usp` ([Section 8.2](#82-business-profile-well-knownusp)). The profile's `usp.services` array lists supported USP operations with their base URLs and transport type. Platforms **MUST** filter for entries where `transport` is `"rest"` to locate REST endpoints.
+
+On each request, the platform identifies itself by sending the `USP-Agent` header with Dictionary Structured Field syntax ([RFC 8941]), carrying the platform's profile URI:
+
+```
+USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
+```
+
+The business resolves the platform profile to perform capability negotiation ([Section 8.3](#83-capability-negotiation)). For UCP-Native deployments, discovery is inherited from `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)).
+
+> **Schema reference:** Business profile — [`schemas/profile.json#/$defs/BusinessProfile`](schemas/profile.json). Platform profile — [`schemas/profile.json#/$defs/PlatformProfile`](schemas/profile.json). Service binding — [`schemas/usp.json#/$defs/ServiceBinding`](schemas/usp.json).
+
+#### 9.1.4 Request Signing
+
+State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, registry) **SHOULD** be signed using HTTP Message Signatures [RFC 9421] to ensure integrity and authenticity. Request signing uses the same infrastructure as webhook signing ([Section 10.1.1](#1011-webhook-security)).
+
+**Signed components:** The signature **MUST** cover at minimum: `content-digest`, `content-type`, `@method`, `@target-uri`, and `@created`. The `usp-agent` and `idempotency-key` headers **SHOULD** also be included when present.
+
+**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that enforce request verification **MUST** advertise this requirement in their business profile.
+
+**Example:**
+
+```http
+POST /bookings HTTP/1.1
+Host: business.example.com
+Content-Type: application/json
+USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Digest: sha-256=:RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=:
+Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
+Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
+
+{"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
+```
+
+> **MCP note:** For the MCP binding, request integrity is ensured by the underlying MCP transport layer (stdio pipe or HTTP-SSE with TLS). The `_meta.usp.profile` field identifies the platform and enables capability negotiation without transport-level signing.
+
+#### 9.1.5 REST Binding Conformance
+
+A conforming REST binding implementation **MUST:**
+
+1. Serve all endpoints over HTTPS (TLS 1.2 or later).
+2. Accept and return `application/json` on all endpoints.
+3. Return [RFC 9457] Problem Details for protocol errors.
+4. Return business outcome errors as HTTP 200 with a `messages[]` array on the response object.
+5. Support the `USP-Agent` header on all requests ([Section 9.1.3](#913-discovery)).
+6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
+7. Implement webhook signing per [Section 10.1.1](#1011-webhook-security).
+
+A conforming REST binding implementation **SHOULD:**
+
+1. Support the `Idempotency-Key` header on state-modifying operations ([Section 9.1.1](#911-idempotency)).
+2. Sign state-modifying requests using HTTP Message Signatures [RFC 9421] ([Section 9.1.4](#914-request-signing)).
+3. Support cursor-based pagination per [Section 9.1.2](#912-pagination).
+
+> **Schema reference:** [`openapi/usp-rest.json`](openapi/usp-rest.json)
+
 ### 9.2 MCP Binding
 
 The MCP (Model Context Protocol) binding uses JSON-RPC 2.0 over stdio or
@@ -4670,23 +4753,28 @@ Each USP REST operation maps to a JSON-RPC method:
 
 #### 9.2.2 Request/Response Format
 
-The `_meta.usp.profile` field carries the platform's profile URI, equivalent to
-the `USP-Agent` header in the REST binding. Responses include the `usp` metadata
-object in the result.
+MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
+
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
+
+> **Schema reference:** The MCP binding schema is defined in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json).
 
 **Complete JSON-RPC request example:**
 
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "usp_availability_query",
+  "method": "tools/call",
   "params": {
-    "service_id": "svc_haircut_001",
-    "start_date": "2026-03-15",
-    "end_date": "2026-03-16",
-    "_meta": {
-      "usp": {
-        "profile": "https://agent.example/profiles/scheduling-agent.json"
+    "name": "usp_availability_query",
+    "arguments": {
+      "service_id": "svc_haircut_001",
+      "start_date": "2026-03-15",
+      "end_date": "2026-03-16",
+      "_meta": {
+        "usp": {
+          "profile": "https://agent.example/profiles/scheduling-agent.json"
+        }
       }
     }
   },
@@ -4694,31 +4782,69 @@ object in the result.
 }
 ```
 
+**State-modifying request example (with idempotency key):**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "usp_bookings_create",
+    "arguments": {
+      "service_id": "svc_haircut_001",
+      "slot_id": "slot_20260315_0900",
+      "buyer": {
+        "first_name": "Alice",
+        "email": "alice@example.com"
+      },
+      "_meta": {
+        "usp": {
+          "profile": "https://agent.example/profiles/scheduling-agent.json",
+          "idempotency_key": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      }
+    }
+  },
+  "id": 2
+}
+```
+
 **Complete JSON-RPC response example:**
+
+Responses use the `structuredContent` / `content` dual-envelope pattern. The `structuredContent` object carries typed USP response data (including the `usp` metadata and optional `messages[]` array). The `content` array provides a human-readable text summary for MCP clients that render text.
 
 ```json
 {
   "jsonrpc": "2.0",
   "result": {
-    "usp": {
-      "version": "2026-02-09",
-      "capabilities": {
-        "dev.usp.services.availability": [
-          {
-            "version": "2026-02-09"
-          }
-        ]
-      }
+    "structuredContent": {
+      "usp": {
+        "version": "2026-02-09",
+        "capabilities": {
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-09"
+            }
+          ]
+        }
+      },
+      "service_id": "svc_haircut_001",
+      "slots": [
+        {
+          "id": "slot_20260315_0900",
+          "service_id": "svc_haircut_001",
+          "start": "2026-03-15T09:00:00-04:00",
+          "end": "2026-03-15T10:00:00-04:00",
+          "duration": "PT60M",
+          "state": "available"
+        }
+      ],
+      "messages": []
     },
-    "service_id": "svc_haircut_001",
-    "slots": [
+    "content": [
       {
-        "id": "slot_20260315_0900",
-        "service_id": "svc_haircut_001",
-        "start": "2026-03-15T09:00:00-04:00",
-        "end": "2026-03-15T10:00:00-04:00",
-        "duration": "PT60M",
-        "state": "available"
+        "type": "text",
+        "text": "Found 1 available slot for svc_haircut_001 on 2026-03-15: 09:00–10:00 ET."
       }
     ]
   },
@@ -4726,27 +4852,73 @@ object in the result.
 }
 ```
 
-**Error response example:**
+**Business outcome error example:**
+
+Business outcome errors (e.g., slot unavailable, hold expired) are returned inside the JSON-RPC `result` object within the `structuredContent` envelope, with a `messages[]` array — **not** as a JSON-RPC `error`. This mirrors the REST binding, where business outcome errors return HTTP 200 with `messages[]`. See [Section 9.4](#94-error-code-mapping) for the full error taxonomy.
 
 ```json
 {
   "jsonrpc": "2.0",
-  "error": {
-    "code": -32001,
-    "message": "slot_unavailable",
-    "data": {
-      "content": "The requested slot is no longer available.",
-      "severity": "recoverable"
-    }
+  "result": {
+    "structuredContent": {
+      "usp": {
+        "version": "2026-02-09"
+      },
+      "messages": [
+        {
+          "type": "error",
+          "code": "slot_unavailable",
+          "content": "The requested slot is no longer available.",
+          "severity": "recoverable"
+        }
+      ]
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Error: The requested slot is no longer available."
+      }
+    ]
   },
   "id": 2
 }
 ```
 
+**Protocol error example:**
+
+Protocol errors (e.g., malformed requests, authentication failures) use the JSON-RPC `error` object. Only protocol-level failures use this mechanism. See the protocol errors table in [Section 9.4](#94-error-code-mapping) for the complete list and JSON-RPC error codes.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32600,
+    "message": "invalid_request",
+    "data": {
+      "content": "Missing required field: service_id"
+    }
+  },
+  "id": 3
+}
+```
+
 #### 9.2.3 Webhook Notifications
 
-Booking webhooks are delivered over JSON-RPC as **notifications** (messages
-without an `id` field):
+Booking lifecycle events are delivered as webhook notifications. This section specifies delivery semantics for all USP transports.
+
+**Delivery semantics:** USP webhooks use **at-least-once** delivery. Platforms **MUST** handle duplicate events idempotently (e.g., by tracking `event_id`).
+
+**Retry behavior:** Businesses **SHOULD** retry failed deliveries (non-2xx response or timeout) with exponential backoff: initial delay 30 seconds, maximum 3 retries, maximum total delay 15 minutes. After all retries are exhausted, the business **SHOULD** log the failure and **MAY** surface it via a monitoring API.
+
+**Acknowledgment:** Platforms **MUST** respond with an HTTP 2xx status code within 10 seconds to acknowledge receipt. Non-2xx responses or timeouts trigger retry.
+
+**URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-feed-subscriptions)).
+
+**Signature verification:** All webhook payloads **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events.
+
+**Event ordering:** Events for the same booking are delivered in causal order. Events across different bookings have no ordering guarantee.
+
+**MCP transport:** In the MCP binding, webhooks are delivered as JSON-RPC **notifications** (messages without an `id` field):
 
 ```json
 {
@@ -4754,11 +4926,49 @@ without an `id` field):
   "method": "usp_webhook",
   "params": {
     "event": "booking.confirmed",
+    "event_id": "evt_789abc",
     "booking_id": "bkg_456def",
     "timestamp": "2026-03-14T22:06:00Z"
   }
 }
 ```
+
+**REST transport:** Webhook notifications are delivered as HTTP POST requests to the registered `webhook_url`:
+
+```http
+POST /webhooks/usp HTTP/1.1
+Host: platform.example.com
+Content-Type: application/json
+Content-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
+Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type");keyid="biz-webhook-2026"
+Signature: sig1=:MEUCIQDTxNq8h7LGHpvVZQp1iHkFp9...:
+
+{
+  "event": "booking.confirmed",
+  "event_id": "evt_789abc",
+  "booking_id": "bkg_456def",
+  "timestamp": "2026-03-14T22:06:00Z",
+  "booking": { "..." : "..." }
+}
+```
+
+#### 9.2.4 MCP Binding Conformance
+
+A conforming MCP binding implementation **MUST:**
+
+1. Use the `tools/call` envelope with `params.name` set to the method name and `params.arguments` containing operation parameters.
+2. Wrap results in the `structuredContent` / `content` dual-envelope pattern.
+3. Return business outcome errors in `result.structuredContent.messages[]`, not as JSON-RPC `error`.
+4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](#94-error-code-mapping)).
+5. Include `_meta.usp.profile` in Standalone Mode for capability negotiation.
+6. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+
+A conforming MCP binding implementation **SHOULD:**
+
+1. Include `_meta.usp.idempotency_key` on state-modifying operations.
+2. Provide a human-readable text summary in `result.content[]`.
+
+> **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
 
 ### 9.3 A2A Binding
 
@@ -4811,6 +5021,91 @@ scheduling agent and a business agent:
 Each task in the chain carries the A2A conversation context, enabling the
 business agent to maintain state across the multi-step flow.
 
+#### 9.3.3 Agent Card
+
+A USP-enabled business agent **MUST** publish an [Agent Card](https://a2a-protocol.org/latest/#agent-card) advertising its USP capabilities. The Agent Card **SHOULD** include the supported USP task types from [Section 9.3.1](#931-task-type-mapping) and authentication requirements.
+
+**Minimal Agent Card example:**
+
+```json
+{
+  "name": "Glamour Salon Scheduling Agent",
+  "description": "Handles appointment booking for Glamour Salon via USP.",
+  "url": "https://salon.example.com/a2a",
+  "capabilities": {
+    "tasks": [
+      "usp/services/list",
+      "usp/availability/query",
+      "usp/bookings/create",
+      "usp/bookings/cancel",
+      "usp/bookings/reschedule"
+    ]
+  },
+  "authentication": {
+    "schemes": ["bearer"]
+  },
+  "usp_profile": "https://salon.example.com/.well-known/usp"
+}
+```
+
+The `usp_profile` field is a USP extension that points to the business's `/.well-known/usp` profile ([Section 8.2](#82-business-profile-well-knownusp)), enabling platform agents to perform capability negotiation.
+
+#### 9.3.4 DataPart Conventions
+
+USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) objects as follows:
+
+- Each USP response (service list, availability slots, booking, etc.) is carried as a DataPart with `mimeType: "application/json"` and `data` containing the USP response object.
+- The USP metadata (`usp` envelope with `version` and `capabilities`) is carried in the DataPart's `metadata` field.
+- Business outcome errors are carried in `data.messages[]`, consistent with the REST and MCP bindings.
+
+**Example DataPart for an availability response:**
+
+```json
+{
+  "mimeType": "application/json",
+  "metadata": {
+    "usp": {
+      "version": "2026-02-09"
+    }
+  },
+  "data": {
+    "service_id": "svc_haircut_001",
+    "slots": [
+      {
+        "id": "slot_20260315_0900",
+        "start": "2026-03-15T09:00:00-04:00",
+        "end": "2026-03-15T10:00:00-04:00",
+        "state": "available"
+      }
+    ],
+    "messages": []
+  }
+}
+```
+
+#### 9.3.5 Session Management
+
+A2A tasks within the same booking flow **SHOULD** share a session context (`sessionId`). The session enables the business agent to maintain state (e.g., held slots, partial booking data) across multi-step task chains.
+
+- The platform agent **SHOULD** include a `sessionId` on all tasks after the first in a booking flow.
+- The business agent **MUST** return a `sessionId` in the response to the first task if it requires session continuity.
+- Session timeout **SHOULD** be at least 30 minutes for multi-step flows.
+- When a session expires, any associated holds are released and partial booking state is discarded.
+
+#### 9.3.6 A2A Binding Conformance
+
+A conforming A2A binding implementation **MUST:**
+
+1. Publish an Agent Card advertising supported USP task types ([Section 9.3.3](#933-agent-card)).
+2. Use task types from [Section 9.3.1](#931-task-type-mapping).
+3. Carry USP data as DataParts with `mimeType: "application/json"` ([Section 9.3.4](#934-datapart-conventions)).
+4. Return business outcome errors in `data.messages[]`, consistent with REST and MCP bindings.
+
+A conforming A2A binding implementation **SHOULD:**
+
+1. Maintain session context (`sessionId`) across multi-step booking flows ([Section 9.3.5](#935-session-management)).
+2. Include the `usp_profile` field in the Agent Card pointing to `/.well-known/usp`.
+
 ### 9.4 Error Code Mapping
 
 USP defines the following error codes, which are transport-independent.
@@ -4837,34 +5132,39 @@ Each message in the `messages[]` array carries the following fields:
 
 **Business outcome errors** (returned via `messages[]` in an HTTP 200 response):
 
-| USP Error Code             | Description                                                                                                                                                                     | REST Status | JSON-RPC Code | Severity                |
-|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|---------------|-------------------------|
-| `slot_unavailable`         | The requested slot is no longer available                                                                                                                                       | `200 OK`    | `-32001`      | `recoverable`           |
-| `hold_expired`             | The hold has expired                                                                                                                                                            | `200 OK`    | `-32002`      | `recoverable`           |
-| `booking_not_found`        | The booking ID does not exist                                                                                                                                                   | `200 OK`    | `-32003`      | `recoverable`           |
-| `validation_error`         | Request fields are invalid or violate constraints                                                                                                                               | `200 OK`    | `-32004`      | `requires_buyer_input`  |
-| `booking_window_violated`  | Booking is outside the allowed advance window                                                                                                                                   | `200 OK`    | `-32005`      | `requires_buyer_input`  |
-| `capacity_exceeded`        | Not enough capacity for the requested party size                                                                                                                                | `200 OK`    | `-32006`      | `recoverable`           |
-| `reschedule_limit_reached` | Maximum number of reschedules exceeded                                                                                                                                          | `200 OK`    | `-32007`      | `requires_buyer_review` |
-| `cancellation_not_allowed` | Cancellation is not permitted at this time                                                                                                                                      | `200 OK`    | `-32008`      | `requires_buyer_review` |
-| `payment_required`         | Payment must be completed before confirmation. This code appears on the payment action's `message` field, not as a response-level error.                                        | `200 OK`    | `-32009`      | `requires_buyer_input`  |
-| `payment_expired`          | The payment context has expired; booking was canceled                                                                                                                           | `200 OK`    | `-32010`      | `recoverable`           |
-| `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `-32011`      | `requires_buyer_input`  |
-| `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `-32012`      | `requires_buyer_input`  |
+Business outcome errors are returned in the `messages[]` array of the response object (REST) or the `result.messages[]` array (MCP). They do not use JSON-RPC error codes because they are not JSON-RPC errors — the request was processed successfully, and the business is communicating an application-level outcome.
 
-**Protocol errors** (use standard HTTP status codes):
+| USP Error Code             | Description                                                                                                                                                                     | REST Status | Severity                |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|-------------------------|
+| `slot_unavailable`         | The requested slot is no longer available                                                                                                                                       | `200 OK`    | `recoverable`           |
+| `hold_expired`             | The hold has expired                                                                                                                                                            | `200 OK`    | `recoverable`           |
+| `booking_not_found`        | The booking ID does not exist                                                                                                                                                   | `200 OK`    | `recoverable`           |
+| `validation_error`         | Request fields are invalid or violate constraints                                                                                                                               | `200 OK`    | `requires_buyer_input`  |
+| `booking_window_violated`  | Booking is outside the allowed advance window                                                                                                                                   | `200 OK`    | `requires_buyer_input`  |
+| `capacity_exceeded`        | Not enough capacity for the requested party size                                                                                                                                | `200 OK`    | `recoverable`           |
+| `reschedule_limit_reached` | Maximum number of reschedules exceeded                                                                                                                                          | `200 OK`    | `requires_buyer_review` |
+| `cancellation_not_allowed` | Cancellation is not permitted at this time                                                                                                                                      | `200 OK`    | `requires_buyer_review` |
+| `payment_required`         | Payment must be completed before confirmation. This code appears on the payment action's `message` field, not as a response-level error.                                        | `200 OK`    | `requires_buyer_input`  |
+| `payment_expired`          | The payment context has expired; booking was canceled                                                                                                                           | `200 OK`    | `recoverable`           |
+| `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `requires_buyer_input`  |
+| `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `requires_buyer_input`  |
+
+**Protocol errors** (use standard HTTP status codes and JSON-RPC error codes):
+
+Protocol errors indicate transport-level or infrastructure failures that prevented the request from being processed. In the REST binding, they use standard HTTP status codes with [RFC 9457] Problem Details. In the MCP binding, they use the JSON-RPC `error` object with unique error codes.
 
 | Protocol Error              | Description                                                                                                          | REST Status                 | JSON-RPC Code |
 |-----------------------------|----------------------------------------------------------------------------------------------------------------------|-----------------------------|---------------|
-| `invalid_request`           | Malformed JSON, missing required fields                                                                              | `400 Bad Request`           | `-32001`      |
-| `invalid_profile_url`       | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable                                               | `400 Bad Request`           | `-32001`      |
-| `profile_unreachable`       | Profile fetch failed (timeout, DNS failure, non-2xx response)                                                        | `424 Failed Dependency`     | `-32001`      |
-| `profile_malformed`         | Profile document is not valid JSON or fails schema validation against `schemas/profile.json`                         | `422 Unprocessable Entity`  | `-32001`      |
+| `invalid_request`           | Malformed JSON, missing required fields                                                                              | `400 Bad Request`           | `-32600`      |
+| `invalid_profile_url`       | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable                                               | `400 Bad Request`           | `-32602`      |
+| `profile_unreachable`       | Profile fetch failed (timeout, DNS failure, non-2xx response)                                                        | `424 Failed Dependency`     | `-32003`      |
+| `profile_malformed`         | Profile document is not valid JSON or fails schema validation against [`schemas/profile.json`](schemas/profile.json) | `422 Unprocessable Entity`  | `-32004`      |
 | `capabilities_incompatible` | The capability intersection between the business and platform profiles is empty — no shared capabilities             | `200 OK`                    | result        |
-| `profile_not_trusted`       | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist)  | `403 Forbidden`             | `-32000`      |
-| `authentication_required`   | Authentication credentials are missing or invalid                                                                    | `401 Unauthorized`          | `-32000`      |
-| `rate_limited`              | Too many requests                                                                                                    | `429 Too Many Requests`     | `-32000`      |
-| `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32011`      |
+| `profile_not_trusted`       | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist)   | `403 Forbidden`             | `-32005`      |
+| `authentication_required`   | Authentication credentials are missing or invalid                                                                    | `401 Unauthorized`          | `-32006`      |
+| `rate_limited`              | Too many requests                                                                                                    | `429 Too Many Requests`     | `-32007`      |
+| `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32008`      |
+| `service_unavailable`       | Business is temporarily unable to handle requests                                                                    | `503 Service Unavailable`   | `-32009`      |
 | `server_error`              | Unexpected server failure                                                                                            | `500 Internal Server Error` | `-32603`      |
 
 > **Note on `capabilities_incompatible`:** This is a business outcome error
@@ -4900,6 +5200,9 @@ globals (native):
 | `esp.payment.credential_request`  | Business → Host | Business requests payment credential            |
 | `esp.payment.credential_response` | Host → Business | Host returns the payment credential             |
 | `esp.complete`                    | Business → Host | Booking is complete                             |
+| `esp.error`                       | Business → Host | Business signals an error during the flow        |
+| `esp.cancel`                      | Host → Business | Host requests cancellation of the in-progress flow |
+| `esp.timeout`                     | Business → Host | Business signals the session has timed out       |
 
 **`esp.ready` message:**
 
@@ -4999,6 +5302,75 @@ before processing.
    `esp.payment.credential_response` with the credential.
 8. Business processes payment, confirms booking, sends `esp.complete` with the
    booking confirmation.
+
+#### 9.5.5 Error Handling and Timeouts
+
+If the business encounters an error during any delegation step, it **MUST** send `esp.error` with a machine-readable code, human-readable message, and a `recoverable` flag indicating whether the host can retry.
+
+**`esp.error` message:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "esp.error",
+  "params": {
+    "code": "payment_failed",
+    "message": "The payment credential was declined by the processor.",
+    "recoverable": true
+  }
+}
+```
+
+If the host wants to cancel the in-progress scheduling flow (e.g., user navigated away), it sends `esp.cancel`. The business **MUST** release any held slots and respond with either `esp.error` (code: `"canceled"`) or `esp.complete` with a cancellation status.
+
+**`esp.cancel` message:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "esp.cancel",
+  "params": {}
+}
+```
+
+**Session timeout:** ESP sessions **SHOULD** have a configurable timeout with a default of 30 minutes. If the session times out (no messages exchanged within the timeout window), the business sends `esp.timeout`. Any pending holds are released and partial booking state is discarded.
+
+**`esp.timeout` message:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "esp.timeout",
+  "params": {
+    "message": "The scheduling session has timed out after 30 minutes of inactivity."
+  }
+}
+```
+
+Well-known `esp.error` codes:
+
+| Code               | Description                                          | Recoverable |
+|--------------------|------------------------------------------------------|-------------|
+| `canceled`         | The flow was canceled by the host via `esp.cancel`   | No          |
+| `payment_failed`   | Payment credential was declined                      | Yes         |
+| `slot_unavailable` | The selected slot became unavailable during the flow | Yes         |
+| `internal_error`   | Unexpected business-side failure                     | No          |
+
+#### 9.5.6 ESP Conformance
+
+A conforming ESP implementation **MUST:**
+
+1. Use the `sandbox` attribute on iframes with the minimum values specified in [Section 9.5.3](#953-iframe-security).
+2. Validate all ESP messages against the expected JSON-RPC schema before processing.
+3. Support the `esp.error` message for error signaling ([Section 9.5.5](#955-error-handling-and-timeouts)).
+4. Release any held slots when the session times out or is canceled.
+5. Use `MessageChannel` for communication — direct `postMessage` to `window.parent` is not permitted.
+
+A conforming ESP implementation **SHOULD:**
+
+1. Support delegation negotiation via `esp.ready` and `esp.start` ([Section 9.5.2](#952-delegation-negotiation)).
+2. Implement a session timeout of at least 30 minutes.
+3. Support the `esp.cancel` message from the host.
 
 ### 9.6 Transport Infrastructure for Standalone Mode
 

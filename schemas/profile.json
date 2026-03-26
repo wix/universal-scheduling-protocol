@@ -74,12 +74,23 @@
     "PlatformProfile": {
       "type": "object",
       "title": "PlatformProfile",
-      "description": "A USP platform profile document. Published at a stable URI that the platform advertises on every USP API request via the USP-Agent HTTP header (REST binding) or the _meta.usp.profile field (MCP binding). Describes the capabilities and service preferences of the platform, enabling businesses to perform server-side capability negotiation without round-trip negotiation messages.",
+      "description": "A USP platform profile document. Published at a stable URI that the platform advertises on every USP API request via the USP-Agent HTTP header (REST binding) or the _meta.usp.profile field (MCP binding). Describes the capabilities and service preferences of the platform, enables businesses to perform server-side capability negotiation without round-trip negotiation messages, and optionally provides webhook callback URLs and request signing keys.",
       "required": ["usp"],
       "properties": {
         "usp": {
           "$ref": "usp.json#/$defs/platform_schema",
           "description": "The USP metadata object. Contains version and capabilities registry. Optionally includes service consumption preferences."
+        },
+        "webhook_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "HTTPS callback URL where the business should deliver webhook notifications (booking lifecycle events). Businesses MUST deliver webhooks to this URL when registered. See §9.2.3 and §10.1.1."
+        },
+        "signing_keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SigningKey" },
+          "description": "CONDITIONAL. Public keys for verifying HTTP Message Signatures (RFC 9421) on platform REST requests. SHOULD be present when the platform signs state-modifying requests. Multiple keys MUST be supported for zero-downtime key rotation. See §9.1.4."
         }
       },
       "additionalProperties": false
