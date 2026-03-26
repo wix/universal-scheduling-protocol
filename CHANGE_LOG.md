@@ -1,5 +1,33 @@
 # Change Log
 
+## 26/03/26 at 13:56:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the GitHub Actions OpenAPI bundle workflow (`.github/workflows/openapi-bundle.yml`) and the root `.gitignore` that ignored `openapi/usp-rest.bundled.json`, reverting those additions while keeping the §9.1/§9.2 specification text on multi-file schema references and bundling.
+
+---
+
+## 26/03/26 at 13:53:40 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Finished the zero-duplication OpenAPI/OpenRPC plan: documented in [specification.md](specification.md) §9.1 and §9.2 that [`schemas/`](schemas/) holds authoritative `$defs`, bindings use relative `$ref`s and are not self-contained until bundled, and pointed to Redocly/Swagger CLI for bundling.
+
+---
+
+## 26/03/26 at 13:50:39 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Documented agent workflow in [AGENTS.md](AGENTS.md) so JSON Schema definitions stay single-sourced under `schemas/` and OpenAPI/OpenRPC bindings use thin external `$ref`s only, preventing drift from duplicated inline bodies and pointing to bundling when a self-contained file is needed.
+
+---
+
+## 26/03/26 at 11:24:35 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Closed Discovery Registry gaps (§6): field tables for business and service search; MUST-level rule that at least one search filter is present; cross-references to §9.4 for errors; optional `context` (`locale`, `currency`); `pricing` (catalog-aligned) and `last_indexed_at` on service hits; conditional `location` and optional `description` on registration; clarified `usp` envelope as the registry’s own capability declaration; indexing guidance (feed subscriptions, 24h fallback, non-authoritative results).
+- Added registry lifecycle operations `GET` / `PUT` / `DELETE` `/registry/businesses/{id}` (§6.4–6.6), renumbered Registry Governance to §6.7, updated Table of Contents, and documented six new MCP methods in §9.2.1.
+- Added machine-readable [schemas/registry.json](schemas/registry.json) with `$defs` for registration, search requests, and service search results (including `$ref` to catalog `Pricing`).
+- Updated [openapi/usp-rest.json](openapi/usp-rest.json): aligned `profile_url` and `deployment_mode` with the spec; `RegistryContext`; revised `RegistryEntry` and `ServiceSearchResult` (`pricing`, `last_indexed_at`); optional `messages` on registry responses; `GET`/`PUT`/`DELETE` under `/registry/businesses/{id}`.
+- Updated [openrpc/usp-mcp.json](openrpc/usp-mcp.json): `usp_registry_*` methods, registry component schemas, and `PaginationRequest` for registry search params.
+
+---
+
 ## 25/03/26 at 17:11:29 by [kobym707](mailto:kobym@wix.com)
 
 - Adopted strict slot-per-resource model (§4.1, §5.3.1): a slot now represents a specific bookable combination of time window + assigned resources, eliminating the race condition and undefined behaviour caused by a separate `resource_id` selection at booking time.
