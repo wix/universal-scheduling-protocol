@@ -1,5 +1,20 @@
 # Change Log
 
+## 28/03/26 at 00:47:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `$defs/WaitlistEvent` in [
+  `schemas/webhook_event.json`](schemas/webhook_event.json), REST
+  `webhooks.waitlistEvent` in [`openapi/usp-rest.json`](openapi/usp-rest.json),
+  and `WaitlistWebhookEvent` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
+  so waitlist webhooks match booking/catalog machine-readable artifacts;
+  expanded [specification.md](specification.md) §11.1.5 and §9.2.3 accordingly.
+- Extended `BookingEvent` with `booking.service_started` and
+  `booking.service_updated`, aligned §5.4.1 and §5.5.3 prose, and fixed the
+  §5.5.3 `businesses **MAY**` typo so service-delivery events are first-class
+  booking webhook events.
+
+---
+
 ## 27/03/26 at 23:35:39 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Closed `gaps.md` §1–2 items in [specification.md](specification.md): §2.3
