@@ -317,6 +317,10 @@
           },
           "description": "Itemized breakdown for display and checkout integration."
         },
+        "tax_amount": {
+          "type": "integer",
+          "description": "Tax portion of amount_due in minor currency units. When present, the checkout system SHOULD display the tax breakdown. Pre-tax subtotal is amount_due minus tax_amount when tax_amount is present."
+        },
         "metadata": {
           "type": "object",
           "required": [
@@ -370,7 +374,7 @@
         "continue_url": {
           "type": "string",
           "format": "uri",
-          "description": "Business-hosted URL for completing this specific action."
+          "description": "Business-hosted HTTPS URL for completing this specific action. MUST use the https:// scheme; platforms MUST reject non-HTTPS values. Valid only until expires_at; MUST reference server-side session state, not sensitive data in the query string."
         },
         "expires_at": {
           "type": "string",
