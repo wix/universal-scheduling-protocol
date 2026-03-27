@@ -41,7 +41,7 @@
     "CapabilityEntry": {
       "type": "object",
       "title": "CapabilityEntry",
-      "description": "Declares support for a specific version of a USP capability. Each entry in a capabilities registry value array is a CapabilityEntry.",
+      "description": "Declares support for a specific version of a USP capability. Business and platform profile registries use ProfileCapabilityEntry (requires spec and schema). This base definition also applies where only version is declared (e.g., response metadata).",
       "required": ["version"],
       "properties": {
         "version": {
@@ -52,12 +52,12 @@
         "spec": {
           "type": "string",
           "format": "uri",
-          "description": "URL to the capability specification. RECOMMENDED in business and platform profiles."
+          "description": "URL to the capability specification. REQUIRED in business and platform profiles (see ProfileCapabilityEntry); optional in response metadata entries that only declare version."
         },
         "schema": {
           "type": "string",
           "format": "uri",
-          "description": "URL to the capability JSON Schema. RECOMMENDED in business and platform profiles."
+          "description": "URL to the capability JSON Schema. REQUIRED in business and platform profiles (see ProfileCapabilityEntry); optional in response metadata entries that only declare version."
         },
         "extends": {
           "oneOf": [
@@ -68,6 +68,17 @@
         }
       },
       "additionalProperties": true
+    },
+    "ProfileCapabilityEntry": {
+      "title": "ProfileCapabilityEntry",
+      "description": "Capability entry for use in business and platform profiles. Extends CapabilityEntry by requiring spec and schema URLs, which are needed for capability negotiation and schema resolution (aligned with UCP platform capability declarations).",
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityEntry" },
+        {
+          "type": "object",
+          "required": ["spec", "schema"]
+        }
+      ]
     },
     "BusinessInfo": {
       "type": "object",
@@ -166,10 +177,10 @@
         },
         "capabilities": {
           "type": "object",
-          "description": "Capability registry. Keys are reverse-domain capability names (e.g., dev.usp.services.catalog). Values are arrays of CapabilityEntry objects, one per supported capability version. Multiple entries for the same key indicate multi-version support.",
+          "description": "Capability registry. Keys are reverse-domain capability names (e.g., dev.usp.services.catalog). Values are arrays of ProfileCapabilityEntry objects, one per supported capability version. Multiple entries for the same key indicate multi-version support.",
           "additionalProperties": {
             "type": "array",
-            "items": { "$ref": "#/$defs/CapabilityEntry" }
+            "items": { "$ref": "#/$defs/ProfileCapabilityEntry" }
           },
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",
@@ -219,10 +230,10 @@
         },
         "capabilities": {
           "type": "object",
-          "description": "Capability declarations. Keys are reverse-domain capability names. Values are arrays of CapabilityEntry objects listing each capability version the platform can consume.",
+          "description": "Capability declarations. Keys are reverse-domain capability names. Values are arrays of ProfileCapabilityEntry objects listing each capability version the platform can consume.",
           "additionalProperties": {
             "type": "array",
-            "items": { "$ref": "#/$defs/CapabilityEntry" }
+            "items": { "$ref": "#/$defs/ProfileCapabilityEntry" }
           },
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",

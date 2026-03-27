@@ -3377,6 +3377,12 @@
             },
             "WaitlistEntry": {
                 "$ref": "../schemas/waitlist.json#/$defs/WaitlistEntry"
+            },
+            "CapabilityEntry": {
+                "$ref": "../schemas/usp.json#/$defs/CapabilityEntry"
+            },
+            "ProfileCapabilityEntry": {
+                "$ref": "../schemas/usp.json#/$defs/ProfileCapabilityEntry"
             }
         },
         "errors": {
