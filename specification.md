@@ -61,6 +61,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [2.4 Core Constructs](#24-core-constructs)
     - [2.5 Namespace Governance](#25-namespace-governance)
     - [2.6 Multi-Location Businesses](#26-multi-location-businesses)
+    - [2.7 Error Handling Overview](#27-error-handling-overview)
 - [3. Service Catalog](#3-service-catalog)
     - [3.1 Service Catalog Feed](#31-service-catalog-feed)
     - [3.2 Catalog Caching and Indexing](#32-catalog-caching-and-indexing)
@@ -115,6 +116,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [8.4 Versioning](#84-versioning)
     - [8.5 Payment Integration](#85-payment-integration)
     - [8.6 End-to-End Flows](#86-end-to-end-flows)
+    - [8.7 Payment Path Comparison](#87-payment-path-comparison)
 
 **PART III: SHARED INFRASTRUCTURE**
 
@@ -431,7 +433,7 @@ The consumer-facing surface acting on behalf of the user. Platforms orchestrate
 the full journey: discovering services, presenting availability, and
 facilitating booking and payment.
 
-- **Responsibilities:** Discovering business capabilities via`/.well-known/usp`,
+- **Responsibilities:** Discovering business capabilities via `/.well-known/usp`,
   querying availability, creating bookings, processing payment through whichever
   checkout system is available.
 - **Examples:** AI scheduling assistants, super apps, search engines,
@@ -452,8 +454,11 @@ resources, and booking policies. For payment, the business remains the *
 #### 2.1.3 Credential Provider (CP)
 
 A trusted entity that securely manages user payment instruments and identity.
-USP does not interact with credential providers directly - this interaction
-occurs within the checkout system used for payment.
+Listing the CP role clarifies **PCI-DSS scope**: when buyers pay with a wallet
+or tokenized instrument, the credential provider—not the platform or
+business—often holds the sensitive payment credentials, which reduces what USP
+implementations must handle directly. USP does not define APIs to credential
+providers; checkout systems integrate with them as part of payment processing.
 
 - **Examples:** Google Wallet, Apple Pay, digital identity providers.
 
@@ -592,6 +597,30 @@ operations ([Sections 3-5](#3-service-catalog)) and the same transport
 bindings ([Section 9](#9-transport-bindings)). For free services, no checkout
 system is needed in either mode.
 
+**Profile hosting.** Business profile documents **MUST** be served over HTTPS,
+**MUST NOT** redirect (clients **MUST** use the resolved final URL only), and
+**SHOULD** include appropriate `Cache-Control` headers. Full normative
+requirements are in [Section 8.2.2](#822-profile-hosting-requirements). The
+machine-readable shapes are defined in [`schemas/profile.json`](schemas/profile.json)
+(`$defs/BusinessProfile`, `$defs/PlatformProfile`) and
+[`schemas/usp.json`](schemas/usp.json) (`$defs/business_schema`,
+`$defs/platform_schema`).
+
+**Graceful degradation.** When a buyer-facing flow cannot be completed entirely
+through the API (for example, payment authentication or policy review), businesses
+**SHOULD** provide a [`continue_url`](https://ucp.dev/latest/specification/checkout/#continue-url)
+pointing to a web-based fallback so the buyer can finish the task in a browser.
+USP uses this pattern on booking `actions` (for example, payment and waivers);
+UCP-Native Mode uses it for checkout escalation. See
+[Section 5.2](#52-booking-schema) and [Section 8.5.5](#855-redirect-flow-and-post-payment-return).
+
+**Protocol version compatibility.** Businesses **MAY** support older USP protocol
+versions by publishing a `supported_versions` map in the business profile (keys:
+prior `YYYY-MM-DD` versions; values: URIs of version-specific profile documents).
+See [Section 8.2.4](#824-backward-compatibility) and
+[`schemas/usp.json`](schemas/usp.json) (`$defs/business_schema`, property
+`supported_versions`).
+
 ### 2.4 Core Constructs
 
 USP is built on three constructs:
@@ -600,7 +629,35 @@ USP is built on three constructs:
 |------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Capabilities** | Standalone features a business supports, declared using a registry pattern (object keyed by capability name). Each capability has a namespace, schema, and version.                    | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.bookings`                                                                                                                             |
 | **Extensions**   | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base capability schemas. | Waitlist management (extends bookings, [Section 11.1](#111-waitlist-extension)), paid bookings (extends UCP checkout, [Section 7.4](#74-paid-bookings-extension-schema)), vendor-specific loyalty (extends bookings) |
-| **Services**     | Transport layers for exchanging data. USP is transport-agnostic with specific bindings. Each service is an array of transport objects with a `transport` discriminator field.          | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card). See [Section 9](#9-transport-bindings).                                                                                                              |
+| **Transport Bindings** | Declarations of how USP traffic is carried (REST, MCP, A2A, embedded). The profile `services` registry maps reverse-domain service names to arrays of transport-specific bindings, each with a `transport` discriminator. Not to be confused with the **Service** domain entity (bookable offerings) in [Section 3](#3-service-catalog). | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card). See [Section 9](#9-transport-bindings) and [`schemas/usp.json`](schemas/usp.json) (`$defs/ServiceBinding`). |
+
+**Capability entries (profiles).** Each object in a profile’s `capabilities`
+registry declares support for one capability version. Normative JSON Schema:
+[`schemas/usp.json`](schemas/usp.json) — [`$defs/ProfileCapabilityEntry`](schemas/usp.json)
+for business and platform profiles (requires `spec` and `schema`); [`$defs/CapabilityEntry`](schemas/usp.json)
+for the base shape; response metadata uses only `version` in each negotiated
+capability object ([`$defs/response_schema`](schemas/usp.json)).
+
+| Field     | Type            | Required              | Description |
+| --------- | --------------- | --------------------- | ----------- |
+| `version` | string          | **Yes**               | Capability version (`YYYY-MM-DD`). |
+| `spec`    | string (URI)    | **Yes** (in profiles) | URL to the human-readable capability specification. Required in business and platform profiles; omitted in response metadata entries that only declare the negotiated version. |
+| `schema`  | string (URI)    | **Yes** (in profiles) | URL to the machine-readable JSON Schema for the capability. Required in business and platform profiles; omitted in response metadata entries that only declare the negotiated version. |
+| `extends` | string or array | No                    | Parent capability name(s) for extensions. |
+
+**Version requirements (extension schemas).** Extension JSON Schemas **SHOULD**
+declare a top-level `requires` object (alongside schema metadata) with:
+
+- `protocol`: an object giving a minimum (and optionally maximum) USP protocol
+  version required for correct operation, and
+- `capabilities`: a map from parent capability names to `{min, max?}` version
+  ranges.
+
+If `requires` is present, platforms and businesses **MUST** verify the
+negotiated protocol and capability versions satisfy these constraints during
+schema resolution; incompatible extensions **MUST** be excluded from the active
+capability set. This mirrors the pattern used in the Universal Commerce Protocol
+(UCP) for extension compatibility.
 
 ### 2.5 Namespace Governance
 
@@ -612,6 +669,30 @@ USP uses reverse-domain notation for capability names:
 
 The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use
 their own domain (e.g., `com.wix.services.courses`).
+
+#### Governance model
+
+| Namespace pattern | Authority   | Governance         |
+|-------------------|-------------|--------------------|
+| `dev.usp.*`       | usp.dev     | USP governing body |
+| `com.{vendor}.*`  | {vendor}.com | Vendor organization |
+| `org.{org}.*`     | {org}.org   | Organization       |
+
+#### Spec URL binding
+
+The `spec` and `schema` URLs on each capability entry **MUST** use origins that
+match the reverse-domain namespace authority of the capability name. Platforms
+**MUST** validate this binding when processing profiles and **SHOULD** reject
+capabilities where the origins do not match.
+
+| Namespace prefix   | Required URL origin (scheme + host)   |
+|--------------------|---------------------------------------|
+| `dev.usp.*`        | `https://usp.dev/...`                 |
+| `com.{vendor}.*`   | `https://{vendor}.com/...`            |
+| `org.{org}.*`      | `https://{org}.org/...`               |
+
+Field definitions are in [`schemas/usp.json`](schemas/usp.json) (`$defs/CapabilityEntry`,
+`$defs/ProfileCapabilityEntry`).
 
 Within the `dev.usp.*` namespace, capabilities are organized by scope:
 
@@ -661,16 +742,35 @@ platforms can scope requests to a specific location:
 GET /services/feed?cursor=crs_a1b2c3d4e5f6&limit=50&location_id=loc_nyc
 ```
 
-Similarly, `POST /services/list` and `POST /availability/query` **SHOULD**accept
+Similarly, `POST /services/list` and `POST /availability/query` **SHOULD** accept
 `location_id`. Each service's `locations[]`
 field ([Section 3.3](#33-service-schema)) and each slot's `location`
 field ([Section 4.1](#41-time-slot)) identify which location a service or slot
 belongs to.
 
 > **Note:** Alternatively, each location **MAY** publish its own independent
-`/.well-known/usp` profile (e.g., `nyc.sunrisewellness.com`,
-`la.sunrisewellness.com`), in which case no multi-location protocol extensions
+> `/.well-known/usp` profile (e.g., `nyc.sunrisewellness.com`,
+> `la.sunrisewellness.com`), in which case no multi-location protocol extensions
 > are needed -- each location operates as a standard single-location USP business.
+
+### 2.7 Error Handling Overview
+
+USP separates **business outcome** feedback from **protocol** failures:
+
+- **Business outcomes** are successful HTTP exchanges where the business reports
+  a scheduling or policy result using a `messages[]` array (REST: in the JSON
+  body; MCP: in `result.messages[]`). Each message uses `type`, `code`, `content`,
+  and optional `severity`. See [Section 9.4](#94-error-code-mapping) for standard
+  codes and severities.
+- **Protocol errors** use HTTP status codes with [RFC 9457] Problem Details in
+  the REST binding and JSON-RPC `error` objects in the MCP binding, as mapped in
+  [Section 9.4](#94-error-code-mapping).
+
+State-changing operations that create or modify resources (for example, booking
+creation, cancellation, rescheduling, payment confirmation) **SHOULD** use an
+idempotency key: the `Idempotency-Key` header in REST or `_meta.usp.idempotency_key`
+in MCP. Semantics and conflict behavior are defined in
+[Section 9.1.1](#911-idempotency).
 
 ---
 
@@ -3457,9 +3557,9 @@ not redefine these concerns:
 | Rate Limiting          | UCP rate limiting framework        | UCP Rate Limiting         |
 
 > **Reading guidance:** In UCP-Native Mode, read Sections 9.1-9.5 and 10.1 for
-> USP-specific details (error codes, method mappings, webhook payload schemas). *
-*Skip [Sections 9.6](#96-transport-infrastructure-for-standalone-mode)
-and [10.2](#102-security-infrastructure-for-standalone-mode)** - these are
+> USP-specific details (error codes, method mappings, webhook payload schemas).
+> **Skip [Sections 9.6](#96-transport-infrastructure-for-standalone-mode)
+> and [10.2](#102-security-infrastructure-for-standalone-mode)** — these are
 > infrastructure requirements for Standalone Mode that UCP already provides.
 
 ### 7.4 Paid Bookings Extension Schema
@@ -3782,7 +3882,29 @@ confirmation mode) without any checkout involvement.
 
 ### 7.7 End-to-End Flows
 
+The subsections below use the same structure as [Section 8.6](#86-end-to-end-flows)
+(Standalone Mode): preamble with preconditions, sequence diagram, then request and
+response JSON for each protocol step. UCP-Native Mode differs from Standalone Mode
+only in discovery and payment: scheduling operations ([Sections 3–5](#3-service-catalog))
+are identical. USP REST and MCP bindings are in [`openapi/usp-rest.json`](openapi/usp-rest.json)
+and [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json); UCP checkout operations follow
+the [UCP shopping API](https://ucp.dev/latest/specification/checkout-rest/).
+
 #### 7.7.1 Free Service Flow (UCP-Native)
+
+This flow applies when the booked service has `requires_payment: false` and the
+business profile at [`/.well-known/ucp`](#72-profile-registration-in-well-knownucp)
+does not require UCP checkout for scheduling (no paid-bookings checkout path).
+
+> **Applies when:** Deployment mode: UCP-Native. Service: `requires_payment: false`.
+> Business UCP profile: includes `dev.usp.services.bookings` but **not**
+> `dev.ucp.shopping.checkout` / `dev.usp.services.paid_bookings` for free-only
+> merchants ([Section 7.2](#72-profile-registration-in-well-knownucp),
+> [Section 7.6](#76-free-services-in-ucp-native-mode)).
+
+> **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json). See
+> [Section 5.3.1](#531-create-booking---post-bookings) for the create-booking
+> request and response field tables.
 
 ```mermaid
 sequenceDiagram
@@ -3803,7 +3925,74 @@ sequenceDiagram
     Note over P,B: Done. No payment step needed.
 ```
 
+**1. `POST /bookings` — request (with hold):**
+
+```json
+{
+  "service_id": "svc_yoga_free",
+  "slot_id": "slot_20260318_1000",
+  "hold_id": "hold_free_001",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1
+}
+```
+
+**2. `POST /bookings` — response (`201 Created`, free service):**
+
+```json
+{
+  "usp": {
+    "version": "2026-02-09",
+    "capabilities": {
+      "dev.usp.services.bookings": [{ "version": "2026-02-09" }]
+    }
+  },
+  "booking": {
+    "id": "bkg_789ghi",
+    "service_id": "svc_yoga_free",
+    "service_name": "Community Yoga",
+    "slot": {
+      "id": "slot_20260318_1000",
+      "start": "2026-03-18T10:00:00-04:00",
+      "end": "2026-03-18T11:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "buyer": {
+      "first_name": "Alice",
+      "last_name": "Williams",
+      "email": "alice@example.com"
+    },
+    "party_size": 1,
+    "status": "confirmed",
+    "confirmation_mode": "auto",
+    "created_at": "2026-03-14T22:05:00Z",
+    "updated_at": "2026-03-14T22:05:00Z"
+  }
+}
+```
+
 #### 7.7.2 Paid Service Flow (UCP Checkout)
+
+This flow applies when the business advertises UCP checkout with the paid bookings
+extension. The platform uses UCP `create_checkout` and `complete_checkout` instead
+of Standalone `POST /bookings` + `confirm-payment`. See [Section 7.4](#74-paid-bookings-extension-schema)
+and [Section 7.5](#75-checkout-flow-and-atomicity-guarantee).
+
+> **Applies when:** Deployment mode: UCP-Native. Service: `requires_payment: true`,
+> `payment_timing: at_booking`, `confirmation_mode: auto`. Business UCP profile:
+> `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings` registered
+> at [`/.well-known/ucp`](#72-profile-registration-in-well-knownucp).
+
+> **JSON shapes:** Booking context in checkout — [schemas/paid_bookings.json](schemas/paid_bookings.json).
+> UCP checkout request/response — [UCP checkout](https://ucp.dev/schemas/shopping/checkout.json)
+> and [Section 7.4](#74-paid-bookings-extension-schema) examples. The steps below
+> illustrate the paid bookings extension fields; full UCP checkout fields follow
+> the UCP specification.
 
 ```mermaid
 sequenceDiagram
@@ -3843,18 +4032,104 @@ sequenceDiagram
     end
 ```
 
-**Steps:**
+**1. `create_checkout` (UCP) — request body (excerpt, paid bookings extension):**
 
-1. **[USP] Discover services** via `POST /services/list`.
-2. **[USP] Query availability** via `POST /availability/query`.
-3. *(If business supports holds)* **[USP] Hold the slot** via
-   `POST /availability/holds`.
-4. **[UCP] Create checkout** with the booking extension (including `hold_id` if
-   step 3 was performed).
-5. **[UCP] Acquire payment token** from the PSP.
-6. **[UCP] Complete checkout** - atomic payment + booking confirmation.
-7. **[USP] Webhook notification.** The business sends a `booking.confirmed`
-   webhook; the payload **SHOULD** include `order_id` for UCP correlation ([Section 5.4.1](#541-booking-webhooks)).
+The full shape matches [Section 7.4](#74-paid-bookings-extension-schema). Example:
+
+```json
+{
+  "line_items": [
+    {
+      "id": "li_1",
+      "item": {
+        "id": "svc_massage_001",
+        "title": "Deep Tissue Massage",
+        "price": 12000
+      },
+      "quantity": 1
+    }
+  ],
+  "currency": "USD",
+  "buyer": {
+    "email": "alice@example.com",
+    "first_name": "Alice",
+    "last_name": "Williams"
+  },
+  "booking": {
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "slot": {
+      "id": "slot_20260316_1400",
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "hold_id": "hold_xyz789",
+    "party_size": 1,
+    "confirmation_mode": "auto"
+  }
+}
+```
+
+**2. `create_checkout` (UCP) — response (excerpt):**
+
+```json
+{
+  "id": "chk_abc123",
+  "status": "ready_for_complete",
+  "booking": {
+    "booking_id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "booking_status": "pending",
+    "confirmation_mode": "auto"
+  },
+  "ucp": {
+    "payment_handlers": {
+      "stripe_card": {
+        "type": "processor_tokenizer",
+        "endpoint": "https://api.stripe.com/v1/tokens"
+      }
+    }
+  }
+}
+```
+
+**3. `complete_checkout` (UCP) — request body (illustrative):**
+
+Payment fields follow [UCP Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
+Shape is processor-specific; example:
+
+```json
+{
+  "payment_data": {
+    "handler_id": "stripe_card",
+    "token": "tok_visa"
+  }
+}
+```
+
+**4. `complete_checkout` (UCP) — response (excerpt, terminal success):**
+
+```json
+{
+  "id": "chk_abc123",
+  "status": "completed",
+  "order_id": "ord_ucp_001",
+  "booking": {
+    "booking_id": "bkg_456def",
+    "booking_status": "confirmed",
+    "confirmation_mode": "auto"
+  }
+}
+```
+
+**5. Webhook:** The business **MAY** send `booking.confirmed`; the payload **SHOULD**
+include `order_id` alongside `booking_id` ([Section 5.4.1](#541-booking-webhooks),
+[Section 7.5](#75-checkout-flow-and-atomicity-guarantee)).
+
+> See [Section 8.7](#87-payment-path-comparison) for a comparison of all payment
+> paths across both deployment modes.
 
 ---
 
@@ -3976,7 +4251,7 @@ The `usp` object fields:
 |---------------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------------|
 | `version`           | string | **Yes**  | USP protocol version implemented by this business (`YYYY-MM-DD`).                                                            |
 | `services`          | object | **Yes**  | Service endpoint registry. Keys are reverse-domain service names (e.g., `dev.usp.services`). Values are arrays of **ServiceBinding** objects, one per supported transport. |
-| `capabilities`      | object | **Yes**  | Capability registry. Keys are reverse-domain capability names (e.g., `dev.usp.services.catalog`). Values are arrays of **CapabilityEntry** objects. |
+| `capabilities`      | object | **Yes**  | Capability registry. Keys are reverse-domain capability names (e.g., `dev.usp.services.catalog`). Values are arrays of **ProfileCapabilityEntry** objects. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`). |
 | `checkout_systems`  | array  | No       | Checkout systems integrated for paid bookings: `acp`, `redirect`, `embedded`. Omit for free or pay-at-service services.       |
 | `business`          | object | **Yes**  | Business identity: `name` (string, required), `timezone` (IANA identifier, required), `currency` (ISO 4217, required), `locations` (array, optional). |
 | `supported_versions`| object | No       | Backward-compatibility map. Keys are older protocol versions (`YYYY-MM-DD`); values are URIs to version-specific profiles. See [Section 8.2.4](#824-backward-compatibility). |
@@ -3991,14 +4266,16 @@ Each **ServiceBinding** (an entry in a `services` value array) has:
 | `spec`     | string URI | No          | URL to the human-readable specification. **RECOMMENDED**.                                                     |
 | `schema`   | string URI | No          | URL to the machine-readable schema (OpenAPI for `rest`, OpenRPC for `mcp`). **RECOMMENDED**.                  |
 
-Each **CapabilityEntry** (an entry in a `capabilities` value array) has:
+Each **ProfileCapabilityEntry** (an entry in a `capabilities` value array) has:
 
 | Field     | Type              | Required | Description                                                                                    |
 |-----------|-------------------|----------|------------------------------------------------------------------------------------------------|
 | `version` | string            | **Yes**  | Capability version (`YYYY-MM-DD`).                                                            |
-| `spec`    | string URI        | No       | URL to the capability specification. **RECOMMENDED** in profiles.                             |
-| `schema`  | string URI        | No       | URL to the capability JSON Schema. **RECOMMENDED** in profiles.                               |
+| `spec`    | string URI        | **Yes**  | URL to the capability specification.                                                          |
+| `schema`  | string URI        | **Yes**  | URL to the capability JSON Schema.                                                            |
 | `extends` | string or array   | No       | Base capability name(s) this capability extends, in reverse-domain format.                    |
+
+The base [`$defs/CapabilityEntry`](schemas/usp.json) type omits required `spec`/`schema` for response metadata; profiles **MUST** use **ProfileCapabilityEntry** (see [Section 2.4](#24-core-constructs)).
 
 Capability keys **MUST** use reverse-domain notation. The `dev.usp.*` namespace
 is reserved for the USP governing body. Vendor-defined capabilities **MUST**
@@ -4011,9 +4288,18 @@ consulted per-transaction.
 
 | Value      | Description                                                                                                                       |
 |------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `acp`      | Business supports ACP checkout sessions. See [Section 8.5.6](#856-acp-booking-extension).                                         |
-| `redirect` | Business provides a `continue_url` on the payment action for buyer-facing payment. See [Section 8.5.5](#855-action-continue-url). |
-| `embedded` | Business supports platform-processed payment via `confirm-payment`.                                                               |
+| `acp`      | Business supports ACP checkout sessions. See [Section 8.5.6](#856-acp-booking-extension) and [Section 8.6.4](#864-acp-payment-flow-paid-service). |
+| `redirect` | Business provides a `continue_url` on the payment action for buyer-facing payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return) and [Section 8.6.3](#863-redirect-payment-flow-paid-service). |
+| `embedded` | Business supports platform-processed payment via `confirm-payment`. See [Section 8.5.4](#854-embedded-and-generic-payment-flow) and [Section 8.6.2](#862-embedded-payment-flow-paid-service). |
+
+> **Design note (vs. UCP `payment_handlers`):** USP uses a flat `checkout_systems`
+> array for **discovery-time** compatibility only (which checkout paths the
+> business supports). Per-transaction amounts, line items, and metadata are in
+> [`PaymentContext`](#852-payment-context) on the payment action. Detailed PSP
+> configuration (instruments, handler schemas) is agreed **out of band** during
+> platform–business onboarding. Businesses that need to advertise richer payment
+> configuration **MAY** add vendor-defined entries under `capabilities` (see
+> [Section 2.5](#25-namespace-governance)).
 
 A business offering only free or pay-at-service services **MAY** omit
 `checkout_systems` entirely.
@@ -4110,7 +4396,7 @@ The `usp` object in a platform profile has the following fields:
 | Field          | Type   | Required | Description                                                                                                                              |
 |----------------|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------|
 | `version`      | string | **Yes**  | The highest USP protocol version the platform supports (`YYYY-MM-DD`).                                                                  |
-| `capabilities` | object | **Yes**  | Capabilities the platform can consume. Same key/value format as the business profile: reverse-domain keys → arrays of CapabilityEntry.  |
+| `capabilities` | object | **Yes**  | Capabilities the platform can consume. Same key/value format as the business profile: reverse-domain keys → arrays of **ProfileCapabilityEntry**. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`).  |
 | `services`     | object | No       | Service consumption preferences. Keys are reverse-domain service names; values list preferred transports in preference order.            |
 
 Platform profile hosting requirements are identical to business profile
@@ -4286,22 +4572,48 @@ process payment. The payment expiry deadline is carried on the action's
 | `currency`    | string            | **Yes**  | ISO 4217 currency code.                                                             |
 | `description` | string            | **Yes**  | Human-readable description of the payment.                                          |
 | `line_items`  | Array\[LineItem\] | **Yes**  | Itemized breakdown. Each item has `label`, `amount`, `quantity`, `item_id`.         |
-| `metadata`    | object            | **Yes**  | Machine-readable context: `booking_id`, `service_id`, `service_type`, `slot_start`. |
+| `tax_amount`  | integer           | No       | Tax portion of `amount_due` in minor units. When present, pre-tax subtotal is `amount_due - tax_amount`. |
+| `metadata`    | object            | **Yes**  | Machine-readable context: `booking_id`, `service_id`, `service_type`, optional `slot_start`. See [`schemas/booking.json`](schemas/booking.json) `$defs/PaymentContext`. |
+
+The `amount_due` is the total the buyer pays for this payment action. When
+`tax_amount` is present, checkout UIs **SHOULD** show a tax breakdown; line
+items provide further itemization.
 
 #### 8.5.3 Confirm Payment
 
 The `POST /bookings/{booking_id}/confirm-payment` endpoint (defined in [Section
-5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment)) is the 
-callback that the platform calls after successfully processing payment. 
+5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment)) is the
+callback that the platform calls after successfully processing payment.
 The business **MUST** validate the booking, amount, and currency, then
 complete the payment action. Per the status-actions invariant, if no pending
 actions remain, the booking transitions to `confirmed`; otherwise it stays in
 `requires_action`.
 
-#### 8.5.4 Generic Payment Flow
+Business outcome errors for this operation use the response-level `messages[]`
+array ([Section 9.1](#91-rest-binding), [Section 9.4](#94-error-code-mapping)).
+Normative codes include: `payment_expired` (payment action or booking expired),
+`payment_amount_mismatch` (`amount_paid` does not match `amount_due`),
+`actions_pending` (non-payment actions still pending), `booking_not_found`
+(unknown `booking_id`). Protocol errors use HTTP status codes and Problem
+Details, not `messages[]`.
 
-The generic payment flow uses the payment action's `payment_context` +
-`confirm-payment` pattern with any checkout system:
+> **Risk and fraud signals:** USP does **not** define a `signals` or risk object
+> on `confirm-payment` or `PaymentContext`. Fraud prevention and environment
+> signals (e.g., buyer IP, user agent) are the responsibility of the checkout
+> system or PSP that processes payment. Platforms **MAY** pass vendor-defined
+> fields inside `payment_result` if the business documents an extension contract.
+
+#### 8.5.4 Embedded and Generic Payment Flow
+
+When `checkout_systems` includes `embedded`, the platform processes payment
+**programmatically** using the `payment_context` from the payment action (no
+browser redirect to the business for payment, and no ACP session). This is the
+same `payment_context` + `confirm-payment` pattern as other Standalone paths;
+see [Section 8.6.2](#862-embedded-payment-flow-paid-service).
+
+The **generic** payment diagram below applies to embedded checkout and to any
+custom checkout integration that consumes `payment_context` off the USP payment
+action:
 
 ```mermaid
 sequenceDiagram
@@ -4336,6 +4648,28 @@ The platform extracts `payment_context` from the payment action in `actions[]` (
 the action with `type: payment`). The action's `expires_at` indicates the
 payment deadline.
 
+**Buyer-side escalation:** Every action includes a `continue_url`. When
+buyer-side steps are required (e.g., 3-D Secure) that the platform cannot
+complete via its PSP integration alone, the platform **SHOULD** send the buyer
+to that `continue_url` **regardless** of the declared `checkout_systems` value,
+then resume with `confirm-payment` after success. This aligns with UCP's
+`requires_escalation` + `continue_url` pattern using USP's action model.
+
+**Payment action expiry:** When a payment action's `expires_at` passes without
+`confirm-payment`, the business **SHOULD** set the action's `status` to
+`expired`. If no other pending actions remain, the booking **MUST** transition
+to `canceled` per [Section 5.2](#52-booking-schema) (booking expiry). The
+business **SHOULD** release any hold and **SHOULD** send `booking.canceled`. A
+late `confirm-payment` **MUST** return the canceled booking with `messages[]`
+code `payment_expired`. The payment action's `expires_at` **SHOULD** be no later
+than the booking's `expires_at` and no later than the slot hold's `expires_at`
+when a hold exists.
+
+**Payment abandonment:** If the buyer abandons payment, the platform **SHOULD**
+call `POST /bookings/{booking_id}/cancel`. Otherwise the booking expires as
+above. For `redirect`, the business **MUST** still return the buyer to
+`post_payment_return_request.url` when payment is cancelled or abandoned ([Section 8.5.5](#855-redirect-flow-and-post-payment-return)).
+
 #### 8.5.5 Redirect Flow and Post-Payment Return
 
 > **JSON Schema:** [/$defs/PostPaymentReturnRequest](schemas/booking.json)
@@ -4346,6 +4680,13 @@ Each action in the `actions` array includes a `continue_url` that links to a
 business-hosted page for completing that specific action. For payment actions,
 this is a payment page; for other action types, it may be a waiver form, intake
 questionnaire, or similar.
+
+Action `continue_url` values **MUST** use the `https://` scheme. Platforms **MUST**
+reject actions whose `continue_url` is not HTTPS. The URL is valid only until the
+action's `expires_at`; after expiry the business **MUST** serve an explicit error
+or explanation page (not a broken link). The URL **MUST** identify server-side
+session state; businesses **MUST NOT** encode sensitive payment or booking
+secrets in query parameters.
 
 The platform **SHOULD** redirect the buyer to an action's `continue_url` if it
 cannot process the action programmatically. For payment actions, this serves as
@@ -4391,8 +4732,9 @@ businesses that declare `checkout_systems: ["acp"]`.
 
 USP defines `dev.usp.services.booking` as a proper ACP extension using ACP's
 native `capabilities.extensions` mechanism with JSONPath-based `extends`
-declarations. This provides structured booking context within ACP checkout
-sessions.
+declarations. The extension adds a **`booking`** field to ACP's `CheckoutSession`
+response model (the same pattern as ACP's built-in extension fields such as
+`discounts`), carrying scheduling context from USP.
 
 **ACP Extension Declaration:**
 
@@ -4402,43 +4744,76 @@ sessions.
     "extensions": [
       {
         "name": "dev.usp.services.booking",
-        "version": "2026-02-09",
-        "extends": "$.checkout_session",
+        "extends": ["$.CheckoutSession.booking"],
         "spec": "https://usp.dev/specification#856-acp-booking-extension",
-        "schema": "https://usp.dev/schemas/services/acp_booking_extension.json"
+        "schema": "https://usp.dev/schemas/acp_booking_extension.json"
       }
     ]
   }
 }
 ```
 
+Versioning MAY use the `name@YYYY-MM-DD` suffix form (e.g.
+`dev.usp.services.booking@2026-02-09`) per ACP extension conventions.
+
+**Fulfillment options:** Scheduling services do not involve physical shipping.
+Platforms SHOULD pass an empty `fulfillment_options: []` array when creating the
+ACP checkout session. ACP requires this field; it need not be non-empty for
+service bookings.
+
 **ACP Checkout Session with USP Booking Extension:**
 
 ```json
 {
-  "items": [
+  "id": "cs_usp_001",
+  "status": "ready_for_payment",
+  "currency": "usd",
+  "line_items": [
     {
-      "id": "svc_massage_001",
-      "title": "Deep Tissue Massage",
-      "price": 12000,
-      "quantity": 1
+      "id": "li_001",
+      "item": {
+        "id": "svc_massage_001",
+        "name": "Deep Tissue Massage",
+        "unit_amount": 12000
+      },
+      "quantity": 1,
+      "totals": [
+        { "type": "subtotal", "display_text": "Subtotal", "amount": 12000 },
+        { "type": "total", "display_text": "Total", "amount": 12000 }
+      ]
     }
   ],
-  "total": 12000,
-  "currency": "USD",
-  "extensions": {
-    "dev.usp.services.booking": {
-      "booking_id": "bkg_456def",
-      "service_id": "svc_massage_001",
-      "service_type": "appointment",
-      "slot": {
-        "start": "2026-03-16T14:00:00-04:00",
-        "end": "2026-03-16T15:00:00-04:00"
+  "totals": [
+    { "type": "subtotal", "display_text": "Subtotal", "amount": 12000 },
+    { "type": "total", "display_text": "Total", "amount": 12000 }
+  ],
+  "fulfillment_options": [],
+  "messages": [],
+  "links": [],
+  "capabilities": {
+    "extensions": [
+      {
+        "name": "dev.usp.services.booking",
+        "extends": ["$.CheckoutSession.booking"]
       }
+    ]
+  },
+  "booking": {
+    "booking_id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "slot": {
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00"
     }
   }
 }
 ```
+
+The `slot` object carries `start` and `end` only (ISO 8601 datetimes). It is a
+simplified subset of USP's `SlotReference` (which also includes `id` and
+`duration`); the extension needs only enough context to identify the booking time
+range.
 
 **Payment flow:**
 
@@ -4446,28 +4821,48 @@ sessions.
    booking with `status: requires_action` and an `actions` array containing a
    payment action with `payment_context`.
 2. **[ACP] Create checkout session.** The platform maps the payment action's
-   `payment_context` to an ACP checkout session, including the
-   `dev.usp.services.booking` extension.
-3. **[ACP] Process payment.** ACP processes the payment through its agent-driven
-   payment flow.
-4. **[USP] Confirm payment.** The platform calls
-   `POST /bookings/{booking_id}/confirm-payment` with the ACP `transaction_id`
-   and `order_reference`.
+   `payment_context` to an ACP checkout session create/update request, negotiates
+   the `dev.usp.services.booking` extension, and populates the session **`booking`**
+   field from USP metadata.
+3. **[ACP] Process payment.** The platform runs ACP's agent-driven checkout flow:
+   discovering payment handlers, optionally delegating payment credentials,
+   submitting `payment_data` on `complete`, and handling payment interventions
+   (e.g. 3DS). See the [ACP specification](https://agenticcommerce.dev/) for the
+   full checkout lifecycle.
+4. **[USP] Confirm payment.** After ACP checkout completes, the response includes
+   an `order` object. The platform calls
+   `POST /bookings/{booking_id}/confirm-payment` with `payment_result` containing
+   the PSP **`transaction_id`** from the payment flow (ACP does not define a
+   single normative `transaction_id` field on the order; platforms use the PSP or
+   handler identifier), and **`order_reference`** from ACP **`order.id`** or
+   **`order.order_number`** when present.
 5. **[USP] Webhook notification.** The business sends a `booking.confirmed`
    webhook (if no other actions remain pending).
 
+**Deposit bookings:** When `payment_context.amount_due` reflects a deposit amount
+(see [Section 8.5.7](#857-deposit-and-refund-rules)), the ACP checkout session
+cart total reflects that deposit. The platform sends
+`payment_result.status: "deposit_paid"` on `confirm-payment`. The remainder is
+due at service time per the service's cancellation policy.
+
 **Line item mapping (USP payment action to ACP):**
 
-| USP `actions[type=payment].payment_context` Field | ACP Checkout Session Field                         |
-|---------------------------------------------------|----------------------------------------------------|
-| `line_items[].item_id`                            | `items[].id`                                       |
-| `line_items[].label`                              | `items[].title`                                    |
-| `line_items[].amount`                             | `items[].price`                                    |
-| `line_items[].quantity`                           | `items[].quantity`                                 |
-| `amount_due`                                      | `total`                                            |
-| `currency`                                        | `currency`                                         |
-| `metadata.booking_id`                             | `extensions.dev.usp.services.booking.booking_id`   |
-| `metadata.service_type`                           | `extensions.dev.usp.services.booking.service_type` |
+| USP `actions[type=payment].payment_context` Field | ACP Checkout Session Field |
+|---------------------------------------------------|----------------------------|
+| `line_items[].item_id` | `line_items[].item.id` |
+| `line_items[].label` | `line_items[].item.name` |
+| `line_items[].amount` | `line_items[].item.unit_amount` |
+| `line_items[].quantity` | `line_items[].quantity` |
+| `amount_due` | `totals` entry with `type: "total"` (see `amount`) |
+| `currency` | `currency` (lowercase per ACP) |
+| `metadata.booking_id` | `booking.booking_id` |
+| `metadata.service_id` | `booking.service_id` |
+| `metadata.service_type` | `booking.service_type` |
+| `metadata.slot_start` | `booking.slot.start` |
+
+**Currency convention:** ACP uses lowercase ISO 4217 codes (e.g. `"usd"`).
+Platforms MUST normalize USP's uppercase currency values when constructing the ACP
+session.
 
 #### 8.5.7 Deposit and Refund Rules
 
@@ -4486,7 +4881,25 @@ carried in `payment.amount` for informational purposes.
 
 ### 8.6 End-to-End Flows
 
+Subsections use the same structure as [Section 7.7](#77-end-to-end-flows)
+(UCP-Native Mode): preamble, sequence diagram, then JSON for each USP step.
+REST paths and envelopes are defined in [`openapi/usp-rest.json`](openapi/usp-rest.json);
+MCP tool mappings in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json).
+
+> See [Section 8.7](#87-payment-path-comparison) for a comparison of all payment
+> paths across both deployment modes.
+
 #### 8.6.1 Free Service Flow (Standalone)
+
+Same scheduling path as [Section 7.7.1](#771-free-service-flow-ucp-native); only
+discovery uses [`/.well-known/usp`](#82-business-profile-well-knownusp) instead
+of UCP.
+
+> **Applies when:** Standalone Mode. Service: `requires_payment: false`.
+> `checkout_systems` not required.
+
+> **JSON Schema:** [/$defs/Booking](schemas/booking.json). See
+> [Section 5.3.1](#531-create-booking---post-bookings).
 
 ```mermaid
 sequenceDiagram
@@ -4507,7 +4920,50 @@ sequenceDiagram
     Note over P,B: Done. No payment step needed.
 ```
 
-#### 8.6.2 Generic Payment Flow (Paid Service)
+**`POST /bookings` — request:**
+
+```json
+{
+  "service_id": "svc_yoga_free",
+  "slot_id": "slot_20260318_1000",
+  "hold_id": "hold_free_001",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1
+}
+```
+
+**`POST /bookings` — response (excerpt):**
+
+```json
+{
+  "booking": {
+    "id": "bkg_789ghi",
+    "service_id": "svc_yoga_free",
+    "status": "confirmed",
+    "confirmation_mode": "auto"
+  }
+}
+```
+
+#### 8.6.2 Embedded Payment Flow (Paid Service)
+
+When `checkout_systems` includes `embedded`, the platform charges the buyer
+using the `payment_context` from the payment action, then calls
+`confirm-payment`. No separate ACP session and no redirect-only path is required
+for this example.
+
+> **Applies when:** Standalone Mode. `checkout_systems` includes `"embedded"`.
+> Service: `requires_payment: true`, `payment_timing: at_booking`,
+> `confirmation_mode: auto`.
+
+> **JSON Schema:** [/$defs/Booking](schemas/booking.json), [/$defs/PaymentContext](schemas/booking.json).
+> Operations: [Section 5.3.1](#531-create-booking---post-bookings),
+> [Section 5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment).
 
 ```mermaid
 sequenceDiagram
@@ -4532,7 +4988,7 @@ sequenceDiagram
     end
 
     rect rgb(255, 243, 224)
-    Note over P,PSP: Checkout System
+    Note over P,PSP: Checkout System (embedded / programmatic)
     P->>CS: 5. Process payment (using payment_context from payment action)
     CS->>PSP: 6. Acquire + process token
     PSP-->>CS: Payment processed
@@ -4547,7 +5003,141 @@ sequenceDiagram
     end
 ```
 
-#### 8.6.3 ACP Payment Flow (Paid Service)
+**1. `POST /bookings` — request (no `post_payment_return_request`):**
+
+```json
+{
+  "service_id": "svc_massage_001",
+  "slot_id": "slot_20260316_1400",
+  "hold_id": "hold_xyz789",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1
+}
+```
+
+**2. `POST /bookings` — response (`requires_action`, payment action):**
+
+See [Section 5.3.1](#531-create-booking---post-bookings) for the full paid-service
+example; the booking has `actions[]` with `type: payment`, `payment_context`, and
+`continue_url`.
+
+**3. `POST /bookings/{booking_id}/confirm-payment` — request:**
+
+```json
+{
+  "payment_result": {
+    "status": "paid",
+    "provider": "stripe",
+    "transaction_id": "txn_abc123",
+    "amount_paid": 12000,
+    "currency": "USD",
+    "order_reference": "ord_xyz789"
+  }
+}
+```
+
+**4. `POST /bookings/{booking_id}/confirm-payment` — response (excerpt):**
+
+```json
+{
+  "booking": {
+    "id": "bkg_456def",
+    "status": "confirmed",
+    "payment": {
+      "status": "paid",
+      "timing": "at_booking",
+      "amount": 12000,
+      "currency": "USD",
+      "amount_due": 0,
+      "transaction_id": "txn_abc123"
+    }
+  }
+}
+```
+
+#### 8.6.3 Redirect Payment Flow (Paid Service)
+
+When `checkout_systems` includes `redirect`, the buyer **MAY** complete payment on
+the business-hosted page at the payment action's `continue_url`. The platform
+**SHOULD** send `post_payment_return_request` on `POST /bookings` so the business
+can return the buyer to the platform after pay, cancel, or abandon.
+
+> **Applies when:** Standalone Mode. `checkout_systems` includes `"redirect"`.
+> Service: `requires_payment: true`, `payment_timing: at_booking`,
+> `confirmation_mode: auto`.
+
+> **JSON Schema:** [/$defs/PostPaymentReturnRequest](schemas/booking.json),
+> [/$defs/Booking](schemas/booking.json).
+
+```mermaid
+sequenceDiagram
+    participant P as Platform
+    participant Br as BuyerBrowser
+    participant B as Business
+    participant CS as CheckoutSystem
+
+    rect rgb(230, 245, 255)
+    Note over P,B: USP — Booking
+    P->>B: POST /bookings (includes post_payment_return_request)
+    B-->>P: booking (requires_action, continue_url)
+    end
+
+    rect rgb(255, 243, 224)
+    Note over P,Br: Redirect checkout
+    P->>Br: Open continue_url (business payment page)
+    Br->>B: Complete or abandon payment
+    B->>Br: Redirect GET to post_payment_return_request.url + params
+    Br->>P: Return to platform
+    end
+
+    rect rgb(230, 245, 255)
+    Note over P,B: USP — confirm-payment
+    P->>B: confirm-payment (payment_result)
+    B-->>P: booking (confirmed)
+    end
+```
+
+**1. `POST /bookings` — request (with return URL):**
+
+```json
+{
+  "service_id": "svc_massage_001",
+  "slot_id": "slot_20260316_1400",
+  "hold_id": "hold_xyz789",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com"
+  },
+  "party_size": 1,
+  "post_payment_return_request": {
+    "url": "https://platform.example.com/booking/return",
+    "params": { "session_id": "plat-sess-abc123" }
+  }
+}
+```
+
+**2–4.** Response and `confirm-payment` match [Section 8.6.2](#862-embedded-payment-flow-paid-service);
+the payment action's `continue_url` is the business payment page per
+[Section 8.5.5](#855-redirect-flow-and-post-payment-return).
+
+#### 8.6.4 ACP Payment Flow (Paid Service)
+
+When `checkout_systems` includes `acp`, the platform maps the USP payment action
+to an ACP checkout session (including `dev.usp.services.booking`), then confirms
+via USP `confirm-payment`. See [Section 8.5.6](#856-acp-booking-extension).
+
+> **Applies when:** Standalone Mode. `checkout_systems` includes `"acp"`.
+> Service: `requires_payment: true`, `payment_timing: at_booking`,
+> `confirmation_mode: auto`.
+
+> **JSON:** USP booking — [schemas/booking.json](schemas/booking.json). ACP
+> session shape — [Section 8.5.6](#856-acp-booking-extension) and ACP docs.
 
 ```mermaid
 sequenceDiagram
@@ -4564,25 +5154,100 @@ sequenceDiagram
 
     rect rgb(255, 243, 224)
     Note over P,PSP: ACP Checkout
-    P->>ACP: 5. Create checkout session (payment_context from payment action + dev.usp.services.booking extension)
+    P->>ACP: 5. Create checkout session (payment_context + booking extension)
     ACP->>PSP: 6. Process payment
     PSP-->>ACP: Payment processed
-    ACP-->>P: Payment result (transaction_id, order_reference)
+    ACP-->>P: 7. Completed session (order)
     end
 
     rect rgb(230, 245, 255)
     Note over P,PSP: USP — Confirmation
-    P->>B: 7. confirm-payment (payment_result)
+    P->>B: 8. confirm-payment (payment_result)
     B-->>P: Booking (status: confirmed)
-    B-->>P: 8. webhook: booking.confirmed
+    B-->>P: 9. webhook: booking.confirmed
     end
 ```
 
-#### 8.6.4 Deposit Flow (Paid Service)
+**ACP checkout session (excerpt, after mapping from `payment_context`):**
 
-A paid booking with `deposit_required` using the generic path. The key
-difference from the full-payment flow is that the payment action's
-`payment_context.amount_due` reflects only the deposit amount:
+```json
+{
+  "id": "cs_usp_001",
+  "status": "ready_for_payment",
+  "currency": "usd",
+  "line_items": [
+    {
+      "id": "li_001",
+      "item": {
+        "id": "svc_massage_001",
+        "name": "Deep Tissue Massage",
+        "unit_amount": 12000
+      },
+      "quantity": 1,
+      "totals": [
+        { "type": "subtotal", "display_text": "Subtotal", "amount": 12000 },
+        { "type": "total", "display_text": "Total", "amount": 12000 }
+      ]
+    }
+  ],
+  "totals": [
+    { "type": "subtotal", "display_text": "Subtotal", "amount": 12000 },
+    { "type": "total", "display_text": "Total", "amount": 12000 }
+  ],
+  "fulfillment_options": [],
+  "messages": [],
+  "links": [],
+  "capabilities": {
+    "extensions": [
+      {
+        "name": "dev.usp.services.booking",
+        "extends": ["$.CheckoutSession.booking"]
+      }
+    ]
+  },
+  "booking": {
+    "booking_id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "slot": {
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00"
+    }
+  }
+}
+```
+
+**`confirm-payment`** uses `order_reference` from the ACP order (`order.id` or
+`order.order_number`) when present, and `transaction_id` from the PSP or payment
+handler result.
+
+#### 8.6.5 Deposit Flow (Paid Service)
+
+A paid booking with `payment_timing: deposit_required`. The payment action's
+`payment_context.amount_due` is the deposit; `payment.amount` carries the full
+service price. Example uses `checkout_systems` including `embedded`; other
+checkout systems follow the same USP steps.
+
+> **Applies when:** Standalone Mode. Service: `requires_payment: true`,
+> `payment_timing: deposit_required`, `confirmation_mode: auto`.
+
+```mermaid
+sequenceDiagram
+    participant P as Platform
+    participant B as Business
+    participant CS as Checkout System
+    participant PSP as Payment Service Provider
+
+    P->>B: 1-4. Discover, query, hold, create booking
+    B-->>P: requires_action (payment_context.amount_due = deposit)
+    P->>CS: 5. Process deposit payment
+    CS->>PSP: Charge deposit
+    PSP-->>CS: OK
+    P->>B: 6. confirm-payment (status: deposit_paid)
+    B-->>P: booking confirmed (deposit paid)
+```
+
+**`POST /bookings` — response (excerpt):**
 
 ```json
 {
@@ -4628,18 +5293,38 @@ difference from the full-payment flow is that the payment action's
 }
 ```
 
-The platform processes the deposit through the available checkout system, then
-calls `confirm-payment` with `status: deposit_paid`. The remainder is due at
-service time.
+**`confirm-payment` — request (deposit):**
 
-#### 8.6.5 Comparison of Payment Paths
+```json
+{
+  "payment_result": {
+    "status": "deposit_paid",
+    "provider": "stripe",
+    "transaction_id": "txn_dep_001",
+    "amount_paid": 6000,
+    "currency": "USD",
+    "order_reference": "ord_dep_001"
+  }
+}
+```
 
-|                     | Free Service | Generic Path                      | ACP Path                          | Deposit Flow                      |
-|---------------------|--------------|-----------------------------------|-----------------------------------|-----------------------------------|
-| **USP calls**       | 4            | 4 + confirm-payment + webhook     | 4 + confirm-payment + webhook     | 4 + confirm-payment + webhook     |
-| **Checkout calls**  | None         | Depends on system (1-3)           | 1-2 (create session + process)    | Depends on system (1-3)           |
-| **Atomicity**       | N/A          | Two-phase (checkout then confirm) | Two-phase (checkout then confirm) | Two-phase (checkout then confirm) |
-| **Checkout system** | None         | Any                               | ACP                               | Any                               |
+The remainder of the service price is due at service time per
+[Section 8.5.7](#857-deposit-and-refund-rules).
+
+### 8.7 Payment Path Comparison
+
+This section compares **all** payment paths across [UCP-Native Mode](#7-ucp-native-mode)
+and [Standalone Mode](#8-standalone-mode). Detailed JSON and diagrams appear in
+[Section 7.7](#77-end-to-end-flows) and [Section 8.6](#86-end-to-end-flows).
+
+| Aspect | Free Service | UCP Checkout | Embedded | Redirect | ACP | Deposit |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Deployment mode** | Both ([§7.7.1](#771-free-service-flow-ucp-native), [§8.6.1](#861-free-service-flow-standalone)) | UCP-Native ([§7.7.2](#772-paid-service-flow-ucp-checkout)) | Standalone ([§8.6.2](#862-embedded-payment-flow-paid-service)) | Standalone ([§8.6.3](#863-redirect-payment-flow-paid-service)) | Standalone ([§8.6.4](#864-acp-payment-flow-paid-service)) | Standalone ([§8.6.5](#865-deposit-flow-paid-service)) |
+| **USP scheduling steps** | List / query / hold / create booking | List / query / hold / (checkout replaces create booking) | List / query / hold / create booking | Same as Embedded | Same as Embedded | Same as Embedded |
+| **Payment mechanism** | None | UCP `create_checkout` + `complete_checkout` | `payment_context` + `confirm-payment` | Same + browser `continue_url` + `post_payment_return_request` | ACP session + `confirm-payment` | `confirm-payment` with `deposit_paid` |
+| **Checkout calls** | None | UCP | Platform PSP | Business page + PSP | ACP + PSP | Platform or redirect PSP |
+| **Atomicity** | N/A | Single UCP transaction at `complete_checkout` | Two-phase (pay then confirm) | Two-phase | Two-phase | Two-phase (deposit now) |
+| **Buyer redirect** | No | Per UCP escalation | Optional (`continue_url`) | Yes (payment or return URL) | Per ACP | Optional |
 
 ---
 

@@ -123,6 +123,9 @@
       "CapabilityEntry": {
         "$ref": "../schemas/usp.json#/$defs/CapabilityEntry"
       },
+      "ProfileCapabilityEntry": {
+        "$ref": "../schemas/usp.json#/$defs/ProfileCapabilityEntry"
+      },
       "BusinessProfile": {
         "$ref": "../schemas/profile.json#/$defs/BusinessProfile"
       },
