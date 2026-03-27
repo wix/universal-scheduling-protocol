@@ -67,7 +67,13 @@
         },
         "booking_status": {
           "type": "string",
-          "description": "pending while checkout is incomplete; confirmed when complete_checkout succeeds (response only)."
+          "enum": ["pending", "confirmed", "canceled"],
+          "description": "Checkout-scoped status: pending, confirmed, or canceled. Derived from UCP checkout status (see USP specification Section 7.5). Distinct from full Booking.status in booking.json. Response only."
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BookingContextAction" },
+          "description": "Non-payment actions the buyer must complete before payment (e.g., waiver). Payment actions are not used; payment is via UCP checkout."
         },
         "notes": {
           "type": "string",
@@ -82,6 +88,34 @@
             "email": { "type": "string", "format": "email" },
             "phone_number": { "type": "string" }
           }
+        }
+      }
+    },
+    "BookingContextAction": {
+      "type": "object",
+      "title": "BookingContextAction",
+      "description": "Non-payment action for UCP checkout booking context. Same shape as booking.json Action without payment_context.",
+      "required": ["type", "status", "continue_url", "expires_at"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Action type identifier (e.g., waiver, intake_form)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed", "expired"]
+        },
+        "continue_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to complete this action."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "message": {
+          "$ref": "booking.json#/$defs/Message"
         }
       }
     },

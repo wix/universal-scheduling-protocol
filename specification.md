@@ -2701,6 +2701,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 
 #### 5.4.1 Booking Webhooks
 
+> **JSON Schema:** [`schemas/webhook_event.json`](schemas/webhook_event.json) (`$defs/BookingEvent`). OpenAPI: [`openapi/usp-rest.json`](openapi/usp-rest.json) `webhooks.bookingEvent`.
+
 | Event                      | Trigger                                                  |
 |----------------------------|----------------------------------------------------------|
 | `booking.confirmed`        | Business confirms (manual mode) or payment completes     |
@@ -2718,14 +2720,18 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | Field          | Type    | Required | Description                                                                                                                                                                                                               |
 |----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `event`        | string  | **Yes**  | Event type (e.g., `booking.confirmed`, `booking.canceled`).                                                                                                                                                               |
+| `event_id`     | string  | **Yes**  | Unique event identifier. Platforms **MUST** use this for idempotent processing ([Section 9.2.3](#923-webhook-notifications)).                                                                                        |
 | `booking_id`   | string  | **Yes**  | The booking this event relates to.                                                                                                                                                                                        |
+| `order_id`     | string  | No       | UCP order ID. **SHOULD** be included when the booking was created via [UCP-Native Mode](#7-ucp-native-mode) checkout.                                                                                                  |
 | `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
 | `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). |
 
 ```json
 {
   "event": "booking.confirmed",
+  "event_id": "evt_789abc",
   "booking_id": "bkg_456def",
+  "order_id": "ord_ucp_001",
   "timestamp": "2026-03-15T09:00:00Z",
   "data": {
     "id": "bkg_456def",
@@ -2753,6 +2759,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 
 #### 5.4.2 Catalog Change Webhooks
 
+> **JSON Schema:** [`schemas/webhook_event.json`](schemas/webhook_event.json) (`$defs/CatalogEvent`). OpenAPI: [`openapi/usp-rest.json`](openapi/usp-rest.json) `webhooks.catalogEvent`.
+
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
 provides a push-based complement to the pull-based service catalog
 feed ([Section 3.1](#31-service-catalog-feed)). Catalog webhooks ride on the
@@ -2771,6 +2779,7 @@ flow) defined in [Section 10.1.1](#1011-webhook-security).
 | Field             | Type    | Required | Description                                                                                                                        |
 |-------------------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------|
 | `event`           | string  | **Yes**  | Event type (e.g., `service.created`, `service.updated`, `service.deleted`, `service.suspended`).                                   |
+| `event_id`        | string  | **Yes**  | Unique event identifier for idempotent processing.                                                                                  |
 | `service_id`      | string  | **Yes**  | The service this event relates to.                                                                                                 |
 | `subscription_id` | string  | **Yes**  | The subscription that triggered this notification.                                                                                 |
 | `timestamp`       | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                     |
@@ -2779,7 +2788,10 @@ flow) defined in [Section 10.1.1](#1011-webhook-security).
 ```json
 {
   "event": "service.updated",
+  "event_id": "evt_catalog_001",
   "service_id": "svc_haircut_001",
+  "subscription_id": "sub_feed_001",
+  "timestamp": "2026-03-15T14:30:00Z",
   "data": {
     "id": "svc_haircut_001",
     "business_id": "biz_glamour_salon_nyc",
@@ -2790,8 +2802,7 @@ flow) defined in [Section 10.1.1](#1011-webhook-security).
       "currency": "USD"
     },
     "...": "full service object"
-  },
-  "timestamp": "2026-03-15T14:30:00Z"
+  }
 }
 ```
 
@@ -3418,6 +3429,14 @@ other UCP capabilities:
 }
 ```
 
+**Mixed product and service checkout:** A single UCP checkout session contains
+exactly one `booking` object (this extension). The checkout **MAY** include
+additional product-only `line_items` (UCP shopping) alongside the line item that
+corresponds to the booked service. The service line item in `line_items` **MUST**
+match `booking.service_id`. This supports mixed carts (e.g., retail product plus
+a scheduled service). See [`schemas/paid_bookings.json`](schemas/paid_bookings.json)
+and [UCP checkout `line_items`](https://ucp.dev/latest/specification/checkout/#line-item).
+
 ### 7.3 Inherited Infrastructure
 
 In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
@@ -3530,7 +3549,7 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
     }
   },
   "id": "chk_abc123",
-  "status": "incomplete",
+  "status": "ready_for_complete",
   "line_items": [
     {
       "id": "li_1",
@@ -3540,6 +3559,16 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
         "price": 12000
       },
       "quantity": 1
+    }
+  ],
+  "links": [
+    {
+      "type": "cancellation_policy",
+      "url": "https://business.example.com/cancellation-policy"
+    },
+    {
+      "type": "terms_of_service",
+      "url": "https://business.example.com/terms"
     }
   ],
   "booking": {
@@ -3563,13 +3592,23 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
     "booking_status": "pending",
     "confirmation_mode": "auto"
   },
-  "totals": {
-    "subtotal": 12000,
-    "total": 12000,
-    "currency": "USD"
-  }
+  "totals": [
+    { "type": "subtotal", "amount": 12000 },
+    { "type": "total", "amount": 12000 }
+  ]
 }
 ```
+
+The `totals` field follows the [UCP Total](https://ucp.dev/latest/specification/checkout/#total)
+shape and [UCP checkout](https://ucp.dev/schemas/shopping/checkout.json) schema.
+The `links` array follows the [Link](https://ucp.dev/latest/specification/checkout/#link)
+type; see [Well-Known Link Types](https://ucp.dev/latest/specification/checkout/#well-known-link-types).
+
+**Price consistency:** `line_items[].item.price` **MUST** match the service's
+current catalog price from [Section 3](#3-service-catalog). If the business
+detects a mismatch at `create_checkout` or `update_checkout`, it **MUST** return
+a business outcome message with code `price_mismatch` and severity `recoverable`
+([Section 9.4](#94-error-code-mapping)).
 
 **Booking object fields within checkout:**
 
@@ -3583,10 +3622,43 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
 | `resources`         | Array\[object\] | No                      | `{id, type, name}` - requested resources.                                              |
 | `party_size`        | integer         | No                      | Number of participants. Default: 1.                                                    |
 | `confirmation_mode` | string          | No                      | `auto` or `manual`.                                                                    |
-| `booking_status`    | string          | **Yes** (response only) | `pending` while checkout is incomplete; `confirmed` when `complete_checkout` succeeds. |
+| `booking_status`    | string          | **Yes** (response only) | Checkout-scoped status: `pending`, `confirmed`, or `canceled`. Derived from the UCP checkout status per [Section 7.5](#75-checkout-flow-and-atomicity-guarantee). Not the same as full [`Booking.status`](#51-booking-status-lifecycle). |
+| `actions`           | Array\[Action\] | No                      | Non-payment actions (e.g., waiver). **MAY** appear when [`create_checkout`](https://ucp.dev/latest/specification/checkout/#create-checkout) requires buyer steps before payment. Payment is via UCP only. See [Section 5.2](#52-booking-schema). |
 | `notes`             | string          | No                      | Buyer-provided special requests.                                                       |
 
 ### 7.5 Checkout Flow and Atomicity Guarantee
+
+**`BookingContext.booking_status` vs `Booking.status`:** The `booking_status`
+field inside the checkout's `booking` object ([Section 7.4](#74-paid-bookings-extension-schema),
+[`schemas/paid_bookings.json`](schemas/paid_bookings.json)) is a **checkout-scoped**
+summary with values `pending`, `confirmed`, or `canceled`. It is **not** the same
+as the full [`Booking.status`](#51-booking-status-lifecycle) lifecycle in
+[Section 5.1](#51-booking-status-lifecycle) (`pending`, `requires_action`,
+`confirmed`, `in_progress`, `completed`, `no_show`, `canceled`). Non-payment
+actions are represented by the `actions` array on the booking context; the
+protocol **SHOULD** resolve them before payment ([step 5](#75-checkout-flow-and-atomicity-guarantee) and
+[`actions_pending`](#94-error-code-mapping)). After checkout completes, the
+retrieved booking from `GET /bookings/{booking_id}` uses the full Section 5.1
+lifecycle.
+
+**Derivation from UCP checkout status:** `BookingContext.booking_status` is
+derived from the UCP checkout `status` (see [UCP Checkout Status Lifecycle](https://ucp.dev/latest/specification/checkout/#checkout-status-lifecycle)
+and [UCP Status Values](https://ucp.dev/latest/specification/checkout/#status-values)):
+
+1. When the checkout reaches **`completed`**: `booking_status` becomes `confirmed`
+   when `confirmation_mode` is `auto`, or remains `pending` awaiting business
+   approval when `confirmation_mode` is `manual`.
+2. When the checkout reaches **`canceled`**: `booking_status` becomes `canceled`.
+3. **For all other checkout statuses**: `booking_status` remains `pending`.
+
+Only the terminal UCP checkout statuses `completed` and `canceled` change
+`booking_status`; any intermediate status (current or future UCP values) maps to
+`pending` under rule 3.
+
+*Informational (non-normative): As of UCP version 2026-01-11, statuses that map to
+`pending` via rule 3 include `incomplete`, `ready_for_complete`,
+`requires_escalation`, and `complete_in_progress`. See [UCP Status Values](https://ucp.dev/latest/specification/checkout/#status-values)
+for the authoritative list.*
 
 When the platform detects `dev.usp.services.paid_bookings` in the business's UCP
 profile, it uses this flow:
@@ -3598,9 +3670,19 @@ profile, it uses this flow:
 4. **[UCP] Create checkout** with the booking extension (including `hold_id` if
    step 3 was performed). The business validates the booking context, creates a
    pending booking, and returns the checkout with payment handlers. No separate
-   `create_booking` call. No `update_checkout` round-trip. The booking inside
-   the checkout response **MAY** include an `actions` array with non-payment
-   actions (e.g., a liability waiver).
+   `create_booking` call. The booking inside the checkout response **MAY** include
+   an `actions` array with non-payment actions (e.g., a liability waiver).
+
+   When `create_checkout` includes all required buyer, line item, and booking
+   fields, the business **SHOULD** return checkout `status: ready_for_complete`
+   so the platform can proceed without an extra round-trip. When required fields
+   are missing or [UCP `messages`](https://ucp.dev/latest/specification/checkout/#error-handling)
+   have severity `recoverable` or `requires_buyer_input`, the business **MAY**
+   return `status: incomplete`; the platform **MUST** then use
+   [`update_checkout`](https://ucp.dev/latest/specification/checkout/#update-checkout)
+   to supply missing data. [`get_checkout`](https://ucp.dev/latest/specification/checkout/#get-checkout)
+   **MAY** be used to poll checkout state (for example after buyer-side
+   escalation completes).
 5. *(If non-payment actions are present)* **[USP] Complete non-payment actions.
    ** The platform presents actions to the buyer in array order and calls the
    appropriate action-completion endpoints. Non-payment actions **SHOULD** be
@@ -3608,24 +3690,42 @@ profile, it uses this flow:
 6. **[UCP] Acquire payment token** from the PSP using handler configuration from
    the checkout response.
 7. **[UCP] Complete checkout** with the payment token. The business
-   atomically: (a) processes the payment with the PSP, (b) transitions the
-   booking from `pending` to `confirmed` (if no actions remain pending), and (c)
-   returns the completed checkout with the `order_id` and confirmed
-   `booking_status`.
+   atomically: (a) processes the payment with the PSP, (b) transitions
+   `BookingContext.booking_status` per the derivation rules above (to `confirmed`
+   when `confirmation_mode` is `auto` and no non-payment actions remain pending;
+   payment collected with `booking_status` remaining `pending` when
+   `confirmation_mode` is `manual`), and (c) returns the completed checkout with
+   the `order_id` and updated `booking_status`.
+
 8. **[USP] Webhook notification.** The business sends a `booking.confirmed`
-   webhook.
+   webhook (when the booking becomes confirmed) or defers it until manual
+   confirmation when `confirmation_mode` is `manual`. The webhook payload
+   **SHOULD** include the UCP `order_id` in an `order_id` field alongside
+   `booking_id` so platforms can correlate USP bookings with UCP orders.
+   Webhook delivery is best-effort and asynchronous; it is **not** part of the
+   atomic `complete_checkout` transaction. Platforms **SHOULD** use
+   [`get_checkout`](https://ucp.dev/latest/specification/checkout/#get-checkout)
+   or `GET /bookings/{booking_id}` as the source of truth rather than relying
+   solely on webhooks. See [Section 5.4.1](#541-booking-webhooks).
 
 For the full specification of `create_checkout`, `complete_checkout`, and
-payment handlers, see
-the [UCP Specification](https://ucp.dev/latest/specification/overview/).
+payment handlers, see the [UCP Specification](https://ucp.dev/latest/specification/overview/)
+and [Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
 
 **Atomicity guarantee:** When `complete_checkout` succeeds, the business **MUST
 ** have atomically:
 
 1. Processed the payment with the PSP.
-2. Transitioned the booking from `pending` to `confirmed` (if no non-payment
-   actions remain pending).
+2. Updated `BookingContext.booking_status` per the derivation rules: to
+   `confirmed` when `confirmation_mode` is `auto` (and no non-payment actions
+   remain pending), or retained `pending` with payment collected when
+   `confirmation_mode` is `manual` (the business confirms the booking later via
+   `POST /bookings/{booking_id}/confirm` or cancels).
 3. Released the slot hold (if any).
+
+When `confirmation_mode` is `manual`, after successful payment the business
+**MUST** allow the buyer's booking to be completed or rejected via USP booking
+operations; the business **SHOULD** send `booking.confirmed` upon approval.
 
 If payment processing fails, the booking **MUST** remain in `pending` status and
 the checkout **MUST** return an appropriate error. No partial state changes are
@@ -3634,6 +3734,28 @@ permitted.
 If the booking cannot be confirmed (e.g., hold expired between `create_checkout`
 and `complete_checkout`), the business **MUST NOT** process the payment and *
 *MUST** return a `slot_unavailable` error.
+
+**Checkout `expires_at` and holds:** The checkout session's `expires_at` **SHOULD**
+be no later than the slot hold's `expires_at` when a hold is in use. If the
+hold expires before checkout completes, the business **MUST** return
+`slot_unavailable` from `complete_checkout` and **MUST NOT** process payment.
+
+**Buyer-side escalation and `continue_url`:** When the UCP checkout requires
+buyer-side intervention after [`complete_checkout`](https://ucp.dev/latest/specification/checkout/#complete-checkout)
+(e.g., 3-D Secure), the response **MAY** include a [`continue_url`](https://ucp.dev/latest/specification/checkout/#continue-url);
+the platform **MUST** present it to the buyer. `BookingContext.booking_status`
+remains `pending` until the checkout reaches a terminal status. After the buyer
+completes the external step, the platform **SHOULD** call
+[`get_checkout`](https://ucp.dev/latest/specification/checkout/#get-checkout)
+to refresh state. If escalation fails or times out, the platform **MAY** call
+[`cancel_checkout`](https://ucp.dev/latest/specification/checkout/#cancel-checkout).
+
+**Cancel checkout:** When the business processes
+[`cancel_checkout`](https://ucp.dev/latest/specification/checkout/#cancel-checkout)
+(see [UCP Checkout REST](https://ucp.dev/latest/specification/checkout-rest/)),
+it **MUST** atomically: transition the checkout to `canceled`, transition the
+pending booking to `canceled` (derivation rule 2), and release the slot hold if
+any. The business **SHOULD** send a `booking.canceled` webhook.
 
 **Non-payment actions and `complete_checkout`:** The business **MAY** reject
 `complete_checkout` if non-payment actions are still pending. The rejection is
@@ -3732,7 +3854,7 @@ sequenceDiagram
 5. **[UCP] Acquire payment token** from the PSP.
 6. **[UCP] Complete checkout** - atomic payment + booking confirmation.
 7. **[USP] Webhook notification.** The business sends a `booking.confirmed`
-   webhook.
+   webhook; the payload **SHOULD** include `order_id` for UCP correlation ([Section 5.4.1](#541-booking-webhooks)).
 
 ---
 
@@ -4906,6 +5028,8 @@ Protocol errors (e.g., malformed requests, authentication failures) use the JSON
 
 Booking lifecycle events are delivered as webhook notifications. This section specifies delivery semantics for all USP transports.
 
+**Payload schemas:** [`schemas/webhook_event.json`](schemas/webhook_event.json) defines `BookingEvent` and `CatalogEvent`. The REST binding documents outbound webhook POST bodies under `webhooks` in [`openapi/usp-rest.json`](openapi/usp-rest.json). The MCP binding exposes the same shapes as `BookingWebhookEvent` and `CatalogWebhookEvent` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.schemas` for validators and tooling (notifications use method `usp_webhook` per the examples below).
+
 **Delivery semantics:** USP webhooks use **at-least-once** delivery. Platforms **MUST** handle duplicate events idempotently (e.g., by tracking `event_id`).
 
 **Retry behavior:** Businesses **SHOULD** retry failed deliveries (non-2xx response or timeout) with exponential backoff: initial delay 30 seconds, maximum 3 retries, maximum total delay 15 minutes. After all retries are exhausted, the business **SHOULD** log the failure and **MAY** surface it via a monitoring API.
@@ -4928,7 +5052,9 @@ Booking lifecycle events are delivered as webhook notifications. This section sp
     "event": "booking.confirmed",
     "event_id": "evt_789abc",
     "booking_id": "bkg_456def",
-    "timestamp": "2026-03-14T22:06:00Z"
+    "order_id": "ord_ucp_001",
+    "timestamp": "2026-03-14T22:06:00Z",
+    "data": { "...": "full booking object per schemas/webhook_event.json" }
   }
 }
 ```
@@ -4947,8 +5073,9 @@ Signature: sig1=:MEUCIQDTxNq8h7LGHpvVZQp1iHkFp9...:
   "event": "booking.confirmed",
   "event_id": "evt_789abc",
   "booking_id": "bkg_456def",
+  "order_id": "ord_ucp_001",
   "timestamp": "2026-03-14T22:06:00Z",
-  "booking": { "..." : "..." }
+  "data": { "..." : "full booking object" }
 }
 ```
 
@@ -5148,6 +5275,7 @@ Business outcome errors are returned in the `messages[]` array of the response o
 | `payment_expired`          | The payment context has expired; booking was canceled                                                                                                                           | `200 OK`    | `recoverable`           |
 | `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `requires_buyer_input`  |
 | `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `requires_buyer_input`  |
+| `price_mismatch`           | Line item price does not match the service's current catalog price (e.g., at UCP `create_checkout` / `update_checkout`).                                                          | `200 OK`    | `recoverable`           |
 
 **Protocol errors** (use standard HTTP status codes and JSON-RPC error codes):
 
