@@ -3663,6 +3663,28 @@
           }
         }
       }
+    },
+    "waitlistEvent": {
+      "post": {
+        "operationId": "usp_waitlist_webhook",
+        "summary": "Waitlist lifecycle webhook",
+        "description": "The business POSTs waitlist lifecycle events to the platform's registered webhook_url (Section 8.2.3) when the dev.usp.services.waitlist capability is in use. Payloads MUST be signed per Section 10.1.1. Not an endpoint the business exposes for inbound client calls — describes the shape of outbound POST requests from business to platform.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/webhook_event.json#/$defs/WaitlistEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event received and acknowledged"
+          }
+        }
+      }
     }
   }
 }
