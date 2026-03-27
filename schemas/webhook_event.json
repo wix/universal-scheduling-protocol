@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usp.dev/schemas/services/webhook_event.json",
+  "title": "USP Webhook Events",
+  "description": "Webhook payloads for USP booking and catalog lifecycle notifications. Businesses POST these to the platform webhook_url; payloads MUST be signed per Section 10.1.1.",
+  "$defs": {
+    "BookingEvent": {
+      "type": "object",
+      "title": "BookingEvent",
+      "description": "Booking lifecycle webhook payload (REST body or MCP usp_webhook params).",
+      "required": ["event", "event_id", "booking_id", "timestamp"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": [
+            "booking.confirmed",
+            "booking.canceled",
+            "booking.rescheduled",
+            "booking.reminder",
+            "booking.completed",
+            "booking.no_show",
+            "booking.refund_issued",
+            "booking.dispute_opened",
+            "booking.dispute_resolved"
+          ],
+          "description": "Booking lifecycle event type."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Unique event identifier. Platforms MUST process deliveries idempotently using event_id."
+        },
+        "booking_id": {
+          "type": "string",
+          "description": "The booking this event relates to."
+        },
+        "order_id": {
+          "type": "string",
+          "description": "UCP order ID when the booking was created via UCP-Native Mode checkout. SHOULD be included for correlation."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 time when the event occurred."
+        },
+        "data": {
+          "$ref": "booking.json#/$defs/Booking",
+          "description": "Full booking object. SHOULD be included except as noted in Section 5.4.1."
+        }
+      }
+    },
+    "CatalogEvent": {
+      "type": "object",
+      "title": "CatalogEvent",
+      "description": "Catalog change webhook payload.",
+      "required": ["event", "event_id", "service_id", "subscription_id", "timestamp"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": [
+            "service.created",
+            "service.updated",
+            "service.deleted",
+            "service.suspended"
+          ],
+          "description": "Catalog lifecycle event type."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Unique event identifier."
+        },
+        "service_id": {
+          "type": "string",
+          "description": "The service this event relates to."
+        },
+        "subscription_id": {
+          "type": "string",
+          "description": "The feed subscription that triggered this notification."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 time when the event occurred."
+        },
+        "data": {
+          "$ref": "catalog.json#/$defs/Service",
+          "description": "Full service object for created and updated events."
+        }
+      }
+    }
+  }
+}
