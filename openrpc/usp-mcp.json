@@ -3303,6 +3303,12 @@
     ],
     "components": {
         "schemas": {
+            "BookingWebhookEvent": {
+                "$ref": "../schemas/webhook_event.json#/$defs/BookingEvent"
+            },
+            "CatalogWebhookEvent": {
+                "$ref": "../schemas/webhook_event.json#/$defs/CatalogEvent"
+            },
             "RegistryContext": {
                 "$ref": "../schemas/registry.json#/$defs/RegistryContext"
             },
