@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://usp.dev/schemas/services/webhook_event.json",
   "title": "USP Webhook Events",
-  "description": "Webhook payloads for USP booking and catalog lifecycle notifications. Businesses POST these to the platform webhook_url; payloads MUST be signed per Section 10.1.1.",
+  "description": "Webhook payloads for USP booking, catalog, and waitlist lifecycle notifications. Businesses POST these to the platform webhook_url; payloads MUST be signed per Section 10.1.1.",
   "$defs": {
     "BookingEvent": {
       "type": "object",
@@ -21,7 +21,9 @@
             "booking.no_show",
             "booking.refund_issued",
             "booking.dispute_opened",
-            "booking.dispute_resolved"
+            "booking.dispute_resolved",
+            "booking.service_started",
+            "booking.service_updated"
           ],
           "description": "Booking lifecycle event type."
         },
@@ -44,7 +46,7 @@
         },
         "data": {
           "$ref": "booking.json#/$defs/Booking",
-          "description": "Full booking object. SHOULD be included except as noted in Section 5.4.1."
+          "description": "Full booking object. SHOULD be included except as noted in Sections 5.4.1 and 5.5.3."
         }
       }
     },
@@ -84,6 +86,45 @@
         "data": {
           "$ref": "catalog.json#/$defs/Service",
           "description": "Full service object for created and updated events."
+        }
+      }
+    },
+    "WaitlistEvent": {
+      "type": "object",
+      "title": "WaitlistEvent",
+      "description": "Waitlist lifecycle webhook payload (REST body or MCP usp_webhook params when the dev.usp.services.waitlist capability is in use).",
+      "required": ["event", "event_id", "entry_id", "service_id", "timestamp"],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": [
+            "waitlist.spot_offered",
+            "waitlist.converted",
+            "waitlist.expired",
+            "waitlist.position_changed"
+          ],
+          "description": "Waitlist lifecycle event type."
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Unique event identifier. Platforms MUST process deliveries idempotently using event_id."
+        },
+        "entry_id": {
+          "type": "string",
+          "description": "The waitlist entry this event relates to."
+        },
+        "service_id": {
+          "type": "string",
+          "description": "The service the waitlist entry is for."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 time when the event occurred."
+        },
+        "data": {
+          "$ref": "waitlist.json#/$defs/WaitlistEntry",
+          "description": "Full waitlist entry object. SHOULD be included except as noted in Section 11.1.5."
         }
       }
     }

@@ -2814,6 +2814,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | `booking.refund_issued`    | A full or partial refund has been issued                 |
 | `booking.dispute_opened`   | A dispute or chargeback has been opened for this booking |
 | `booking.dispute_resolved` | A dispute has been resolved                              |
+| `booking.service_started`  | Service delivery has begun (e.g., rental pickup, appointment check-in) |
+| `booking.service_updated`  | Service details changed during delivery (e.g., extended rental, additional treatment) |
 
 **Webhook payload schema:**
 
@@ -2824,7 +2826,7 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | `booking_id`   | string  | **Yes**  | The booking this event relates to.                                                                                                                                                                                        |
 | `order_id`     | string  | No       | UCP order ID. **SHOULD** be included when the booking was created via [UCP-Native Mode](#7-ucp-native-mode) checkout.                                                                                                  |
 | `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
-| `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). |
+| `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). For informational `service_started` and `service_updated` events ([Section 5.5.3](#553-service-delivery-events)), **MAY** be omitted or included as needed. |
 
 ```json
 {
@@ -2957,8 +2959,8 @@ when the dispute is resolved.
 
 #### 5.5.3 Service Delivery Events
 
-For complex services (e.g., multi-step healthcare, ongoing rentals), businesses*
-*MAY** emit intermediate delivery events:
+For complex services (e.g., multi-step healthcare, ongoing rentals), businesses
+**MAY** emit intermediate delivery events:
 
 | Event                     | Trigger                                                                               |
 |---------------------------|---------------------------------------------------------------------------------------|
@@ -2966,6 +2968,8 @@ For complex services (e.g., multi-step healthcare, ongoing rentals), businesses*
 | `booking.service_updated` | Service details changed during delivery (e.g., extended rental, additional treatment) |
 
 These events are informational and do not change the booking's primary status.
+They use the standard booking webhook payload (`BookingEvent`) defined in
+[Section 5.4.1](#541-booking-webhooks).
 
 
 ---
@@ -5711,9 +5715,9 @@ Protocol errors (e.g., malformed requests, authentication failures) use the JSON
 
 #### 9.2.3 Webhook Notifications
 
-Booking lifecycle events are delivered as webhook notifications. This section specifies delivery semantics for all USP transports.
+Booking, catalog, and (when the waitlist extension is supported) waitlist lifecycle events are delivered as webhook notifications. This section specifies delivery semantics for all USP transports.
 
-**Payload schemas:** [`schemas/webhook_event.json`](schemas/webhook_event.json) defines `BookingEvent` and `CatalogEvent`. The REST binding documents outbound webhook POST bodies under `webhooks` in [`openapi/usp-rest.json`](openapi/usp-rest.json). The MCP binding exposes the same shapes as `BookingWebhookEvent` and `CatalogWebhookEvent` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.schemas` for validators and tooling (notifications use method `usp_webhook` per the examples below).
+**Payload schemas:** [`schemas/webhook_event.json`](schemas/webhook_event.json) defines `BookingEvent`, `CatalogEvent`, and `WaitlistEvent`. The REST binding documents outbound webhook POST bodies under `webhooks` in [`openapi/usp-rest.json`](openapi/usp-rest.json). The MCP binding exposes the same shapes as `BookingWebhookEvent`, `CatalogWebhookEvent`, and `WaitlistWebhookEvent` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.schemas` for validators and tooling (notifications use method `usp_webhook` per the examples below).
 
 **Delivery semantics:** USP webhooks use **at-least-once** delivery. Platforms **MUST** handle duplicate events idempotently (e.g., by tracking `event_id`).
 
@@ -6494,12 +6498,57 @@ cancellation fee for the original booking.
 
 #### 11.1.5 Webhooks
 
+> **JSON Schema:** [`schemas/webhook_event.json`](schemas/webhook_event.json) (`$defs/WaitlistEvent`). OpenAPI: [`openapi/usp-rest.json`](openapi/usp-rest.json) `webhooks.waitlistEvent`.
+
+Businesses **SHOULD** notify platforms of waitlist state changes via webhooks.
+Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
+`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
+
 | Event                       | Trigger                                                    |
 |-----------------------------|------------------------------------------------------------|
 | `waitlist.spot_offered`     | A spot opened and was offered to the next waitlisted buyer |
 | `waitlist.converted`        | A waitlist entry was converted to a booking                |
 | `waitlist.expired`          | An offer expired without acceptance                        |
 | `waitlist.position_changed` | A buyer's position in the waitlist changed                 |
+
+**Webhook payload schema:**
+
+| Field          | Type    | Required | Description                                                                                                                                                                                                               |
+|----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `event`        | string  | **Yes**  | Event type (e.g., `waitlist.spot_offered`, `waitlist.position_changed`).                                                                                                                                                 |
+| `event_id`     | string  | **Yes**  | Unique event identifier. Platforms **MUST** use this for idempotent processing ([Section 9.2.3](#923-webhook-notifications)).                                                                                             |
+| `entry_id`     | string  | **Yes**  | The waitlist entry this event relates to.                                                                                                                                                                                 |
+| `service_id`   | string  | **Yes**  | The service the waitlist entry is for.                                                                                                                                                                                    |
+| `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
+| `data`         | object  | No       | Full waitlist entry object (same schema as [Section 11.1.1](#1111-waitlistentry-schema)). **SHOULD** be included for `spot_offered`, `converted`, `expired`, and `position_changed` events unless the platform can rely on `entry_id` alone. |
+
+```json
+{
+  "event": "waitlist.spot_offered",
+  "event_id": "evt_wl_001",
+  "entry_id": "wl_ent_abc123",
+  "service_id": "svc_haircut_001",
+  "timestamp": "2026-03-15T10:00:00Z",
+  "data": {
+    "id": "wl_ent_abc123",
+    "service_id": "svc_haircut_001",
+    "buyer": {
+      "first_name": "Bob",
+      "last_name": "Smith",
+      "email": "bob@example.com"
+    },
+    "status": "offered",
+    "position": 1,
+    "offered_slot": {
+      "slot_id": "slot_20260316_1500",
+      "start": "2026-03-16T15:00:00-04:00",
+      "end": "2026-03-16T16:00:00-04:00"
+    },
+    "offer_expires_at": "2026-03-15T11:00:00Z",
+    "created_at": "2026-03-14T18:00:00Z"
+  }
+}
+```
 
 ---
 

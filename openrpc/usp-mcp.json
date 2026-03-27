@@ -3309,6 +3309,9 @@
             "CatalogWebhookEvent": {
                 "$ref": "../schemas/webhook_event.json#/$defs/CatalogEvent"
             },
+            "WaitlistWebhookEvent": {
+                "$ref": "../schemas/webhook_event.json#/$defs/WaitlistEvent"
+            },
             "RegistryContext": {
                 "$ref": "../schemas/registry.json#/$defs/RegistryContext"
             },
