@@ -2571,6 +2571,118 @@
         }
       }
     },
+    "/waitlist/list": {
+      "post": {
+        "tags": [
+          "Waitlist"
+        ],
+        "summary": "List Waitlist Entries",
+        "operationId": "listWaitlistEntries",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "service_id": {
+                    "type": "string",
+                    "description": "Filter entries by service. If omitted, entries for all services are returned."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"],
+                    "description": "Filter by waitlist status."
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "cursor": {
+                        "type": "string",
+                        "description": "Cursor from a previous response for pagination."
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Maximum number of entries to return. Default is implementation-defined."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waitlist entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "entries"
+                      ],
+                      "properties": {
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WaitlistEntry"
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "next_cursor": {
+                              "type": "string",
+                              "description": "Cursor for the next page. Absent when no more results."
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "Total number of matching entries, if known."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
     "/waitlist/{entry_id}": {
       "get": {
         "tags": [

@@ -1,5 +1,18 @@
 # Change Log
 
+## 29/03/26 at 14:34:01 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Fixed missing space in §11.1 capability declaration (`extends\`...` → `extends \`...`) per gap 10.1
+- Added request/response schema tables for all 6 waitlist operations in §11.1.3, including the new `POST /waitlist/list` pagination endpoint (gap 10.5, 10.12), with cross-reference hyperlinks to OpenAPI and OpenRPC binding files
+- Clarified offer acceptance flow: accepting atomically creates a booking, response includes `{entry, booking}`, payment follows normal flow (gap 10.7)
+- Added §11.1.6 with waitlist-specific error codes (`waitlist_full`, `offer_expired`, `entry_not_found`, `offer_already_accepted`) and explicit `messages[]` pattern reference (gap 10.4, 10.6), mirrored in §9.4 error code table
+- Added introductory note to §12 explaining webhook URL configuration and ESP exclusion (gap 10.8), and split the operation reference into visually grouped sub-tables: Catalog, Availability, Booking, Extension (Waitlist), and Discovery (gap 10.10)
+- Added `POST /waitlist/list` endpoint to `openapi/usp-rest.json` with request filtering (service_id, status) and cursor-based pagination
+- Added `usp_waitlist_list` method to `openrpc/usp-mcp.json` with matching parameters and result schema
+- Added `POST /waitlist/list` / `usp_waitlist_list` row to the §9.2.1 transport mapping table
+
+---
+
 ## 29/03/26 at 11:21:16 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
 
 - Merged origin/master into gaps-9-security to incorporate Ranya's webhook formalization (schemas/webhook_event.json, OpenAPI webhooks, OpenRPC webhook refs), paid_bookings enhancements, ACP booking extension, and ProfileCapabilityEntry — all complementary to the security gap fixes on this branch
