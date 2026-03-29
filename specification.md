@@ -6237,17 +6237,41 @@ mode.
 Webhook payloads **MUST** be signed to ensure integrity and authenticity. USP
 uses HTTP Message Signatures [RFC 9421] for webhook verification.
 
+**Threat Model:** HTTP Message Signatures protect against:
+
+- **Impersonation** — Attackers sending messages claiming to be legitimate
+  participants.
+- **Tampering** — Modification of message contents in transit.
+- **Replay attacks** — Captured messages resent to different endpoints or at
+  different times.
+- **Method/endpoint confusion** — Signed payloads replayed with different HTTP
+  methods or to different paths.
+
 **Signing Requirements:**
 
-- **Algorithm:** `ecdsa-p256-sha256` is **RECOMMENDED**. `rsa-pss-sha512` **MAY
-  ** be used for backwards compatibility.
-- **Covered components:** The signature **MUST** cover at minimum:
-  `content-digest`, `content-type`, and the `@method`, `@target-uri`, and
-  `@created` derived components.
+- **Algorithm:** `ecdsa-p256-sha256` is **RECOMMENDED**. `rsa-pss-sha512` is
+  **DEPRECATED** and **MUST NOT** be used in UCP-Native mode. Standalone mode
+  implementations **MAY** use it during a transition period ending 2027-12-31,
+  after which only ECDSA is permitted. New implementations **MUST** use
+  `ecdsa-p256-sha256`.
+- **Signature encoding:** ECDSA signatures **MUST** use fixed-width raw `r||s`
+  encoding per RFC 9421, **not** ASN.1/DER. The signature value is the
+  concatenation of `r` and `s` as fixed-length unsigned big-endian integers:
+  64 bytes for P-256 (32 + 32). Many crypto libraries (OpenSSL, Java, .NET)
+  default to DER encoding and require explicit conversion.
+- **Covered components:** The signature **MUST** cover at minimum: `@method`,
+  `@authority`, `@path`, `@created`, `content-digest`, and `content-type`.
+  Including `@authority` prevents cross-host relay attacks; including `@path`
+  prevents endpoint confusion.
 - **Content digest:** The request **MUST** include a `Content-Digest`
   header [RFC 9530] computed over the webhook body.
 - **Key ID:** The `Signature-Input` **MUST** include a `keyid` parameter that
   matches a key in the business profile's `signing_keys` array.
+
+**Intermediary Warning:** Proxies, API gateways, and other intermediaries
+**MUST NOT** re-serialize JSON bodies, as this would invalidate the signature.
+The `Content-Digest` is computed over raw bytes; any modification breaks
+verification.
 
 **Signing Keys in Business Profile:**
 
@@ -6291,13 +6315,44 @@ Each `SigningKey` object has the following fields:
 | `alg` | string | No          | Algorithm: `ES256`, `ES384`, or `RS256`. Implementations **MUST** support `ES256`. `ES384` and `RS256` are **OPTIONAL**. |
 
 Multiple keys **MUST** be supported for key rotation. The business **SHOULD**
-publish the new key before transitioning to it. Old keys **SHOULD** be retained
-for at least 24 hours after rotation.
+publish the new key before transitioning to it. Old keys **MUST** be retained
+for at least **7 days** after rotation. Businesses **SHOULD** rotate keys every
+**90 days**.
+
+**Key Compromise Response:**
+
+1. Immediately remove the compromised key from the business profile.
+2. Add a new key with a different `kid`.
+3. Reject all signatures made with the compromised key.
 
 **Verification:** Platforms **MUST** verify webhook signatures before processing
 events by parsing `Signature` and `Signature-Input` headers per [RFC 9421],
 looking up the `keyid` in the business profile's `signing_keys`, verifying the
 signature, and verifying the `Content-Digest` matches the body.
+
+**Signature Verification Error Codes:**
+
+| Error Code           | HTTP Status | Description                                                                                  |
+|----------------------|-------------|----------------------------------------------------------------------------------------------|
+| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
+| `signature_invalid`  | 401         | Signature verification failed.                                                               |
+| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile.            |
+| `digest_mismatch`    | 401         | `Content-Digest` header does not match the computed digest of the request body.             |
+| `signature_expired`  | 401         | The `@created` timestamp is outside the acceptable window (older than 5 minutes).           |
+
+> **REST:** [401 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
+
+**Response Signing:** Businesses **SHOULD** sign responses for booking
+confirmations and pricing data using HTTP Message Signatures [RFC 9421].
+Response signatures use `@status` instead of `@method` as a covered component.
+
+**Replay Protection:** Recipients **MUST** implement replay protection by:
+
+- Checking the `@created` parameter in `Signature-Input` and rejecting messages
+  older than **5 minutes**.
+- Tracking the `Idempotency-Key` (for requests) or event `id` (for webhooks)
+  and rejecting duplicates.
+- Both checks **MUST** be applied together — timestamp alone is insufficient.
 
 #### 10.1.2 Hold Abuse Prevention
 
@@ -6328,33 +6383,57 @@ For service bookings that involve personal data (contact information, health
 details, location data), businesses **MUST** provide a mechanism for capturing
 and transmitting buyer consent.
 
-| Category       | Description                                                                                                                     |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `analytics`    | Consent for the business to use booking data for analytics and service improvement                                              |
-| `marketing`    | Consent for the business to send marketing communications to the buyer                                                          |
-| `data_sharing` | Consent for the business to share buyer data with third parties                                                                 |
-| `health_data`  | Consent for processing health-related data (applicable to healthcare verticals). **MUST** comply with HIPAA/GDPR as applicable. |
+**Consent categories** (aligned with UCP Buyer Consent extension):
+
+| Category        | Description                                                                                                                     |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `analytics`     | Consent for the business to use booking data for analytics and service improvement.                                             |
+| `marketing`     | Consent for the business to send marketing communications to the buyer.                                                         |
+| `preferences`   | Consent for the business to store and use buyer preferences (preferred resources, times, etc.).                                 |
+| `sale_of_data`  | Consent for the business to sell or share buyer data with third parties.                                                        |
+| `health_data`   | *USP-specific extension.* Consent for processing health-related data (applicable to healthcare verticals). **MUST** comply with HIPAA/GDPR as applicable. |
+
+Businesses **MAY** define additional consent categories using their vendor
+namespace (e.g., `x-acme-research`).
 
 Consent is transmitted in the `create_booking` request as an optional `consent`
-object:
+object **nested inside the `buyer` object** (matching UCP's `checkout.buyer.consent` pattern):
+
+> **REST:** [POST /bookings](openapi/usp-rest.json) · **MCP:** [create_booking](openrpc/usp-mcp.json)
 
 ```json
 {
   "buyer": {
     "first_name": "Alice",
     "last_name": "Williams",
-    "email": "alice@example.com"
-  },
-  "consent": {
-    "analytics": true,
-    "marketing": false,
-    "data_sharing": false
+    "email": "alice@example.com",
+    "consent": {
+      "analytics": true,
+      "marketing": false,
+      "sale_of_data": false
+    }
   }
 }
 ```
 
 Businesses **MUST** respect the consent selections and **MUST NOT** assume
 consent for categories not explicitly granted.
+
+> **Note:** Consent transmission is **declarative** — the protocol communicates
+> consent choices but does not enforce them. Legal compliance with applicable
+> data protection regulations remains the business's responsibility. Platforms
+> **SHOULD NOT** assume consent without explicit buyer action.
+
+#### 10.1.5 Sensitive Credential Handling
+
+- Raw payment credentials (card numbers, bank account details) **MUST NOT** be
+  transmitted via USP APIs. Payment processing **MUST** use the redirect or
+  tokenized patterns defined in the [Paid Bookings extension](#1123-paid-bookings).
+- Sensitive identity documents (government IDs, health records) **MUST NOT** be
+  included in booking request/response payloads. Businesses requiring such
+  documents **SHOULD** use out-of-band secure channels.
+- Buyer personal data **MUST** be tokenized or encrypted when stored by
+  platforms beyond the immediate transaction scope.
 
 ### 10.2 Security Infrastructure for Standalone Mode
 
@@ -6404,14 +6483,31 @@ returning client history), platforms need a way to authenticate as a specific
 buyer at a business. USP uses OAuth 2.0 authorization code flow [RFC 6749] to
 establish a scoped, revocable relationship.
 
+**OAuth Server Metadata Discovery:** Businesses **MUST** publish OAuth 2.0
+Authorization Server Metadata per [RFC 8414] at
+`/.well-known/oauth-authorization-server`. Platforms **MUST** discover
+authorization and token endpoints via this metadata document. If RFC 8414
+discovery returns `404 Not Found`, platforms **MAY** fall back to
+`/.well-known/openid-configuration`. Platforms **MUST** perform an exact string
+comparison between the `issuer` value in the metadata and the configured issuer
+per [RFC 8414 §3.3].
+
+**Account Creation:** Businesses **MUST** provide an account creation flow
+during the authorization step for buyers who do not have an existing account.
+The authorization endpoint **MUST** support both login and registration.
+
 **Linking Flow:**
 
 1. **Authorization Request:** Platform redirects the buyer to the business's
-   authorization endpoint with `scope=usp:booking usp:history`.
+   authorization endpoint with `scope=usp:booking usp:history`. Platforms
+   **SHOULD** include a unique, unguessable `state` parameter to prevent
+   Cross-Site Request Forgery (CSRF) per [RFC 6749 §10.12].
 2. **Buyer Consent:** The buyer authenticates at the business and grants the
    requested scopes.
 3. **Token Exchange:** The business returns an authorization code. The platform
-   exchanges it for an `access_token` and `refresh_token`.
+   exchanges it for an `access_token` and `refresh_token`. Platforms **MUST**
+   authenticate to the token endpoint using `client_id` and `client_secret` via
+   HTTP Basic Authentication [RFC 7617].
 4. **Authenticated Requests:** The platform includes the `access_token` in
    subsequent USP requests via the `Authorization: Bearer <token>` header.
 
@@ -6425,7 +6521,21 @@ establish a scoped, revocable relationship.
 | `usp:loyalty`     | Access loyalty/rewards information for the linked buyer           |
 
 Businesses **MAY** define additional custom scopes using their vendor namespace.
-Buyers **MUST** be able to revoke linked access at any time per [RFC 7009].
+
+> **UCP scope mapping:** In UCP-Native mode, USP scopes map to UCP's
+> reverse-DNS convention. Businesses **MAY** use resource-oriented naming (e.g.,
+> `dev.usp.scheduling.scopes.booking`) alongside or instead of the `usp:` prefix
+> scopes.
+
+**Token Revocation:** Buyers **MUST** be able to revoke linked access at any
+time per [RFC 7009]. Revoking a `refresh_token` **MUST** also revoke all
+associated `access_token`s. Businesses **SHOULD** recursively revoke all tokens
+in the grant chain.
+
+**Security Event Signaling:** Platforms and businesses **SHOULD** support
+[OpenID RISC Profile 1.0](https://openid.net/specs/openid-risc-1_0-final.html)
+to handle asynchronous account updates, unlinking events, and cross-account
+protection.
 
 ---
 
