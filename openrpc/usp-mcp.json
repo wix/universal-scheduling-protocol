@@ -2120,6 +2120,140 @@
             ]
         },
         {
+            "name": "usp_waitlist_list",
+            "summary": "List Waitlist Entries",
+            "description": "List waitlist entries with optional filtering by service and status. Maps to POST /waitlist/list.",
+            "paramStructure": "by-name",
+            "params": [
+                {
+                    "name": "_meta",
+                    "required": false,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "usp": {
+                                "type": "object",
+                                "required": [
+                                    "profile"
+                                ],
+                                "description": "USP protocol metadata.",
+                                "properties": {
+                                    "profile": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "description": "Platform profile URI for capability negotiation. The business fetches this document to determine the capability intersection. REQUIRED in Standalone Mode."
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "description": "MCP metadata. The usp.profile field carries the platform profile URI for capability negotiation (Standalone Mode). Required in Standalone Mode; omit in UCP-Native Mode."
+                },
+                {
+                    "name": "service_id",
+                    "required": false,
+                    "schema": {
+                        "type": "string"
+                    },
+                    "description": "Filter entries by service. If omitted, entries for all services are returned."
+                },
+                {
+                    "name": "status",
+                    "required": false,
+                    "schema": {
+                        "type": "string",
+                        "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"]
+                    },
+                    "description": "Filter by waitlist status."
+                },
+                {
+                    "name": "pagination",
+                    "required": false,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "cursor": {
+                                "type": "string",
+                                "description": "Cursor from a previous response for pagination."
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Maximum number of entries to return."
+                            }
+                        }
+                    }
+                }
+            ],
+            "result": {
+                "name": "ListWaitlistResult",
+                "schema": {
+                    "type": "object",
+                    "required": [
+                        "structuredContent"
+                    ],
+                    "properties": {
+                        "structuredContent": {
+                            "type": "object",
+                            "required": [
+                                "usp",
+                                "entries"
+                            ],
+                            "properties": {
+                                "usp": {
+                                    "$ref": "#/components/schemas/USPMeta"
+                                },
+                                "entries": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/WaitlistEntry"
+                                    }
+                                },
+                                "pagination": {
+                                    "type": "object",
+                                    "properties": {
+                                        "next_cursor": {
+                                            "type": "string",
+                                            "description": "Cursor for the next page. Absent when no more results."
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total number of matching entries, if known."
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "content": {
+                            "type": "array",
+                            "description": "Human-readable text summary for MCP clients that render text.",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "type",
+                                    "text"
+                                ],
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "const": "text"
+                                    },
+                                    "text": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "errors": [
+                {
+                    "$ref": "#/components/errors/USPProtocolError"
+                }
+            ]
+        },
+        {
             "name": "usp_waitlist_get",
             "summary": "Get Waitlist Entry",
             "description": "Get waitlist entry status. Maps to GET /waitlist/{entry_id}.",

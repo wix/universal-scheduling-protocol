@@ -5550,6 +5550,7 @@ Each USP REST operation maps to a JSON-RPC method:
 | `POST /bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | Reschedule a booking                    |
 | `POST /bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | Confirm payment for a booking           |
 | `POST /waitlist`                              | `usp_waitlist_join`            | Join a waitlist                         |
+| `POST /waitlist/list`                         | `usp_waitlist_list`            | List waitlist entries                   |
 | `GET /waitlist/{entry_id}`                    | `usp_waitlist_get`             | Get waitlist entry                      |
 | `DELETE /waitlist/{entry_id}`                 | `usp_waitlist_leave`           | Leave waitlist                          |
 | `POST /waitlist/{entry_id}/accept`            | `usp_waitlist_accept`          | Accept a waitlist offer                 |
@@ -5964,6 +5965,10 @@ Business outcome errors are returned in the `messages[]` array of the response o
 | `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `requires_buyer_input`  |
 | `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `requires_buyer_input`  |
 | `price_mismatch`           | Line item price does not match the service's current catalog price (e.g., at UCP `create_checkout` / `update_checkout`).                                                          | `200 OK`    | `recoverable`           |
+| `waitlist_full`            | The waitlist has reached its maximum capacity. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                             | `200 OK`    | `recoverable`           |
+| `offer_expired`            | The offered slot's acceptance window has passed. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                           | `200 OK`    | `recoverable`           |
+| `entry_not_found`          | The waitlist entry ID does not exist. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                      | `200 OK`    | `recoverable`           |
+| `offer_already_accepted`   | The offer has already been accepted. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                       | `200 OK`    | `recoverable`           |
 
 **Protocol errors** (use standard HTTP status codes and JSON-RPC error codes):
 
@@ -6554,7 +6559,7 @@ would be added in this section.
 
 ### 11.1 Waitlist Extension
 
-**Capability:** `dev.usp.services.waitlist` (extends`dev.usp.services.bookings`)
+**Capability:** `dev.usp.services.waitlist` (extends `dev.usp.services.bookings`)
 
 The waitlist extension enables buyers to join a queue when their desired time
 slot is fully booked. When a spot opens (due to cancellation or reschedule), the
@@ -6591,13 +6596,67 @@ The waitlist entry tracks a buyer's position and preferences.
 
 #### 11.1.3 Operations
 
-| Operation      | Method   | Path                           | Description                          |
-|----------------|----------|--------------------------------|--------------------------------------|
-| Join Waitlist  | `POST`   | `/waitlist`                    | Join the waitlist for a service/slot |
-| Get Entry      | `GET`    | `/waitlist/{entry_id}`         | Get waitlist entry status            |
-| Leave Waitlist | `DELETE` | `/waitlist/{entry_id}`         | Leave the waitlist                   |
-| Accept Offer   | `POST`   | `/waitlist/{entry_id}/accept`  | Accept an offered slot               |
-| Decline Offer  | `POST`   | `/waitlist/{entry_id}/decline` | Decline an offered slot              |
+> **OpenAPI:** [`openapi/usp-rest.json`](openapi/usp-rest.json) (paths `/waitlist*`). **OpenRPC:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) (methods `usp_waitlist_*`).
+
+All waitlist responses use the standard USP response envelope, which includes the `messages[]` array for communicating error codes and contextual information (see [Section 9.4](#94-error-code-mapping)). Waitlist-specific error codes are defined in [Section 11.1.6](#1116-error-codes).
+
+| Operation      | Method   | Path                           | MCP Method             | Description                          |
+|----------------|----------|--------------------------------|------------------------|--------------------------------------|
+| Join Waitlist  | `POST`   | `/waitlist`                    | `usp_waitlist_join`    | Join the waitlist for a service/slot |
+| List Entries   | `POST`   | `/waitlist/list`               | `usp_waitlist_list`    | List waitlist entries with filtering |
+| Get Entry      | `GET`    | `/waitlist/{entry_id}`         | `usp_waitlist_get`     | Get waitlist entry status            |
+| Leave Waitlist | `DELETE` | `/waitlist/{entry_id}`         | `usp_waitlist_leave`   | Leave the waitlist                   |
+| Accept Offer   | `POST`   | `/waitlist/{entry_id}/accept`  | `usp_waitlist_accept`  | Accept an offered slot               |
+| Decline Offer  | `POST`   | `/waitlist/{entry_id}/decline` | `usp_waitlist_decline` | Decline an offered slot              |
+
+**Join Waitlist** — `POST /waitlist`
+
+Request body:
+
+| Field             | Type            | Required | Description                                                                                           |
+|-------------------|-----------------|----------|-------------------------------------------------------------------------------------------------------|
+| `service_id`      | string          | **Yes**  | The service to join the waitlist for.                                                                 |
+| `buyer`           | Buyer           | **Yes**  | The buyer requesting the slot.                                                                        |
+| `slot_id`         | string          | No       | Specific slot to waitlist for, if applicable.                                                         |
+| `preferred_slots` | Array\[object\] | No       | `{start_date, end_date, time_of_day}` — preferred time windows. If omitted, the buyer accepts any available slot. |
+
+Response (HTTP 201): `{ entry: WaitlistEntry, messages? }`
+
+**List Entries** — `POST /waitlist/list`
+
+Request body:
+
+| Field        | Type   | Required | Description                                                                                     |
+|--------------|--------|----------|-------------------------------------------------------------------------------------------------|
+| `service_id` | string | No       | Filter entries by service. If omitted, entries for all services are returned.                    |
+| `status`     | string | No       | Filter by waitlist status (e.g., `waiting`, `offered`).                                         |
+| `pagination` | object | No       | `{cursor?, limit?}` — cursor-based pagination. Default `limit` is implementation-defined.       |
+
+Response (HTTP 200): `{ entries: WaitlistEntry[], pagination: { next_cursor?, total? }, messages? }`
+
+**Get Entry** — `GET /waitlist/{entry_id}`
+
+No request body. Response (HTTP 200): `{ entry: WaitlistEntry, messages? }`
+
+**Leave Waitlist** — `DELETE /waitlist/{entry_id}`
+
+No request body. Response (HTTP 200): USP envelope only `{ messages? }`.
+
+**Accept Offer** — `POST /waitlist/{entry_id}/accept`
+
+Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-booking-actions) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
+
+Request body:
+
+| Field     | Type   | Required | Description                                          |
+|-----------|--------|----------|------------------------------------------------------|
+| `hold_id` | string | No       | Hold ID for the offered slot, if the slot was held.  |
+
+Response (HTTP 200): `{ entry: WaitlistEntry, booking: Booking, messages? }`
+
+**Decline Offer** — `POST /waitlist/{entry_id}/decline`
+
+No request body. The entry is either re-queued (status returns to `waiting`) or removed, at the business's discretion. Response (HTTP 200): `{ entry: WaitlistEntry, messages? }`
 
 #### 11.1.4 Cancellation Fee Waiver
 
@@ -6658,6 +6717,24 @@ Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
   }
 }
 ```
+
+#### 11.1.6 Error Codes
+
+Waitlist operations use the standard `messages[]` response envelope defined in
+[Section 9.4](#94-error-code-mapping) to communicate error codes and contextual
+information. The following business outcome error codes are specific to the
+waitlist extension:
+
+| USP Error Code           | Description                                             | Applicable Operations          | Severity      |
+|--------------------------|---------------------------------------------------------|--------------------------------|---------------|
+| `waitlist_full`          | The waitlist has reached its maximum capacity            | Join Waitlist                  | `recoverable` |
+| `offer_expired`          | The offered slot's acceptance window has passed          | Accept Offer                   | `recoverable` |
+| `entry_not_found`        | The waitlist entry ID does not exist                     | Get, Leave, Accept, Decline    | `recoverable` |
+| `offer_already_accepted` | The offer has already been accepted by another entry     | Accept Offer                   | `recoverable` |
+
+These error codes are returned as entries in the `messages[]` array with
+`type: "error"` and the appropriate `severity`. They follow the same structure
+as all USP business outcome errors (HTTP 200 with `messages[]`).
 
 ---
 
@@ -6904,35 +6981,66 @@ booking to minimize the risk of conflicts arising from stale cached data.
 
 ## 12. Operation Reference
 
-| Operation                | Method   | Path                                                    | Capability                   |
-|--------------------------|----------|---------------------------------------------------------|------------------------------|
-| List Services            | `POST`   | `/services/list`                                        | catalog                      |
-| Get Service              | `GET`    | `/services/{service_id}`                                | catalog                      |
-| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                      |
-| Service Feed             | `GET`    | `/services/feed`                                        | catalog                      |
-| Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions)      |
-| Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
-| Pause Feed Subscription  | `POST`   | `/services/feed/subscriptions/{subscription_id}/pause`  | catalog (subscriptions)      |
-| Resume Feed Subscription | `POST`   | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions)      |
-| Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
-| Query Availability       | `POST`   | `/availability/query`                                   | availability                 |
-| Hold Slot                | `POST`   | `/availability/holds`                                   | availability (`holds: true`) |
-| Release Slot             | `DELETE` | `/availability/holds/{hold_id}`                         | availability (`holds: true`) |
-| Create Booking           | `POST`   | `/bookings`                                             | bookings                     |
-| Get Booking              | `GET`    | `/bookings/{booking_id}`                                | bookings                     |
-| Update Booking           | `PUT`    | `/bookings/{booking_id}`                                | bookings                     |
-| Confirm Booking          | `POST`   | `/bookings/{booking_id}/confirm`                        | bookings                     |
-| Cancel Booking           | `POST`   | `/bookings/{booking_id}/cancel`                         | bookings                     |
-| Reschedule Booking       | `POST`   | `/bookings/{booking_id}/reschedule`                     | bookings                     |
-| Confirm Payment          | `POST`   | `/bookings/{booking_id}/confirm-payment`                | bookings                     |
-| Join Waitlist            | `POST`   | `/waitlist`                                             | waitlist                     |
-| Get Waitlist Entry       | `GET`    | `/waitlist/{entry_id}`                                  | waitlist                     |
-| Leave Waitlist           | `DELETE` | `/waitlist/{entry_id}`                                  | waitlist                     |
-| Accept Waitlist Offer    | `POST`   | `/waitlist/{entry_id}/accept`                           | waitlist                     |
-| Decline Waitlist Offer   | `POST`   | `/waitlist/{entry_id}/decline`                          | waitlist                     |
-| Register Business        | `POST`   | `/registry/businesses`                                  | discovery (optional)         |
-| Search Businesses        | `POST`   | `/registry/search_business`                             | discovery (optional)         |
-| Search Services          | `POST`   | `/registry/search_services`                             | discovery (optional)         |
+This table covers all REST and MCP operations defined by USP. Webhook delivery
+URLs are not managed via dedicated endpoints — they are configured via the
+platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile))
+or per-subscription via `POST /services/feed/subscriptions`
+([Section 3.12](#312-feed-subscriptions)). ESP messages
+([Section 9.5](#95-embedded-scheduling-protocol-esp)) use inter-frame
+`MessageChannel` communication and are not included in this table.
+
+**Catalog Operations:**
+
+| Operation                | Method   | Path                                                    | Capability              |
+|--------------------------|----------|---------------------------------------------------------|-------------------------|
+| List Services            | `POST`   | `/services/list`                                        | catalog                 |
+| Get Service              | `GET`    | `/services/{service_id}`                                | catalog                 |
+| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                 |
+| Service Feed             | `GET`    | `/services/feed`                                        | catalog                 |
+| Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions) |
+| Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions) |
+| Pause Feed Subscription  | `POST`   | `/services/feed/subscriptions/{subscription_id}/pause`  | catalog (subscriptions) |
+| Resume Feed Subscription | `POST`   | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions) |
+| Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions) |
+
+**Availability Operations:**
+
+| Operation          | Method   | Path                             | Capability                   |
+|--------------------|----------|----------------------------------|------------------------------|
+| Query Availability | `POST`   | `/availability/query`            | availability                 |
+| Hold Slot          | `POST`   | `/availability/holds`            | availability (`holds: true`) |
+| Release Slot       | `DELETE` | `/availability/holds/{hold_id}`  | availability (`holds: true`) |
+
+**Booking Operations:**
+
+| Operation       | Method   | Path                                         | Capability |
+|-----------------|----------|----------------------------------------------|------------|
+| Create Booking  | `POST`   | `/bookings`                                  | bookings   |
+| Get Booking     | `GET`    | `/bookings/{booking_id}`                     | bookings   |
+| Update Booking  | `PUT`    | `/bookings/{booking_id}`                     | bookings   |
+| Confirm Booking | `POST`   | `/bookings/{booking_id}/confirm`             | bookings   |
+| Cancel Booking  | `POST`   | `/bookings/{booking_id}/cancel`              | bookings   |
+| Reschedule Booking | `POST` | `/bookings/{booking_id}/reschedule`         | bookings   |
+| Confirm Payment | `POST`   | `/bookings/{booking_id}/confirm-payment`     | bookings   |
+
+**Extension Operations (Waitlist):**
+
+| Operation             | Method   | Path                           | Capability |
+|-----------------------|----------|--------------------------------|------------|
+| Join Waitlist         | `POST`   | `/waitlist`                    | waitlist   |
+| List Waitlist Entries | `POST`   | `/waitlist/list`               | waitlist   |
+| Get Waitlist Entry    | `GET`    | `/waitlist/{entry_id}`         | waitlist   |
+| Leave Waitlist        | `DELETE` | `/waitlist/{entry_id}`         | waitlist   |
+| Accept Waitlist Offer | `POST`   | `/waitlist/{entry_id}/accept`  | waitlist   |
+| Decline Waitlist Offer| `POST`   | `/waitlist/{entry_id}/decline` | waitlist   |
+
+**Discovery Operations (Optional):**
+
+| Operation         | Method | Path                         | Capability           |
+|-------------------|--------|------------------------------|----------------------|
+| Register Business | `POST` | `/registry/businesses`       | discovery (optional) |
+| Search Businesses | `POST` | `/registry/search_business`  | discovery (optional) |
+| Search Services   | `POST` | `/registry/search_services`  | discovery (optional) |
 
 ---
 
