@@ -183,8 +183,7 @@ self-contained deployments. Cross-cutting concerns (security, authorization,
 error format, idempotency, webhook verification) reference IETF standards
 directly.
 
-The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, *
-*SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this
+The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this
 document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These
 keywords **MUST** only carry their special meaning when they appear in all
 capitals, as shown here.
