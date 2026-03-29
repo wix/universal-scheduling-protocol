@@ -87,6 +87,9 @@
       "Buyer": {
         "$ref": "../schemas/booking.json#/$defs/Buyer"
       },
+      "BuyerConsent": {
+        "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+      },
       "Booking": {
         "$ref": "../schemas/booking.json#/$defs/Booking"
       },
@@ -166,17 +169,67 @@
         }
       },
       "Unauthorized": {
-        "description": "Protocol error: authentication required",
+        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile), digest_mismatch (Content-Digest does not match body), signature_expired (@created outside acceptable window).",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp.dev/errors/authentication_required",
-              "title": "Unauthorized",
-              "status": 401,
-              "detail": "Authentication credentials are missing or invalid"
+            "examples": {
+              "authentication_required": {
+                "summary": "Missing or invalid credentials",
+                "value": {
+                  "type": "https://usp.dev/errors/authentication_required",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "Authentication credentials are missing or invalid"
+                }
+              },
+              "signature_missing": {
+                "summary": "Missing Signature/Signature-Input headers",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_missing",
+                  "title": "Signature Missing",
+                  "status": 401,
+                  "detail": "Request does not include required Signature and Signature-Input headers"
+                }
+              },
+              "signature_invalid": {
+                "summary": "Signature verification failed",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_invalid",
+                  "title": "Signature Invalid",
+                  "status": 401,
+                  "detail": "Signature verification failed"
+                }
+              },
+              "key_not_found": {
+                "summary": "Signing key not found in profile",
+                "value": {
+                  "type": "https://usp.dev/errors/key_not_found",
+                  "title": "Key Not Found",
+                  "status": 401,
+                  "detail": "The keyid in Signature-Input does not match any key in the signer's profile"
+                }
+              },
+              "digest_mismatch": {
+                "summary": "Content-Digest does not match body",
+                "value": {
+                  "type": "https://usp.dev/errors/digest_mismatch",
+                  "title": "Digest Mismatch",
+                  "status": 401,
+                  "detail": "Content-Digest header does not match the computed digest of the request body"
+                }
+              },
+              "signature_expired": {
+                "summary": "Signature timestamp outside acceptable window",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_expired",
+                  "title": "Signature Expired",
+                  "status": 401,
+                  "detail": "The @created timestamp is outside the acceptable window"
+                }
+              }
             }
           }
         }
@@ -1726,24 +1779,6 @@
                   "notes": {
                     "type": "string",
                     "description": "Buyer-provided special requests or notes."
-                  },
-                  "consent": {
-                    "type": "object",
-                    "description": "Optional buyer consent signals.",
-                    "properties": {
-                      "analytics": {
-                        "type": "boolean"
-                      },
-                      "marketing": {
-                        "type": "boolean"
-                      },
-                      "data_sharing": {
-                        "type": "boolean"
-                      },
-                      "health_data": {
-                        "type": "boolean"
-                      }
-                    }
                   },
                   "post_payment_return_request": {
                     "allOf": [

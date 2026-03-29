@@ -202,7 +202,42 @@
         },
         "phone_number": {
           "type": "string"
+        },
+        "consent": {
+          "$ref": "#/$defs/BuyerConsent",
+          "description": "Optional buyer consent signals. Nested inside the buyer object per UCP convention."
         }
+      }
+    },
+    "BuyerConsent": {
+      "type": "object",
+      "title": "BuyerConsent",
+      "description": "Declarative consent choices transmitted by the platform on behalf of the buyer. The protocol communicates consent but does not enforce it — legal compliance remains the business's responsibility.",
+      "properties": {
+        "analytics": {
+          "type": "boolean",
+          "description": "Consent for the business to use booking data for analytics and service improvement."
+        },
+        "marketing": {
+          "type": "boolean",
+          "description": "Consent for the business to send marketing communications to the buyer."
+        },
+        "preferences": {
+          "type": "boolean",
+          "description": "Consent for the business to store and use buyer preferences (preferred resources, times, etc.)."
+        },
+        "sale_of_data": {
+          "type": "boolean",
+          "description": "Consent for the business to sell or share buyer data with third parties."
+        },
+        "health_data": {
+          "type": "boolean",
+          "description": "USP-specific extension. Consent for processing health-related data (applicable to healthcare verticals). MUST comply with HIPAA/GDPR as applicable."
+        }
+      },
+      "additionalProperties": {
+        "type": "boolean",
+        "description": "Vendor-namespaced consent categories (e.g., x-acme-research)."
       }
     },
     "BookingPayment": {

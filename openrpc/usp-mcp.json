@@ -3357,6 +3357,9 @@
             "Buyer": {
                 "$ref": "../schemas/booking.json#/$defs/Buyer"
             },
+            "BuyerConsent": {
+                "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+            },
             "Booking": {
                 "$ref": "../schemas/booking.json#/$defs/Booking"
             },
@@ -3409,6 +3412,11 @@
                                 "profile_malformed",
                                 "profile_not_trusted",
                                 "authentication_required",
+                                "signature_missing",
+                                "signature_invalid",
+                                "key_not_found",
+                                "digest_mismatch",
+                                "signature_expired",
                                 "rate_limited",
                                 "version_unsupported",
                                 "service_unavailable",
