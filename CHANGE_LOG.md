@@ -15,6 +15,42 @@
 
 ---
 
+## 29/03/26 at 14:34:01 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Fixed missing space in §11.1 capability declaration (`extends\`...` → `extends \`...`) per gap 10.1
+- Added request/response schema tables for all 6 waitlist operations in §11.1.3, including the new `POST /waitlist/list` pagination endpoint (gap 10.5, 10.12), with cross-reference hyperlinks to OpenAPI and OpenRPC binding files
+- Clarified offer acceptance flow: accepting atomically creates a booking, response includes `{entry, booking}`, payment follows normal flow (gap 10.7)
+- Added §11.1.6 with waitlist-specific error codes (`waitlist_full`, `offer_expired`, `entry_not_found`, `offer_already_accepted`) and explicit `messages[]` pattern reference (gap 10.4, 10.6), mirrored in §9.4 error code table
+- Added introductory note to §12 explaining webhook URL configuration and ESP exclusion (gap 10.8), and split the operation reference into visually grouped sub-tables: Catalog, Availability, Booking, Extension (Waitlist), and Discovery (gap 10.10)
+- Added `POST /waitlist/list` endpoint to `openapi/usp-rest.json` with request filtering (service_id, status) and cursor-based pagination
+- Added `usp_waitlist_list` method to `openrpc/usp-mcp.json` with matching parameters and result schema
+- Added `POST /waitlist/list` / `usp_waitlist_list` row to the §9.2.1 transport mapping table
+
+---
+
+## 29/03/26 at 11:21:16 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Merged origin/master into gaps-9-security to incorporate Ranya's webhook formalization (schemas/webhook_event.json, OpenAPI webhooks, OpenRPC webhook refs), paid_bookings enhancements, ACP booking extension, and ProfileCapabilityEntry — all complementary to the security gap fixes on this branch
+- Resolved CHANGE_LOG.md conflict (both sides prepended entries; kept both in chronological order)
+- Verified alignment: webhook payloads chain through Booking → Buyer → BuyerConsent, signature error codes present in both bindings, all component schemas use thin $refs, no duplicate keys, and webhook sections cross-reference §10.1.1 signing requirements
+
+---
+
+## 28/03/26 at 00:47:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `$defs/WaitlistEvent` in [
+  `schemas/webhook_event.json`](schemas/webhook_event.json), REST
+  `webhooks.waitlistEvent` in [`openapi/usp-rest.json`](openapi/usp-rest.json),
+  and `WaitlistWebhookEvent` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
+  so waitlist webhooks match booking/catalog machine-readable artifacts;
+  expanded [specification.md](specification.md) §11.1.5 and §9.2.3 accordingly.
+- Extended `BookingEvent` with `booking.service_started` and
+  `booking.service_updated`, aligned §5.4.1 and §5.5.3 prose, and fixed the
+  §5.5.3 `businesses **MAY**` typo so service-delivery events are first-class
+  booking webhook events.
+
+---
+
 ## 27/03/26 at 23:35:39 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Closed `gaps.md` §1–2 items in [specification.md](specification.md): §2.3
@@ -90,6 +126,54 @@
   with `event_id`, `order_id`, and `data` field naming; `BookingContextAction`
   and updated `booking_status`
   in [schemas/paid_bookings.json](schemas/paid_bookings.json).
+
+---
+
+## 26/03/26 at 17:54:46 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Fixed security gaps 9.1–9.20 from issue #20, aligning §10 with UCP security patterns
+- **Gap 9.1**: Added threat-model framing to §10.1.1 listing attacks that HTTP Message Signatures mitigate (impersonation, tampering, replay, method/endpoint confusion)
+- **Gap 9.2**: Added ECDSA raw `r||s` encoding guidance — signatures MUST use fixed-width raw encoding, not ASN.1/DER
+- **Gap 9.3**: Deprecated RSA-PSS algorithm — MUST NOT be used in UCP-Native mode, transition period ending 2027-12-31 for Standalone mode
+- **Gap 9.4**: Increased key rotation grace period from 24 hours to 7 days, added 90-day rotation cadence and key compromise response guidance
+- **Gap 9.5**: Added SHOULD-level response signing recommendation for booking confirmations and pricing data
+- **Gap 9.6**: Added replay protection requirements — `@created` timestamp check (5-minute window) combined with idempotency key/event ID tracking
+- **Gap 9.7**: Added intermediary warning that proxies MUST NOT re-serialize JSON bodies (would break Content-Digest)
+- **Gap 9.8**: Added `@authority` and `@path` to covered components (replacing `@target-uri`), preventing cross-host relay attacks
+- **Gap 9.9**: Aligned buyer consent categories with UCP — replaced `data_sharing` with `sale_of_data`, added `preferences`, retained `health_data` as USP extension
+- **Gap 9.10**: Added declarative consent clarification — protocol communicates consent but does not enforce it
+- **Gap 9.11**: Moved `consent` inside `buyer` object to match UCP's `checkout.buyer.consent` pattern; updated schemas/booking.json, openapi/usp-rest.json, openrpc/usp-mcp.json
+- **Gap 9.12**: Added RFC 8414 OAuth Server Metadata Discovery requirement to §10.2.4
+- **Gap 9.13**: Added CSRF protection via `state` parameter in authorization requests per RFC 6749 §10.12
+- **Gap 9.14**: Added client authentication requirement — platforms MUST use `client_id`/`client_secret` via HTTP Basic Auth [RFC 7617]
+- **Gap 9.15**: Added recursive token revocation — revoking refresh_token MUST also revoke associated access_tokens
+- **Gap 9.16**: Added UCP scope mapping note for reverse-DNS naming convention in UCP-Native mode
+- **Gap 9.17**: Added account creation flow requirement — authorization endpoint MUST support both login and registration
+- **Gap 9.18**: Added SHOULD-level recommendation for OpenID RISC Profile 1.0 support for security event signaling
+- **Gap 9.19**: Added §10.1.5 Sensitive Credential Handling — raw payment credentials MUST NOT traverse USP APIs
+- **Gap 9.20**: Added signature verification error codes table (signature_missing, signature_invalid, key_not_found, digest_mismatch, signature_expired) to spec, OpenAPI, and OpenRPC
+
+---
+
+## 26/03/26 at 16:06:42 by [roysha-wix](mailto:62389977+roysha-wix@users.noreply.github.com)
+
+- Fixed transport binding gaps 8.1–8.14 from issue #20, aligning §9 with UCP patterns
+- **Gap 8.1**: Adopted `structuredContent`/`content` dual-envelope pattern for MCP responses so AI clients get both typed data and human-readable text
+- **Gap 8.2**: Updated MCP binding to use `tools/call` wrapper instead of raw JSON-RPC methods, matching the MCP specification
+- **Gap 8.3**: Added `idempotency_key` to `_meta.usp` for state-modifying MCP operations, providing parity with REST `Idempotency-Key` header
+- **Gap 8.4**: Fixed MCP error model — business outcome errors now return in `result.structuredContent.messages[]`, not as JSON-RPC `error`; only protocol errors use JSON-RPC `error`
+- **Gap 8.5**: Resolved JSON-RPC error code collisions — removed JSON-RPC codes from business errors table (they use `messages[]` now), assigned unique codes to all protocol errors
+- **Gap 8.6**: Expanded A2A binding with Agent Card specification (§9.3.3), DataPart conventions (§9.3.4), and session management (§9.3.5)
+- **Gap 8.7**: Added `403 Forbidden`, `503 Service Unavailable` to REST status code table; added `ServiceUnavailable` response component to OpenAPI; added `service_unavailable` protocol error
+- **Gap 8.8**: Added `201 Created` to REST status code table; changed OpenAPI creation endpoints (bookings, holds, registry, waitlist, feed subscriptions) from 200 to 201
+- **Gap 8.9**: Added §9.1.3 Discovery cross-referencing §8.2 business profiles and `USP-Agent` header
+- **Gap 8.10**: Added §9.1.4 Request Signing for state-modifying REST requests using RFC 9421; added `signing_keys` to PlatformProfile in `schemas/profile.json`
+- **Gap 8.11**: Added conformance subsections to all transport bindings: §9.1.5 REST, §9.2.4 MCP, §9.3.6 A2A, §9.5.6 ESP
+- **Gap 8.12**: Fixed missing spaces between backtick-delimited `Idempotency-Key` and following words in §9.1.1
+- **Gap 8.13**: Added ESP error handling (§9.5.5) with `esp.error`, `esp.cancel`, `esp.timeout` messages and well-known error codes
+- **Gap 8.14**: Expanded webhook notifications (§9.2.3) with at-least-once delivery semantics, retry policy, acknowledgment requirements, URL registration, and signature verification; added `webhook_url` to PlatformProfile in `schemas/profile.json`
+- Updated `openrpc/usp-mcp.json`: renamed `USPError` to `USPProtocolError` with only protocol error codes, wrapped all method results in `structuredContent` envelope, added `idempotency_key` to state-modifying methods, updated `info.description` for `tools/call`
+- Updated `openapi/usp-rest.json`: added `ServiceUnavailable` (503) response to all endpoints, changed creation endpoints to return 201
 
 ---
 

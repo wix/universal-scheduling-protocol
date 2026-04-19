@@ -87,6 +87,9 @@
       "Buyer": {
         "$ref": "../schemas/booking.json#/$defs/Buyer"
       },
+      "BuyerConsent": {
+        "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+      },
       "Booking": {
         "$ref": "../schemas/booking.json#/$defs/Booking"
       },
@@ -166,17 +169,67 @@
         }
       },
       "Unauthorized": {
-        "description": "Protocol error: authentication required",
+        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile), digest_mismatch (Content-Digest does not match body), signature_expired (@created outside acceptable window).",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp.dev/errors/authentication_required",
-              "title": "Unauthorized",
-              "status": 401,
-              "detail": "Authentication credentials are missing or invalid"
+            "examples": {
+              "authentication_required": {
+                "summary": "Missing or invalid credentials",
+                "value": {
+                  "type": "https://usp.dev/errors/authentication_required",
+                  "title": "Unauthorized",
+                  "status": 401,
+                  "detail": "Authentication credentials are missing or invalid"
+                }
+              },
+              "signature_missing": {
+                "summary": "Missing Signature/Signature-Input headers",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_missing",
+                  "title": "Signature Missing",
+                  "status": 401,
+                  "detail": "Request does not include required Signature and Signature-Input headers"
+                }
+              },
+              "signature_invalid": {
+                "summary": "Signature verification failed",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_invalid",
+                  "title": "Signature Invalid",
+                  "status": 401,
+                  "detail": "Signature verification failed"
+                }
+              },
+              "key_not_found": {
+                "summary": "Signing key not found in profile",
+                "value": {
+                  "type": "https://usp.dev/errors/key_not_found",
+                  "title": "Key Not Found",
+                  "status": 401,
+                  "detail": "The keyid in Signature-Input does not match any key in the signer's profile"
+                }
+              },
+              "digest_mismatch": {
+                "summary": "Content-Digest does not match body",
+                "value": {
+                  "type": "https://usp.dev/errors/digest_mismatch",
+                  "title": "Digest Mismatch",
+                  "status": 401,
+                  "detail": "Content-Digest header does not match the computed digest of the request body"
+                }
+              },
+              "signature_expired": {
+                "summary": "Signature timestamp outside acceptable window",
+                "value": {
+                  "type": "https://usp.dev/errors/signature_expired",
+                  "title": "Signature Expired",
+                  "status": 401,
+                  "detail": "The @created timestamp is outside the acceptable window"
+                }
+              }
             }
           }
         }
@@ -1727,24 +1780,6 @@
                     "type": "string",
                     "description": "Buyer-provided special requests or notes."
                   },
-                  "consent": {
-                    "type": "object",
-                    "description": "Optional buyer consent signals.",
-                    "properties": {
-                      "analytics": {
-                        "type": "boolean"
-                      },
-                      "marketing": {
-                        "type": "boolean"
-                      },
-                      "data_sharing": {
-                        "type": "boolean"
-                      },
-                      "health_data": {
-                        "type": "boolean"
-                      }
-                    }
-                  },
                   "post_payment_return_request": {
                     "allOf": [
                       {
@@ -2532,6 +2567,118 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/waitlist/list": {
+      "post": {
+        "tags": [
+          "Waitlist"
+        ],
+        "summary": "List Waitlist Entries",
+        "operationId": "listWaitlistEntries",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "service_id": {
+                    "type": "string",
+                    "description": "Filter entries by service. If omitted, entries for all services are returned."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"],
+                    "description": "Filter by waitlist status."
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "cursor": {
+                        "type": "string",
+                        "description": "Cursor from a previous response for pagination."
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Maximum number of entries to return. Default is implementation-defined."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waitlist entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "entries"
+                      ],
+                      "properties": {
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WaitlistEntry"
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "next_cursor": {
+                              "type": "string",
+                              "description": "Cursor for the next page. Absent when no more results."
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "Total number of matching entries, if known."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         }
       }
