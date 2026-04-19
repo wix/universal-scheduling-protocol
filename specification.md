@@ -6736,6 +6736,45 @@ These error codes are returned as entries in the `messages[]` array with
 `type: "error"` and the appropriate `severity`. They follow the same structure
 as all USP business outcome errors (HTTP 200 with `messages[]`).
 
+**Webhook payload schema:**
+
+| Field          | Type    | Required | Description                                                                                                                                                                                                               |
+|----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `event`        | string  | **Yes**  | Event type (e.g., `waitlist.spot_offered`, `waitlist.position_changed`).                                                                                                                                                 |
+| `event_id`     | string  | **Yes**  | Unique event identifier. Platforms **MUST** use this for idempotent processing ([Section 9.2.3](#923-webhook-notifications)).                                                                                             |
+| `entry_id`     | string  | **Yes**  | The waitlist entry this event relates to.                                                                                                                                                                                 |
+| `service_id`   | string  | **Yes**  | The service the waitlist entry is for.                                                                                                                                                                                    |
+| `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
+| `data`         | object  | No       | Full waitlist entry object (same schema as [Section 11.1.1](#1111-waitlistentry-schema)). **SHOULD** be included for `spot_offered`, `converted`, `expired`, and `position_changed` events unless the platform can rely on `entry_id` alone. |
+
+```json
+{
+  "event": "waitlist.spot_offered",
+  "event_id": "evt_wl_001",
+  "entry_id": "wl_ent_abc123",
+  "service_id": "svc_haircut_001",
+  "timestamp": "2026-03-15T10:00:00Z",
+  "data": {
+    "id": "wl_ent_abc123",
+    "service_id": "svc_haircut_001",
+    "buyer": {
+      "first_name": "Bob",
+      "last_name": "Smith",
+      "email": "bob@example.com"
+    },
+    "status": "offered",
+    "position": 1,
+    "offered_slot": {
+      "slot_id": "slot_20260316_1500",
+      "start": "2026-03-16T15:00:00-04:00",
+      "end": "2026-03-16T16:00:00-04:00"
+    },
+    "offer_expires_at": "2026-03-15T11:00:00Z",
+    "created_at": "2026-03-14T18:00:00Z"
+  }
+}
+```
+
 ---
 
 ### 11.2 Buyer Calendar Free/Busy Extension
