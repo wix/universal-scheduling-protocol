@@ -183,8 +183,7 @@ self-contained deployments. Cross-cutting concerns (security, authorization,
 error format, idempotency, webhook verification) reference IETF standards
 directly.
 
-The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, *
-*SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this
+The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this
 document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These
 keywords **MUST** only carry their special meaning when they appear in all
 capitals, as shown here.
@@ -5551,6 +5550,7 @@ Each USP REST operation maps to a JSON-RPC method:
 | `POST /bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | Reschedule a booking                    |
 | `POST /bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | Confirm payment for a booking           |
 | `POST /waitlist`                              | `usp_waitlist_join`            | Join a waitlist                         |
+| `POST /waitlist/list`                         | `usp_waitlist_list`            | List waitlist entries                   |
 | `GET /waitlist/{entry_id}`                    | `usp_waitlist_get`             | Get waitlist entry                      |
 | `DELETE /waitlist/{entry_id}`                 | `usp_waitlist_leave`           | Leave waitlist                          |
 | `POST /waitlist/{entry_id}/accept`            | `usp_waitlist_accept`          | Accept a waitlist offer                 |
@@ -5965,6 +5965,10 @@ Business outcome errors are returned in the `messages[]` array of the response o
 | `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `requires_buyer_input`  |
 | `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `requires_buyer_input`  |
 | `price_mismatch`           | Line item price does not match the service's current catalog price (e.g., at UCP `create_checkout` / `update_checkout`).                                                          | `200 OK`    | `recoverable`           |
+| `waitlist_full`            | The waitlist has reached its maximum capacity. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                             | `200 OK`    | `recoverable`           |
+| `offer_expired`            | The offered slot's acceptance window has passed. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                           | `200 OK`    | `recoverable`           |
+| `entry_not_found`          | The waitlist entry ID does not exist. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                      | `200 OK`    | `recoverable`           |
+| `offer_already_accepted`   | The offer has already been accepted. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                       | `200 OK`    | `recoverable`           |
 
 **Protocol errors** (use standard HTTP status codes and JSON-RPC error codes):
 
@@ -6237,17 +6241,41 @@ mode.
 Webhook payloads **MUST** be signed to ensure integrity and authenticity. USP
 uses HTTP Message Signatures [RFC 9421] for webhook verification.
 
+**Threat Model:** HTTP Message Signatures protect against:
+
+- **Impersonation** — Attackers sending messages claiming to be legitimate
+  participants.
+- **Tampering** — Modification of message contents in transit.
+- **Replay attacks** — Captured messages resent to different endpoints or at
+  different times.
+- **Method/endpoint confusion** — Signed payloads replayed with different HTTP
+  methods or to different paths.
+
 **Signing Requirements:**
 
-- **Algorithm:** `ecdsa-p256-sha256` is **RECOMMENDED**. `rsa-pss-sha512` **MAY
-  ** be used for backwards compatibility.
-- **Covered components:** The signature **MUST** cover at minimum:
-  `content-digest`, `content-type`, and the `@method`, `@target-uri`, and
-  `@created` derived components.
+- **Algorithm:** `ecdsa-p256-sha256` is **RECOMMENDED**. `rsa-pss-sha512` is
+  **DEPRECATED** and **MUST NOT** be used in UCP-Native mode. Standalone mode
+  implementations **MAY** use it during a transition period ending 2027-12-31,
+  after which only ECDSA is permitted. New implementations **MUST** use
+  `ecdsa-p256-sha256`.
+- **Signature encoding:** ECDSA signatures **MUST** use fixed-width raw `r||s`
+  encoding per RFC 9421, **not** ASN.1/DER. The signature value is the
+  concatenation of `r` and `s` as fixed-length unsigned big-endian integers:
+  64 bytes for P-256 (32 + 32). Many crypto libraries (OpenSSL, Java, .NET)
+  default to DER encoding and require explicit conversion.
+- **Covered components:** The signature **MUST** cover at minimum: `@method`,
+  `@authority`, `@path`, `@created`, `content-digest`, and `content-type`.
+  Including `@authority` prevents cross-host relay attacks; including `@path`
+  prevents endpoint confusion.
 - **Content digest:** The request **MUST** include a `Content-Digest`
   header [RFC 9530] computed over the webhook body.
 - **Key ID:** The `Signature-Input` **MUST** include a `keyid` parameter that
   matches a key in the business profile's `signing_keys` array.
+
+**Intermediary Warning:** Proxies, API gateways, and other intermediaries
+**MUST NOT** re-serialize JSON bodies, as this would invalidate the signature.
+The `Content-Digest` is computed over raw bytes; any modification breaks
+verification.
 
 **Signing Keys in Business Profile:**
 
@@ -6291,13 +6319,44 @@ Each `SigningKey` object has the following fields:
 | `alg` | string | No          | Algorithm: `ES256`, `ES384`, or `RS256`. Implementations **MUST** support `ES256`. `ES384` and `RS256` are **OPTIONAL**. |
 
 Multiple keys **MUST** be supported for key rotation. The business **SHOULD**
-publish the new key before transitioning to it. Old keys **SHOULD** be retained
-for at least 24 hours after rotation.
+publish the new key before transitioning to it. Old keys **MUST** be retained
+for at least **7 days** after rotation. Businesses **SHOULD** rotate keys every
+**90 days**.
+
+**Key Compromise Response:**
+
+1. Immediately remove the compromised key from the business profile.
+2. Add a new key with a different `kid`.
+3. Reject all signatures made with the compromised key.
 
 **Verification:** Platforms **MUST** verify webhook signatures before processing
 events by parsing `Signature` and `Signature-Input` headers per [RFC 9421],
 looking up the `keyid` in the business profile's `signing_keys`, verifying the
 signature, and verifying the `Content-Digest` matches the body.
+
+**Signature Verification Error Codes:**
+
+| Error Code           | HTTP Status | Description                                                                                  |
+|----------------------|-------------|----------------------------------------------------------------------------------------------|
+| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
+| `signature_invalid`  | 401         | Signature verification failed.                                                               |
+| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile.            |
+| `digest_mismatch`    | 401         | `Content-Digest` header does not match the computed digest of the request body.             |
+| `signature_expired`  | 401         | The `@created` timestamp is outside the acceptable window (older than 5 minutes).           |
+
+> **REST:** [401 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
+
+**Response Signing:** Businesses **SHOULD** sign responses for booking
+confirmations and pricing data using HTTP Message Signatures [RFC 9421].
+Response signatures use `@status` instead of `@method` as a covered component.
+
+**Replay Protection:** Recipients **MUST** implement replay protection by:
+
+- Checking the `@created` parameter in `Signature-Input` and rejecting messages
+  older than **5 minutes**.
+- Tracking the `Idempotency-Key` (for requests) or event `id` (for webhooks)
+  and rejecting duplicates.
+- Both checks **MUST** be applied together — timestamp alone is insufficient.
 
 #### 10.1.2 Hold Abuse Prevention
 
@@ -6328,33 +6387,57 @@ For service bookings that involve personal data (contact information, health
 details, location data), businesses **MUST** provide a mechanism for capturing
 and transmitting buyer consent.
 
-| Category       | Description                                                                                                                     |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `analytics`    | Consent for the business to use booking data for analytics and service improvement                                              |
-| `marketing`    | Consent for the business to send marketing communications to the buyer                                                          |
-| `data_sharing` | Consent for the business to share buyer data with third parties                                                                 |
-| `health_data`  | Consent for processing health-related data (applicable to healthcare verticals). **MUST** comply with HIPAA/GDPR as applicable. |
+**Consent categories** (aligned with UCP Buyer Consent extension):
+
+| Category        | Description                                                                                                                     |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `analytics`     | Consent for the business to use booking data for analytics and service improvement.                                             |
+| `marketing`     | Consent for the business to send marketing communications to the buyer.                                                         |
+| `preferences`   | Consent for the business to store and use buyer preferences (preferred resources, times, etc.).                                 |
+| `sale_of_data`  | Consent for the business to sell or share buyer data with third parties.                                                        |
+| `health_data`   | *USP-specific extension.* Consent for processing health-related data (applicable to healthcare verticals). **MUST** comply with HIPAA/GDPR as applicable. |
+
+Businesses **MAY** define additional consent categories using their vendor
+namespace (e.g., `x-acme-research`).
 
 Consent is transmitted in the `create_booking` request as an optional `consent`
-object:
+object **nested inside the `buyer` object** (matching UCP's `checkout.buyer.consent` pattern):
+
+> **REST:** [POST /bookings](openapi/usp-rest.json) · **MCP:** [create_booking](openrpc/usp-mcp.json)
 
 ```json
 {
   "buyer": {
     "first_name": "Alice",
     "last_name": "Williams",
-    "email": "alice@example.com"
-  },
-  "consent": {
-    "analytics": true,
-    "marketing": false,
-    "data_sharing": false
+    "email": "alice@example.com",
+    "consent": {
+      "analytics": true,
+      "marketing": false,
+      "sale_of_data": false
+    }
   }
 }
 ```
 
 Businesses **MUST** respect the consent selections and **MUST NOT** assume
 consent for categories not explicitly granted.
+
+> **Note:** Consent transmission is **declarative** — the protocol communicates
+> consent choices but does not enforce them. Legal compliance with applicable
+> data protection regulations remains the business's responsibility. Platforms
+> **SHOULD NOT** assume consent without explicit buyer action.
+
+#### 10.1.5 Sensitive Credential Handling
+
+- Raw payment credentials (card numbers, bank account details) **MUST NOT** be
+  transmitted via USP APIs. Payment processing **MUST** use the redirect or
+  tokenized patterns defined in the [Paid Bookings extension](#1123-paid-bookings).
+- Sensitive identity documents (government IDs, health records) **MUST NOT** be
+  included in booking request/response payloads. Businesses requiring such
+  documents **SHOULD** use out-of-band secure channels.
+- Buyer personal data **MUST** be tokenized or encrypted when stored by
+  platforms beyond the immediate transaction scope.
 
 ### 10.2 Security Infrastructure for Standalone Mode
 
@@ -6404,14 +6487,31 @@ returning client history), platforms need a way to authenticate as a specific
 buyer at a business. USP uses OAuth 2.0 authorization code flow [RFC 6749] to
 establish a scoped, revocable relationship.
 
+**OAuth Server Metadata Discovery:** Businesses **MUST** publish OAuth 2.0
+Authorization Server Metadata per [RFC 8414] at
+`/.well-known/oauth-authorization-server`. Platforms **MUST** discover
+authorization and token endpoints via this metadata document. If RFC 8414
+discovery returns `404 Not Found`, platforms **MAY** fall back to
+`/.well-known/openid-configuration`. Platforms **MUST** perform an exact string
+comparison between the `issuer` value in the metadata and the configured issuer
+per [RFC 8414 §3.3].
+
+**Account Creation:** Businesses **MUST** provide an account creation flow
+during the authorization step for buyers who do not have an existing account.
+The authorization endpoint **MUST** support both login and registration.
+
 **Linking Flow:**
 
 1. **Authorization Request:** Platform redirects the buyer to the business's
-   authorization endpoint with `scope=usp:booking usp:history`.
+   authorization endpoint with `scope=usp:booking usp:history`. Platforms
+   **SHOULD** include a unique, unguessable `state` parameter to prevent
+   Cross-Site Request Forgery (CSRF) per [RFC 6749 §10.12].
 2. **Buyer Consent:** The buyer authenticates at the business and grants the
    requested scopes.
 3. **Token Exchange:** The business returns an authorization code. The platform
-   exchanges it for an `access_token` and `refresh_token`.
+   exchanges it for an `access_token` and `refresh_token`. Platforms **MUST**
+   authenticate to the token endpoint using `client_id` and `client_secret` via
+   HTTP Basic Authentication [RFC 7617].
 4. **Authenticated Requests:** The platform includes the `access_token` in
    subsequent USP requests via the `Authorization: Bearer <token>` header.
 
@@ -6425,7 +6525,21 @@ establish a scoped, revocable relationship.
 | `usp:loyalty`     | Access loyalty/rewards information for the linked buyer           |
 
 Businesses **MAY** define additional custom scopes using their vendor namespace.
-Buyers **MUST** be able to revoke linked access at any time per [RFC 7009].
+
+> **UCP scope mapping:** In UCP-Native mode, USP scopes map to UCP's
+> reverse-DNS convention. Businesses **MAY** use resource-oriented naming (e.g.,
+> `dev.usp.scheduling.scopes.booking`) alongside or instead of the `usp:` prefix
+> scopes.
+
+**Token Revocation:** Buyers **MUST** be able to revoke linked access at any
+time per [RFC 7009]. Revoking a `refresh_token` **MUST** also revoke all
+associated `access_token`s. Businesses **SHOULD** recursively revoke all tokens
+in the grant chain.
+
+**Security Event Signaling:** Platforms and businesses **SHOULD** support
+[OpenID RISC Profile 1.0](https://openid.net/specs/openid-risc-1_0-final.html)
+to handle asynchronous account updates, unlinking events, and cross-account
+protection.
 
 ---
 
@@ -6445,7 +6559,7 @@ would be added in this section.
 
 ### 11.1 Waitlist Extension
 
-**Capability:** `dev.usp.services.waitlist` (extends`dev.usp.services.bookings`)
+**Capability:** `dev.usp.services.waitlist` (extends `dev.usp.services.bookings`)
 
 The waitlist extension enables buyers to join a queue when their desired time
 slot is fully booked. When a spot opens (due to cancellation or reschedule), the
@@ -6482,13 +6596,67 @@ The waitlist entry tracks a buyer's position and preferences.
 
 #### 11.1.3 Operations
 
-| Operation      | Method   | Path                           | Description                          |
-|----------------|----------|--------------------------------|--------------------------------------|
-| Join Waitlist  | `POST`   | `/waitlist`                    | Join the waitlist for a service/slot |
-| Get Entry      | `GET`    | `/waitlist/{entry_id}`         | Get waitlist entry status            |
-| Leave Waitlist | `DELETE` | `/waitlist/{entry_id}`         | Leave the waitlist                   |
-| Accept Offer   | `POST`   | `/waitlist/{entry_id}/accept`  | Accept an offered slot               |
-| Decline Offer  | `POST`   | `/waitlist/{entry_id}/decline` | Decline an offered slot              |
+> **OpenAPI:** [`openapi/usp-rest.json`](openapi/usp-rest.json) (paths `/waitlist*`). **OpenRPC:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) (methods `usp_waitlist_*`).
+
+All waitlist responses use the standard USP response envelope, which includes the `messages[]` array for communicating error codes and contextual information (see [Section 9.4](#94-error-code-mapping)). Waitlist-specific error codes are defined in [Section 11.1.6](#1116-error-codes).
+
+| Operation      | Method   | Path                           | MCP Method             | Description                          |
+|----------------|----------|--------------------------------|------------------------|--------------------------------------|
+| Join Waitlist  | `POST`   | `/waitlist`                    | `usp_waitlist_join`    | Join the waitlist for a service/slot |
+| List Entries   | `POST`   | `/waitlist/list`               | `usp_waitlist_list`    | List waitlist entries with filtering |
+| Get Entry      | `GET`    | `/waitlist/{entry_id}`         | `usp_waitlist_get`     | Get waitlist entry status            |
+| Leave Waitlist | `DELETE` | `/waitlist/{entry_id}`         | `usp_waitlist_leave`   | Leave the waitlist                   |
+| Accept Offer   | `POST`   | `/waitlist/{entry_id}/accept`  | `usp_waitlist_accept`  | Accept an offered slot               |
+| Decline Offer  | `POST`   | `/waitlist/{entry_id}/decline` | `usp_waitlist_decline` | Decline an offered slot              |
+
+**Join Waitlist** — `POST /waitlist`
+
+Request body:
+
+| Field             | Type            | Required | Description                                                                                           |
+|-------------------|-----------------|----------|-------------------------------------------------------------------------------------------------------|
+| `service_id`      | string          | **Yes**  | The service to join the waitlist for.                                                                 |
+| `buyer`           | Buyer           | **Yes**  | The buyer requesting the slot.                                                                        |
+| `slot_id`         | string          | No       | Specific slot to waitlist for, if applicable.                                                         |
+| `preferred_slots` | Array\[object\] | No       | `{start_date, end_date, time_of_day}` — preferred time windows. If omitted, the buyer accepts any available slot. |
+
+Response (HTTP 201): `{ entry: WaitlistEntry, messages? }`
+
+**List Entries** — `POST /waitlist/list`
+
+Request body:
+
+| Field        | Type   | Required | Description                                                                                     |
+|--------------|--------|----------|-------------------------------------------------------------------------------------------------|
+| `service_id` | string | No       | Filter entries by service. If omitted, entries for all services are returned.                    |
+| `status`     | string | No       | Filter by waitlist status (e.g., `waiting`, `offered`).                                         |
+| `pagination` | object | No       | `{cursor?, limit?}` — cursor-based pagination. Default `limit` is implementation-defined.       |
+
+Response (HTTP 200): `{ entries: WaitlistEntry[], pagination: { next_cursor?, total? }, messages? }`
+
+**Get Entry** — `GET /waitlist/{entry_id}`
+
+No request body. Response (HTTP 200): `{ entry: WaitlistEntry, messages? }`
+
+**Leave Waitlist** — `DELETE /waitlist/{entry_id}`
+
+No request body. Response (HTTP 200): USP envelope only `{ messages? }`.
+
+**Accept Offer** — `POST /waitlist/{entry_id}/accept`
+
+Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-booking-actions) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
+
+Request body:
+
+| Field     | Type   | Required | Description                                          |
+|-----------|--------|----------|------------------------------------------------------|
+| `hold_id` | string | No       | Hold ID for the offered slot, if the slot was held.  |
+
+Response (HTTP 200): `{ entry: WaitlistEntry, booking: Booking, messages? }`
+
+**Decline Offer** — `POST /waitlist/{entry_id}/decline`
+
+No request body. The entry is either re-queued (status returns to `waiting`) or removed, at the business's discretion. Response (HTTP 200): `{ entry: WaitlistEntry, messages? }`
 
 #### 11.1.4 Cancellation Fee Waiver
 
@@ -6510,6 +6678,63 @@ Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
 | `waitlist.converted`        | A waitlist entry was converted to a booking                |
 | `waitlist.expired`          | An offer expired without acceptance                        |
 | `waitlist.position_changed` | A buyer's position in the waitlist changed                 |
+
+**Webhook payload schema:**
+
+| Field          | Type    | Required | Description                                                                                                                                                                                                               |
+|----------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `event`        | string  | **Yes**  | Event type (e.g., `waitlist.spot_offered`, `waitlist.position_changed`).                                                                                                                                                 |
+| `event_id`     | string  | **Yes**  | Unique event identifier. Platforms **MUST** use this for idempotent processing ([Section 9.2.3](#923-webhook-notifications)).                                                                                             |
+| `entry_id`     | string  | **Yes**  | The waitlist entry this event relates to.                                                                                                                                                                                 |
+| `service_id`   | string  | **Yes**  | The service the waitlist entry is for.                                                                                                                                                                                    |
+| `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
+| `data`         | object  | No       | Full waitlist entry object (same schema as [Section 11.1.1](#1111-waitlistentry-schema)). **SHOULD** be included for `spot_offered`, `converted`, `expired`, and `position_changed` events unless the platform can rely on `entry_id` alone. |
+
+```json
+{
+  "event": "waitlist.spot_offered",
+  "event_id": "evt_wl_001",
+  "entry_id": "wl_ent_abc123",
+  "service_id": "svc_haircut_001",
+  "timestamp": "2026-03-15T10:00:00Z",
+  "data": {
+    "id": "wl_ent_abc123",
+    "service_id": "svc_haircut_001",
+    "buyer": {
+      "first_name": "Bob",
+      "last_name": "Smith",
+      "email": "bob@example.com"
+    },
+    "status": "offered",
+    "position": 1,
+    "offered_slot": {
+      "slot_id": "slot_20260316_1500",
+      "start": "2026-03-16T15:00:00-04:00",
+      "end": "2026-03-16T16:00:00-04:00"
+    },
+    "offer_expires_at": "2026-03-15T11:00:00Z",
+    "created_at": "2026-03-14T18:00:00Z"
+  }
+}
+```
+
+#### 11.1.6 Error Codes
+
+Waitlist operations use the standard `messages[]` response envelope defined in
+[Section 9.4](#94-error-code-mapping) to communicate error codes and contextual
+information. The following business outcome error codes are specific to the
+waitlist extension:
+
+| USP Error Code           | Description                                             | Applicable Operations          | Severity      |
+|--------------------------|---------------------------------------------------------|--------------------------------|---------------|
+| `waitlist_full`          | The waitlist has reached its maximum capacity            | Join Waitlist                  | `recoverable` |
+| `offer_expired`          | The offered slot's acceptance window has passed          | Accept Offer                   | `recoverable` |
+| `entry_not_found`        | The waitlist entry ID does not exist                     | Get, Leave, Accept, Decline    | `recoverable` |
+| `offer_already_accepted` | The offer has already been accepted by another entry     | Accept Offer                   | `recoverable` |
+
+These error codes are returned as entries in the `messages[]` array with
+`type: "error"` and the appropriate `severity`. They follow the same structure
+as all USP business outcome errors (HTTP 200 with `messages[]`).
 
 **Webhook payload schema:**
 
@@ -6795,35 +7020,66 @@ booking to minimize the risk of conflicts arising from stale cached data.
 
 ## 12. Operation Reference
 
-| Operation                | Method   | Path                                                    | Capability                   |
-|--------------------------|----------|---------------------------------------------------------|------------------------------|
-| List Services            | `POST`   | `/services/list`                                        | catalog                      |
-| Get Service              | `GET`    | `/services/{service_id}`                                | catalog                      |
-| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                      |
-| Service Feed             | `GET`    | `/services/feed`                                        | catalog                      |
-| Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions)      |
-| Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
-| Pause Feed Subscription  | `POST`   | `/services/feed/subscriptions/{subscription_id}/pause`  | catalog (subscriptions)      |
-| Resume Feed Subscription | `POST`   | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions)      |
-| Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions)      |
-| Query Availability       | `POST`   | `/availability/query`                                   | availability                 |
-| Hold Slot                | `POST`   | `/availability/holds`                                   | availability (`holds: true`) |
-| Release Slot             | `DELETE` | `/availability/holds/{hold_id}`                         | availability (`holds: true`) |
-| Create Booking           | `POST`   | `/bookings`                                             | bookings                     |
-| Get Booking              | `GET`    | `/bookings/{booking_id}`                                | bookings                     |
-| Update Booking           | `PUT`    | `/bookings/{booking_id}`                                | bookings                     |
-| Confirm Booking          | `POST`   | `/bookings/{booking_id}/confirm`                        | bookings                     |
-| Cancel Booking           | `POST`   | `/bookings/{booking_id}/cancel`                         | bookings                     |
-| Reschedule Booking       | `POST`   | `/bookings/{booking_id}/reschedule`                     | bookings                     |
-| Confirm Payment          | `POST`   | `/bookings/{booking_id}/confirm-payment`                | bookings                     |
-| Join Waitlist            | `POST`   | `/waitlist`                                             | waitlist                     |
-| Get Waitlist Entry       | `GET`    | `/waitlist/{entry_id}`                                  | waitlist                     |
-| Leave Waitlist           | `DELETE` | `/waitlist/{entry_id}`                                  | waitlist                     |
-| Accept Waitlist Offer    | `POST`   | `/waitlist/{entry_id}/accept`                           | waitlist                     |
-| Decline Waitlist Offer   | `POST`   | `/waitlist/{entry_id}/decline`                          | waitlist                     |
-| Register Business        | `POST`   | `/registry/businesses`                                  | discovery (optional)         |
-| Search Businesses        | `POST`   | `/registry/search_business`                             | discovery (optional)         |
-| Search Services          | `POST`   | `/registry/search_services`                             | discovery (optional)         |
+This table covers all REST and MCP operations defined by USP. Webhook delivery
+URLs are not managed via dedicated endpoints — they are configured via the
+platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile))
+or per-subscription via `POST /services/feed/subscriptions`
+([Section 3.12](#312-feed-subscriptions)). ESP messages
+([Section 9.5](#95-embedded-scheduling-protocol-esp)) use inter-frame
+`MessageChannel` communication and are not included in this table.
+
+**Catalog Operations:**
+
+| Operation                | Method   | Path                                                    | Capability              |
+|--------------------------|----------|---------------------------------------------------------|-------------------------|
+| List Services            | `POST`   | `/services/list`                                        | catalog                 |
+| Get Service              | `GET`    | `/services/{service_id}`                                | catalog                 |
+| Lookup Services          | `POST`   | `/services/lookup`                                      | catalog                 |
+| Service Feed             | `GET`    | `/services/feed`                                        | catalog                 |
+| Create Feed Subscription | `POST`   | `/services/feed/subscriptions`                          | catalog (subscriptions) |
+| Get Feed Subscription    | `GET`    | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions) |
+| Pause Feed Subscription  | `POST`   | `/services/feed/subscriptions/{subscription_id}/pause`  | catalog (subscriptions) |
+| Resume Feed Subscription | `POST`   | `/services/feed/subscriptions/{subscription_id}/resume` | catalog (subscriptions) |
+| Cancel Feed Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}`        | catalog (subscriptions) |
+
+**Availability Operations:**
+
+| Operation          | Method   | Path                             | Capability                   |
+|--------------------|----------|----------------------------------|------------------------------|
+| Query Availability | `POST`   | `/availability/query`            | availability                 |
+| Hold Slot          | `POST`   | `/availability/holds`            | availability (`holds: true`) |
+| Release Slot       | `DELETE` | `/availability/holds/{hold_id}`  | availability (`holds: true`) |
+
+**Booking Operations:**
+
+| Operation       | Method   | Path                                         | Capability |
+|-----------------|----------|----------------------------------------------|------------|
+| Create Booking  | `POST`   | `/bookings`                                  | bookings   |
+| Get Booking     | `GET`    | `/bookings/{booking_id}`                     | bookings   |
+| Update Booking  | `PUT`    | `/bookings/{booking_id}`                     | bookings   |
+| Confirm Booking | `POST`   | `/bookings/{booking_id}/confirm`             | bookings   |
+| Cancel Booking  | `POST`   | `/bookings/{booking_id}/cancel`              | bookings   |
+| Reschedule Booking | `POST` | `/bookings/{booking_id}/reschedule`         | bookings   |
+| Confirm Payment | `POST`   | `/bookings/{booking_id}/confirm-payment`     | bookings   |
+
+**Extension Operations (Waitlist):**
+
+| Operation             | Method   | Path                           | Capability |
+|-----------------------|----------|--------------------------------|------------|
+| Join Waitlist         | `POST`   | `/waitlist`                    | waitlist   |
+| List Waitlist Entries | `POST`   | `/waitlist/list`               | waitlist   |
+| Get Waitlist Entry    | `GET`    | `/waitlist/{entry_id}`         | waitlist   |
+| Leave Waitlist        | `DELETE` | `/waitlist/{entry_id}`         | waitlist   |
+| Accept Waitlist Offer | `POST`   | `/waitlist/{entry_id}/accept`  | waitlist   |
+| Decline Waitlist Offer| `POST`   | `/waitlist/{entry_id}/decline` | waitlist   |
+
+**Discovery Operations (Optional):**
+
+| Operation         | Method | Path                         | Capability           |
+|-------------------|--------|------------------------------|----------------------|
+| Register Business | `POST` | `/registry/businesses`       | discovery (optional) |
+| Search Businesses | `POST` | `/registry/search_business`  | discovery (optional) |
+| Search Services   | `POST` | `/registry/search_services`  | discovery (optional) |
 
 ---
 
