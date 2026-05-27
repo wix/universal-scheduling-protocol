@@ -1,0 +1,98 @@
+{
+  "hold_granted": {
+    "description": "Successfully hold a slot to prevent double-booking during checkout",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/holds",
+      "body": {
+        "slot_id": "slot_mass_0315_0900",
+        "spots": 1
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "hold": {
+          "id": "hold_abc123def456",
+          "slot_id": "slot_mass_0315_0900",
+          "service_id": "svc_massage_001",
+          "spots": 1,
+          "expires_at": "2026-03-14T15:10:00-05:00",
+          "status": "active"
+        }
+      }
+    }
+  },
+  "slot_unavailable": {
+    "description": "Hold request fails because the slot is already fully booked",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/holds",
+      "body": {
+        "slot_id": "slot_mass_0316_1100",
+        "spots": 1
+      }
+    },
+    "response": {
+      "status": 409,
+      "body": {
+        "type": "https://usp.dev/problems/slot-unavailable",
+        "title": "Slot Unavailable",
+        "status": 409,
+        "detail": "The requested slot is no longer available. It may have been booked by another buyer."
+      }
+    }
+  },
+  "hold_limit_exceeded": {
+    "description": "Hold request fails because the platform has too many active holds",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/holds",
+      "body": {
+        "slot_id": "slot_mass_0315_1000",
+        "spots": 1
+      }
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "type": "https://usp.dev/problems/hold-limit-exceeded",
+        "title": "Hold Limit Exceeded",
+        "status": 429,
+        "detail": "Maximum of 5 concurrent holds per platform has been reached. Release an existing hold before creating a new one."
+      }
+    }
+  },
+  "release_hold": {
+    "description": "Successfully release an active hold",
+    "request": {
+      "method": "DELETE",
+      "path": "/services/svc_massage_001/holds/hold_abc123def456"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "hold": {
+          "id": "hold_abc123def456",
+          "slot_id": "slot_mass_0315_0900",
+          "service_id": "svc_massage_001",
+          "spots": 1,
+          "expires_at": "2026-03-14T15:10:00-05:00",
+          "status": "released"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "booking_confirmed": {
+    "description": "Webhook sent when a booking is confirmed (after payment or auto-confirmation)",
+    "payload": {
+      "event": "booking.confirmed",
+      "event_id": "evt_cf_001_abc123",
+      "booking_id": "bkg_4e5f6a7b8c9d",
+      "timestamp": "2026-03-14T15:18:42-05:00",
+      "data": {
+        "id": "bkg_4e5f6a7b8c9d",
+        "service_id": "svc_massage_001",
+        "service_name": "Swedish Massage",
+        "slot": {
+          "id": "slot_mass_0315_1400",
+          "start": "2026-03-15T14:00:00-05:00",
+          "end": "2026-03-15T15:00:00-05:00",
+          "duration": "PT60M"
+        },
+        "buyer": {
+          "first_name": "John",
+          "last_name": "Smith",
+          "email": "john.smith@example.com",
+          "phone_number": "+12125559876"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+        ],
+        "location": {
+          "id": "loc_main_001",
+          "name": "Downtown Studio"
+        },
+        "status": "confirmed",
+        "confirmation_mode": "auto",
+        "payment": {
+          "status": "paid",
+          "timing": "at_booking",
+          "amount": 12000,
+          "currency": "USD",
+          "amount_due": 0,
+          "tax_amount": 1065,
+          "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+          "order_reference": "ord_plat_98765"
+        },
+        "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+        "created_at": "2026-03-14T15:15:00-05:00",
+        "updated_at": "2026-03-14T15:18:42-05:00"
+      }
+    }
+  },
+  "booking_canceled": {
+    "description": "Webhook sent when a booking is canceled by the buyer",
+    "payload": {
+      "event": "booking.canceled",
+      "event_id": "evt_cn_002_def456",
+      "booking_id": "bkg_7f3a2b1c8d9e",
+      "timestamp": "2026-03-14T17:50:00-05:00",
+      "data": {
+        "id": "bkg_7f3a2b1c8d9e",
+        "service_id": "svc_massage_001",
+        "service_name": "Swedish Massage",
+        "slot": {
+          "id": "slot_mass_0315_0900",
+          "start": "2026-03-15T09:00:00-05:00",
+          "end": "2026-03-15T10:00:00-05:00",
+          "duration": "PT60M"
+        },
+        "buyer": {
+          "first_name": "Jane",
+          "last_name": "Doe",
+          "email": "jane.doe@example.com",
+          "phone_number": "+12125559999"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+        ],
+        "location": {
+          "id": "loc_main_001",
+          "name": "Downtown Studio"
+        },
+        "status": "canceled",
+        "confirmation_mode": "auto",
+        "payment": {
+          "status": "not_required",
+          "timing": "at_service"
+        },
+        "cancellation": {
+          "reason": "Schedule conflict - meeting was moved to the same time.",
+          "canceled_by": "buyer",
+          "fee": 0,
+          "refund_amount": 0,
+          "canceled_at": "2026-03-14T17:50:00-05:00"
+        },
+        "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+        "created_at": "2026-03-14T15:02:34-05:00",
+        "updated_at": "2026-03-14T17:50:00-05:00"
+      }
+    }
+  },
+  "booking_rescheduled": {
+    "description": "Webhook sent when a booking is rescheduled to a new time slot",
+    "payload": {
+      "event": "booking.rescheduled",
+      "event_id": "evt_rs_003_ghi789",
+      "booking_id": "bkg_7f3a2b1c8d9e",
+      "timestamp": "2026-03-14T18:10:00-05:00",
+      "data": {
+        "id": "bkg_7f3a2b1c8d9e",
+        "service_id": "svc_massage_001",
+        "service_name": "Swedish Massage",
+        "slot": {
+          "id": "slot_mass_0317_1030",
+          "start": "2026-03-17T10:30:00-05:00",
+          "end": "2026-03-17T11:30:00-05:00",
+          "duration": "PT60M"
+        },
+        "buyer": {
+          "first_name": "Jane",
+          "last_name": "Doe",
+          "email": "jane.doe@example.com",
+          "phone_number": "+12125559999"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+        ],
+        "location": {
+          "id": "loc_main_001",
+          "name": "Downtown Studio"
+        },
+        "status": "confirmed",
+        "confirmation_mode": "auto",
+        "payment": {
+          "status": "not_required",
+          "timing": "at_service"
+        },
+        "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+        "created_at": "2026-03-14T15:02:34-05:00",
+        "updated_at": "2026-03-14T18:10:00-05:00"
+      }
+    }
+  },
+  "booking_reminder": {
+    "description": "Webhook sent as a reminder 24 hours before the appointment",
+    "payload": {
+      "event": "booking.reminder",
+      "event_id": "evt_rm_004_jkl012",
+      "booking_id": "bkg_4e5f6a7b8c9d",
+      "timestamp": "2026-03-14T14:00:00-05:00",
+      "data": {
+        "id": "bkg_4e5f6a7b8c9d",
+        "service_id": "svc_massage_001",
+        "service_name": "Swedish Massage",
+        "slot": {
+          "id": "slot_mass_0315_1400",
+          "start": "2026-03-15T14:00:00-05:00",
+          "end": "2026-03-15T15:00:00-05:00",
+          "duration": "PT60M"
+        },
+        "buyer": {
+          "first_name": "John",
+          "last_name": "Smith",
+          "email": "john.smith@example.com",
+          "phone_number": "+12125559876"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+        ],
+        "location": {
+          "id": "loc_main_001",
+          "name": "Downtown Studio"
+        },
+        "status": "confirmed",
+        "confirmation_mode": "auto",
+        "payment": {
+          "status": "paid",
+          "timing": "at_booking",
+          "amount": 12000,
+          "currency": "USD",
+          "amount_due": 0,
+          "tax_amount": 1065,
+          "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+          "order_reference": "ord_plat_98765"
+        },
+        "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+        "created_at": "2026-03-14T15:15:00-05:00",
+        "updated_at": "2026-03-14T15:18:42-05:00"
+      }
+    }
+  },
+  "booking_completed": {
+    "description": "Webhook sent when the service has been completed",
+    "payload": {
+      "event": "booking.completed",
+      "event_id": "evt_cp_005_mno345",
+      "booking_id": "bkg_4e5f6a7b8c9d",
+      "timestamp": "2026-03-15T15:05:00-05:00",
+      "data": {
+        "id": "bkg_4e5f6a7b8c9d",
+        "service_id": "svc_massage_001",
+        "service_name": "Swedish Massage",
+        "slot": {
+          "id": "slot_mass_0315_1400",
+          "start": "2026-03-15T14:00:00-05:00",
+          "end": "2026-03-15T15:00:00-05:00",
+          "duration": "PT60M"
+        },
+        "buyer": {
+          "first_name": "John",
+          "last_name": "Smith",
+          "email": "john.smith@example.com",
+          "phone_number": "+12125559876"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+        ],
+        "location": {
+          "id": "loc_main_001",
+          "name": "Downtown Studio"
+        },
+        "status": "completed",
+        "confirmation_mode": "auto",
+        "payment": {
+          "status": "paid",
+          "timing": "at_booking",
+          "amount": 12000,
+          "currency": "USD",
+          "amount_due": 0,
+          "tax_amount": 1065,
+          "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+          "order_reference": "ord_plat_98765"
+        },
+        "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+        "created_at": "2026-03-14T15:15:00-05:00",
+        "updated_at": "2026-03-15T15:05:00-05:00"
+      }
+    }
+  }
+}

@@ -1,0 +1,417 @@
+{
+  "available_slots": {
+    "description": "Normal availability with multiple open slots across 3 days for the massage service",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/availability",
+      "query": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-17"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "slots": [
+          {
+            "id": "slot_mass_0315_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1000",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T10:00:00-05:00",
+            "end": "2026-03-15T11:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1100",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T11:00:00-05:00",
+            "end": "2026-03-15T12:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1400",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1530",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T15:30:00-05:00",
+            "end": "2026-03-15T16:30:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0316_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-16T09:00:00-05:00",
+            "end": "2026-03-16T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 14000,
+              "currency": "USD",
+              "label": "Weekend rate"
+            }
+          },
+          {
+            "id": "slot_mass_0316_1100",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-16T11:00:00-05:00",
+            "end": "2026-03-16T12:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 14000,
+              "currency": "USD",
+              "label": "Weekend rate"
+            }
+          },
+          {
+            "id": "slot_mass_0317_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-17T09:00:00-05:00",
+            "end": "2026-03-17T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0317_1030",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-17T10:30:00-05:00",
+            "end": "2026-03-17T11:30:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0317_1400",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-17T14:00:00-05:00",
+            "end": "2026-03-17T15:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "limited_availability": {
+    "description": "Availability with some slots limited or on waitlist due to high demand",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/availability",
+      "query": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-17"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "slots": [
+          {
+            "id": "slot_mass_0315_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "limited",
+            "resources": [
+              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1400",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0316_1100",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-16T11:00:00-05:00",
+            "end": "2026-03-16T12:00:00-05:00",
+            "duration": "PT60M",
+            "state": "waitlist",
+            "resources": [],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 14000,
+              "currency": "USD",
+              "label": "Weekend rate"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_specific": {
+    "description": "Availability filtered to a specific staff member (Sarah Johnson)",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/availability",
+      "query": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-17",
+        "resource_id": "staff_sarah_001"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "slots": [
+          {
+            "id": "slot_mass_0315_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1400",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0315_1530",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-15T15:30:00-05:00",
+            "end": "2026-03-15T16:30:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0317_0900",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-17T09:00:00-05:00",
+            "end": "2026-03-17T10:00:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_mass_0317_1030",
+            "service_id": "svc_massage_001",
+            "start": "2026-03-17T10:30:00-05:00",
+            "end": "2026-03-17T11:30:00-05:00",
+            "duration": "PT60M",
+            "state": "available",
+            "resources": [
+              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+            ],
+            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "pricing": {
+              "amount": 12000,
+              "currency": "USD"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "no_availability": {
+    "description": "No available slots in the requested date range",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/availability",
+      "query": {
+        "start_date": "2026-03-15",
+        "end_date": "2026-03-17"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.availability": [{ "version": "2026-02-21" }]
+          }
+        },
+        "slots": []
+      }
+    }
+  },
+  "range_too_wide": {
+    "description": "Error when the requested date range exceeds the maximum allowed window",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/availability",
+      "query": {
+        "start_date": "2026-03-01",
+        "end_date": "2026-06-01"
+      }
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "type": "https://usp.dev/problems/validation-error",
+        "title": "Validation Error",
+        "status": 422,
+        "detail": "The requested date range exceeds the maximum allowed window of 31 days.",
+        "errors": [
+          {
+            "field": "end_date",
+            "message": "Date range must not exceed 31 days. Requested range: 92 days."
+          }
+        ]
+      }
+    }
+  }
+}

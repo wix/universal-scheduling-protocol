@@ -1,0 +1,270 @@
+{
+  "join_waitlist": {
+    "description": "Buyer joins the waitlist for a fully booked yoga class slot",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_yoga_001/waitlist",
+      "body": {
+        "buyer": {
+          "first_name": "Alex",
+          "last_name": "Turner",
+          "email": "alex.turner@example.com",
+          "phone_number": "+12125553456"
+        },
+        "preferred_slots": [
+          {
+            "start_date": "2026-03-15",
+            "end_date": "2026-03-17",
+            "time_of_day": "morning"
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.waitlist": [{ "version": "2026-02-21" }]
+          }
+        },
+        "entry": {
+          "id": "wl_entry_x1y2z3",
+          "service_id": "svc_yoga_001",
+          "buyer": {
+            "first_name": "Alex",
+            "last_name": "Turner",
+            "email": "alex.turner@example.com",
+            "phone_number": "+12125553456"
+          },
+          "preferred_slots": [
+            {
+              "start_date": "2026-03-15",
+              "end_date": "2026-03-17",
+              "time_of_day": "morning"
+            }
+          ],
+          "status": "waiting",
+          "position": 3,
+          "created_at": "2026-03-14T19:00:00-05:00"
+        }
+      }
+    }
+  },
+  "offer_received": {
+    "description": "A spot has opened and is offered to the next buyer in the waitlist queue",
+    "webhook_payload": {
+      "event": "waitlist.spot_offered",
+      "event_id": "evt_wl_offer_001",
+      "entry_id": "wl_entry_x1y2z3",
+      "service_id": "svc_yoga_001",
+      "timestamp": "2026-03-15T06:30:00-05:00",
+      "data": {
+        "id": "wl_entry_x1y2z3",
+        "service_id": "svc_yoga_001",
+        "buyer": {
+          "first_name": "Alex",
+          "last_name": "Turner",
+          "email": "alex.turner@example.com",
+          "phone_number": "+12125553456"
+        },
+        "preferred_slots": [
+          {
+            "start_date": "2026-03-15",
+            "end_date": "2026-03-17",
+            "time_of_day": "morning"
+          }
+        ],
+        "status": "offered",
+        "position": 1,
+        "offered_slot": {
+          "slot_id": "slot_yoga_0316_0700",
+          "start": "2026-03-16T07:00:00-05:00",
+          "end": "2026-03-16T08:15:00-05:00"
+        },
+        "offer_expires_at": "2026-03-15T07:30:00-05:00",
+        "created_at": "2026-03-14T19:00:00-05:00"
+      }
+    },
+    "get_response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.waitlist": [{ "version": "2026-02-21" }]
+          }
+        },
+        "entry": {
+          "id": "wl_entry_x1y2z3",
+          "service_id": "svc_yoga_001",
+          "buyer": {
+            "first_name": "Alex",
+            "last_name": "Turner",
+            "email": "alex.turner@example.com",
+            "phone_number": "+12125553456"
+          },
+          "status": "offered",
+          "position": 1,
+          "offered_slot": {
+            "slot_id": "slot_yoga_0316_0700",
+            "start": "2026-03-16T07:00:00-05:00",
+            "end": "2026-03-16T08:15:00-05:00"
+          },
+          "offer_expires_at": "2026-03-15T07:30:00-05:00",
+          "created_at": "2026-03-14T19:00:00-05:00"
+        }
+      }
+    }
+  },
+  "accept_offer": {
+    "description": "Buyer accepts the waitlist offer, converting it to a booking",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_yoga_001/waitlist/wl_entry_x1y2z3/accept",
+      "body": {}
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.waitlist": [{ "version": "2026-02-21" }],
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "entry": {
+          "id": "wl_entry_x1y2z3",
+          "service_id": "svc_yoga_001",
+          "buyer": {
+            "first_name": "Alex",
+            "last_name": "Turner",
+            "email": "alex.turner@example.com",
+            "phone_number": "+12125553456"
+          },
+          "status": "accepted",
+          "position": 1,
+          "offered_slot": {
+            "slot_id": "slot_yoga_0316_0700",
+            "start": "2026-03-16T07:00:00-05:00",
+            "end": "2026-03-16T08:15:00-05:00"
+          },
+          "created_at": "2026-03-14T19:00:00-05:00"
+        },
+        "booking": {
+          "id": "bkg_wl_a1b2c3d4e5",
+          "service_id": "svc_yoga_001",
+          "service_name": "Morning Yoga",
+          "slot": {
+            "id": "slot_yoga_0316_0700",
+            "start": "2026-03-16T07:00:00-05:00",
+            "end": "2026-03-16T08:15:00-05:00",
+            "duration": "PT75M"
+          },
+          "buyer": {
+            "first_name": "Alex",
+            "last_name": "Turner",
+            "email": "alex.turner@example.com",
+            "phone_number": "+12125553456"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_emma_003", "type": "staff", "name": "Emma Williams" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "requires_action",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "pending",
+            "timing": "at_booking",
+            "amount": 2500,
+            "currency": "USD",
+            "amount_due": 2500
+          },
+          "actions": [
+            {
+              "type": "payment",
+              "status": "pending",
+              "continue_url": "https://pay.downtownwellnessspa.com/checkout/sess_wl_p1q2r3s4",
+              "expires_at": "2026-03-15T07:30:00-05:00",
+              "message": {
+                "type": "info",
+                "code": "waitlist_payment",
+                "content": "A spot has opened up! Complete payment to confirm your booking."
+              },
+              "payment_context": {
+                "amount_due": 2500,
+                "currency": "USD",
+                "description": "Morning Yoga - Mar 16, 2026 at 7:00 AM",
+                "line_items": [
+                  {
+                    "label": "Morning Yoga (75 min) x 1 person",
+                    "amount": 2500,
+                    "quantity": 1,
+                    "item_id": "svc_yoga_001"
+                  }
+                ],
+                "metadata": {
+                  "booking_id": "bkg_wl_a1b2c3d4e5",
+                  "service_id": "svc_yoga_001",
+                  "service_type": "group",
+                  "slot_start": "2026-03-16T07:00:00-05:00"
+                }
+              }
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_wl_a1b2c3d4e5",
+          "created_at": "2026-03-15T07:02:15-05:00",
+          "updated_at": "2026-03-15T07:02:15-05:00",
+          "expires_at": "2026-03-15T07:30:00-05:00"
+        }
+      }
+    }
+  },
+  "decline_offer": {
+    "description": "Buyer declines the waitlist offer, returning to the queue or exiting",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_yoga_001/waitlist/wl_entry_x1y2z3/decline",
+      "body": {
+        "reason": "The offered time does not work for my schedule."
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.waitlist": [{ "version": "2026-02-21" }]
+          }
+        },
+        "entry": {
+          "id": "wl_entry_x1y2z3",
+          "service_id": "svc_yoga_001",
+          "buyer": {
+            "first_name": "Alex",
+            "last_name": "Turner",
+            "email": "alex.turner@example.com",
+            "phone_number": "+12125553456"
+          },
+          "preferred_slots": [
+            {
+              "start_date": "2026-03-15",
+              "end_date": "2026-03-17",
+              "time_of_day": "morning"
+            }
+          ],
+          "status": "declined",
+          "position": 3,
+          "created_at": "2026-03-14T19:00:00-05:00"
+        }
+      }
+    }
+  }
+}
