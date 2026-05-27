@@ -1,0 +1,225 @@
+{
+  "standard": {
+    "description": "Standard business profile with catalog, availability, and bookings capabilities",
+    "response": {
+      "usp": {
+        "version": "2026-02-21",
+        "services": {
+          "dev.usp.services": [
+            {
+              "version": "2026-02-21",
+              "transport": "rest",
+              "endpoint": "https://api.downtownwellnessspa.com/usp",
+              "spec": "https://usp.dev/spec/2026-02-21",
+              "schema": "https://usp.dev/schemas/openapi/usp-rest.json"
+            }
+          ]
+        },
+        "capabilities": {
+          "dev.usp.services.catalog": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#catalog",
+              "schema": "https://usp.dev/schemas/catalog.json"
+            }
+          ],
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#availability",
+              "schema": "https://usp.dev/schemas/availability.json"
+            }
+          ],
+          "dev.usp.services.bookings": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#bookings",
+              "schema": "https://usp.dev/schemas/booking.json"
+            }
+          ]
+        },
+        "business": {
+          "name": "Downtown Wellness Spa",
+          "timezone": "America/New_York",
+          "currency": "USD",
+          "locations": [
+            {
+              "id": "loc_main_001",
+              "name": "Downtown Studio",
+              "address": "742 Wellness Ave, New York, NY 10012",
+              "coordinates": {
+                "lat": 40.7260,
+                "lng": -73.9972
+              }
+            }
+          ]
+        }
+      },
+      "signing_keys": [
+        {
+          "kid": "dws-signing-2026-01",
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+          "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+          "use": "sig",
+          "alg": "ES256"
+        }
+      ]
+    }
+  },
+  "full": {
+    "description": "Full business profile with all capabilities including waitlist and holds",
+    "response": {
+      "usp": {
+        "version": "2026-02-21",
+        "services": {
+          "dev.usp.services": [
+            {
+              "version": "2026-02-21",
+              "transport": "rest",
+              "endpoint": "https://api.downtownwellnessspa.com/usp",
+              "spec": "https://usp.dev/spec/2026-02-21",
+              "schema": "https://usp.dev/schemas/openapi/usp-rest.json"
+            },
+            {
+              "version": "2026-02-21",
+              "transport": "mcp",
+              "endpoint": "https://api.downtownwellnessspa.com/usp/mcp",
+              "spec": "https://usp.dev/spec/2026-02-21",
+              "schema": "https://usp.dev/schemas/openrpc/usp-mcp.json"
+            }
+          ]
+        },
+        "capabilities": {
+          "dev.usp.services.catalog": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#catalog",
+              "schema": "https://usp.dev/schemas/catalog.json"
+            }
+          ],
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#availability",
+              "schema": "https://usp.dev/schemas/availability.json",
+              "holds": true
+            }
+          ],
+          "dev.usp.services.bookings": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#bookings",
+              "schema": "https://usp.dev/schemas/booking.json"
+            }
+          ],
+          "dev.usp.services.waitlist": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#waitlist",
+              "schema": "https://usp.dev/schemas/waitlist.json",
+              "extends": "dev.usp.services.bookings"
+            }
+          ]
+        },
+        "checkout_systems": ["redirect", "embedded"],
+        "business": {
+          "name": "Downtown Wellness Spa",
+          "timezone": "America/New_York",
+          "currency": "USD",
+          "locations": [
+            {
+              "id": "loc_main_001",
+              "name": "Downtown Studio",
+              "address": "742 Wellness Ave, New York, NY 10012",
+              "coordinates": {
+                "lat": 40.7260,
+                "lng": -73.9972
+              }
+            },
+            {
+              "id": "loc_uptown_002",
+              "name": "Uptown Retreat",
+              "address": "1580 Madison Ave, New York, NY 10029",
+              "coordinates": {
+                "lat": 40.7903,
+                "lng": -73.9520
+              }
+            }
+          ]
+        },
+        "supported_versions": {
+          "2025-10-01": "https://api.downtownwellnessspa.com/.well-known/usp/2025-10-01"
+        }
+      },
+      "signing_keys": [
+        {
+          "kid": "dws-signing-2026-01",
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+          "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+          "use": "sig",
+          "alg": "ES256"
+        },
+        {
+          "kid": "dws-signing-2026-02",
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "WbbaSStuffRR16JaVR3iqTHbSB-p7gALkeGGHlaS0rY",
+          "y": "GkCT6bFqA-m0mFGKfBHxU83mGWJ0M8YFRV6vQlFXdao",
+          "use": "sig",
+          "alg": "ES256"
+        }
+      ]
+    }
+  },
+  "minimal": {
+    "description": "Minimal business profile with basic capabilities, no holds, appointment-only",
+    "response": {
+      "usp": {
+        "version": "2026-02-21",
+        "services": {
+          "dev.usp.services": [
+            {
+              "version": "2026-02-21",
+              "transport": "rest",
+              "endpoint": "https://api.downtownwellnessspa.com/usp",
+              "spec": "https://usp.dev/spec/2026-02-21",
+              "schema": "https://usp.dev/schemas/openapi/usp-rest.json"
+            }
+          ]
+        },
+        "capabilities": {
+          "dev.usp.services.catalog": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#catalog",
+              "schema": "https://usp.dev/schemas/catalog.json"
+            }
+          ],
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#availability",
+              "schema": "https://usp.dev/schemas/availability.json"
+            }
+          ],
+          "dev.usp.services.bookings": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#bookings",
+              "schema": "https://usp.dev/schemas/booking.json"
+            }
+          ]
+        },
+        "business": {
+          "name": "Downtown Wellness Spa",
+          "timezone": "America/New_York",
+          "currency": "USD"
+        }
+      }
+    }
+  }
+}

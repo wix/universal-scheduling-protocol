@@ -1,0 +1,153 @@
+{
+  "payment_success": {
+    "description": "Successful payment completion transitioning booking to confirmed status",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_4e5f6a7b8c9d/actions/payment/complete",
+      "body": {
+        "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+        "order_reference": "ord_plat_98765"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_4e5f6a7b8c9d",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_1400",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "john.smith@example.com",
+            "phone_number": "+12125559876"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "paid",
+            "timing": "at_booking",
+            "amount": 12000,
+            "currency": "USD",
+            "amount_due": 0,
+            "tax_amount": 1065,
+            "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+            "order_reference": "ord_plat_98765"
+          },
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+          "created_at": "2026-03-14T15:15:00-05:00",
+          "updated_at": "2026-03-14T15:18:42-05:00"
+        }
+      }
+    }
+  },
+  "payment_failed": {
+    "description": "Payment processing failure (card declined)",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_4e5f6a7b8c9d/actions/payment/complete",
+      "body": {
+        "transaction_id": "txn_stripe_pi_failed_001"
+      }
+    },
+    "response": {
+      "status": 402,
+      "body": {
+        "type": "https://usp.dev/problems/payment-failed",
+        "title": "Payment Failed",
+        "status": 402,
+        "detail": "The payment could not be processed. The card was declined by the issuing bank."
+      }
+    }
+  },
+  "deposit_flow": {
+    "description": "Successful deposit payment for spa suite reservation, remaining balance due at service",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_suite_001/bookings/bkg_1a2b3c4d5e6f/actions/payment/complete",
+      "body": {
+        "transaction_id": "txn_stripe_pi_9KmQ4bTCj",
+        "order_reference": "ord_plat_deposit_54321"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_1a2b3c4d5e6f",
+          "service_id": "svc_suite_001",
+          "service_name": "Spa Suite Experience",
+          "slot": {
+            "id": "slot_suite_0316_1000",
+            "start": "2026-03-16T10:00:00-05:00",
+            "end": "2026-03-16T12:00:00-05:00",
+            "duration": "PT120M"
+          },
+          "buyer": {
+            "first_name": "Emily",
+            "last_name": "Rodriguez",
+            "email": "emily.r@example.com",
+            "phone_number": "+12125554567"
+          },
+          "party_size": 2,
+          "resources": [
+            { "id": "room_orchid_001", "type": "room", "name": "Orchid Suite" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "manual",
+          "payment": {
+            "status": "deposit_paid",
+            "timing": "deposit_required",
+            "amount": 35000,
+            "currency": "USD",
+            "amount_due": 25000,
+            "deposit_amount": 10000,
+            "transaction_id": "txn_stripe_pi_9KmQ4bTCj",
+            "order_reference": "ord_plat_deposit_54321"
+          },
+          "notes": "Anniversary celebration. Champagne add-on if available.",
+          "messages": [
+            {
+              "type": "info",
+              "code": "deposit_confirmed",
+              "content": "Your $100.00 deposit has been received. The remaining balance of $250.00 is due at the time of service."
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_1a2b3c4d5e6f",
+          "created_at": "2026-03-14T16:00:00-05:00",
+          "updated_at": "2026-03-14T16:05:22-05:00"
+        }
+      }
+    }
+  }
+}

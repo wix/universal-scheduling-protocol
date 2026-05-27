@@ -1,5 +1,100 @@
 # Change Log
 
+## 27/05/26 at 17:48:19 by [itays](mailto:itays@wix.com)
+
+- Restructured Overview tab sidebar to match UCP's pattern (8 items vs previous 4) — moved Specification overview, Security, Extensions, and Playground from the Specification tab into Overview so the home page sidebar has comparable depth to ucp.dev
+
+---
+
+## 27/05/26 at 17:41:04 by [itays](mailto:itays@wix.com)
+
+- Redesigned site aesthetics with a Swiss Precision / Technical Authority design system — new typography (Instrument Serif for display, DM Sans for body, DM Mono for code), refined color tokens with teal accent, and light editorial layout to replace the generic AI-generated look
+- Updated home page template with section eyebrow labels (e.g., "The Problem", "Verticals", "Workflow", "Architecture") for a more editorial, magazine-like structure matching the new CSS design tokens
+- Trimmed verbose code examples in the "See It in Action" section to keep the page scannable while still showing real API payloads
+- Sidebar now always visible on home page (hero renders within content grid alongside sidebar, not above it)
+
+---
+
+## 27/05/26 at 14:45:02 by [itays](mailto:itays@wix.com)
+
+- Restructured site navigation from 9 top tabs to 3 (Home, Overview, Specification) to match UCP's navigation pattern — consolidates Deployment Modes, Transport Bindings, Security, Extensions, and Playground under the Specification tab with a deep sidebar, and moves Roadmap under Overview
+- Restored left sidebar navigation on the Playground page (was previously hidden) so users can navigate the site without leaving the playground, matching UCP's playground layout
+- Removed CSS rules that force-hid the sidebar and forced full-width layout on the playground page
+
+---
+
+## 26/05/26 at 18:20:05 by [itays](mailto:itays@wix.com)
+
+- Added `render.yaml` Render Blueprint spec for deploying the USP website as a static site on Render's global CDN, with PR preview environments, cache headers for assets and scenario data, security headers, convenience redirects (`/spec` → `/specification/`, `/github` → repo), and a build filter scoped to docs-related paths only
+
+---
+
+## 26/05/26 at 17:57:27 by [itays](mailto:itays@wix.com)
+
+- Built interactive USP Playground at `/playground/` — server-rendered Jinja2 template (`overrides/playground.html`) with 8-step scheduling lifecycle simulator (Discovery, Negotiation, Browse Services, Check Availability, Hold Slot, Create Booking, Payment, Manage Booking), modeled after the UCP playground at ucp.dev
+- Each step has a split layout: configuration panel (scenario dropdown + run button) and code panel (method badge, endpoint path, syntax-highlighted JSON response with copy button)
+- Created `playground-controller.js` — lightweight vanilla JS controller handling step switching, scenario loading from JSON files, mock request execution with simulated latency, copy-to-clipboard, manage step method/path updates, and mode/transport toggle state
+- Added step navigation pills, mode toggle (Standalone/UCP-Native), transport toggle (REST/MCP/A2A/ESP), and Next/Back navigation between steps
+- Extended `playground.css` with template-specific styles: step pills, split layout grid, config panel, code panel, method badges (GET/POST/PATCH/DELETE), status badges, select dropdowns, syntax highlighting tokens, and responsive breakpoints
+- Added Playground to `mkdocs.yml` navigation between Extensions and Roadmap
+
+---
+
+## 26/05/26 at 17:32:29 by [itays](mailto:itays@wix.com)
+
+- Created `playground/src/playground.js` — core USP Playground engine implementing the 8-step scheduling lifecycle state machine (discovery, negotiation, browse, availability, hold, book, payment, manage) plus waitlist bonus step, with mode toggle (Standalone/UCP-Native), transport toggle (REST/MCP/A2A/ESP), scenario selection, mock request execution with simulated latency, step navigation with visibility filtering, and full DOM rendering of the playground UI
+- Created `playground/src/code-editor.js` — lightweight JSON display module with regex-based syntax highlighting (keys=gray, strings=teal, numbers=amber, booleans=green, null=red), contentEditable support for request editing, getValue/getRawText parsing, and clipboard copy with fallback
+- Created `playground/src/response-viewer.js` — read-only response display component with HTTP status badge (color-coded 2xx/4xx/5xx), simulated timing display, collapsible sections for large responses (30+ lines), and copy button
+- Created `playground/src/transport-formatter.js` — transport binding converter that transforms REST request configurations into MCP (JSON-RPC 2.0 `tools/call` envelope with `_meta.usp`), A2A (`tasks/send` with DataPart), and ESP (iframe embed snippet with `postMessage` protocol) formats, with full method-to-tool-name and method-to-operation-type mapping tables
+
+---
+
+## 26/05/26 at 17:29:33 by [itays](mailto:itays@wix.com)
+
+- Created 10 mock scenario JSON files in `playground/scenarios/` for the USP interactive playground simulator, covering the full scheduling lifecycle for "Downtown Wellness Spa" (business ID `biz_downtown_spa`) with 4 services across all USP verticals (appointment, group, reservation, rental)
+- `business-profile.json`: 3 scenarios (standard, full, minimal) for `/.well-known/usp` business profile responses with varying capability sets, including waitlist/holds toggle and multi-location support
+- `platform-profile.json`: 2 scenarios (standard, advanced) for platform capability negotiation with transport preferences and signing keys
+- `services.json`: 4 scenarios (happy_path, filtered_wellness, search_massage, empty_results) with full catalog data for all 4 services including staff/room/equipment resources, policies, media, ratings, and availability hints
+- `availability.json`: 5 scenarios (available_slots, limited_availability, resource_specific, no_availability, range_too_wide) with realistic time slots across 2026-03-15 to 2026-03-17 including peak/off-peak pricing and resource assignments
+- `holds.json`: 4 scenarios (hold_granted, slot_unavailable, hold_limit_exceeded, release_hold) covering the hold lifecycle with proper TTL and error responses
+- `bookings.json`: 5 scenarios (instant_confirmation, payment_required, manual_confirmation, validation_error, slot_expired) covering auto/manual confirmation, payment actions with PaymentContext, and error cases (422/409)
+- `payment.json`: 3 scenarios (payment_success, payment_failed, deposit_flow) for payment completion including deposit-based spa suite reservations
+- `manage.json`: 6 scenarios (view_booking, update_booking, cancel_booking, cancel_with_fee, reschedule_booking, reschedule_limit_reached) for the full booking management lifecycle including late cancellation fees and reschedule limits
+- `webhooks.json`: 5 webhook payloads (booking.confirmed, booking.canceled, booking.rescheduled, booking.reminder, booking.completed) conforming to the BookingEvent schema
+- `waitlist.json`: 4 scenarios (join_waitlist, offer_received, accept_offer, decline_offer) covering the waitlist lifecycle with offer expiration and conversion to booking
+- All data uses consistent IDs across files (e.g., `slot_mass_0315_0900` appears in availability, holds, and bookings), amounts in minor currency units (cents), RFC 3339 timestamps, and the USP envelope pattern with `version: "2026-02-21"`
+
+---
+
+## 26/05/26 at 17:28:03 by [itays](mailto:itays@wix.com)
+
+- Created comprehensive playground CSS (`playground/styles/playground.css`) with full design system: layout containers, horizontal stepper with numbered dots and connector lines (active/completed/upcoming/optional states), mode pill toggle and transport dropdown, request/response code panes with dark background and syntax highlighting classes, method badges (GET/POST/PATCH/DELETE), status badges (2xx/3xx/4xx/5xx), buttons with loading spinner state, navigation footer, negotiation capability grid, manage tab bar, field annotations, callouts, and utility classes — all prefixed with `pg-` to avoid conflicts with the main site CSS
+- Created playground Jinja2 template (`overrides/playground.html`) extending `main.html` with sidebar/TOC hidden via `{% block sidebars %}`, OG/Twitter meta tags for social sharing, and deferred loading of playground CSS and JS module — keeps the top nav bar and footer from the main site
+- Created playground MkDocs entry point (`playground/index.md`) with front matter specifying the custom template, SEO metadata (title, description, keywords), and hidden navigation/toc/footer sections
+- All three files use the existing USP teal color palette (`#0d9488` family) and match the dark code-editor aesthetic established in `extra.css`, with responsive breakpoints at 1024px, 768px, and 480px plus print styles
+
+---
+
+## 26/05/26 at 17:20:43 by [itays](mailto:itays@wix.com)
+
+- Created `playground/` directory and drafted comprehensive playground specification (`playground/SPEC.md`) modeled after the UCP playground at ucp.dev — an 8-step browser-based interactive simulator covering the full USP scheduling lifecycle (discovery, negotiation, browse, availability, hold, book, payment, manage) with scenario dropdowns, transport binding toggle (REST/MCP/A2A/ESP), deployment mode toggle (Standalone/UCP-Native), schema validation, and a waitlist extension bonus step
+
+---
+
+## 26/05/26 at 16:53:04 by [itays](mailto:itays@wix.com)
+
+- Built full USP website using Material for MkDocs to replace the empty placeholder at usp.base44.app, matching the quality level of the UCP website (ucp.dev) with a teal color palette (#0D9488) distinct from UCP's blue
+- Created custom homepage template (`overrides/home.html`) with 11 sections: hero, stats, verticals, design principles, how-it-works flow, interactive code examples, deployment modes, transport bindings, ecosystem, partners placeholder, and CTA footer
+- Created 19 content pages derived from the 430KB `specification.md`: core concepts, getting started, security, extensions, roadmap, specification overview, service catalog, availability, booking lifecycle, discovery registry, deployment modes (index, UCP-Native, Standalone), transport bindings (index, REST, MCP, A2A, ESP)
+- Added comprehensive SEO: Open Graph meta tags, Twitter Cards, JSON-LD structured data (WebSite + SoftwareSourceCode + Organization on homepage, TechArticle on inner pages), canonical URLs, robots.txt, sitemap.xml, keywords meta tags
+- Created `llms.txt` and `llms-full.txt` following the emerging standard for LLM-readable site descriptions, providing structured protocol summaries for AI consumption
+- Generated social card image (1200x630 SVG + PNG) with dark gradient background, calendar-clock icon, protocol title/tagline, code snippet preview, transport binding labels, and vertical pills for use in OG/Twitter social sharing
+- Added custom CSS design system (`extra.css`, 615 lines) with CSS variables, dark mode support, responsive grid layouts, card styles, and homepage section styling
+- Added Jinja2 template override (`overrides/main.html`) for global `<head>` meta tags with safe `{% if page %}` guard to handle 404.html rendering where `page` is None
+- Created `mkdocs.yml` configuration with Material theme, Inter/JetBrains Mono fonts, navigation tabs, code copy/annotate, search suggestions, cookie consent, and minify plugin
+
+---
+
 ## 28/03/26 at 00:47:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added `$defs/WaitlistEvent` in [

@@ -1,0 +1,64 @@
+# Universal Scheduling Protocol (USP)
+
+> USP is an open standard that enables platforms and AI agents to discover, check availability of, and book time-based services from businesses.
+
+USP defines the complete scheduling domain — service catalog, availability, holds, and bookings — with support for appointments, group sessions, reservations, and rentals. It offers two deployment modes: UCP-Native Mode (for platforms using the Universal Commerce Protocol) and Standalone Mode (for self-contained deployments). USP supports REST, MCP, A2A, and ESP transport bindings.
+
+Version: 2026-02-21
+Status: Draft
+License: Apache 2.0
+
+## Documentation
+
+- [Specification Overview](https://usp.dev/specification/): Protocol overview, conventions, terminology, and reading guide
+- [Service Catalog](https://usp.dev/specification/service-catalog/): Service discovery — types, pricing, policies, resources, duration, and catalog feed
+- [Availability](https://usp.dev/specification/availability/): Time slot queries (slot and day granularity), holds, and caching strategy
+- [Booking Lifecycle](https://usp.dev/specification/booking/): Create, confirm, cancel, reschedule bookings with webhook notifications
+- [Discovery Registry](https://usp.dev/specification/discovery-registry/): Optional centralized business and service discovery
+- [Core Concepts](https://usp.dev/core-concepts/): Roles (Platform, Business, CP, PSP), architecture, constructs, namespaces
+- [Getting Started](https://usp.dev/getting-started/): Implementation guide with deployment mode selection and step-by-step stages
+
+## Deployment Modes
+
+- [UCP-Native Mode](https://usp.dev/deployment-modes/ucp-native/): For platforms supporting UCP — atomic checkout, inherited infrastructure
+- [Standalone Mode](https://usp.dev/deployment-modes/standalone/): Self-contained — /.well-known/usp, generic payment_context, ACP extension
+
+## Transport Bindings
+
+- [REST](https://usp.dev/transport/rest/): HTTP/OpenAPI 3.x with idempotency — primary transport
+- [MCP](https://usp.dev/transport/mcp/): JSON-RPC for AI agent tool use via Model Context Protocol
+- [A2A](https://usp.dev/transport/a2a/): Agent-to-Agent protocol for autonomous multi-agent interactions
+- [ESP](https://usp.dev/transport/esp/): Embedded Scheduling Protocol for in-app booking UIs via iframe
+
+## Additional
+
+- [Security](https://usp.dev/security/): TLS, webhook signatures (RFC 9421), OAuth 2.0, hold abuse prevention
+- [Extensions](https://usp.dev/extensions/): Waitlist extension and vendor-defined capabilities
+- [Roadmap](https://usp.dev/roadmap/): Current status, planned verticals, contribution guidelines
+
+## Machine-Readable Artifacts
+
+- OpenAPI 3.1.0: https://github.com/wix-private/universal-scheduling-protocol-spec/blob/master/openapi/usp-rest.json
+- OpenRPC: https://github.com/wix-private/universal-scheduling-protocol-spec/blob/master/openrpc/usp-mcp.json
+- JSON Schemas: https://github.com/wix-private/universal-scheduling-protocol-spec/tree/master/schemas
+
+## Service Verticals
+
+- appointment: 1:1 sessions (salon, dental, consulting, therapy)
+- group: Limited-capacity sessions (yoga, workshops, cooking classes)
+- reservation: Shared resource holds (restaurant tables, conference rooms)
+- rental: Temporary use of equipment or space (car rental, studio space)
+
+## Key Operations
+
+| Operation | REST | MCP Method |
+|-----------|------|------------|
+| List Services | POST /services/list | usp/services.list |
+| Get Service | GET /services/{id} | usp/services.get |
+| Query Availability | POST /availability/query | usp/availability.query |
+| Hold Slot | POST /availability/holds | usp/availability.hold |
+| Release Hold | DELETE /availability/holds/{id} | usp/availability.release |
+| Create Booking | POST /bookings | usp/bookings.create |
+| Get Booking | GET /bookings/{id} | usp/bookings.get |
+| Cancel Booking | POST /bookings/{id}/cancel | usp/bookings.cancel |
+| Reschedule Booking | POST /bookings/{id}/reschedule | usp/bookings.reschedule |

@@ -1,0 +1,1487 @@
+/* ==========================================================================
+   USP Playground — Styles
+   Comprehensive CSS for the interactive USP scheduling flow simulator.
+   All classes prefixed with `pg-` to avoid conflicts with the main site.
+   ========================================================================== */
+
+/* ---------- Font Import ---------- */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ---------- Playground Tokens ---------- */
+:root {
+  /* Core palette — mirrors the USP site tokens */
+  --pg-primary: #0d9488;
+  --pg-primary-light: #14b8a6;
+  --pg-primary-lighter: #2dd4bf;
+  --pg-primary-dark: #0f766e;
+  --pg-primary-darkest: #115e59;
+
+  /* Backgrounds — always dark regardless of site theme */
+  --pg-bg: #0f172a;
+  --pg-bg-elevated: #1e293b;
+  --pg-bg-surface: #1a2332;
+  --pg-bg-code: #0c1322;
+
+  /* Text */
+  --pg-text: #e2e8f0;
+  --pg-text-muted: #94a3b8;
+  --pg-text-dim: #64748b;
+  --pg-text-bright: #f1f5f9;
+
+  /* Borders */
+  --pg-border: #334155;
+  --pg-border-light: rgba(255, 255, 255, 0.08);
+  --pg-border-focus: var(--pg-primary);
+
+  /* Semantic */
+  --pg-success: #22c55e;
+  --pg-warning: #f59e0b;
+  --pg-error: #ef4444;
+  --pg-info: #3b82f6;
+
+  /* Method colors */
+  --pg-method-get: #22c55e;
+  --pg-method-post: #0d9488;
+  --pg-method-patch: #f59e0b;
+  --pg-method-delete: #ef4444;
+
+  /* Layout */
+  --pg-max-width: 960px;
+  --pg-radius: 12px;
+  --pg-radius-sm: 8px;
+  --pg-radius-xs: 6px;
+  --pg-radius-pill: 999px;
+
+  /* Shadows */
+  --pg-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --pg-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --pg-glow: 0 0 20px rgba(13, 148, 136, 0.3);
+
+  /* Transitions */
+  --pg-transition: 0.2s ease;
+  --pg-transition-slow: 0.3s ease;
+}
+
+/* ==========================================================================
+   Layout — Main Container
+   ========================================================================== */
+
+.pg-playground {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--pg-bg);
+  color: var(--pg-text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   Header — Mode Toggle + Title + Transport Toggle
+   ========================================================================== */
+
+.pg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--pg-border);
+  background: var(--pg-bg-elevated);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 1rem;
+}
+
+.pg-header__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pg-text-bright);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.pg-header__title-accent {
+  color: var(--pg-primary-lighter);
+}
+
+/* ==========================================================================
+   Toggles — Mode & Transport
+   ========================================================================== */
+
+/* --- Pill toggle (mode selector) --- */
+.pg-mode-toggle {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--pg-border);
+  border-radius: var(--pg-radius-pill);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pg-mode-toggle__option {
+  padding: 0.4rem 1rem;
+  border-radius: var(--pg-radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--pg-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.pg-mode-toggle__option:hover {
+  color: var(--pg-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pg-mode-toggle__option--active {
+  background: var(--pg-primary);
+  color: #fff;
+}
+
+.pg-mode-toggle__option--active:hover {
+  background: var(--pg-primary-dark);
+  color: #fff;
+}
+
+/* --- Transport dropdown toggle --- */
+.pg-transport-toggle {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pg-transport-toggle__select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--pg-border);
+  border-radius: var(--pg-radius-pill);
+  padding: 0.4rem 2.25rem 0.4rem 1rem;
+  color: var(--pg-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+}
+
+.pg-transport-toggle__select:hover {
+  border-color: var(--pg-primary);
+  background: rgba(13, 148, 136, 0.1);
+}
+
+.pg-transport-toggle__select:focus {
+  outline: none;
+  border-color: var(--pg-primary);
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+.pg-transport-toggle__arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--pg-text-muted);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Stepper — Horizontal Progress Indicator
+   ========================================================================== */
+
+.pg-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 2rem;
+  background: var(--pg-bg);
+  border-bottom: 1px solid var(--pg-border-light);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pg-stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.pg-stepper__track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+}
+
+/* --- Step dot --- */
+.pg-step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid var(--pg-border);
+  background: transparent;
+  color: var(--pg-text-dim);
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  position: relative;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.pg-step-dot:hover {
+  border-color: var(--pg-text-muted);
+  color: var(--pg-text-muted);
+}
+
+/* Active step */
+.pg-step-dot.pg-step-active {
+  border-color: var(--pg-primary);
+  background: var(--pg-primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
+}
+
+/* Completed step */
+.pg-step-dot.pg-step-completed {
+  border-color: var(--pg-primary);
+  background: var(--pg-primary);
+  color: #fff;
+  animation: pg-step-complete 0.3s ease;
+}
+
+.pg-step-dot.pg-step-completed::after {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+  margin-top: -2px;
+}
+
+.pg-step-dot.pg-step-completed > span {
+  display: none;
+}
+
+/* Upcoming step (default state) */
+.pg-step-dot.pg-step-upcoming {
+  border-color: var(--pg-border);
+  background: transparent;
+  color: var(--pg-text-dim);
+}
+
+/* Optional step */
+.pg-step-dot.pg-step-optional {
+  border-style: dashed;
+  border-color: var(--pg-text-dim);
+  color: var(--pg-text-dim);
+}
+
+/* --- Step connector line --- */
+.pg-step-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--pg-border);
+  flex-shrink: 0;
+  transition: background var(--pg-transition);
+}
+
+.pg-step-connector.pg-step-connector--completed {
+  background: var(--pg-primary);
+}
+
+/* --- Step label (below dot) --- */
+.pg-step-label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--pg-text-dim);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: color var(--pg-transition);
+}
+
+.pg-step-active .pg-step-label {
+  color: var(--pg-primary-lighter);
+}
+
+.pg-step-completed .pg-step-label {
+  color: var(--pg-text-muted);
+}
+
+/* ==========================================================================
+   Content — Main Content Area
+   ========================================================================== */
+
+.pg-content {
+  max-width: var(--pg-max-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ==========================================================================
+   Step Header
+   ========================================================================== */
+
+.pg-step-header {
+  margin-bottom: 1.75rem;
+}
+
+.pg-step-header__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--pg-text-bright);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.pg-step-header__subtitle {
+  font-size: 0.95rem;
+  color: var(--pg-text-muted);
+  margin: 0 0 1rem;
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+.pg-step-header__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Scenario Selector
+   ========================================================================== */
+
+.pg-scenario-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--pg-bg-elevated);
+  border: 1px solid var(--pg-border);
+  border-radius: var(--pg-radius-sm);
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  color: var(--pg-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.pg-scenario-select:hover {
+  border-color: var(--pg-primary);
+}
+
+.pg-scenario-select:focus {
+  outline: none;
+  border-color: var(--pg-primary);
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+.pg-scenario-select option {
+  background: var(--pg-bg-elevated);
+  color: var(--pg-text);
+}
+
+/* ==========================================================================
+   Code Panes — Request & Response
+   ========================================================================== */
+
+.pg-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pg-request-pane,
+.pg-response-pane {
+  border-radius: var(--pg-radius);
+  border: 1px solid var(--pg-border);
+  background: var(--pg-bg-code);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Response pane — initially hidden, slides in */
+.pg-response-pane {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pg-response-pane.pg-response-pane--hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
+.pg-response-pane.pg-response-pane--visible {
+  animation: pg-slide-in 0.35s ease forwards;
+}
+
+/* --- Pane header --- */
+.pg-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--pg-border-light);
+  gap: 0.5rem;
+  min-height: 42px;
+}
+
+.pg-pane-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.pg-pane-header__path {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  color: var(--pg-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pg-pane-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Badges — Method & Status
+   ========================================================================== */
+
+.pg-method-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--pg-radius-xs);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.pg-method-badge--get {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--pg-method-get);
+}
+
+.pg-method-badge--post {
+  background: rgba(13, 148, 136, 0.15);
+  color: var(--pg-primary-lighter);
+}
+
+.pg-method-badge--patch {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--pg-method-patch);
+}
+
+.pg-method-badge--delete {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--pg-method-delete);
+}
+
+/* --- Status badge --- */
+.pg-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--pg-radius-xs);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  animation: pg-badge-pulse 0.4s ease;
+}
+
+.pg-status-badge.pg-status-2xx {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--pg-success);
+}
+
+.pg-status-badge.pg-status-3xx {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--pg-info);
+}
+
+.pg-status-badge.pg-status-4xx {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--pg-warning);
+}
+
+.pg-status-badge.pg-status-5xx {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--pg-error);
+}
+
+/* ==========================================================================
+   Code Block
+   ========================================================================== */
+
+.pg-code {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--pg-text);
+  background: var(--pg-bg-code);
+  tab-size: 2;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pg-border) transparent;
+}
+
+.pg-code::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.pg-code::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pg-code::-webkit-scrollbar-thumb {
+  background: var(--pg-border);
+  border-radius: 3px;
+}
+
+.pg-code::-webkit-scrollbar-thumb:hover {
+  background: var(--pg-text-dim);
+}
+
+/* Editable code blocks */
+.pg-code-editable {
+  border: 1px dashed var(--pg-border);
+  border-top: none;
+  border-radius: 0 0 var(--pg-radius) var(--pg-radius);
+  cursor: text;
+  outline: none;
+}
+
+.pg-code-editable:focus {
+  border-color: var(--pg-primary);
+  box-shadow: inset 0 0 0 1px rgba(13, 148, 136, 0.15);
+}
+
+/* ==========================================================================
+   Syntax Highlighting — Applied via JS
+   ========================================================================== */
+
+.pg-syn-key {
+  color: #94a3b8;
+}
+
+.pg-syn-string {
+  color: #2dd4bf;
+}
+
+.pg-syn-number {
+  color: #f59e0b;
+}
+
+.pg-syn-boolean {
+  color: #22c55e;
+}
+
+.pg-syn-null {
+  color: #ef4444;
+}
+
+.pg-syn-punct {
+  color: #64748b;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: var(--pg-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  text-decoration: none;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.pg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Primary "Run" button --- */
+.pg-btn-run {
+  background: var(--pg-primary);
+  color: #fff;
+  border-color: var(--pg-primary);
+}
+
+.pg-btn-run:hover {
+  background: var(--pg-primary-dark);
+  border-color: var(--pg-primary-dark);
+  box-shadow: var(--pg-glow);
+  transform: translateY(-1px);
+}
+
+.pg-btn-run:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* --- Secondary "Back" button --- */
+.pg-btn-back {
+  background: transparent;
+  color: var(--pg-text-muted);
+  border-color: var(--pg-border);
+}
+
+.pg-btn-back:hover {
+  color: var(--pg-text);
+  border-color: var(--pg-text-muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* --- Small copy button --- */
+.pg-btn-copy {
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  color: var(--pg-text-dim);
+  border: 1px solid transparent;
+  border-radius: var(--pg-radius-xs);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  font-family: inherit;
+}
+
+.pg-btn-copy:hover {
+  color: var(--pg-text);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--pg-border-light);
+}
+
+.pg-btn-copy.pg-btn-copy--copied {
+  color: var(--pg-success);
+}
+
+/* --- Loading state --- */
+.pg-btn-loading {
+  color: transparent;
+  pointer-events: none;
+}
+
+.pg-btn-loading::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pg-spin 0.6s linear infinite;
+}
+
+/* ==========================================================================
+   Timing & Validation
+   ========================================================================== */
+
+.pg-timing {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  color: var(--pg-text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pg-timing__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pg-success);
+}
+
+.pg-validation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--pg-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.pg-validation--pass {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--pg-success);
+}
+
+.pg-validation--fail {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--pg-error);
+}
+
+.pg-validation__icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pg-validation__message {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Navigation Footer
+   ========================================================================== */
+
+.pg-nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid var(--pg-border-light);
+}
+
+.pg-prev-link,
+.pg-next-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--pg-primary-lighter);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--pg-transition);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-family: inherit;
+}
+
+.pg-prev-link:hover,
+.pg-next-link:hover {
+  color: var(--pg-primary-light);
+}
+
+.pg-prev-link::before {
+  content: "\2190";
+  font-size: 1.1rem;
+}
+
+.pg-next-link::after {
+  content: "\2192";
+  font-size: 1.1rem;
+}
+
+.pg-nav-footer__spacer {
+  flex: 1;
+}
+
+/* ==========================================================================
+   Negotiation Step — Capability Grid
+   ========================================================================== */
+
+.pg-negotiation-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin: 1.5rem 0;
+}
+
+.pg-negotiation-grid__column {
+  background: var(--pg-bg-elevated);
+  border: 1px solid var(--pg-border);
+  border-radius: var(--pg-radius);
+  padding: 1.25rem;
+}
+
+.pg-negotiation-grid__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pg-text-dim);
+  margin: 0 0 0.75rem;
+}
+
+.pg-negotiation-grid__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2.5rem;
+  color: var(--pg-primary-lighter);
+  font-size: 1.5rem;
+}
+
+/* --- Capability list --- */
+.pg-capability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pg-capability-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--pg-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+  transition: all var(--pg-transition);
+}
+
+.pg-capability-pill--matched {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: var(--pg-success);
+}
+
+.pg-capability-pill--pruned {
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  color: var(--pg-text-dim);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.pg-capability-pill__icon {
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Manage Step — Tab Bar
+   ========================================================================== */
+
+.pg-manage-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--pg-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pg-manage-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pg-manage-tab {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pg-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.pg-manage-tab:hover {
+  color: var(--pg-text);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pg-manage-tab--active {
+  color: var(--pg-primary-lighter);
+  border-bottom-color: var(--pg-primary);
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+/* Response slide-in */
+@keyframes pg-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading spinner */
+@keyframes pg-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Status badge pulse on appear */
+@keyframes pg-badge-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Step dot completion */
+@keyframes pg-step-complete {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Fade in */
+@keyframes pg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.pg-hidden {
+  display: none !important;
+}
+
+.pg-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pg-fade-in {
+  animation: pg-fade-in 0.3s ease;
+}
+
+/* ==========================================================================
+   Mobile Stepper — Current Step Indicator
+   ========================================================================== */
+
+.pg-stepper-mobile {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--pg-bg);
+  border-bottom: 1px solid var(--pg-border-light);
+}
+
+.pg-stepper-mobile__prev,
+.pg-stepper-mobile__next {
+  background: transparent;
+  border: 1px solid var(--pg-border);
+  color: var(--pg-text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--pg-transition);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.pg-stepper-mobile__prev:hover,
+.pg-stepper-mobile__next:hover {
+  border-color: var(--pg-primary);
+  color: var(--pg-primary-lighter);
+}
+
+.pg-stepper-mobile__prev:disabled,
+.pg-stepper-mobile__next:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pg-stepper-mobile__current {
+  text-align: center;
+}
+
+.pg-stepper-mobile__step-num {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pg-primary-lighter);
+  margin-bottom: 0.15rem;
+}
+
+.pg-stepper-mobile__step-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pg-text);
+}
+
+/* ==========================================================================
+   Step Actions Row
+   ========================================================================== */
+
+.pg-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.pg-step-actions--center {
+  justify-content: center;
+}
+
+.pg-step-actions--end {
+  justify-content: flex-end;
+}
+
+/* ==========================================================================
+   Info Callout
+   ========================================================================== */
+
+.pg-callout {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--pg-radius-sm);
+  border: 1px solid;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.pg-callout--info {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: var(--pg-info);
+}
+
+.pg-callout--tip {
+  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.2);
+  color: var(--pg-primary-lighter);
+}
+
+.pg-callout--warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: var(--pg-warning);
+}
+
+.pg-callout__icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Annotations / Field Descriptions
+   ========================================================================== */
+
+.pg-annotations {
+  margin-top: 0.75rem;
+  border: 1px solid var(--pg-border-light);
+  border-radius: var(--pg-radius-sm);
+  overflow: hidden;
+}
+
+.pg-annotation {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--pg-border-light);
+  font-size: 0.78rem;
+  align-items: baseline;
+}
+
+.pg-annotation:last-child {
+  border-bottom: none;
+}
+
+.pg-annotation__field {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--pg-primary-lighter);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+.pg-annotation__desc {
+  color: var(--pg-text-muted);
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Empty State / Loading State
+   ========================================================================== */
+
+.pg-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.pg-empty-state__icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+.pg-empty-state__text {
+  font-size: 0.9rem;
+  color: var(--pg-text-dim);
+}
+
+.pg-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 0.75rem;
+  color: var(--pg-text-muted);
+  font-size: 0.9rem;
+}
+
+.pg-loading-state__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(13, 148, 136, 0.2);
+  border-top-color: var(--pg-primary);
+  border-radius: 50%;
+  animation: pg-spin 0.6s linear infinite;
+}
+
+/* ==========================================================================
+   Responsive — Tablet (768px - 1024px)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .pg-content {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .pg-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .pg-stepper {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .pg-step-connector {
+    width: 28px;
+  }
+
+  .pg-negotiation-grid {
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Responsive — Mobile (<768px)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Header stacks */
+  .pg-header {
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .pg-header__title {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .pg-mode-toggle,
+  .pg-transport-toggle {
+    flex: 1;
+  }
+
+  .pg-mode-toggle {
+    justify-content: center;
+  }
+
+  .pg-transport-toggle__select {
+    width: 100%;
+  }
+
+  /* Desktop stepper hidden on mobile */
+  .pg-stepper {
+    display: none;
+  }
+
+  /* Mobile stepper visible */
+  .pg-stepper-mobile {
+    display: flex;
+  }
+
+  /* Content */
+  .pg-content {
+    padding: 1.25rem 1rem;
+  }
+
+  .pg-step-header__title {
+    font-size: 1.25rem;
+  }
+
+  /* Code panes stack vertically */
+  .pg-panes {
+    grid-template-columns: 1fr;
+  }
+
+  .pg-code {
+    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Negotiation grid stacks */
+  .pg-negotiation-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .pg-negotiation-grid__arrow {
+    transform: rotate(90deg);
+    padding: 0;
+  }
+
+  /* Manage tabs scroll */
+  .pg-manage-tabs {
+    padding: 0 0.5rem;
+  }
+
+  .pg-manage-tab {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* Nav footer */
+  .pg-nav-footer {
+    padding: 1rem 0;
+    margin-top: 1.5rem;
+  }
+
+  .pg-prev-link,
+  .pg-next-link {
+    font-size: 0.8rem;
+  }
+
+  /* Step actions */
+  .pg-step-actions {
+    flex-wrap: wrap;
+  }
+
+  .pg-btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ==========================================================================
+   Responsive — Small Mobile (<480px)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .pg-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .pg-mode-toggle__option {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.7rem;
+  }
+
+  .pg-step-header__title {
+    font-size: 1.1rem;
+  }
+
+  .pg-step-header__subtitle {
+    font-size: 0.85rem;
+  }
+
+  .pg-code {
+    font-size: 0.7rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .pg-pane-header {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .pg-method-badge,
+  .pg-status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+}
+
+/* ==========================================================================
+   MkDocs Integration — Override site styles within playground
+   ========================================================================== */
+
+/* Ensure playground is full-width regardless of site container */
+.md-content:has(.pg-playground) {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+.md-content:has(.pg-playground) .md-content__inner {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Hide MkDocs sidebar and TOC when playground is rendered */
+.md-container:has(.pg-playground) .md-sidebar {
+  display: none;
+}
+
+/* Remove MkDocs default content margins */
+.md-main:has(.pg-playground) .md-main__inner {
+  margin: 0;
+  max-width: none;
+}
+
+/* Prevent MkDocs typography from leaking into playground */
+.pg-playground h1,
+.pg-playground h2,
+.pg-playground h3,
+.pg-playground h4,
+.pg-playground h5,
+.pg-playground h6 {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--pg-text-bright);
+  margin: 0;
+  border: none;
+  letter-spacing: -0.01em;
+}
+
+.pg-playground a {
+  color: var(--pg-primary-lighter);
+  text-decoration: none;
+}
+
+.pg-playground a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .pg-playground {
+    background: #fff;
+    color: #000;
+  }
+
+  .pg-header,
+  .pg-stepper,
+  .pg-stepper-mobile,
+  .pg-nav-footer,
+  .pg-btn-copy,
+  .pg-mode-toggle,
+  .pg-transport-toggle {
+    display: none;
+  }
+
+  .pg-code {
+    background: #f5f5f5;
+    color: #000;
+    border: 1px solid #ccc;
+  }
+
+  .pg-panes {
+    grid-template-columns: 1fr;
+  }
+}

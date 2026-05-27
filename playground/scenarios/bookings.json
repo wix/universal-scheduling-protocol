@@ -1,0 +1,322 @@
+{
+  "instant_confirmation": {
+    "description": "Booking immediately confirmed (auto confirmation mode, payment at service)",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings",
+      "body": {
+        "slot_id": "slot_mass_0315_0900",
+        "hold_id": "hold_abc123def456",
+        "buyer": {
+          "first_name": "Jane",
+          "last_name": "Doe",
+          "email": "jane.doe@example.com",
+          "phone_number": "+12125551234",
+          "consent": {
+            "analytics": true,
+            "marketing": false,
+            "preferences": true
+          }
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_sarah_001", "type": "staff" }
+        ],
+        "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil."
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_7f3a2b1c8d9e",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_0900",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "+12125551234"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "not_required",
+            "timing": "at_service"
+          },
+          "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil.",
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+          "created_at": "2026-03-14T15:02:34-05:00",
+          "updated_at": "2026-03-14T15:02:34-05:00"
+        }
+      }
+    }
+  },
+  "payment_required": {
+    "description": "Booking requires payment action before confirmation (standalone redirect flow)",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings",
+      "body": {
+        "slot_id": "slot_mass_0315_1400",
+        "buyer": {
+          "first_name": "John",
+          "last_name": "Smith",
+          "email": "john.smith@example.com",
+          "phone_number": "+12125559876"
+        },
+        "party_size": 1,
+        "resources": [
+          { "id": "staff_mike_002", "type": "staff" }
+        ]
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_4e5f6a7b8c9d",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_1400",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "john.smith@example.com",
+            "phone_number": "+12125559876"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "requires_action",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "pending",
+            "timing": "at_booking",
+            "amount": 12000,
+            "currency": "USD",
+            "amount_due": 12000,
+            "tax_amount": 1065
+          },
+          "actions": [
+            {
+              "type": "payment",
+              "status": "pending",
+              "continue_url": "https://pay.downtownwellnessspa.com/checkout/sess_x8y9z0a1b2c3",
+              "expires_at": "2026-03-14T15:30:00-05:00",
+              "message": {
+                "type": "info",
+                "code": "payment_required",
+                "content": "Please complete payment within 15 minutes to confirm your booking."
+              },
+              "payment_context": {
+                "amount_due": 13065,
+                "currency": "USD",
+                "description": "Swedish Massage - Mar 15, 2026 at 2:00 PM with Mike Chen",
+                "line_items": [
+                  {
+                    "label": "Swedish Massage (60 min)",
+                    "amount": 12000,
+                    "quantity": 1,
+                    "item_id": "svc_massage_001"
+                  }
+                ],
+                "tax_amount": 1065,
+                "metadata": {
+                  "booking_id": "bkg_4e5f6a7b8c9d",
+                  "service_id": "svc_massage_001",
+                  "service_type": "appointment",
+                  "slot_start": "2026-03-15T14:00:00-05:00"
+                }
+              }
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+          "created_at": "2026-03-14T15:15:00-05:00",
+          "updated_at": "2026-03-14T15:15:00-05:00",
+          "expires_at": "2026-03-14T15:30:00-05:00"
+        }
+      }
+    }
+  },
+  "manual_confirmation": {
+    "description": "Booking pending manual approval from the business (spa suite reservation)",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_suite_001/bookings",
+      "body": {
+        "slot_id": "slot_suite_0316_1000",
+        "buyer": {
+          "first_name": "Emily",
+          "last_name": "Rodriguez",
+          "email": "emily.r@example.com",
+          "phone_number": "+12125554567"
+        },
+        "party_size": 2,
+        "resources": [
+          { "id": "room_orchid_001", "type": "room" }
+        ],
+        "notes": "Anniversary celebration. Champagne add-on if available."
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_1a2b3c4d5e6f",
+          "service_id": "svc_suite_001",
+          "service_name": "Spa Suite Experience",
+          "slot": {
+            "id": "slot_suite_0316_1000",
+            "start": "2026-03-16T10:00:00-05:00",
+            "end": "2026-03-16T12:00:00-05:00",
+            "duration": "PT120M"
+          },
+          "buyer": {
+            "first_name": "Emily",
+            "last_name": "Rodriguez",
+            "email": "emily.r@example.com",
+            "phone_number": "+12125554567"
+          },
+          "party_size": 2,
+          "resources": [
+            { "id": "room_orchid_001", "type": "room", "name": "Orchid Suite" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "pending",
+          "confirmation_mode": "manual",
+          "payment": {
+            "status": "pending",
+            "timing": "deposit_required",
+            "amount": 35000,
+            "currency": "USD",
+            "amount_due": 10000,
+            "deposit_amount": 10000
+          },
+          "notes": "Anniversary celebration. Champagne add-on if available.",
+          "messages": [
+            {
+              "type": "info",
+              "code": "manual_review",
+              "content": "Your reservation is pending confirmation by our spa team. You will receive an email within 2 hours. Deposit will be charged upon confirmation."
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_1a2b3c4d5e6f",
+          "created_at": "2026-03-14T16:00:00-05:00",
+          "updated_at": "2026-03-14T16:00:00-05:00",
+          "expires_at": "2026-03-14T18:00:00-05:00"
+        }
+      }
+    }
+  },
+  "validation_error": {
+    "description": "Booking creation fails due to validation errors (missing required fields)",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings",
+      "body": {
+        "slot_id": "slot_mass_0315_0900",
+        "buyer": {
+          "first_name": "Jane",
+          "email": "invalid-email"
+        },
+        "party_size": 0
+      }
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "type": "https://usp.dev/problems/validation-error",
+        "title": "Validation Error",
+        "status": 422,
+        "detail": "The booking request contains invalid or missing fields.",
+        "errors": [
+          {
+            "field": "buyer.last_name",
+            "message": "Last name is required."
+          },
+          {
+            "field": "buyer.email",
+            "message": "Must be a valid email address."
+          },
+          {
+            "field": "party_size",
+            "message": "Party size must be at least 1."
+          }
+        ]
+      }
+    }
+  },
+  "slot_expired": {
+    "description": "Booking creation fails because the held slot has expired",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings",
+      "body": {
+        "slot_id": "slot_mass_0315_1000",
+        "hold_id": "hold_expired_999",
+        "buyer": {
+          "first_name": "Jane",
+          "last_name": "Doe",
+          "email": "jane.doe@example.com",
+          "phone_number": "+12125551234"
+        },
+        "party_size": 1
+      }
+    },
+    "response": {
+      "status": 409,
+      "body": {
+        "type": "https://usp.dev/problems/slot-expired",
+        "title": "Slot Expired",
+        "status": 409,
+        "detail": "The hold on the requested slot has expired. Please select a new time slot and try again."
+      }
+    }
+  }
+}

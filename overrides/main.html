@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+
+  {% if page %}
+  {# ── Canonical URL ── #}
+  <link rel="canonical" href="{{ config.site_url }}{{ page.url }}" />
+
+  {# ── Open Graph ── #}
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="{{ config.site_name }}" />
+  <meta property="og:title"       content="{% if page.title %}{{ page.title }} | {{ config.site_name }}{% else %}{{ config.site_name }}{% endif %}" />
+  <meta property="og:description" content="{{ page.meta.get('description', config.site_description) }}" />
+  <meta property="og:url"         content="{{ config.site_url }}{{ page.url }}" />
+  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale"      content="en_US" />
+
+  {# ── Twitter Card ── #}
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{% if page.title %}{{ page.title }} | {{ config.site_name }}{% else %}{{ config.site_name }}{% endif %}" />
+  <meta name="twitter:description" content="{{ page.meta.get('description', config.site_description) }}" />
+  <meta name="twitter:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+
+  {# ── Additional SEO ── #}
+  <meta name="author" content="USP Authors" />
+  <meta name="robots" content="index, follow" />
+  {% if page.meta.get('keywords') %}
+  <meta name="keywords" content="{{ page.meta.keywords }}" />
+  {% else %}
+  <meta name="keywords" content="USP, Universal Scheduling Protocol, scheduling API, agentic scheduling, booking protocol, service discovery, availability, open standard" />
+  {% endif %}
+
+  {# ── JSON-LD Structured Data ── #}
+  {% if page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Universal Scheduling Protocol",
+        "alternateName": "USP",
+        "url": "{{ config.site_url }}",
+        "description": "{{ config.site_description }}",
+        "inLanguage": "en-US",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "{{ config.site_url }}search/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "Universal Scheduling Protocol (USP)",
+        "description": "An open standard that enables platforms and AI agents to discover, check availability of, and book time-based services from businesses.",
+        "url": "{{ config.site_url }}",
+        "codeRepository": "{{ config.repo_url }}",
+        "programmingLanguage": ["JSON", "JSON Schema", "OpenAPI", "OpenRPC"],
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "version": "2026-02-21",
+        "applicationCategory": "Protocol Specification",
+        "operatingSystem": "Any"
+      },
+      {
+        "@type": "Organization",
+        "name": "USP Authors",
+        "url": "{{ config.site_url }}",
+        "logo": "{{ config.site_url }}assets/images/logo.png"
+      }
+    ]
+  }
+  </script>
+  {% else %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "{{ page.title | default(config.site_name, true) }}",
+    "description": "{{ page.meta.get('description', config.site_description) }}",
+    "url": "{{ config.site_url }}{{ page.url }}",
+    "inLanguage": "en-US",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Universal Scheduling Protocol",
+      "url": "{{ config.site_url }}"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "USP Authors",
+      "url": "{{ config.site_url }}"
+    },
+    "license": "https://www.apache.org/licenses/LICENSE-2.0"
+  }
+  </script>
+  {% endif %}
+
+  {% endif %}{# end if page #}
+{% endblock %}
