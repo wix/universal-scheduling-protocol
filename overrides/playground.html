@@ -1,0 +1,350 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+{% endblock %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% if page %}
+  <meta property="og:title"       content="Playground | {{ config.site_name }}" />
+  <meta property="og:description" content="{{ page.meta.get('description', 'Interactive USP scheduling flow simulator.') }}" />
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="{{ config.site_url }}{{ page.url }}" />
+  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta name="twitter:card"       content="summary_large_image" />
+  <meta name="twitter:title"      content="Playground | {{ config.site_name }}" />
+  <meta name="twitter:description" content="{{ page.meta.get('description', 'Interactive USP scheduling flow simulator.') }}" />
+  <meta name="twitter:image"      content="{{ config.site_url }}assets/images/social-card.png" />
+  {% endif %}
+  <link rel="stylesheet" href="{{ 'playground/styles/playground.css' | url }}">
+{% endblock %}
+
+{% block content %}
+<div class="pg-playground">
+
+  {# ── Header: Mode + Title + Transport ── #}
+  <div class="pg-header">
+    <div class="pg-mode-toggle" id="pg-mode-toggle">
+      <button class="pg-toggle-btn pg-toggle-active" data-mode="standalone">Standalone</button>
+      <button class="pg-toggle-btn" data-mode="ucp-native">UCP-Native</button>
+    </div>
+    <h1>USP Playground</h1>
+    <div class="pg-transport-toggle" id="pg-transport-toggle">
+      <button class="pg-toggle-btn pg-toggle-active" data-transport="rest">REST</button>
+      <button class="pg-toggle-btn" data-transport="mcp">MCP</button>
+      <button class="pg-toggle-btn" data-transport="a2a">A2A</button>
+      <button class="pg-toggle-btn" data-transport="esp">ESP</button>
+    </div>
+  </div>
+
+  {# ── Description ── #}
+  <p class="pg-intro">Walk through a complete USP scheduling flow step-by-step. This interactive demo runs entirely in the browser, simulating payloads and validating against real USP schemas at each stage.</p>
+
+  {# ── Step Navigation Tabs ── #}
+  <div class="pg-step-nav" id="pg-step-nav">
+    <button class="pg-step-pill pg-step-pill-active" data-step="discovery"><span class="pg-pill-num">1</span> Discovery</button>
+    <button class="pg-step-pill" data-step="negotiation"><span class="pg-pill-num">2</span> Negotiation</button>
+    <button class="pg-step-pill" data-step="browse"><span class="pg-pill-num">3</span> Browse Services</button>
+    <button class="pg-step-pill" data-step="availability"><span class="pg-pill-num">4</span> Check Availability</button>
+    <button class="pg-step-pill" data-step="hold"><span class="pg-pill-num">5</span> Hold Slot</button>
+    <button class="pg-step-pill" data-step="book"><span class="pg-pill-num">6</span> Create Booking</button>
+    <button class="pg-step-pill" data-step="payment"><span class="pg-pill-num">7</span> Payment</button>
+    <button class="pg-step-pill" data-step="manage"><span class="pg-pill-num">8</span> Manage Booking</button>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 1 — Discovery
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step pg-step-visible" data-step="discovery">
+    <h2>1. Discovery</h2>
+    <p>Fetch the business's USP profile to learn what capabilities it supports.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Business Profile</label>
+        <select class="pg-select" id="pg-discovery-scenario">
+          <option value="standard" selected>Standard (Core Only)</option>
+          <option value="full">Full (All Extensions)</option>
+          <option value="minimal">Minimal (Appointments Only)</option>
+        </select>
+        <p class="pg-config-desc" id="pg-discovery-desc">Supports core Catalog, Availability, and Bookings capabilities.</p>
+        <button class="pg-btn pg-btn-run" id="pg-discovery-run">
+          <span class="pg-btn-text">Fetch Profile</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-get">GET</span>
+          <span class="pg-path">/.well-known/usp</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-discovery-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-discovery-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <span></span>
+      <button class="pg-btn pg-btn-next" data-next="negotiation">Next: Negotiation →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 2 — Capability Negotiation
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="negotiation">
+    <h2>2. Capability Negotiation</h2>
+    <p>The platform intersects its own capabilities with those declared by the business to determine the active set for this session.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-negotiation-scenario">
+          <option value="full-match" selected>Full Match</option>
+          <option value="partial-match">Partial Match (No Holds)</option>
+          <option value="incompatible">Incompatible (Error)</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-negotiation-run">
+          <span class="pg-btn-text">Run Negotiation</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-label">Negotiated Capabilities</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-negotiation-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-negotiation-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="discovery">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="browse">Next: Browse Services →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 3 — Browse Services
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="browse">
+    <h2>3. Browse Services</h2>
+    <p>Query the service catalog to find bookable services.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-browse-scenario">
+          <option value="happy_path" selected>All Services (4)</option>
+          <option value="filtered_wellness">Filtered: Massage Only</option>
+          <option value="search_massage">Search: "massage"</option>
+          <option value="empty_results">Empty Results</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-browse-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-post">POST</span>
+          <span class="pg-path">/services/list</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-browse-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-browse-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="negotiation">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="availability">Next: Check Availability →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 4 — Check Availability
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="availability">
+    <h2>4. Check Availability</h2>
+    <p>Query available time slots for the selected service.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-availability-scenario">
+          <option value="available_slots" selected>Available Slots</option>
+          <option value="limited_availability">Limited Availability</option>
+          <option value="resource_specific">Resource-Specific (Sarah)</option>
+          <option value="no_availability">No Availability</option>
+          <option value="range_too_wide">Error: Range Too Wide</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-availability-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-post">POST</span>
+          <span class="pg-path">/availability/query</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-availability-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-availability-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="browse">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="hold">Next: Hold Slot →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 5 — Hold Slot
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="hold">
+    <h2>5. Hold Slot</h2>
+    <p>Temporarily reserve a slot before completing the booking. This step is optional — only available when the business declares <code>"holds": true</code>.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-hold-scenario">
+          <option value="hold_granted" selected>Hold Granted</option>
+          <option value="slot_unavailable">Slot Unavailable (409)</option>
+          <option value="hold_limit_exceeded">Hold Limit Exceeded (409)</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-hold-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-post">POST</span>
+          <span class="pg-path">/availability/hold</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-hold-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-hold-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="availability">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="book">Next: Create Booking →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 6 — Create Booking
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="book">
+    <h2>6. Create Booking</h2>
+    <p>Create a confirmed booking from the held (or unheld) slot.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-book-scenario">
+          <option value="instant_confirmation" selected>Instant Confirmation</option>
+          <option value="payment_required">Payment Required</option>
+          <option value="manual_confirmation">Manual Confirmation</option>
+          <option value="validation_error">Validation Error (422)</option>
+          <option value="slot_expired">Slot Expired (409)</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-book-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-post">POST</span>
+          <span class="pg-path">/bookings</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-book-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-book-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="hold">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="payment">Next: Payment →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 7 — Complete Payment
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="payment">
+    <h2>7. Complete Payment</h2>
+    <p>Demonstrate the payment confirmation flow for Standalone mode bookings.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Scenario</label>
+        <select class="pg-select" id="pg-payment-scenario">
+          <option value="payment_success" selected>Payment Success</option>
+          <option value="payment_failed">Payment Failed (422)</option>
+          <option value="deposit_flow">Deposit Flow</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-payment-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-post">POST</span>
+          <span class="pg-path">/bookings/{id}/confirm-payment</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-payment-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-payment-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="book">← Back</button>
+      <button class="pg-btn pg-btn-next" data-next="manage">Next: Manage Booking →</button>
+    </div>
+  </section>
+
+  {# ══════════════════════════════════════════════════════════════════
+     STEP 8 — Manage Booking
+     ══════════════════════════════════════════════════════════════════ #}
+  <section class="pg-step" data-step="manage">
+    <h2>8. Manage Booking</h2>
+    <p>Demonstrate post-booking lifecycle operations and webhook events.</p>
+
+    <div class="pg-split">
+      <div class="pg-config-panel">
+        <h3>Configuration</h3>
+        <label>Operation</label>
+        <select class="pg-select" id="pg-manage-scenario">
+          <option value="view_booking" selected>View Booking</option>
+          <option value="update_booking">Update Booking</option>
+          <option value="cancel_booking">Cancel Booking</option>
+          <option value="reschedule_booking">Reschedule</option>
+          <option value="booking_confirmed">Webhook: booking.confirmed</option>
+          <option value="booking_canceled">Webhook: booking.canceled</option>
+        </select>
+        <button class="pg-btn pg-btn-run" id="pg-manage-run">
+          <span class="pg-btn-text">Run Request</span>
+        </button>
+      </div>
+      <div class="pg-code-panel">
+        <div class="pg-pane-header">
+          <span class="pg-method-badge pg-method-get" id="pg-manage-method">GET</span>
+          <span class="pg-path" id="pg-manage-path">/bookings/{booking_id}</span>
+          <button class="pg-btn pg-btn-copy" data-target="pg-manage-code">Copy</button>
+        </div>
+        <pre class="pg-code"><code id="pg-manage-code"></code></pre>
+      </div>
+    </div>
+    <div class="pg-step-footer">
+      <button class="pg-btn pg-btn-back" data-prev="payment">← Back</button>
+      <span></span>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ 'playground/src/playground-controller.js' | url }}"></script>
+{% endblock %}

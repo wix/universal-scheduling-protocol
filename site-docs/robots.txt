@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://usp.dev/sitemap.xml
+
+# LLM-readable content
+# See https://usp.dev/llms.txt for structured protocol summary
+# See https://usp.dev/llms-full.txt for complete protocol reference

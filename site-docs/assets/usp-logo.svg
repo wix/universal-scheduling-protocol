@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 193.2 229.06">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill-rule: evenodd;
+        stroke: #000;
+        stroke-linejoin: bevel;
+        stroke-width: 1.5px;
+      }
+      .cls-2 {
+        fill: none;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g>
+      <polygon class="cls-2" points="96.6,100 161.5,62.5 161.5,162.5 96.6,200"/>
+      <polygon class="cls-2" points="49,72.5 96.6,100 96.6,200 49,172.5"/>
+      <polygon class="cls-2" points="113.9,35 161.5,62.5 96.6,100 49,72.5"/>
+      <polygon class="cls-1" points="96.6,100 161.5,62.5 161.5,76.5 96.6,114"/>
+    </g>
+    <g>
+      <line class="cls-2" x1="96.6" y1="142.7" x2="161.5" y2="105.2"/>
+      <line class="cls-2" x1="96.6" y1="171.3" x2="161.5" y2="133.8"/>
+      <line class="cls-2" x1="129.1" y1="95.25" x2="129.1" y2="181.25"/>
+    </g>
+    <g>
+      <polygon class="cls-1" points="129.1,95.25 161.5,76.5 161.5,105.2 129.1,124"/>
+      <polygon class="cls-1" points="96.6,142.7 129.1,124 129.1,152.6 96.6,171.3"/>
+      <polygon class="cls-1" points="129.1,152.6 161.5,133.8 161.5,162.5 129.1,181.25"/>
+    </g>
+    <g>
+      <line class="cls-2" x1="49" y1="105.8" x2="96.6" y2="133.3"/>
+      <line class="cls-2" x1="49" y1="139.2" x2="96.6" y2="166.7"/>
+      <line class="cls-2" x1="49" y1="172.5" x2="96.6" y2="200"/>
+      <line class="cls-2" x1="81.5" y1="53.75" x2="129.1" y2="81.25"/>
+      <line class="cls-2" x1="72.8" y1="86.25" x2="137.7" y2="48.75"/>
+    </g>
+    <g>
+      <ellipse class="cls-2" cx="105.3" cy="67.5" rx="18" ry="10.4"/>
+      <line class="cls-2" x1="105.3" y1="67.5" x2="112" y2="62"/>
+      <line class="cls-2" x1="105.3" y1="67.5" x2="100" y2="60"/>
+    </g>
+  </g>
+</svg>

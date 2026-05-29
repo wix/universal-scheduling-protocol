@@ -1,0 +1,101 @@
+{
+  "standard": {
+    "description": "Standard platform profile with core scheduling capabilities",
+    "response": {
+      "usp": {
+        "version": "2026-02-21",
+        "capabilities": {
+          "dev.usp.services.catalog": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#catalog",
+              "schema": "https://usp.dev/schemas/catalog.json"
+            }
+          ],
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#availability",
+              "schema": "https://usp.dev/schemas/availability.json"
+            }
+          ],
+          "dev.usp.services.bookings": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#bookings",
+              "schema": "https://usp.dev/schemas/booking.json"
+            }
+          ]
+        },
+        "services": {
+          "dev.usp.services": [
+            {
+              "transport": "rest"
+            }
+          ]
+        }
+      },
+      "webhook_url": "https://platform.example.com/webhooks/usp"
+    }
+  },
+  "advanced": {
+    "description": "Advanced platform profile with waitlist, multi-transport preferences, and signing keys",
+    "response": {
+      "usp": {
+        "version": "2026-02-21",
+        "capabilities": {
+          "dev.usp.services.catalog": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#catalog",
+              "schema": "https://usp.dev/schemas/catalog.json"
+            }
+          ],
+          "dev.usp.services.availability": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#availability",
+              "schema": "https://usp.dev/schemas/availability.json"
+            }
+          ],
+          "dev.usp.services.bookings": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#bookings",
+              "schema": "https://usp.dev/schemas/booking.json"
+            }
+          ],
+          "dev.usp.services.waitlist": [
+            {
+              "version": "2026-02-21",
+              "spec": "https://usp.dev/spec/2026-02-21#waitlist",
+              "schema": "https://usp.dev/schemas/waitlist.json"
+            }
+          ]
+        },
+        "services": {
+          "dev.usp.services": [
+            {
+              "transport": "mcp"
+            },
+            {
+              "transport": "rest"
+            }
+          ]
+        }
+      },
+      "webhook_url": "https://platform.example.com/webhooks/usp",
+      "signing_keys": [
+        {
+          "kid": "platform-signing-2026-01",
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "kXv4YqMUFr6vQOnR2Jq_Sx2JFJc0omaa9CpEqwImz-k",
+          "y": "3Bm5tB_jP-mJKEYODHBKPxN2OKDxpYuZjcIF_RTb1Zs",
+          "use": "sig",
+          "alg": "ES256"
+        }
+      ]
+    }
+  }
+}

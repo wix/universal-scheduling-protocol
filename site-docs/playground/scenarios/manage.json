@@ -1,0 +1,336 @@
+{
+  "view_booking": {
+    "description": "Retrieve a confirmed booking by ID",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_7f3a2b1c8d9e",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_0900",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "+12125551234"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "not_required",
+            "timing": "at_service"
+          },
+          "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil.",
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+          "created_at": "2026-03-14T15:02:34-05:00",
+          "updated_at": "2026-03-14T15:02:34-05:00"
+        }
+      }
+    }
+  },
+  "update_booking": {
+    "description": "Update buyer notes and party size on an existing booking",
+    "request": {
+      "method": "PATCH",
+      "path": "/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e",
+      "body": {
+        "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil. Will be 5 minutes late.",
+        "buyer": {
+          "phone_number": "+12125559999"
+        }
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_7f3a2b1c8d9e",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_0900",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "+12125559999"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "not_required",
+            "timing": "at_service"
+          },
+          "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil. Will be 5 minutes late.",
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+          "created_at": "2026-03-14T15:02:34-05:00",
+          "updated_at": "2026-03-14T17:45:12-05:00"
+        }
+      }
+    }
+  },
+  "cancel_booking": {
+    "description": "Cancel a confirmed booking within the free cancellation window",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e/cancel",
+      "body": {
+        "reason": "Schedule conflict - meeting was moved to the same time."
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_7f3a2b1c8d9e",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_0900",
+            "start": "2026-03-15T09:00:00-05:00",
+            "end": "2026-03-15T10:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "+12125559999"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "canceled",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "not_required",
+            "timing": "at_service"
+          },
+          "cancellation": {
+            "reason": "Schedule conflict - meeting was moved to the same time.",
+            "canceled_by": "buyer",
+            "fee": 0,
+            "refund_amount": 0,
+            "canceled_at": "2026-03-14T17:50:00-05:00"
+          },
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+          "created_at": "2026-03-14T15:02:34-05:00",
+          "updated_at": "2026-03-14T17:50:00-05:00"
+        }
+      }
+    }
+  },
+  "cancel_with_fee": {
+    "description": "Cancel a paid booking outside the free cancellation window, incurring a late cancellation fee",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_4e5f6a7b8c9d/cancel",
+      "body": {
+        "reason": "Feeling unwell."
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_4e5f6a7b8c9d",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0315_1400",
+            "start": "2026-03-15T14:00:00-05:00",
+            "end": "2026-03-15T15:00:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "john.smith@example.com",
+            "phone_number": "+12125559876"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "canceled",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "partially_refunded",
+            "timing": "at_booking",
+            "amount": 12000,
+            "currency": "USD",
+            "amount_due": 0,
+            "tax_amount": 1065,
+            "transaction_id": "txn_stripe_pi_3OxR2aSBi",
+            "order_reference": "ord_plat_98765"
+          },
+          "cancellation": {
+            "reason": "Feeling unwell.",
+            "canceled_by": "buyer",
+            "fee": 6000,
+            "refund_amount": 7065,
+            "canceled_at": "2026-03-15T08:30:00-05:00"
+          },
+          "messages": [
+            {
+              "type": "warning",
+              "code": "late_cancellation",
+              "content": "This cancellation is within the 24-hour window. A $60.00 late cancellation fee has been applied. $70.65 will be refunded to your original payment method within 5-10 business days."
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_4e5f6a7b8c9d",
+          "created_at": "2026-03-14T15:15:00-05:00",
+          "updated_at": "2026-03-15T08:30:00-05:00"
+        }
+      }
+    }
+  },
+  "reschedule_booking": {
+    "description": "Reschedule a confirmed booking to a new time slot",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e/reschedule",
+      "body": {
+        "new_slot_id": "slot_mass_0317_1030",
+        "resources": [
+          { "id": "staff_sarah_001", "type": "staff" }
+        ]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.bookings": [{ "version": "2026-02-21" }]
+          }
+        },
+        "booking": {
+          "id": "bkg_7f3a2b1c8d9e",
+          "service_id": "svc_massage_001",
+          "service_name": "Swedish Massage",
+          "slot": {
+            "id": "slot_mass_0317_1030",
+            "start": "2026-03-17T10:30:00-05:00",
+            "end": "2026-03-17T11:30:00-05:00",
+            "duration": "PT60M"
+          },
+          "buyer": {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "+12125559999"
+          },
+          "party_size": 1,
+          "resources": [
+            { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+          ],
+          "location": {
+            "id": "loc_main_001",
+            "name": "Downtown Studio"
+          },
+          "status": "confirmed",
+          "confirmation_mode": "auto",
+          "payment": {
+            "status": "not_required",
+            "timing": "at_service"
+          },
+          "notes": "Prefer firm pressure on shoulders. Allergic to lavender oil. Will be 5 minutes late.",
+          "messages": [
+            {
+              "type": "info",
+              "code": "rescheduled",
+              "content": "Your booking has been rescheduled to Tuesday, March 17 at 10:30 AM. You have 1 reschedule remaining."
+            }
+          ],
+          "booking_url": "https://www.downtownwellnessspa.com/bookings/bkg_7f3a2b1c8d9e",
+          "created_at": "2026-03-14T15:02:34-05:00",
+          "updated_at": "2026-03-14T18:10:00-05:00"
+        }
+      }
+    }
+  },
+  "reschedule_limit_reached": {
+    "description": "Reschedule fails because the maximum number of reschedules has been used",
+    "request": {
+      "method": "POST",
+      "path": "/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e/reschedule",
+      "body": {
+        "new_slot_id": "slot_mass_0317_1400"
+      }
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "type": "https://usp.dev/problems/reschedule-limit-reached",
+        "title": "Reschedule Limit Reached",
+        "status": 422,
+        "detail": "This booking has reached its maximum of 2 reschedules. Please cancel and create a new booking instead."
+      }
+    }
+  }
+}
