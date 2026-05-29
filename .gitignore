@@ -1,2 +1,5 @@
 # Intellij
-.idea/
+.idea/site/
+
+# MkDocs build output
+site/

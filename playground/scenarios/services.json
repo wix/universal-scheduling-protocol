@@ -1,0 +1,661 @@
+{
+  "happy_path": {
+    "description": "Full catalog listing for Downtown Wellness Spa returning all 4 services",
+    "request": {
+      "method": "GET",
+      "path": "/services",
+      "query": {
+        "business_id": "biz_downtown_spa"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+          }
+        },
+        "services": [
+          {
+            "id": "svc_massage_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Swedish Massage",
+            "description": {
+              "plain": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
+              "markdown": "A classic full-body **Swedish massage** using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils."
+            },
+            "type": "appointment",
+            "category": {
+              "id": "cat_massage",
+              "name": "Massage Therapy"
+            },
+            "duration": {
+              "fixed": "PT60M",
+              "buffer_before": "PT5M",
+              "buffer_after": "PT10M"
+            },
+            "pricing": {
+              "model": "fixed",
+              "amount": 12000,
+              "currency": "USD"
+            },
+            "locations": [
+              {
+                "id": "loc_main_001",
+                "name": "Downtown Studio",
+                "address": "742 Wellness Ave, New York, NY 10012"
+              }
+            ],
+            "resources": [
+              {
+                "type": "staff",
+                "name": "Massage Therapist",
+                "selectable": true,
+                "options": [
+                  {
+                    "id": "staff_sarah_001",
+                    "name": "Sarah Johnson",
+                    "description": "Licensed massage therapist with 8 years of experience specializing in Swedish and deep tissue techniques.",
+                    "image_url": "https://cdn.downtownwellnessspa.com/staff/sarah.jpg"
+                  },
+                  {
+                    "id": "staff_mike_002",
+                    "name": "Mike Chen",
+                    "description": "Certified massage therapist focusing on sports recovery and relaxation massage.",
+                    "image_url": "https://cdn.downtownwellnessspa.com/staff/mike.jpg"
+                  }
+                ]
+              }
+            ],
+            "channel": {
+              "type": "in_person",
+              "instructions": "Please arrive 10 minutes early to check in and change. Lockers and robes are provided."
+            },
+            "policies": {
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT24H",
+                "late_cancellation_fee": 6000,
+                "no_cancellation_after": "PT2H"
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT24H",
+                "max_reschedules": 2,
+                "fee": 0
+              },
+              "no_show": {
+                "fee": 12000,
+                "grace_period": "PT15M"
+              },
+              "booking_window": {
+                "min_advance": "PT2H",
+                "max_advance": "P60D",
+                "slot_interval": "PT30M"
+              },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_booking"
+            },
+            "media": [
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/swedish-massage-hero.jpg",
+                "alt_text": "Relaxing Swedish massage in a serene spa room",
+                "role": "hero",
+                "width": 1200,
+                "height": 800
+              },
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/swedish-massage-room.jpg",
+                "alt_text": "Private massage room with warm lighting",
+                "role": "gallery",
+                "width": 800,
+                "height": 600
+              }
+            ],
+            "rating": {
+              "value": 4.8,
+              "scale_min": 1,
+              "scale_max": 5,
+              "count": 342
+            },
+            "status": "active",
+            "handle": "swedish-massage",
+            "url": "https://www.downtownwellnessspa.com/services/swedish-massage",
+            "tags": ["massage", "relaxation", "swedish", "full-body", "aromatherapy"],
+            "availability_hint": {
+              "summary": "Available this week with morning and afternoon slots on most days.",
+              "generated_at": "2026-03-14T08:00:00-05:00",
+              "next_available_date": "2026-03-15"
+            }
+          },
+          {
+            "id": "svc_yoga_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Morning Yoga",
+            "description": {
+              "plain": "Start your day with an energizing 75-minute vinyasa flow class. Suitable for all levels. Mats and props provided.",
+              "markdown": "Start your day with an energizing 75-minute **vinyasa flow** class. Suitable for all levels. Mats and props provided."
+            },
+            "type": "group",
+            "category": {
+              "id": "cat_fitness",
+              "name": "Fitness & Yoga"
+            },
+            "duration": {
+              "fixed": "PT75M"
+            },
+            "pricing": {
+              "model": "per_person",
+              "amount": 2500,
+              "currency": "USD"
+            },
+            "locations": [
+              {
+                "id": "loc_main_001",
+                "name": "Downtown Studio",
+                "address": "742 Wellness Ave, New York, NY 10012"
+              }
+            ],
+            "resources": [
+              {
+                "type": "staff",
+                "name": "Yoga Instructor",
+                "selectable": false,
+                "options": [
+                  {
+                    "id": "staff_emma_003",
+                    "name": "Emma Williams",
+                    "description": "RYT-500 certified yoga instructor specializing in vinyasa and restorative yoga."
+                  }
+                ]
+              }
+            ],
+            "channel": {
+              "type": "in_person",
+              "instructions": "Arrive 15 minutes before class to set up your mat. Wear comfortable clothing."
+            },
+            "capacity": {
+              "min": 1,
+              "max": 20,
+              "waitlist": true
+            },
+            "policies": {
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT12H",
+                "late_cancellation_fee": 1500
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT12H",
+                "max_reschedules": 3,
+                "fee": 0
+              },
+              "no_show": {
+                "fee": 2500,
+                "grace_period": "PT10M"
+              },
+              "booking_window": {
+                "min_advance": "PT1H",
+                "max_advance": "P30D",
+                "slot_interval": "PT75M"
+              },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_booking"
+            },
+            "media": [
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/morning-yoga-hero.jpg",
+                "alt_text": "Yoga class in a sunlit studio",
+                "role": "hero",
+                "width": 1200,
+                "height": 800
+              }
+            ],
+            "rating": {
+              "value": 4.9,
+              "scale_min": 1,
+              "scale_max": 5,
+              "count": 189
+            },
+            "status": "active",
+            "handle": "morning-yoga",
+            "url": "https://www.downtownwellnessspa.com/services/morning-yoga",
+            "tags": ["yoga", "fitness", "morning", "vinyasa", "group-class"],
+            "availability_hint": {
+              "summary": "Classes held daily at 7:00 AM and 9:00 AM. Spots fill quickly on weekends.",
+              "generated_at": "2026-03-14T08:00:00-05:00",
+              "next_available_date": "2026-03-15"
+            }
+          },
+          {
+            "id": "svc_suite_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Spa Suite Experience",
+            "description": {
+              "plain": "A luxurious 2-hour private spa suite experience including a hot tub soak, steam room access, and a personalized treatment menu. Ideal for couples and special occasions.",
+              "markdown": "A luxurious 2-hour **private spa suite** experience including a hot tub soak, steam room access, and a personalized treatment menu. Ideal for couples and special occasions."
+            },
+            "type": "reservation",
+            "category": {
+              "id": "cat_spa_suites",
+              "name": "Spa Suites"
+            },
+            "duration": {
+              "fixed": "PT120M",
+              "buffer_before": "PT15M",
+              "buffer_after": "PT15M"
+            },
+            "pricing": {
+              "model": "fixed",
+              "amount": 35000,
+              "currency": "USD",
+              "deposit": {
+                "type": "fixed",
+                "value": 10000,
+                "refundable": true
+              }
+            },
+            "locations": [
+              {
+                "id": "loc_main_001",
+                "name": "Downtown Studio",
+                "address": "742 Wellness Ave, New York, NY 10012"
+              }
+            ],
+            "resources": [
+              {
+                "type": "room",
+                "name": "Spa Suite",
+                "selectable": true,
+                "options": [
+                  {
+                    "id": "room_orchid_001",
+                    "name": "Orchid Suite",
+                    "description": "Garden-view suite with private hot tub and steam shower. Accommodates up to 4 guests.",
+                    "image_url": "https://cdn.downtownwellnessspa.com/rooms/orchid-suite.jpg"
+                  },
+                  {
+                    "id": "room_rose_002",
+                    "name": "Rose Suite",
+                    "description": "Rooftop suite with skyline views, plunge pool, and rainfall shower. Accommodates up to 2 guests.",
+                    "image_url": "https://cdn.downtownwellnessspa.com/rooms/rose-suite.jpg"
+                  }
+                ]
+              }
+            ],
+            "channel": {
+              "type": "in_person",
+              "instructions": "Please arrive 15 minutes early. Robes, slippers, and refreshments are provided in the suite."
+            },
+            "capacity": {
+              "min": 1,
+              "max": 4,
+              "waitlist": false
+            },
+            "policies": {
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT48H",
+                "late_cancellation_fee": 17500,
+                "no_cancellation_after": "PT12H"
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT48H",
+                "max_reschedules": 1,
+                "fee": 2500
+              },
+              "no_show": {
+                "fee": 35000,
+                "grace_period": "PT20M"
+              },
+              "booking_window": {
+                "min_advance": "PT24H",
+                "max_advance": "P90D",
+                "slot_interval": "PT60M"
+              },
+              "confirmation_mode": "manual",
+              "requires_payment": true,
+              "payment_timing": "deposit_required"
+            },
+            "media": [
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/spa-suite-hero.jpg",
+                "alt_text": "Luxurious spa suite with private hot tub",
+                "role": "hero",
+                "width": 1200,
+                "height": 800
+              },
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/orchid-suite-gallery.jpg",
+                "alt_text": "Orchid Suite garden view",
+                "role": "gallery",
+                "width": 800,
+                "height": 600
+              },
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/rose-suite-gallery.jpg",
+                "alt_text": "Rose Suite rooftop with skyline view",
+                "role": "gallery",
+                "width": 800,
+                "height": 600
+              }
+            ],
+            "rating": {
+              "value": 4.7,
+              "scale_min": 1,
+              "scale_max": 5,
+              "count": 87
+            },
+            "status": "active",
+            "handle": "spa-suite-experience",
+            "url": "https://www.downtownwellnessspa.com/services/spa-suite-experience",
+            "tags": ["spa-suite", "luxury", "couples", "private", "hot-tub"],
+            "availability_hint": {
+              "summary": "Limited weekend availability. Weekday suites available with 48-hour advance booking.",
+              "generated_at": "2026-03-14T08:00:00-05:00",
+              "next_available_date": "2026-03-16"
+            }
+          },
+          {
+            "id": "svc_kayak_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Kayak Rental",
+            "description": {
+              "plain": "Explore the Hudson River waterfront with our single-person kayak rentals. Includes life jacket, paddle, and basic instruction. Rentals available in 1-hour increments.",
+              "markdown": "Explore the Hudson River waterfront with our single-person **kayak rentals**. Includes life jacket, paddle, and basic instruction. Rentals available in 1-hour increments."
+            },
+            "type": "rental",
+            "category": {
+              "id": "cat_outdoor",
+              "name": "Outdoor Activities"
+            },
+            "duration": {
+              "range": {
+                "min": "PT60M",
+                "max": "PT240M",
+                "step": "PT60M"
+              }
+            },
+            "pricing": {
+              "model": "hourly",
+              "amount": 4500,
+              "currency": "USD"
+            },
+            "locations": [
+              {
+                "id": "loc_main_001",
+                "name": "Downtown Studio",
+                "address": "742 Wellness Ave, New York, NY 10012"
+              }
+            ],
+            "resources": [
+              {
+                "type": "equipment",
+                "name": "Kayak",
+                "selectable": false,
+                "options": [
+                  { "id": "kayak_001", "name": "Kayak #1" },
+                  { "id": "kayak_002", "name": "Kayak #2" },
+                  { "id": "kayak_003", "name": "Kayak #3" },
+                  { "id": "kayak_004", "name": "Kayak #4" },
+                  { "id": "kayak_005", "name": "Kayak #5" }
+                ]
+              }
+            ],
+            "channel": {
+              "type": "in_person",
+              "instructions": "Meet at the waterfront dock behind the main building. Wear clothes that can get wet. A brief safety orientation is included."
+            },
+            "policies": {
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT4H",
+                "late_cancellation_fee": 2250
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT4H",
+                "max_reschedules": 2,
+                "fee": 0
+              },
+              "no_show": {
+                "fee": 4500,
+                "grace_period": "PT15M"
+              },
+              "booking_window": {
+                "min_advance": "PT1H",
+                "max_advance": "P14D",
+                "slot_interval": "PT60M"
+              },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_booking"
+            },
+            "media": [
+              {
+                "type": "image",
+                "url": "https://cdn.downtownwellnessspa.com/services/kayak-rental-hero.jpg",
+                "alt_text": "Kayaking on the Hudson River at sunset",
+                "role": "hero",
+                "width": 1200,
+                "height": 800
+              }
+            ],
+            "rating": {
+              "value": 4.6,
+              "scale_min": 1,
+              "scale_max": 5,
+              "count": 64
+            },
+            "status": "active",
+            "handle": "kayak-rental",
+            "url": "https://www.downtownwellnessspa.com/services/kayak-rental",
+            "tags": ["kayak", "rental", "outdoor", "waterfront", "adventure"],
+            "availability_hint": {
+              "summary": "Weather permitting. All 5 kayaks available most weekday mornings.",
+              "generated_at": "2026-03-14T08:00:00-05:00",
+              "next_available_date": "2026-03-15"
+            }
+          }
+        ],
+        "pagination": {
+          "cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  },
+  "filtered_wellness": {
+    "description": "Filtered catalog search for wellness category services",
+    "request": {
+      "method": "GET",
+      "path": "/services",
+      "query": {
+        "business_id": "biz_downtown_spa",
+        "category": "cat_massage"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+          }
+        },
+        "services": [
+          {
+            "id": "svc_massage_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Swedish Massage",
+            "description": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
+            "type": "appointment",
+            "category": {
+              "id": "cat_massage",
+              "name": "Massage Therapy"
+            },
+            "duration": {
+              "fixed": "PT60M",
+              "buffer_before": "PT5M",
+              "buffer_after": "PT10M"
+            },
+            "pricing": {
+              "model": "fixed",
+              "amount": 12000,
+              "currency": "USD"
+            },
+            "channel": {
+              "type": "in_person"
+            },
+            "policies": {
+              "cancellation": { "allowed": true, "free_cancellation_until": "PT24H" },
+              "rescheduling": { "allowed": true, "free_reschedule_until": "PT24H", "max_reschedules": 2, "fee": 0 },
+              "booking_window": { "min_advance": "PT2H", "max_advance": "P60D", "slot_interval": "PT30M" },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_booking"
+            },
+            "status": "active",
+            "handle": "swedish-massage"
+          }
+        ],
+        "pagination": {
+          "cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  },
+  "search_massage": {
+    "description": "Free-text search for massage services",
+    "request": {
+      "method": "GET",
+      "path": "/services",
+      "query": {
+        "business_id": "biz_downtown_spa",
+        "q": "massage"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+          }
+        },
+        "services": [
+          {
+            "id": "svc_massage_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Swedish Massage",
+            "description": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
+            "type": "appointment",
+            "category": {
+              "id": "cat_massage",
+              "name": "Massage Therapy"
+            },
+            "duration": {
+              "fixed": "PT60M",
+              "buffer_before": "PT5M",
+              "buffer_after": "PT10M"
+            },
+            "pricing": {
+              "model": "fixed",
+              "amount": 12000,
+              "currency": "USD"
+            },
+            "channel": {
+              "type": "in_person"
+            },
+            "policies": {
+              "cancellation": { "allowed": true, "free_cancellation_until": "PT24H" },
+              "rescheduling": { "allowed": true, "free_reschedule_until": "PT24H", "max_reschedules": 2, "fee": 0 },
+              "booking_window": { "min_advance": "PT2H", "max_advance": "P60D", "slot_interval": "PT30M" },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_booking"
+            },
+            "status": "active",
+            "handle": "swedish-massage",
+            "rating": {
+              "value": 4.8,
+              "scale_min": 1,
+              "scale_max": 5,
+              "count": 342
+            }
+          }
+        ],
+        "pagination": {
+          "cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  },
+  "empty_results": {
+    "description": "Search that returns no matching services",
+    "request": {
+      "method": "GET",
+      "path": "/services",
+      "query": {
+        "business_id": "biz_downtown_spa",
+        "q": "acupuncture"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+          }
+        },
+        "services": [],
+        "pagination": {
+          "cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  }
+}

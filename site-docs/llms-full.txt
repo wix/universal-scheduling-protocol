@@ -1,0 +1,195 @@
+# Universal Scheduling Protocol (USP) — Complete Reference
+
+> USP is an open standard that enables platforms and AI agents to discover, check availability of, and book time-based services from businesses.
+
+Version: 2026-02-21 | Status: Draft | License: Apache 2.0
+Website: https://usp.dev | Repo: https://github.com/wix-private/universal-scheduling-protocol-spec
+
+---
+
+## Protocol Summary
+
+USP solves the fragmented scheduling landscape. Existing standards (iCalendar RFC 5545, CalDAV RFC 6638, schema.org/Service, OpenActive) are fragmented, lack native payment integration, and were not designed for autonomous AI agent orchestration. USP unifies:
+
+1. Service discovery — types, pricing, policies, availability hints
+2. Real-time availability — time slots, capacity, resource scheduling, slot holds
+3. Booking lifecycle — create, confirm, reschedule, cancel, waitlist, post-booking events
+4. Payment coordination — flexible paths for different commerce protocols
+5. Identity and consent — account linking, buyer consent, privacy compliance
+
+## Deployment Modes
+
+USP offers two deployment modes sharing the same domain core:
+
+### UCP-Native Mode
+For platforms already supporting the Universal Commerce Protocol (UCP, https://ucp.dev).
+- Scheduling capabilities register in /.well-known/ucp profile
+- Paid bookings use UCP's atomic checkout (create_checkout + complete_checkout)
+- Infrastructure inherited from UCP: auth, errors, webhooks, versioning
+- Single profile at /.well-known/ucp
+
+### Standalone Mode
+For platforms wanting a self-contained scheduling protocol.
+- Business publishes /.well-known/usp profile
+- Payment uses generic payment_context + confirm-payment (works with any checkout system)
+- ACP booking extension available for structured checkout
+- IETF-native infrastructure: OAuth 2.0 (RFC 6749), RFC 9457 errors, RFC 9421 webhooks
+
+## Service Verticals
+
+| Vertical | Description | Examples |
+|----------|-------------|----------|
+| appointment | 1:1 session between client and provider | Salon, dental, consulting, therapy, personal training |
+| group | Group session with limited capacity | Yoga class, workshop, group fitness, cooking class |
+| reservation | Hold on a shared resource for a time window | Restaurant table, conference room, venue, court booking |
+| rental | Temporary exclusive use of equipment or space | Car rental, studio space, equipment hire, vacation rental |
+
+Custom verticals use reverse-domain notation: com.{vendor}.services.{vertical_name}
+
+## Core Capabilities
+
+### 1. Service Catalog (dev.usp.services.catalog)
+Discover what services a business offers.
+
+Operations:
+- POST /services/list — List services with filters (type, category, location) and pagination
+- GET /services/{service_id} — Get a single service
+- GET /services/feed — Incremental catalog feed for aggregators (RPDE-style)
+- POST /services/feed/subscriptions — Subscribe to catalog changes
+
+Service schema fields: id, name, description, type, category, duration, pricing, locations, resources, channel, policies, capacity, images, availability_hint
+
+Duration formats: { "fixed": "PT60M" } or { "range": { "min": "PT30M", "max": "PT120M", "step": "PT30M" } }
+
+Pricing models: fixed, hourly, per_person, variable, free
+
+Policies: cancellation (free_cancellation_until, late_fee), rescheduling (max_reschedules, fee), no_show (fee, grace_period), booking_window (min_advance, max_advance, slot_interval), confirmation_mode (auto/manual), payment_timing (at_booking/at_service/deposit_required/free)
+
+### 2. Availability (dev.usp.services.availability)
+Query when services are available and hold slots.
+
+Operations:
+- POST /availability/query — Query available time slots
+  - granularity: "slot" (full slot objects) or "day" (lightweight day summary)
+  - Filters: service_id, start_date, end_date, timezone, resource_id, party_size
+- POST /availability/holds — Hold a slot (prevents double-booking, TTL: 5-10 min)
+- DELETE /availability/holds/{hold_id} — Release a held slot
+
+Slot states: available, limited, waitlist
+
+Caching strategy (tiered):
+- Browse tier: day granularity, 2-4 weeks, 5-15 min TTL (calendar view)
+- Select tier: slot granularity, 1-2 days, 30-60 sec TTL (time picker)
+- Commit tier: hold operation, real-time, no cache (booking flow)
+
+### 3. Booking Lifecycle (dev.usp.services.bookings)
+Create and manage bookings through their complete lifecycle.
+
+Status lifecycle: pending → confirmed → in_progress → completed
+                  pending → requires_action → confirmed (when payment needed)
+                  Any non-terminal → canceled
+                  in_progress → no_show
+
+Operations:
+- POST /bookings — Create booking (service_id, slot_id, hold_id, buyer, party_size)
+- GET /bookings/{booking_id} — Get booking status
+- PUT /bookings/{booking_id} — Update mutable fields (buyer, notes)
+- POST /bookings/{booking_id}/confirm — Business confirms (manual mode)
+- POST /bookings/{booking_id}/cancel — Cancel with reason
+- POST /bookings/{booking_id}/reschedule — Move to new slot
+- POST /bookings/{booking_id}/confirm-payment — Confirm payment received (Standalone mode)
+
+Webhooks: booking.confirmed, booking.canceled, booking.rescheduled, booking.reminder, booking.completed, booking.no_show
+
+### 4. Discovery Registry (Optional, dev.usp.services.registry)
+Centralized business and service search.
+
+Operations:
+- POST /registry/businesses — Register business
+- POST /registry/search_business — Search businesses by location, category
+- POST /registry/search_services — Search services across businesses
+
+## Transport Bindings
+
+### REST Binding (Primary)
+- OpenAPI 3.1.0 spec at openapi/usp-rest.json
+- Idempotency: Idempotency-Key header (draft-ietf-httpapi-idempotency-key-header)
+- Pagination: cursor-based with {cursor, limit, has_more}
+- Errors: RFC 9457 Problem Details
+- Request signing: RFC 9421 HTTP Message Signatures
+
+### MCP Binding (AI Agents)
+- OpenRPC spec at openrpc/usp-mcp.json
+- JSON-RPC 2.0 via tools/call envelope
+- Methods: usp/services.list, usp/services.get, usp/availability.query, usp/availability.hold, usp/bookings.create, etc.
+- Profile advertised via _meta.usp.profile
+- Idempotency via _meta.usp.idempotency_key
+
+### A2A Binding (Agent-to-Agent)
+- Task-type mapping from USP operations to A2A task types
+- Agent Card with usp_profile extension
+- DataPart conventions for structured scheduling data
+- Session management with TTL-based expiry
+
+### ESP Binding (Embedded UI)
+- Embedded Scheduling Protocol for iframe-based booking UIs
+- postMessage-based communication (esp.ready, esp.start, esp.complete, esp.cancel)
+- Delegation negotiation for partial vs full delegation
+- Iframe sandbox: allow-scripts allow-forms allow-same-origin
+
+## Security
+
+All modes:
+- HTTPS with TLS 1.2+ required (TLS 1.3 recommended, RFC 8446)
+- Webhook signatures via RFC 9421 HTTP Message Signatures
+- Idempotency keys for state-changing operations
+- Hold abuse prevention: max concurrent holds, short TTLs, backoff
+
+Standalone mode additionally:
+- OAuth 2.0 (RFC 6749) with DPoP (RFC 9449) for auth
+- Rate limiting (draft-ietf-httpapi-ratelimit-headers)
+- CORS headers for browser-based platforms
+
+## Extensions
+
+### Waitlist Extension (dev.usp.services.waitlist)
+Extends: dev.usp.services.bookings
+Operations: POST /waitlist, GET /waitlist/{id}, DELETE /waitlist/{id}, POST /waitlist/{id}/accept, POST /waitlist/{id}/decline
+Status lifecycle: waiting → offered → converted | waiting → canceled | waiting → expired
+
+### Vendor Extensions
+Namespace: com.{vendor}.services.{capability}
+Must publish spec and schema URLs matching namespace authority.
+
+## Key Design Principles
+
+1. Domain-first: Scheduling logic is universal across deployment modes
+2. Payment flexibility: UCP atomic checkout OR generic payment_context
+3. IETF-native: References RFC standards directly for security, auth, errors
+4. Agent-first: Every operation designed for programmatic consumption
+5. Extensible: Vendor extensions via reverse-domain namespaces
+6. Real-time: Slot holds prevent double-booking with automatic TTL release
+7. Policy-driven: Machine-readable cancellation, rescheduling, no-show policies
+8. Versioned: Date-based versioning (YYYY-MM-DD) with negotiation protocol
+
+## Conventions
+
+- Dates: RFC 3339 (e.g., 2026-03-15T09:00:00-04:00)
+- Durations: ISO 8601 (e.g., PT60M, PT24H, P90D)
+- Currency: Minor units/cents (e.g., 7500 = $75.00), ISO 4217 codes
+- Timezones: IANA identifiers (e.g., America/New_York)
+- Capability names: Reverse-domain notation (e.g., dev.usp.services.catalog)
+
+## Roles
+
+- Platform: Consumer-facing app or AI agent (discovers, books on behalf of buyer)
+- Business: Entity offering time-based services (Merchant of Record)
+- Credential Provider: Manages payment instruments (Google Wallet, Apple Pay)
+- Payment Service Provider: Processes payments (Stripe, Adyen, PayPal)
+
+## Cross-References
+
+- UCP (Universal Commerce Protocol): https://ucp.dev — USP's companion for product commerce
+- ACP (Agentic Commerce Protocol): https://agenticcommerce.dev/ — Extension available for Standalone Mode
+- OpenActive: https://openactive.io — Related open booking standard for physical activities
+- schema.org/Service: Complementary structured data for web discoverability
