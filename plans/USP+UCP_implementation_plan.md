@@ -370,7 +370,79 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | Webhook signature headers | Agent verification | [§10.1.1](../specification.md#1011-webhook-security) authenticity |
 
 
-**Demo success criteria (day 10):**
+## Why are the last two steps **BOTH** needed?
+
+### When the synchronous response is not enough
+
+The clearest normative example is `**confirmation_mode: manual` with paid-at-booking**.
+
+After `complete_checkout` succeeds, step 20 returns something like:
+
+- `checkout.status: completed` (payment succeeded)
+- `booking.booking_status: pending` (not confirmed yet)
+
+The spec is explicit that manual mode keeps the booking pending even after payment:
+
+```3751:3753:specification.md
+1. When the checkout reaches **`completed`**: `booking_status` becomes `confirmed`
+   when `confirmation_mode` is `auto`, or remains `pending` awaiting business
+   approval when `confirmation_mode` is `manual`.
+```
+
+The salon owner approves hours later via `POST /bookings/{booking_id}/confirm`. There is no second `complete_checkout` call. The platform learns the booking is actually confirmed from:
+
+- `booking.confirmed` webhook (step 21), or
+- polling `GET /bookings/{booking_id}`
+
+The sync checkout response told you "paid," not "appointment confirmed."
+
+**Other concrete cases:**
+
+
+| Scenario                                                                     | Why step 20 is insufficient                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent loses the HTTP response** (timeout, app killed, mobile network drop) | Server may have charged and finalized; the client never got the response body. Webhook or `get_checkout` is how the platform recovers.                                                                                                       |
+| **3DS / `continue_url` escalation**                                          | First `complete_checkout` can return non-terminal state (`requires_escalation`, `continue_url`). You must poll `get_checkout` after the buyer finishes the bank step; the initial response is not a final outcome.                           |
+| **Business cancels or reschedules later**                                    | No checkout API is involved. Only USP webhooks (`booking.canceled`, `booking.rescheduled`) notify the platform.                                                                                                                              |
+| **Different backend consumer**                                               | Step 20 goes to whoever called `complete_checkout` (the agent session). Step 21 goes to the platform's registered `webhook_url`, which may be a separate service (CRM, notifications, ledger) that was never part of that HTTP conversation. |
+
+
+The spec's own guidance: platforms **SHOULD** treat `get_checkout` or `GET /bookings/{booking_id}` as source of truth, and **not rely solely on webhooks**. That implies all three channels (sync response, webhook, poll) can matter in different situations.
+
+---
+
+### What if the webhook arrives before the sync response?
+
+**That can happen, and nothing in the spec forbids it.**
+
+Step 21 is async and outside the `complete_checkout` transaction:
+
+```3808:3812:specification.md
+   Webhook delivery is best-effort and asynchronous; it is **not** part of the
+   atomic `complete_checkout` transaction. Platforms **SHOULD** use
+   `[get_checkout](https://ucp.dev/latest/specification/checkout/#get-checkout)`
+   or `GET /bookings/{booking_id}` as the source of truth rather than relying
+   solely on webhooks.
+```
+
+In the Wix architecture, `usp-impl` can fire the webhook right after `FinalizeBookingOnPayment` (step 19) while `acp-checkout` is still finishing the UCP HTTP response (step 20). If the webhook endpoint is fast and the checkout response path is slow (gRPC chain, proxies), step 21 can win the race.
+
+**What should the platform do?**
+
+Treat both as correlating signals, not as a strict sequence:
+
+1. **Webhook first:** Process `booking.confirmed` idempotently (dedupe on `event_id` per §9.2.3). The payload already carries `booking_id` and `order_id`, so you do not need step 20 to arrive first. The agent already had `booking_id` from step 14 (`create_checkout`).
+2. **Response arrives later:** Reconcile: same `booking_id`, same `order_id`, same terminal state. This should be a no-op merge, not a state conflict.
+3. **Demo E2E (GH-005):** The test asserts both step 20 fields and step 21 correlation. `wait_for_booking_confirmed(booking_id, order_id)` can return before `complete_checkout` returns to the caller. That is fine as long as both eventually agree.
+
+**What the spec does *not* guarantee:**
+
+- Webhook-before-response ordering (or the reverse) is not specified.
+- §9.2.3 only guarantees **causal order among events for the same booking** (e.g. `booking.confirmed` before `booking.canceled`), not ordering relative to the checkout HTTP response.
+
+**Practical implication:** A well-built platform handles either order. If the webhook says confirmed but the HTTP call is still in flight, trust the webhook for booking state (after signature verification) and treat the late response as confirmation. If the response returns but the webhook is slow or never arrives, do not block the user: you already have the sync result, and you can poll `get_checkout` / `GET /bookings` as backup. The dangerous pattern is requiring webhook-before-response or response-before-webhook as a hard gate; the safe pattern is idempotent merge on `(booking_id, order_id)`.
+
+## Demo success criteria (day 10)
 
 - [ ] Link agent completes the flow above against one **registry-listed** Wix demo merchant end-to-end.
 - [ ] Link discovers the service and merchant via `**POST /registry/search_services` only** (no hardcoded merchant URL in agent config; no `search_business` in demo path); then `**GET /services/{service_id}`** for live catalog per [§6.3](../specification.md#63-service-search---post-registrysearch_services) before availability and checkout.
@@ -661,10 +733,10 @@ Buyer calendar conflict checking is **in demo scope** as a platform-side showcas
 **Reference implementations (already built):**
 
 
-| Component                   | Calendar behavior                                                                                                                                                                                                                                          |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **linkusp-cli**             | Hard gate: `flow calendar ask|connect|skip` before `flow availability`; demo uses local Google OAuth (`GOOGLE_CALENDAR_CLIENT_ID`); production uses Link-hosted `link-cli calendar connect`. Filter: `linkusp.calendar.filter.filter_slots_by_busy_times`. |
-| **ds-general USP subagent** | Scenario 2 Step 1: ask buyer to "check your personal calendar" before `query_availability`; `connect_customer_calendar` / `skip_calendar_filter`; inline filter in `query_availability` with `filtered_out_slots` UX.                                      |
+| Component                   | Calendar behavior                                                                                                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **linkusp-cli**             | Hard gate: `flow calendar ask                                                                                                                                                                                         |
+| **ds-general USP subagent** | Scenario 2 Step 1: ask buyer to "check your personal calendar" before `query_availability`; `connect_customer_calendar` / `skip_calendar_filter`; inline filter in `query_availability` with `filtered_out_slots` UX. |
 
 
 **Demo vs production OAuth:**
