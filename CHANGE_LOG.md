@@ -1,5 +1,11 @@
 # Change Log
 
+## 14/06/26 at 15:22:07 by [maorye](mailto:maorye@wix.com)
+
+- Added `docs/usp-registry-design-plan.md` — the design plan for the USP discovery registry (`dev.usp.discovery.registry`, §6). Organized in three parts: vendor-neutral protocol-level design (operations, wire model, ownership handshake, ingestion contract, filter semantics), the Wix implementation (Vespa/vFeed/vSearch, projection, ingestion/auth/search), and phasing (Phase 1 demo = no auth + registration + push-only service ingestion + business/service search, then auth, conformant pull+subscription ingestion, MCP, Wix onboarding, hybrid ranking). Includes Mermaid flow diagrams and a decision log scoped Protocol-vs-Impl. Placed in the spec repo so the registry design is reviewed in context alongside the related spec issues (#54/#55/#56/#58/#59) it surfaced.
+
+---
+
 ## 27/05/26 at 17:48:19 by [itays](mailto:itays@wix.com)
 
 - Restructured Overview tab sidebar to match UCP's pattern (8 items vs previous 4) — moved Specification overview, Security, Extensions, and Playground from the Specification tab into Overview so the home page sidebar has comparable depth to ucp.dev
