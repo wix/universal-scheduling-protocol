@@ -1,7 +1,7 @@
 # USP + UCP + SPT Demo Implementation Plan
 
 **Date:** 2026-06-10 (rev. spec-aligned)  
-**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp.services.paid_bookings` + Stripe SPT), receives `**booking.confirmed`** webhook with correlated `**order_id`** ([§7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee), [§5.4.1](../specification.md#541-booking-webhooks)), and ends with `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` — with **no Standalone Mode**, **no `checkout_systems` redirect**, and **no migration** from prior deployments.
+**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), optionally **connects the buyer's calendar** and **filters availability slots** against personal busy times per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (platform-side only; no business changes), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp.services.paid_bookings` + Stripe SPT), receives `**booking.confirmed`** webhook with correlated `**order_id`** ([§7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee), [§5.4.1](../specification.md#541-booking-webhooks)), and ends with `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` — with **no Standalone Mode**, **no `checkout_systems` redirect**, and **no migration** from prior deployments.
 
 **Normative references:** [USP `specification.md](../specification.md)` §6 (registry), §7 (UCP-Native), `[schemas/paid_bookings.json](../schemas/paid_bookings.json)`, `[schemas/registry.json](../schemas/registry.json)`; [UCP checkout](https://ucp.dev/latest/specification/checkout/), [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture), [Stripe UCP/SPT](https://docs.stripe.com/agentic-commerce/protocol).
 
@@ -26,6 +26,122 @@
 
 ---
 
+# Table of contents
+
+
+
+- [1. Target Demo Flow](#1-target-demo-flow)
+  - [Step-by-step flow](#step-by-step-flow)
+- [2. Architecture](#2-architecture)
+  - [2.1 USP ecosystem: Link platform vs registry](#21-usp-ecosystem-link-platform-vs-registry)
+  - [2.2 Wix implementation architecture](#22-wix-implementation-architecture)
+  - [2.3 Normative protocol alignment map](#23-normative-protocol-alignment-map)
+    - [USP registry (§6)](#usp-registry-6)
+    - [USP UCP-Native business profile (§7.2)](#usp-ucp-native-business-profile-72)
+    - [USP + UCP paid booking flow (§7.5)](#usp--ucp-paid-booking-flow-75)
+    - [UCP checkout binding (ucp.dev)](#ucp-checkout-binding-ucpdev)
+    - [Inherited from UCP only (USP §7.3 — do not reimplement in Standalone layers)](#inherited-from-ucp-only-usp-73--do-not-reimplement-in-standalone-layers)
+  - [2.4 What "`paid_bookings` extends `checkout`" means](#24-what-paid_bookings-extends-checkout-means)
+    - [Profile declaration (what linkusp verifies)](#profile-declaration-what-linkusp-verifies)
+    - [Protocol meaning (what the agent does after verification)](#protocol-meaning-what-the-agent-does-after-verification)
+    - [Wix publisher obligation (Track E)](#wix-publisher-obligation-track-e)
+- [3. Sprint Timeline (2 Weeks)](#3-sprint-timeline-2-weeks)
+  - [3.1 Parallel workstreams](#31-parallel-workstreams)
+  - [3.2 Calendar](#32-calendar)
+- [4. Gap-to-Workstream Matrix](#4-gap-to-workstream-matrix)
+- [5. Track A — Link Agent USP (`linkusp-cli`)](#5-track-a--link-agent-usp-linkusp-cli)
+  - [Task A1 — UCP-Native profile wire models](#task-a1--ucp-native-profile-wire-models)
+  - [Task A2 — UCP checkout client with `booking` extension](#task-a2--ucp-checkout-client-with-booking-extension)
+  - [Task A3 — USP catalog + scheduling client](#task-a3--usp-catalog--scheduling-client)
+  - [Task A3b — Buyer calendar free/busy gate and slot filtering](#task-a3b--buyer-calendar-freebusy-gate-and-slot-filtering)
+  - [Task A4 — Stripe SPT acquisition](#task-a4--stripe-spt-acquisition)
+  - [Task A5 — Demo E2E command](#task-a5--demo-e2e-command)
+- [6. Track B — USP Registry](#6-track-b--usp-registry)
+  - [Task B1 — Minimal registry deploy](#task-b1--minimal-registry-deploy)
+  - [Task B2 — Search APIs](#task-b2--search-apis)
+  - [Task B3 — Profile URL validation](#task-b3--profile-url-validation)
+  - [Task B4 — Demo merchant readiness (registration prerequisite)](#task-b4--demo-merchant-readiness-registration-prerequisite)
+  - [Task B5 — Register demo Wix merchant](#task-b5--register-demo-wix-merchant)
+- [7. Track C — Link Platform (Registry Consumer)](#7-track-c--link-platform-registry-consumer)
+  - [Task C1 — Configurable registry client](#task-c1--configurable-registry-client)
+  - [Task C2 — Service search and profile URL resolution](#task-c2--service-search-and-profile-url-resolution)
+  - [Task C3 — Profile fetch and capability negotiation](#task-c3--profile-fetch-and-capability-negotiation)
+  - [Task C4 — Auth and consent handshake](#task-c4--auth-and-consent-handshake)
+  - [Task C5 — Discovery integration test](#task-c5--discovery-integration-test)
+  - [Task C6 — Booking webhook receiver](#task-c6--booking-webhook-receiver)
+- [8. Track D — Wix Business USP (`usp-impl`)](#8-track-d--wix-business-usp-usp-impl)
+  - [Task D1 — Internal orchestration RPC proto](#task-d1--internal-orchestration-rpc-proto)
+  - [Task D2 — `CreatePendingBooking` RPC](#task-d2--creatependingbooking-rpc)
+  - [Task D3 — `FinalizeBookingOnPayment` RPC](#task-d3--finalizebookingonpayment-rpc)
+  - [Task D4 — `CancelPendingBooking` RPC](#task-d4--cancelpendingbooking-rpc)
+  - [Task D5 — `booking.confirmed` webhook emission](#task-d5--bookingconfirmed-webhook-emission)
+- [9. Track E — Core UCP + USP Extension (`acp-checkout`)](#9-track-e--core-ucp--usp-extension-acp-checkout)
+  - [Task E1 — UCP profile merge with USP capabilities](#task-e1--ucp-profile-merge-with-usp-capabilities)
+  - [Task E2 — `paid_bookings` booking extension schema](#task-e2--paid_bookings-booking-extension-schema)
+  - [Task E3 — Wire `ucpCreateCheckout` to `usp-impl](#task-e3--wire-ucpcreatecheckout-to-usp-impl)`
+  - [Task E4 — Booking status mapping](#task-e4--booking-status-mapping)
+  - [Task E5 — Atomic `ucpCompleteCheckout` with booking](#task-e5--atomic-ucpcompletecheckout-with-booking)
+  - [Task E6 — Atomic `ucpCancelCheckout` with booking](#task-e6--atomic-ucpcancelcheckout-with-booking)
+  - [Task E7 — Execution guard on `complete_checkout](#task-e7--execution-guard-on-complete_checkout)`
+- [10. Track F — Payment with Stripe SPT](#10-track-f--payment-with-stripe-spt)
+  - [Task F1 — Payments platform SPT charge contract](#task-f1--payments-platform-spt-charge-contract)
+  - [Task F2 — `StripeSptProviderAdapter](#task-f2--stripesptprovideradapter)`
+  - [Task F3 — Register SPT handler in profile](#task-f3--register-spt-handler-in-profile)
+  - [Task F4 — Booking-aware payment orchestration](#task-f4--booking-aware-payment-orchestration)
+  - [Task F5 — SPT 3DS / `continue_url` (best-effort)](#task-f5--spt-3ds--continue_url-best-effort)
+- [11. Cross-Track Integration (Days 9-10)](#11-cross-track-integration-days-9-10)
+- [12. Definition of Done](#12-definition-of-done)
+- [Out of scope — future version](#out-of-scope--future-version)
+  - [Merchant-direct catalog discovery](#merchant-direct-catalog-discovery)
+  - [Holds](#holds)
+  - [Mixed cart (product + service)](#mixed-cart-product--service)
+  - `[dev.ucp.shopping.order` capability](#devucpshoppingorder-capability)
+  - [Standalone Mode and redirect checkout](#standalone-mode-and-redirect-checkout)
+  - [Registry search filters for business capabilities and payment readiness](#registry-search-filters-for-business-capabilities-and-payment-readiness)
+  - [Conformance and polish (non-blocking for demo)](#conformance-and-polish-non-blocking-for-demo)
+- [Missing GitHub issues](#missing-github-issues)
+  - [GH-001: Link agent UCP-Native profile wire models](#gh-001-link-agent-ucp-native-profile-wire-models)
+  - [GH-002: Link agent UCP checkout client](#gh-002-link-agent-ucp-checkout-client)
+  - [GH-003: Link agent USP catalog and scheduling client](#gh-003-link-agent-usp-catalog-and-scheduling-client)
+  - [GH-003b: Link agent buyer calendar free/busy gate and slot filtering](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering)
+  - [GH-004: Link agent Stripe SPT acquisition](#gh-004-link-agent-stripe-spt-acquisition)
+  - [GH-005: Link agent demo E2E command](#gh-005-link-agent-demo-e2e-command)
+  - [GH-010: Registry minimal deploy](#gh-010-registry-minimal-deploy)
+  - [GH-011: Registry search APIs](#gh-011-registry-search-apis)
+  - [GH-012: Registry profile URL validation](#gh-012-registry-profile-url-validation)
+  - [GH-013: Register demo Wix merchant](#gh-013-register-demo-wix-merchant)
+  - [GH-014: Demo merchant readiness prerequisite](#gh-014-demo-merchant-readiness-prerequisite)
+  - [GH-020: Link platform configurable registry client](#gh-020-link-platform-configurable-registry-client)
+  - [GH-021: Link platform service search and profile resolution](#gh-021-link-platform-service-search-and-profile-resolution)
+  - [GH-022: Link platform profile capability negotiation](#gh-022-link-platform-profile-capability-negotiation)
+  - [GH-023: Link platform auth consent handshake](#gh-023-link-platform-auth-consent-handshake)
+  - [GH-024: Link platform discovery integration test](#gh-024-link-platform-discovery-integration-test)
+  - [GH-030: usp-impl internal orchestration RPC proto](#gh-030-usp-impl-internal-orchestration-rpc-proto)
+  - [GH-031: usp-impl CreatePendingBooking RPC](#gh-031-usp-impl-creatependingbooking-rpc)
+  - [GH-032: usp-impl FinalizeBookingOnPayment RPC](#gh-032-usp-impl-finalizebookingonpayment-rpc)
+  - [GH-033: usp-impl CancelPendingBooking RPC](#gh-033-usp-impl-cancelpendingbooking-rpc)
+  - [GH-040: UCP profile merge USP capabilities](#gh-040-ucp-profile-merge-usp-capabilities)
+  - [GH-041: paid_bookings booking extension schema](#gh-041-paid_bookings-booking-extension-schema)
+  - [GH-042: ucpCreateCheckout wire to usp-impl](#gh-042-ucpcreatecheckout-wire-to-usp-impl)
+  - [GH-043: Booking status mapping on checkout](#gh-043-booking-status-mapping-on-checkout)
+  - [GH-044: Atomic ucpCompleteCheckout with booking](#gh-044-atomic-ucpcompletecheckout-with-booking)
+  - [GH-045: Atomic ucpCancelCheckout with booking](#gh-045-atomic-ucpcancelcheckout-with-booking)
+  - [GH-046: Execution guard on complete_checkout](#gh-046-execution-guard-on-complete_checkout)
+  - [GH-050: Payments platform SPT charge contract](#gh-050-payments-platform-spt-charge-contract)
+  - [GH-051: Stripe SptProviderAdapter](#gh-051-stripe-sptprovideradapter)
+  - [GH-052: Register SPT handler in profile](#gh-052-register-spt-handler-in-profile)
+  - [GH-053: Booking-aware payment orchestration](#gh-053-booking-aware-payment-orchestration)
+  - [GH-054: SPT 3DS continue_url handling](#gh-054-spt-3ds-continue_url-handling)
+  - [GH-055: Registry capability and payment search filters](#gh-055-registry-capability-and-payment-search-filters)
+  - [GH-056: usp-impl booking.confirmed webhook](#gh-056-usp-impl-bookingconfirmed-webhook)
+  - [GH-057: Link platform booking webhook receiver](#gh-057-link-platform-booking-webhook-receiver)
+  - [GH-099: usp-impl merchant checkout return relay (Standalone only)](#gh-099-usp-impl-merchant-checkout-return-relay-standalone-only)
+- [References](#references)
+
+
+
+---
+
 ## 1. Target Demo Flow
 
 ```mermaid
@@ -44,248 +160,227 @@ sequenceDiagram
     Agent->>USP: 5. GET /services/service_id
     Note over Agent,USP: live catalog per USP 6.3 before booking-time decisions
     USP-->>Agent: 6. Service type pricing policies
-    Agent->>USP: 7. POST availability query for service_id
-    USP-->>Agent: 8. Available slots
-    Agent->>UCP: 9. POST create_checkout with booking extension
-    UCP->>USP: 10. CreatePendingBooking RPC
-    UCP-->>Agent: 11. checkout ready_for_complete plus booking_id
-    Agent->>Stripe: 12. Acquire shared payment token
-    Stripe-->>Agent: 13. SPT credential
-    Agent->>UCP: 14. POST complete_checkout with SPT
-    UCP->>Stripe: 15. Charge via StripeSptProviderAdapter
-    UCP->>USP: 16. FinalizeBookingOnPayment RPC
-    UCP-->>Agent: 17. completed plus order_id plus booking_status confirmed
-    USP-->>Agent: 18. POST booking.confirmed webhook with order_id
-    Note over Agent,USP: async best-effort per 7.5 step 8; agent verifies signature
+    Note over Agent: 7. Calendar gate ask connect or skip buyer calendar
+    Agent->>Agent: 8. Optional OAuth freebusy plus fetch BusyBlocks
+    Note over Agent: platform-side only per USP 11.2 no business involvement
+    Agent->>USP: 9. POST availability query for service_id
+    USP-->>Agent: 10. Available slots
+    Note over Agent: 11. Filter slots against buyer busy blocks pick one
+    Agent->>UCP: 12. POST create_checkout with booking extension
+    UCP->>USP: 13. CreatePendingBooking RPC
+    UCP-->>Agent: 14. checkout ready_for_complete plus booking_id
+    Agent->>Stripe: 15. Acquire shared payment token
+    Stripe-->>Agent: 16. SPT credential
+    Agent->>UCP: 17. POST complete_checkout with SPT
+    UCP->>Stripe: 18. Charge via StripeSptProviderAdapter
+    UCP->>USP: 19. FinalizeBookingOnPayment RPC
+    UCP-->>Agent: 20. completed plus order_id plus booking_status confirmed
+    USP-->>Agent: 21. POST booking.confirmed webhook with order_id
+    Note over Agent,USP: async best-effort per 7.5 step 8 agent verifies signature
 ```
 
 
 
-### Step-by-step flow
+## Detailed Steps
 
-Field names below refer to [`paid_bookings.json`](../schemas/paid_bookings.json) `BookingContext`, UCP checkout request fields from [USP §7.4](../specification.md#74-paid-bookings-extension-schema), and upstream schemas [`registry.json`](../schemas/registry.json), [`catalog.json`](../schemas/catalog.json), [`availability.json`](../schemas/availability.json). **Registry snapshot fields are discovery hints only** unless marked authoritative; live catalog from step 6 is authoritative for checkout per [§6.3](../specification.md#63-service-search---post-registrysearch_services).
+Field names in the following detailed steps description refer to  `[paid_bookings.json](../schemas/paid_bookings.json)` `BookingContext`, UCP checkout request fields from [USP §7.4](../specification.md#74-paid-bookings-extension-schema), and upstream schemas `[registry.json](../schemas/registry.json)`, `[catalog.json](../schemas/catalog.json)`, `[availability.json](../schemas/availability.json)`. **Registry snapshot fields are discovery hints only** unless marked authoritative; live catalog from step 6 is authoritative for checkout per [§6.3](../specification.md#63-service-search---post-registrysearch_services).
 
-1. **Registry service search** (`Agent` → `Registry`): The Link agent calls `POST /registry/search_services` with at least one filter (e.g. `query` plus optional `verticals`/`categories`) per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services).
-
-   **Why:** Cold-start discovery must not rely on a hardcoded merchant URL; the registry is the federated entry point that returns candidate services and enough business metadata to continue.
-
-   **Fields consumed (this request):** `USP_REGISTRY_URL` (agent config); search filters (`query`, `verticals`, `categories`, etc.) from demo command or user intent.
-
+1. **Registry service search** (`Agent` → `Registry`): The Link agent calls
+  `POST /registry/search_services` with at least one filter (e.g. `query` plus optional `location`/`verticals`/`categories`) per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services).  
+  **Why:** Cold-start discovery must not rely on a hardcoded merchant URL; the registry is the federated entry point that returns candidate services and enough business metadata to continue.  
+   **Fields consumed (this request):** `USP_REGISTRY_URL` (agent config); search filters (`query`, `location`, `verticals`, `categories`, etc.) from  user intent.   
    **Fields obtained:** none (request only; response fields arrive in step 2).
-
-2. **Search results** (`Registry` → `Agent`): The registry returns one or more [`ServiceSearchResult`](../schemas/registry.json) hits.
-
-   **Why:** The agent needs a stable service identifier and the full profile document URL before it can evaluate capabilities or talk to the merchant. Filtering by `deployment_mode`, payment handlers, or other USP/UCP capabilities belongs in registry search ([GH-055](#gh-055-registry-capability-and-payment-search-filters)); the demo does not implement client-side post-filters.
-
+2. **Search results** (`Registry` → `Agent`): The registry returns one or more `[ServiceSearchResult](../schemas/registry.json)` hits.
+  **Why:** The agent needs a stable service identifier and the full profile document URL before it can evaluate capabilities or talk to the merchant. Note that filtering by `deployment_mode`, payment handlers, or other USP/UCP capabilities (e.g. a Stripe Link USP agent needs only services offered by business with UCP checkout setup and a Stripe account) should be a future USP registry search feature ([GH-055](#gh-055-registry-capability-and-payment-search-filters)) but it is out of the scope for the demo.
    **Fields obtained → later use:**
 
-   | Field obtained | Used in step(s) | Required for |
-   |----------------|-----------------|--------------|
-   | `service_id` | 5 (path), 7 (`availability.query.service_id`), 9 (`booking.service_id`, `line_items[].item.id`) | Catalog fetch, availability, `create_checkout` |
-   | `business.profile_url` | 3 (`GET {profile_url}`) | UCP profile fetch |
-   | `business.deployment_mode` | (discovery / GH-055 only; demo does not client-filter) | Merchant mode validation when registry supports it |
-   | `business.name` | (display / logging only) | Not sent on `create_checkout` |
-   | `service_name` | (discovery ranking / display only) | Checkout title uses live `Service.name` from step 6 |
-   | `pricing` | (discovery hint only; **not** used on `create_checkout`) | Superseded by step 6 live `Service.pricing` |
-   | `timezone` | 7 (optional default on `availability.query.timezone`) | Availability query; may also come from step 6 / profile |
-   | `category`, `duration_minutes`, `location` | (discovery / filtering only) | Not required on `create_checkout` |
+  | Field obtained                             | Used in step(s)                                                                                 | Required for                                            |
+  | ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+  | `service_id`                               | 5 (path), 7 (`availability.query.service_id`), 9 (`booking.service_id`, `line_items[].item.id`) | Catalog fetch, availability, `create_checkout`          |
+  | `business.profile_url`                     | 3 (`GET {profile_url}`)                                                                         | UCP profile fetch                                       |
+  | `business.deployment_mode`                 | (discovery / GH-055 only; demo does not client-filter)                                          | Merchant mode validation when registry supports it      |
+  | `business.name`                            | (display / logging only)                                                                        | Not sent on `create_checkout`                           |
+  | `service_name`                             | (discovery ranking / display only)                                                              | Checkout title uses live `Service.name` from step 6     |
+  | `pricing`                                  | (discovery hint only; **not** used on `create_checkout`)                                        | Superseded by step 6 live `Service.pricing`             |
+  | `timezone`                                 | 9 (optional default on `availability.query.timezone`)                                           | Availability query; may also come from step 6 / profile |
+  | `category`, `duration_minutes`, `location` | (discovery / filtering only)                                                                    | Not required on `create_checkout`                       |
 
 3. **Fetch UCP business profile** (`Agent` → `UCP`): The agent issues `GET {profile_url}` using the **full profile document URL** from the registry hit (e.g. `https://{host}/.well-known/ucp`), not site origin plus an appended path.
-
-   **Why:** Per [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) and [§7.2](../specification.md#72-profile-registration-in-well-knownucp), merchant capabilities, REST endpoints, and payment handlers are advertised in the UCP profile; the agent must load that document before any booking-time calls.
-
+  **Why:** Per [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) and [§7.2](../specification.md#72-profile-registration-in-well-knownucp), merchant capabilities, REST endpoints, and payment handlers are advertised in the UCP profile; the agent must load that document before any booking-time calls.
    **Fields consumed (this request):** `business.profile_url` from step 2.
-
    **Fields obtained:** none (request only; response fields arrive in step 4).
-
-4. **Profile document** (`UCP` → `Agent`): `acp-checkout` serves the UCP profile with required capabilities (`dev.ucp.shopping.checkout`, `dev.usp.services.*`), `ucp.services` endpoint map, and `payment_handlers` (including Stripe SPT).
-
-   **Why:** The agent validates that `paid_bookings` **extends** `checkout` per [§2.4](#24-what-paid_bookings-extends-checkout-means), resolves USP and UCP base URLs, and selects the correct payment handler before mutating checkout.
-
+4. **Profile document** (`UCP` → `Agent`): `acp-checkout` serves the UCP profile with required capabilities (`dev.ucp.shopping.checkout`, `dev.usp.services.`*), `ucp.services` endpoint map, and `payment_handlers` (including Stripe SPT).
+  **Why:** The agent validates that `paid_bookings` **extends** `checkout` per [§2.4](#24-what-paid_bookings-extends-checkout-means), resolves USP and UCP base URLs, and selects the correct payment handler before mutating checkout.
    **Fields obtained → later use:**
 
-   | Field obtained | Used in step(s) | Required for |
-   |----------------|-----------------|--------------|
-   | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 9 (precondition) | Confirm UCP-Native paid path before `create_checkout` |
-   | `ucp.services["dev.ucp.shopping"]` (REST base URL) | 9 (`POST create_checkout`), 14 (`POST complete_checkout`) | UCP checkout REST |
-   | `ucp.services["dev.usp.services"]` (or catalog capability endpoint) | 5 (`GET /services/{id}`), 7 (`POST /availability/query`) | USP catalog + availability |
-   | `payment_handlers` (e.g. Stripe SPT handler id, `type`, `endpoint`, `schema`) | 12 (SPT acquisition); 11 (may repeat on checkout response) | Platform-side token acquisition per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) |
-   | `business.currency` (when present on profile) | 9 (fallback for `currency` if not taken from step 6) | Top-level checkout `currency` |
-   | `availability` capability config (e.g. `holds: false`) | 9 (confirm demo path skips `hold_id`) | Hold-free demo scope |
+  | Field obtained                                                                                                                                                  | Used in step(s)                                            | Required for                                                                                                                        |
+  | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+  | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 9 (precondition)                                           | Confirm UCP-Native paid path before `create_checkout`                                                                               |
+  | `ucp.services["dev.ucp.shopping"]` (REST base URL)                                                                                                              | 9 (`POST create_checkout`), 14 (`POST complete_checkout`)  | UCP checkout REST                                                                                                                   |
+  | `ucp.services["dev.usp.services"]` (or catalog capability endpoint)                                                                                             | 5 (`GET /services/{id}`), 7 (`POST /availability/query`)   | USP catalog + availability                                                                                                          |
+  | `payment_handlers` (e.g. Stripe SPT handler id, `type`, `endpoint`, `schema`)                                                                                   | 12 (SPT acquisition); 11 (may repeat on checkout response) | Platform-side token acquisition per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) |
+  | `business.currency` (when present on profile)                                                                                                                   | 12 (fallback for `currency` if not taken from step 6)      | Top-level checkout `currency`                                                                                                       |
+  | `availability` capability config (e.g. `holds: false`)                                                                                                          | 12 (confirm demo path skips `hold_id`)                     | Hold-free demo scope                                                                                                                |
 
 5. **Live catalog fetch** (`Agent` → `USP`): The agent calls `GET /services/{service_id}` on the merchant USP catalog endpoint resolved from the profile.
-
-   **Why:** [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) requires live catalog at booking time; the registry snapshot is non-authoritative for price, `service_type`, and policies used in checkout.
-
+  **Why:** [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) requires live catalog at booking time; the registry snapshot is non-authoritative for price, `service_type`, and policies used in checkout.
    **Fields consumed (this request):** `service_id` from step 2; USP base URL from step 4.
-
    **Fields obtained:** none (request only; response fields arrive in step 6).
-
-6. **Service record** (`USP` → `Agent`): `usp-impl` returns the current [`Service`](../schemas/catalog.json).
-
-   **Why:** Availability queries and `create_checkout` must reflect server-side catalog state; the merchant re-validates price at create and returns `price_mismatch` if the agent sends a stale amount ([§7.4](../specification.md#74-paid-bookings-extension-schema)).
-
+6. **Service record** (`USP` → `Agent`): `usp-impl` returns the current `[Service](../schemas/catalog.json)`.
+  **Why:** Availability queries and `create_checkout` must reflect server-side catalog state; the merchant re-validates price at create and returns `price_mismatch` if the agent sends a stale amount ([§7.4](../specification.md#74-paid-bookings-extension-schema)).
    **Fields obtained → later use:**
 
-   | Field obtained | Used in step(s) | Maps to on `create_checkout` (step 9) |
-   |----------------|-----------------|---------------------------------------|
-   | `id` | 7, 9 | `booking.service_id`; `line_items[].item.id` (must match per [§7.4](../specification.md#74-paid-bookings-extension-schema)) |
-   | `name` | 9 | `line_items[].item.title` |
-   | `type` | 9 | `booking.service_type` (required on `BookingContext`) |
-   | `pricing.amount` | 9 | `line_items[].item.price` when `pricing.model` is `fixed`, `hourly`, or `per_person` (demo uses `fixed`) |
-   | `pricing.currency` | 9 | top-level `currency` |
-   | `pricing.model` | 8, 9 | If `variable`, step 8 `TimeSlot.pricing.amount` replaces catalog amount on `line_items[].item.price` |
-   | `policies.confirmation_mode` | 9 (optional echo), 16-17 (behavior) | May omit on request (business authoritative); demo expects `auto` so step 17 yields `booking.booking_status: confirmed` |
-   | `policies.requires_payment`, `policies.payment_timing` | 9 (precondition) | Validates paid-at-booking UCP path (`at_booking` for demo) |
-   | `resources[]` (`selectable`, `options`) | 7 (optional `resource_id` filter), 9 (optional `booking.resources`) | Only when buyer selects a specific staff/room before query |
-   | `duration` | (scheduling context; slot duration comes from step 8) | Not copied directly to `booking.slot.duration` |
+  | Field obtained                                         | Used in step(s)                                                     | Maps to on `create_checkout` (step 12)                                                                                      |
+  | ------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+  | `id`                                                   | 9, 12                                                               | `booking.service_id`; `line_items[].item.id` (must match per [§7.4](../specification.md#74-paid-bookings-extension-schema)) |
+  | `name`                                                 | 12                                                                  | `line_items[].item.title`                                                                                                   |
+  | `type`                                                 | 12                                                                  | `booking.service_type` (required on `BookingContext`)                                                                       |
+  | `pricing.amount`                                       | 12                                                                  | `line_items[].item.price` when `pricing.model` is `fixed`, `hourly`, or `per_person` (demo uses `fixed`)                    |
+  | `pricing.currency`                                     | 12                                                                  | top-level `currency`                                                                                                        |
+  | `pricing.model`                                        | 10, 12                                                              | If `variable`, step 10 `TimeSlot.pricing.amount` replaces catalog amount on `line_items[].item.price`                       |
+  | `policies.confirmation_mode`                           | 12 (optional echo), 19-20 (behavior)                                | May omit on request (business authoritative); demo expects `auto` so step 20 yields `booking.booking_status: confirmed`     |
+  | `policies.requires_payment`, `policies.payment_timing` | 12 (precondition)                                                   | Validates paid-at-booking UCP path (`at_booking` for demo)                                                                  |
+  | `resources[]` (`selectable`, `options`)                | 9 (optional `resource_id` filter), 12 (optional `booking.resources`) | Only when buyer selects a specific staff/room before query                                                                  |
+  | `duration`                                             | (scheduling context; slot duration comes from step 10)              | Not copied directly to `booking.slot.duration`                                                                              |
 
-7. **Availability query** (`Agent` → `USP`): The agent calls `POST /availability/query` for the chosen `service_id` and time window.
+7. **Buyer calendar gate** (`Agent` internal, platform-only): Before querying business availability, the agent asks the buyer whether to check their personal calendar for conflicts, then completes the calendar gate.
+  **Why:** [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) enables platform-side free/busy cross-referencing so buyers only see mutually free times; the business is not involved and never receives calendar data. Matches `linkusp flow calendar ask|connect|skip` hard gate and the ds-general USP subagent Scenario 2 Step 1 (`customer_calendar_connected` / `customer_calendar_skipped`).
+   **Fields consumed (this request):** buyer consent (human gate); optional `GOOGLE_CALENDAR_CLIENT_ID` in demo mode for local OAuth.
+   **Fields obtained → later use:**
 
-   **Why:** [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 2 requires confirming bookable slots before checkout; this selects a concrete slot for the `paid_bookings` extension.
+  | Field obtained / state set              | Used in step(s) | Required for                                                                 |
+  | --------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+  | `calendar_gate_completed: true`         | 9               | Gate before `POST /availability/query` (`calendar_gate_not_completed` if absent) |
+  | `calendar_state: connected`             | 8, 11           | Enables busy fetch + slot filter                                             |
+  | `calendar_state: skipped`               | 9-11            | Proceed without filter (`skip_calendar_filter=True` equivalent)              |
+  | OAuth access/refresh token (if connect)| 8               | Google Calendar FreeBusy API (`calendar.freebusy` scope only)                |
 
+   **Demo path:** `linkusp flow calendar ask` → user chooses → `calendar connect` (local Google OAuth; agent relays `auth_url`, does not open browser) or `calendar skip`. **Production path:** `link-cli calendar connect` via Link-hosted calendar service ([linkusp-cli DESIGN §3](https://github.com/yahalomran/linkusp-cli/blob/main/DESIGN.md#3-linkusp-as-google-calendar-client)).
+
+8. **Fetch buyer busy blocks** (`Agent` → calendar provider, optional): When `calendar_state: connected`, the platform fetches opaque `[BusyBlock](../schemas/calendar_freebusy.json)` intervals for the availability time window.
+  **Why:** §11.2.6 filtering requires `{start, end}` pairs only; no event titles, attendees, or locations. Overlap rule: `slot.start < block.end AND block.start < slot.end` (touching boundaries do not overlap).
+   **Fields consumed (this request):** OAuth token from step 7; `start_date` / `end_date` aligned with step 9 availability window.
+   **Fields obtained → later use:**
+
+  | Field obtained            | Used in step(s) | Required for                                      |
+  | ------------------------- | --------------- | ------------------------------------------------- |
+  | `busy_blocks[]` `{start, end}` | 11        | Platform-side slot filter; optional UX summary of removed ranges |
+
+9. **Availability query** (`Agent` → `USP`): The agent calls `POST /availability/query` for the chosen `service_id` and time window.
+  **Why:** [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 2 requires confirming bookable slots before checkout; this selects a concrete slot for the `paid_bookings` extension. **No changes to the business request** when calendar is connected ([§11.2.6](../specification.md#1126-integration-with-availability-query)).
    **Fields consumed (this request):** `service_id` from step 2 / confirmed by step 6 `Service.id`; USP endpoint from step 4; optional `timezone` from step 2 or step 6; optional `resource_id` when step 6 `resources[].selectable` is true; `start_date` / `end_date` from agent time window.
+   **Fields obtained:** none (request only; response fields arrive in step 10).
+10. **Available slots** (`USP` → `Agent`): `usp-impl` returns matching `[TimeSlot](../schemas/availability.json)` entries.
+  **Why:** Checkout requires a schema-valid `SlotReference` tied to real capacity; without this response the agent cannot build a valid `booking` object on `create_checkout`.
+   **Fields obtained → later use** (from business response, before platform filter):
 
-   **Fields obtained:** none (request only; response fields arrive in step 8).
+  | Field obtained                                | Used in step(s)        | Maps to on `create_checkout` (step 12)                                                    |
+  | --------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------- |
+  | `id`                                          | 12                     | `booking.slot.id`                                                                         |
+  | `start`                                       | 12                     | `booking.slot.start`                                                                      |
+  | `end`                                         | 12                     | `booking.slot.end`                                                                        |
+  | `duration`                                    | 12                     | `booking.slot.duration` (ISO 8601, e.g. `PT60M`)                                          |
+  | `resources[]` (`id`, `type`, `name`)          | 12 (optional)          | `booking.resources[]` when copying staff/room assignment from the slot                    |
+  | `pricing.amount`, `pricing.currency`          | 12                     | `line_items[].item.price` and `currency` **only when** step 6 `pricing.model == variable` |
+  | `state`, `capacity`, `location`, `service_id` | (validation / UX only) | Not sent on `SlotReference`; agent must pick `state: available` (or acceptable) slot      |
 
-8. **Available slots** (`USP` → `Agent`): `usp-impl` returns matching [`TimeSlot`](../schemas/availability.json) entries; the agent picks one slot.
+11. **Platform slot filter and selection** (`Agent` internal): When `calendar_state: connected`, the agent removes slots overlapping step 8 `busy_blocks` per §11.2.6, then the buyer picks one remaining slot (human gate; never auto-pick).
+  **Why:** Presents only mutually free times; surfaces filtered-out ranges in agent UX so the buyer can adjust their calendar if needed (ds-general `query_availability` / `filtered_out_slots`; linkusp `calendar_filtered` + `slots_filtered` in flow JSON).
+   **Fields obtained → later use:** selected slot fields from step 10 (post-filter) feed step 12 `booking.slot`.
 
-   **Why:** Checkout requires a schema-valid `SlotReference` tied to real capacity; without this response the agent cannot build a valid `booking` object on `create_checkout`.
-
-   **Fields obtained → later use** (from the **selected** slot):
-
-   | Field obtained | Used in step(s) | Maps to on `create_checkout` (step 9) |
-   |----------------|-----------------|---------------------------------------|
-   | `id` | 9 | `booking.slot.id` |
-   | `start` | 9 | `booking.slot.start` |
-   | `end` | 9 | `booking.slot.end` |
-   | `duration` | 9 | `booking.slot.duration` (ISO 8601, e.g. `PT60M`) |
-   | `resources[]` (`id`, `type`, `name`) | 9 (optional) | `booking.resources[]` when copying staff/room assignment from the slot |
-   | `pricing.amount`, `pricing.currency` | 9 | `line_items[].item.price` and `currency` **only when** step 6 `pricing.model == variable` |
-   | `state`, `capacity`, `location`, `service_id` | (validation / UX only) | Not sent on `SlotReference`; agent must pick `state: available` (or acceptable) slot |
-
-9. **Create checkout** (`Agent` → `UCP`): The agent calls UCP `POST create_checkout` with the `dev.usp.services.paid_bookings` extension.
-
-   **Why:** UCP-Native paid booking starts as a standard UCP checkout session extended for scheduling; this is [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 4, not Standalone `confirm-payment`.
-
+12. **Create checkout** (`Agent` → `UCP`): The agent calls UCP `POST create_checkout` with the `dev.usp.services.paid_bookings` extension.
+  **Why:** UCP-Native paid booking starts as a standard UCP checkout session extended for scheduling; this is [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 4, not Standalone `confirm-payment`.
    **Fields consumed (assembled into this request):**
 
-   | Request field | Source step(s) | Notes |
-   |---------------|----------------|-------|
-   | `line_items[].id` | Agent-generated | e.g. `li_1` |
-   | `line_items[].item.id` | 2, 6 | Must equal `booking.service_id` |
-   | `line_items[].item.title` | 6 (`Service.name`) | |
-   | `line_items[].item.price` | 6 (`Service.pricing.amount`) or 8 (`TimeSlot.pricing` if variable) | Must match live catalog ([§7.4](../specification.md#74-paid-bookings-extension-schema)) |
-   | `line_items[].quantity` | Agent | Demo: `1` |
-   | `currency` | 6 (`Service.pricing.currency`) or 4 (profile fallback) | |
-   | `buyer.email`, `buyer.first_name`, `buyer.last_name` | Link account (platform; not a numbered diagram step) | Required for `ready_for_complete` ([§7.5 step 4](../specification.md#75-checkout-flow-and-atomicity-guarantee)) |
-   | `booking.service_id` | 2, 6 | Required on `BookingContext` |
-   | `booking.service_type` | 6 (`Service.type`) | Required on `BookingContext`; **not** on registry snapshot |
-   | `booking.slot` | 8 (selected slot) | Required; all four `SlotReference` fields |
-   | `booking.resources` | 8 (optional) | Omit when business auto-assigns |
-   | `booking.party_size` | Agent | Demo appointment: omit (default `1`) |
-   | `booking.confirmation_mode` | 6 (optional echo) | May omit; business uses `Service.policies.confirmation_mode` |
-   | `booking.notes`, `booking.recipient` | Agent / buyer (optional) | Out of demo scope |
-   | `booking.hold_id` | — | **Not used** (demo `holds: false`) |
-   | `Idempotency-Key` (header) | Agent-generated | [§7.3](../specification.md#73-inherited-infrastructure) / UCP idempotency |
-   | UCP REST base URL | 4 | Target for this request |
+  | Request field                                        | Source step(s)                                                     | Notes                                                                                                           |
+  | ---------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+  | `line_items[].id`                                    | Agent-generated                                                    | e.g. `li_1`                                                                                                     |
+  | `line_items[].item.id`                               | 2, 6                                                               | Must equal `booking.service_id`                                                                                 |
+  | `line_items[].item.title`                            | 6 (`Service.name`)                                                 |                                                                                                                 |
+  | `line_items[].item.price`                            | 6 (`Service.pricing.amount`) or 10 (`TimeSlot.pricing` if variable) | Must match live catalog ([§7.4](../specification.md#74-paid-bookings-extension-schema))                         |
+  | `line_items[].quantity`                              | Agent                                                              | Demo: `1`                                                                                                       |
+  | `currency`                                           | 6 (`Service.pricing.currency`) or 4 (profile fallback)             |                                                                                                                 |
+  | `buyer.email`, `buyer.first_name`, `buyer.last_name` | Link account (platform; not a numbered diagram step)               | Required for `ready_for_complete` ([§7.5 step 4](../specification.md#75-checkout-flow-and-atomicity-guarantee)) |
+  | `booking.service_id`                                 | 2, 6                                                               | Required on `BookingContext`                                                                                    |
+  | `booking.service_type`                               | 6 (`Service.type`)                                                 | Required on `BookingContext`; **not** on registry snapshot                                                      |
+  | `booking.slot`                                       | 11 (selected slot, post calendar filter)                           | Required; all four `SlotReference` fields                                                                       |
+  | `booking.resources`                                  | 11 (optional)                                                      | Omit when business auto-assigns                                                                                 |
+  | `booking.party_size`                                 | Agent                                                              | Demo appointment: omit (default `1`)                                                                            |
+  | `booking.confirmation_mode`                          | 6 (optional echo)                                                  | May omit; business uses `Service.policies.confirmation_mode`                                                    |
+  | `booking.notes`, `booking.recipient`                 | Agent / buyer (optional)                                           | Out of demo scope                                                                                               |
+  | `booking.hold_id`                                    | —                                                                  | **Not used** (demo `holds: false`)                                                                              |
+  | `Idempotency-Key` (header)                           | Agent-generated                                                    | [§7.3](../specification.md#73-inherited-infrastructure) / UCP idempotency                                       |
+  | UCP REST base URL                                    | 4                                                                  | Target for this request                                                                                         |
 
-   **Fields obtained:** none synchronously from merchant on this sub-step (response in step 11).
-
-10. **Pending booking** (`UCP` → `USP`): `acp-checkout` invokes internal `CreatePendingBooking` gRPC on `usp-impl`, reserving the slot in `pending` state.
-
-    **Why:** Scheduling state must be created atomically with the checkout session so payment completion can confirm the booking without a separate agent-side `POST /bookings`.
-
-    **Fields consumed (internal):** `booking.service_id`, `booking.service_type`, `booking.slot`, optional `booking.resources`, `buyer` from step 9 request; line item price for server-side catalog validation.
-
-    **Fields obtained (agent-visible):** deferred to step 11 response.
-
-11. **Checkout ready** (`UCP` → `Agent`): UCP returns checkout `status: ready_for_complete` plus booking and payment metadata.
-
-    **Why:** The agent needs the checkout session handle, correlated booking id, and payment handler binding before acquiring SPT and calling `complete_checkout`.
-
+   **Fields obtained:** none synchronously from merchant on this sub-step (response in step 14).
+13. **Pending booking** (`UCP` → `USP`): `acp-checkout` invokes internal `CreatePendingBooking` gRPC on `usp-impl`, reserving the slot in `pending` state.
+  **Why:** Scheduling state must be created atomically with the checkout session so payment completion can confirm the booking without a separate agent-side `POST /bookings`.
+    **Fields consumed (internal):** `booking.service_id`, `booking.service_type`, `booking.slot`, optional `booking.resources`, `buyer` from step 12 request; line item price for server-side catalog validation.
+    **Fields obtained (agent-visible):** deferred to step 14 response.
+14. **Checkout ready** (`UCP` → `Agent`): UCP returns checkout `status: ready_for_complete` plus booking and payment metadata.
+  **Why:** The agent needs the checkout session handle, correlated booking id, and payment handler binding before acquiring SPT and calling `complete_checkout`.
     **Fields obtained → later use:**
 
-    | Field obtained | Used in step(s) | Required for |
-    |----------------|-----------------|--------------|
-    | `id` (checkout session id) | 14 | `complete_checkout` path/body reference |
-    | `status: ready_for_complete` | 12-14 (gate) | Proceed to SPT + complete without `update_checkout` |
-    | `booking.booking_id` | 14, 17, 18 | Correlation; webhook match |
-    | `booking.booking_status: pending` | 17 (before complete) | Expected post-create state |
-    | `payment_handlers` | 12 | SPT acquisition when not already cached from step 4 |
-    | `booking.actions[]` (if present) | — | **Demo avoids:** would require [§7.5 step 5](../specification.md#75-checkout-flow-and-atomicity-guarantee) before payment |
+  | Field obtained                    | Used in step(s)      | Required for                                                                                                              |
+  | --------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+  | `id` (checkout session id)        | 17                   | `complete_checkout` path/body reference                                                                                   |
+  | `status: ready_for_complete`      | 15-17 (gate)         | Proceed to SPT + complete without `update_checkout`                                                                       |
+  | `booking.booking_id`              | 17, 20, 21           | Correlation; webhook match                                                                                                |
+  | `booking.booking_status: pending` | 20 (before complete) | Expected post-create state                                                                                                |
+  | `payment_handlers`                | 15                   | SPT acquisition when not already cached from step 4                                                                       |
+  | `booking.actions[]` (if present)  | —                    | **Demo avoids:** would require [§7.5 step 5](../specification.md#75-checkout-flow-and-atomicity-guarantee) before payment |
 
-12. **Acquire SPT** (`Agent` → `Stripe`): The Link platform obtains a Shared Payment Token via Stripe's UCP/SPT flow.
-
-    **Why:** UCP-Native completion uses platform-acquired SPT on `complete_checkout`; the agent does not collect card data directly.
-
-    **Fields consumed (this request):** `payment_handlers` config from step 4 and/or step 11; checkout context from step 11.
-
-    **Fields obtained:** none (request only; credential in step 13).
-
-13. **SPT credential** (`Stripe` → `Agent`): Stripe returns the SPT credential bound to the checkout context.
-
-    **Why:** `complete_checkout` must present a valid, scoped payment token for `StripeSptProviderAdapter`.
-
+15. **Acquire SPT** (`Agent` → `Stripe`): The Link platform obtains a Shared Payment Token via Stripe's UCP/SPT flow.
+  **Why:** UCP-Native completion uses platform-acquired SPT on `complete_checkout`; the agent does not collect card data directly.
+    **Fields consumed (this request):** `payment_handlers` config from step 4 and/or step 14; checkout context from step 14.
+    **Fields obtained:** none (request only; credential in step 16).
+16. **SPT credential** (`Stripe` → `Agent`): Stripe returns the SPT credential bound to the checkout context.
+  **Why:** `complete_checkout` must present a valid, scoped payment token for `StripeSptProviderAdapter`.
     **Fields obtained → later use:**
 
-    | Field obtained | Used in step(s) | Required for |
-    |----------------|-----------------|--------------|
-    | SPT `credential.token` (instrument shape per handler `schema`) | 14 | `complete_checkout` `payment.instruments[].credential` |
+  | Field obtained                                                 | Used in step(s) | Required for                                           |
+  | -------------------------------------------------------------- | --------------- | ------------------------------------------------------ |
+  | SPT `credential.token` (instrument shape per handler `schema`) | 17              | `complete_checkout` `payment.instruments[].credential` |
 
-14. **Complete checkout** (`Agent` → `UCP`): The agent calls UCP `POST complete_checkout` with the SPT and checkout session reference.
-
-    **Why:** Atomic payment-plus-confirmation gate per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) steps 6-7.
-
-    **Fields consumed (this request):** checkout `id` from step 11; SPT credential from step 13; UCP REST base URL from step 4; `Idempotency-Key` (header, agent-generated).
-
-    **Fields obtained:** none synchronously on agent leg (response in step 17).
-
-15. **Charge payment** (`UCP` → `Stripe`): `acp-checkout` charges via `StripeSptProviderAdapter`.
-
-    **Why:** Funds must be captured (or authorized per handler config) before the merchant commits the booking.
-
-    **Fields consumed (internal):** SPT from step 13; handler id from step 4 / 11; checkout + booking state from steps 9-11.
-
-    **Fields obtained (agent-visible):** deferred to step 17.
-
-16. **Finalize booking** (`UCP` → `USP`): On successful charge, `acp-checkout` calls `FinalizeBookingOnPayment` gRPC.
-
-    **Why:** Scheduling confirmation must follow payment success; uses `confirmation_mode` from step 6 policies (`auto` in demo).
-
-    **Fields consumed (internal):** `booking.booking_id` from step 11; `Service.policies.confirmation_mode` from step 6 (authoritative).
-
-    **Fields obtained (agent-visible):** deferred to step 17.
-
-17. **Checkout completed** (`UCP` → `Agent`): UCP returns terminal checkout state.
-
-    **Why:** Synchronous success signal for demo assertions per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) atomicity guarantees.
-
+17. **Complete checkout** (`Agent` → `UCP`): The agent calls UCP `POST complete_checkout` with the SPT and checkout session reference.
+  **Why:** Atomic payment-plus-confirmation gate per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) steps 6-7.
+    **Fields consumed (this request):** checkout `id` from step 14; SPT credential from step 16; UCP REST base URL from step 4; `Idempotency-Key` (header, agent-generated).
+    **Fields obtained:** none synchronously on agent leg (response in step 20).
+18. **Charge payment** (`UCP` → `Stripe`): `acp-checkout` charges via `StripeSptProviderAdapter`.
+  **Why:** Funds must be captured (or authorized per handler config) before the merchant commits the booking.
+    **Fields consumed (internal):** SPT from step 16; handler id from step 4 / 14; checkout + booking state from steps 12-14.
+    **Fields obtained (agent-visible):** deferred to step 20.
+19. **Finalize booking** (`UCP` → `USP`): On successful charge, `acp-checkout` calls `FinalizeBookingOnPayment` gRPC.
+  **Why:** Scheduling confirmation must follow payment success; uses `confirmation_mode` from step 6 policies (`auto` in demo).
+    **Fields consumed (internal):** `booking.booking_id` from step 14; `Service.policies.confirmation_mode` from step 6 (authoritative).
+    **Fields obtained (agent-visible):** deferred to step 20.
+20. **Checkout completed** (`UCP` → `Agent`): UCP returns terminal checkout state.
+  **Why:** Synchronous success signal for demo assertions per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) atomicity guarantees.
     **Fields obtained → later use:**
 
-    | Field obtained | Used in step(s) | Required for |
-    |----------------|-----------------|--------------|
-    | `status: completed` | Demo assertions | End-to-end success |
-    | `order_id` | 18 (webhook correlation) | Must match `booking.confirmed` payload |
-    | `booking.booking_status: confirmed` | Demo assertions | When step 6 `confirmation_mode` is `auto` |
-    | `booking.booking_id` | 18 | Must match webhook `booking_id` |
+  | Field obtained                      | Used in step(s)          | Required for                              |
+  | ----------------------------------- | ------------------------ | ----------------------------------------- |
+  | `status: completed`                 | Demo assertions          | End-to-end success                        |
+  | `order_id`                          | 21 (webhook correlation) | Must match `booking.confirmed` payload    |
+  | `booking.booking_status: confirmed` | Demo assertions          | When step 6 `confirmation_mode` is `auto` |
+  | `booking.booking_id`                | 21                       | Must match webhook `booking_id`           |
 
-18. **Booking webhook** (`USP` → `Agent`): `usp-impl` asynchronously `POST`s `booking.confirmed`.
-
-    **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification; signature verified per [§10.1.1](../specification.md#1011-webhook-security).
-
+21. **Booking webhook** (`USP` → `Agent`): `usp-impl` asynchronously `POST`s `booking.confirmed`.
+  **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification; signature verified per [§10.1.1](../specification.md#1011-webhook-security).
     **Fields obtained → later use:**
 
-    | Field obtained | Used in step(s) | Required for |
-    |----------------|-----------------|--------------|
-    | `booking_id` | Demo assertions | Must equal step 11 / 17 `booking.booking_id` |
-    | `order_id` | Demo assertions | Must equal step 17 `order_id` |
-    | Webhook signature headers | Agent verification | [§10.1.1](../specification.md#1011-webhook-security) authenticity |
+  | Field obtained            | Used in step(s)    | Required for                                                      |
+  | ------------------------- | ------------------ | ----------------------------------------------------------------- |
+  | `booking_id`              | Demo assertions    | Must equal step 14 / 20 `booking.booking_id`                      |
+  | `order_id`                | Demo assertions    | Must equal step 20 `order_id`                                     |
+  | Webhook signature headers | Agent verification | [§10.1.1](../specification.md#1011-webhook-security) authenticity |
+
 
 **Demo success criteria (day 10):**
 
 - [ ] Link agent completes the flow above against one **registry-listed** Wix demo merchant end-to-end.
 - [ ] Link discovers the service and merchant via `**POST /registry/search_services` only** (no hardcoded merchant URL in agent config; no `search_business` in demo path); then `**GET /services/{service_id}`** for live catalog per [§6.3](../specification.md#63-service-search---post-registrysearch_services) before availability and checkout.
+- [ ] **Buyer calendar gate** completes before availability (`calendar connect` or `calendar skip` per [§11.2](../specification.md#112-buyer-calendar-freebusy-extension)); when connected, slots are filtered platform-side against opaque busy blocks and conflicting times are not offered.
 - [ ] Service search uses at least one filter per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) (e.g. `query` plus optional `verticals`/`categories`); no client-side post-filter by `deployment_mode` or payment handlers in the demo ([GH-055](#gh-055-registry-capability-and-payment-search-filters) is the correct solution when agents need those filters).
 - [ ] Link fetches business profile via `GET {profile_url}` where `profile_url` is the **full profile document URL** (e.g. `https://{host}/.well-known/ucp`), not site origin + appended path.
 - [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
@@ -327,8 +422,9 @@ The registry **MUST** validate that `GET profile_url` returns a valid UCP profil
 5. Read `payment_handlers` from profile (UCP); there is **no** `checkout_systems` in UCP-Native mode.
 6. Resolve `dev.usp.services` and `dev.ucp.shopping` REST endpoints from `ucp.services`.
 7. `**GET /services/{service_id}`** on the merchant USP catalog endpoint ([§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)) — live catalog for booking-time decisions per [§6.3](../specification.md#63-service-search---post-registrysearch_services) (registry hit is a non-authoritative snapshot).
-8. Perform UCP auth, consent, and identity linking per [§7.3](../specification.md#73-inherited-infrastructure) before mutating checkout.
+8. **Buyer calendar gate** (platform-only, [§11.2](../specification.md#112-buyer-calendar-freebusy-extension)): ask buyer to connect personal calendar for conflict checking or skip; hard gate before availability (`linkusp flow calendar ask|connect|skip`; ds-general USP subagent Scenario 2 Step 1).
 9. Use the live `Service` object (`type` → `booking.service_type`, `pricing`, `policies`) plus registry `service_id` for availability and checkout (`create_checkout` re-validates catalog price server-side).
+10. Perform UCP auth, consent, and identity linking per [§7.3](../specification.md#73-inherited-infrastructure) before mutating checkout.
 
 ```mermaid
 flowchart TB
@@ -385,11 +481,13 @@ Link Agent (consumer only)
     |
     +-- GET /services/{service_id} ... usp-impl (REST, live catalog per §6.3)
     |
+    +-- [platform] calendar gate + free/busy filter (§11.2; no business call)
+    |
+    +-- POST /usp/v1/availability/query ... usp-impl (REST, from profile)
+    |
     +-- POST /ucp/{site_id}/checkout-sessions ... acp-checkout
     |       +-- CreatePendingBooking -----> usp-impl (gRPC)
     |       +-- FinalizeBookingOnPayment --> usp-impl (gRPC)
-    |
-    +-- POST /usp/v1/availability/query ... usp-impl (REST, from profile)
 ```
 
 Profile advertises `holds: false` on availability (holds out of demo scope).
@@ -411,6 +509,7 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | Registry validates reachable profile before accept                       | §6.1 MUST                   | GH-012                                                               |
 | Service search requires ≥1 filter                                        | §6.3 MUST                   | GH-011, GH-021                                                       |
 | Fetch live catalog at booking time (registry snapshot non-authoritative) | §6.3 MUST                   | GH-003 `GET /services/{service_id}` after profile                    |
+| Platform calendar free/busy filter before slot selection                 | §11.2                       | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) |
 | Registry `usp` envelope describes **registry**, not business             | §6.1                        | GH-010 implementers note                                             |
 | Federated registries; business may register with multiple                | §6.7                        | Link uses configurable `USP_REGISTRY_URL` (GH-020)                   |
 | Platforms search only; never register                                    | §6.2–6.3 (consumer ops)     | Track C; no `POST /registry/businesses` in Link                      |
@@ -433,20 +532,21 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 #### USP + UCP paid booking flow ([§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee))
 
 
-| Step | Normative action                                           | Plan task                                                                                                                                                                                                                                                                     |
-| ---- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step | Normative action                                           | Plan task                                                                                                                                                                                                                                                                        |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | `POST /services/list`                                      | Out of scope — demo uses registry `search_services` for cold-start, then `GET /services/{service_id}` for live catalog ([§6.3](../specification.md#63-service-search---post-registrysearch_services); [merchant-direct list](#merchant-direct-catalog-discovery) remains future) |
 | 1b   | `GET /services/{service_id}`                               | GH-003 — booking-time catalog hydration per [§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)                                                                                                                                                             |
-| 2    | `POST /availability/query`                                 | GH-003, GH-021                                                                                                                                                                                                                                                                |
-| 3    | Hold slot (if `holds: true`)                               | Out of scope                                                                                                                                                                                                                                                                  |
-| 4    | UCP `create_checkout` + `booking`; **no** `POST /bookings` | GH-002, GH-042                                                                                                                                                                                                                                                                |
-| 4a   | Return `ready_for_complete` when complete                  | GH-042                                                                                                                                                                                                                                                                        |
-| 4b   | `price_mismatch` recoverable message                       | GH-042                                                                                                                                                                                                                                                                        |
-| 5    | Non-payment `booking.actions` before payment               | GH-043 (`actions_pending`)                                                                                                                                                                                                                                                    |
-| 6    | Acquire payment token from `payment_handlers`              | GH-004, GH-052                                                                                                                                                                                                                                                                |
-| 7    | UCP `complete_checkout`; atomic payment + booking          | GH-044, GH-032, GH-053                                                                                                                                                                                                                                                        |
-| 7a   | `booking_status` derivation from checkout `status`         | GH-043                                                                                                                                                                                                                                                                        |
-| 7b   | On payment failure: booking stays `pending`                | GH-044, GH-053                                                                                                                                                                                                                                                                |
+| 1c   | Buyer calendar gate + platform free/busy filter             | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) — [§11.2](../specification.md#112-buyer-calendar-freebusy-extension); no change to `POST /availability/query`                                                                                      |
+| 2    | `POST /availability/query`                                 | GH-003, GH-021                                                                                                                                                                                                                                                                   |
+| 3    | Hold slot (if `holds: true`)                               | Out of scope                                                                                                                                                                                                                                                                     |
+| 4    | UCP `create_checkout` + `booking`; **no** `POST /bookings` | GH-002, GH-042                                                                                                                                                                                                                                                                   |
+| 4a   | Return `ready_for_complete` when complete                  | GH-042                                                                                                                                                                                                                                                                           |
+| 4b   | `price_mismatch` recoverable message                       | GH-042                                                                                                                                                                                                                                                                           |
+| 5    | Non-payment `booking.actions` before payment               | GH-043 (`actions_pending`)                                                                                                                                                                                                                                                       |
+| 6    | Acquire payment token from `payment_handlers`              | GH-004, GH-052                                                                                                                                                                                                                                                                   |
+| 7    | UCP `complete_checkout`; atomic payment + booking          | GH-044, GH-032, GH-053                                                                                                                                                                                                                                                           |
+| 7a   | `booking_status` derivation from checkout `status`         | GH-043                                                                                                                                                                                                                                                                           |
+| 7b   | On payment failure: booking stays `pending`                | GH-044, GH-053                                                                                                                                                                                                                                                                   |
 | 8    | Webhook `booking.confirmed` with `order_id`                | [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 8                                                                                                                                                                                                      |
 
 
@@ -562,11 +662,29 @@ flowchart LR
 
 ### 3.2 Calendar
 
+Buyer calendar conflict checking is **in demo scope** as a platform-side showcase of [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (`dev.usp.platform.calendar_freebusy`). No registry, business, or `usp-impl` changes are required: the agent obtains opaque busy blocks via OAuth, queries business availability unchanged, then filters slots locally.
+
+**Reference implementations (already built):**
+
+| Component | Calendar behavior |
+| --------- | ------------------- |
+| **linkusp-cli** | Hard gate: `flow calendar ask\|connect\|skip` before `flow availability`; demo uses local Google OAuth (`GOOGLE_CALENDAR_CLIENT_ID`); production uses Link-hosted `link-cli calendar connect`. Filter: `linkusp.calendar.filter.filter_slots_by_busy_times`. |
+| **ds-general USP subagent** | Scenario 2 Step 1: ask buyer to "check your personal calendar" before `query_availability`; `connect_customer_calendar` / `skip_calendar_filter`; inline filter in `query_availability` with `filtered_out_slots` UX. |
+
+**Demo vs production OAuth:**
+
+| Mode | Calendar connect | Busy fetch |
+| ---- | ---------------- | ---------- |
+| Demo (`--secrets-mode demo`) | `linkusp flow calendar connect` (local Google OAuth callback) | Google Calendar FreeBusy API, `calendar.freebusy` scope |
+| Production (`--secrets-mode linkusp`) | `link-cli calendar connect` (Link-hosted) | Link calendar service `POST /calendar/busy` |
+
+**Sprint placement:** [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) on Track A days 3-5 (parallel with GH-003); wired into agent skill ([usp-platform-link/SKILL.md](https://github.com/yahalomran/linkusp-cli/blob/main/skills/usp-platform-link/SKILL.md)) and GH-005 E2E (`--calendar-skip` for headless CI; interactive demo uses connect).
+
 
 | Day  | Track A Link agent                                                                                                        | Track B USP registry                                                                                  | Track C Link platform                                                                                                 | Track D usp-impl                                                                                                              | Track E UCP+USP                                                                                                                 | Track F Stripe SPT                                      |
 | ---- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | 1-2  | [GH-001](#gh-001-link-agent-ucp-native-profile-discovery) + [GH-002](#gh-002-link-agent-ucp-checkout-client) **parallel** | [GH-010](#gh-010-registry-minimal-deploy)                                                             | [GH-020](#gh-020-link-platform-configurable-registry-client)                                                          | [GH-030](#gh-030-usp-impl-internal-orchestration-rpc-proto)                                                                   | [GH-040](#gh-040-ucp-profile-merge-usp-capabilities) **parallel** with [GH-041](#gh-041-paid_bookings-booking-extension-schema) | [GH-050](#gh-050-payments-platform-spt-charge-contract) |
-| 3-4  | [GH-003](#gh-003-link-agent-usp-catalog-and-scheduling-client)                                                            | [GH-011](#gh-011-registry-search-apis)                                                                | [GH-021](#gh-021-link-platform-registry-search-and-profile-resolution)                                                | [GH-031](#gh-031-usp-impl-creatependingbooking-rpc) **parallel** with [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc) | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                            | [GH-051](#gh-051-stripe-spt-provider-adapter)           |
+| 3-4  | [GH-003](#gh-003-link-agent-usp-catalog-and-scheduling-client) + [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) | [GH-011](#gh-011-registry-search-apis)                                                                | [GH-021](#gh-021-link-platform-registry-search-and-profile-resolution)                                                | [GH-031](#gh-031-usp-impl-creatependingbooking-rpc) **parallel** with [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc) | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                            | [GH-051](#gh-051-stripe-spt-provider-adapter)           |
 | 5    | Integration stub tests                                                                                                    | [GH-012](#gh-012-registry-profile-url-validation)                                                     | [GH-022](#gh-022-link-platform-profile-capability-negotiation)                                                        | [GH-033](#gh-033-usp-impl-cancelpendingbooking-rpc)                                                                           | [GH-043](#gh-043-booking-status-mapping-on-checkout)                                                                            | [GH-052](#gh-052-register-spt-handler-in-profile)       |
 | 6-7  | [GH-004](#gh-004-link-agent-stripe-spt-acquisition)                                                                       | [GH-013](#gh-013-register-demo-wix-merchant) + [GH-014](#gh-014-demo-merchant-readiness-prerequisite) | [GH-023](#gh-023-link-platform-auth-consent-handshake)                                                                | Unit tests for RPCs                                                                                                           | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking) depends D2,F2                                                         | [GH-053](#gh-053-booking-aware-payment-orchestration)   |
 | 8    | [GH-005](#gh-005-link-agent-demo-e2e-command)                                                                             | Registry smoke test                                                                                   | [GH-024](#gh-024-link-platform-discovery-integration-test) + [GH-057](#gh-057-link-platform-booking-webhook-receiver) | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook)                                                                          | [GH-045](#gh-045-atomic-ucpcancelcheckout-with-booking)                                                                         | SPT integration tests                                   |
@@ -594,6 +712,7 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 | G-12 | Webhook `booking.confirmed` with `order_id` | **P0**        | D, C, A | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook), [GH-057](#gh-057-link-platform-booking-webhook-receiver), [GH-005](#gh-005-link-agent-demo-e2e-command) |
 | G-15 | Registry / cold-start                       | **P0**        | B       | [GH-010](#gh-010-registry-minimal-deploy) through [GH-013](#gh-013-register-demo-wix-merchant)                                                                |
 | G-26 | Link registry consumer                      | **P0**        | C       | [GH-020](#gh-020-link-platform-configurable-registry-client) through [GH-024](#gh-024-link-platform-discovery-integration-test)                               |
+| G-27 | Buyer calendar free/busy slot filtering     | **P1**        | A       | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering), [GH-005](#gh-005-link-agent-demo-e2e-command)                                  |
 | G-09 | No idempotency on `complete_checkout`       | **P1**        | E       | [GH-046](#gh-046-execution-guard-on-complete_checkout)                                                                                                        |
 | G-20 | Price mismatch handling                     | **P1**        | E       | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                                                          |
 | G-21 | 3DS / `continue_url` on SPT                 | **P1**        | F       | [GH-054](#gh-054-spt-3ds-continue_url-handling) (best-effort for demo)                                                                                        |
@@ -671,7 +790,33 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 4. Build checkout `line_items` and `booking` extension from live `Service` (`name`, `pricing`, `type` → `service_type`, optional `policies.confirmation_mode`); rely on merchant `price_mismatch` if line item diverges from server catalog at create time.
 5. **Do not** call `POST /services/list` or `POST /availability/holds` (out of scope).
 
-**Order:** registry hit → profile → `**GET /services/{service_id}`** → `POST /availability/query` → checkout.
+**Order:** registry hit → profile → `**GET /services/{service_id}`** → calendar gate → `POST /availability/query` (+ platform filter if connected) → checkout.
+
+---
+
+### Task A3b — Buyer calendar free/busy gate and slot filtering
+
+
+|                   |                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| **Issue**         | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering)               |
+| **Depends on**    | GH-003 (availability client)                                                                 |
+| **Parallel with** | GH-004                                                                                       |
+
+
+**Why:** [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) lets platforms cross-reference buyer busy times with business availability entirely on the platform side. The demo must show the agent asking for calendar consent, optionally connecting via OAuth, and filtering slots before the buyer picks a time. Matches existing `linkusp flow calendar` gates and ds-general USP subagent Scenario 2.
+
+**What:**
+
+1. Wire calendar gate into the booking state machine: `calendar_gate_completed` required before `POST /availability/query` (`calendar_gate_not_completed` error if skipped).
+2. Implement or reuse `linkusp flow calendar ask|skip|connect` with machine-readable `AWAITING_USER` output for agents (skill Step 3).
+3. **Demo mode:** local Google Calendar OAuth (`calendar.freebusy` scope) when `GOOGLE_CALENDAR_CLIENT_ID` is set; `calendar skip` satisfies gate without secrets.
+4. **Production mode (stub OK for sprint):** delegate to `link-cli calendar connect` / Link calendar service per linkusp-cli DESIGN §3.
+5. After business availability returns, when connected: fetch `[BusyBlock](../schemas/calendar_freebusy.json)` for the query window and apply `filter_slots_by_busy_times` (overlap: `slot.start < block.end AND block.start < slot.end`; touching boundaries do not overlap).
+6. Expose filter metadata in flow JSON (`calendar_filtered`, `slots_filtered`) and agent UX (summarize removed slot ranges when non-zero).
+7. **MUST NOT** send buyer calendar data to the business ([§11.2.6](../specification.md#1126-integration-with-availability-query)).
+
+**Reference code:** `linkusp-cli` `packages/usp-core/linkusp/calendar/`, `packages/cli/src/linkusp_cli/commands/flow.py`; ds-general `shopping_agent/subagents/usp/tools.py` (`_filter_slots_by_busy_times`, `connect_customer_calendar`).
 
 ---
 
@@ -702,7 +847,7 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 |                |                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------- |
 | **Issue**      | [GH-005](#gh-005-link-agent-demo-e2e-command)                                         |
-| **Depends on** | GH-001–004, GH-013 (merchant already in registry), GH-021–024, GH-044, GH-056, GH-057 |
+| **Depends on** | GH-001–004, GH-003b, GH-013 (merchant already in registry), GH-021–024, GH-044, GH-056, GH-057 |
 | **Timeline**   | Days 7-10                                                                             |
 
 
@@ -713,16 +858,17 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 1. Add `linkusp demo ucp-native --registry URL --query "demo service name"` command (service search query; optional `--verticals`).
 2. E2E steps mapped to [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) / [§7.7.2](../specification.md#772-paid-service-flow-ucp-checkout):
 
-  | Step     | Action                                                                                                                                                                                  |
-  | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | Registry | `POST /registry/search_services` with `query` (+ optional `verticals`/`categories`)                                                                                                     |
-  | Profile  | `GET {business.profile_url}` from selected `ServiceSearchResult`                                                                                                                        |
+  | Step     | Action                                                                                                                                                                                        |
+  | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Registry | `POST /registry/search_services` with `query` (+ optional `verticals`/`categories`)                                                                                                           |
+  | Profile  | `GET {business.profile_url}` from selected `ServiceSearchResult`                                                                                                                              |
   | Catalog  | `GET /services/{service_id}` — live `[Service](../schemas/catalog.json)` per [§6.3](../specification.md#63-service-search---post-registrysearch_services) (replaces §7.5.1 list for known id) |
-  | §7.5.2   | `POST /availability/query` for that `service_id`                                                                                                                                        |
-  | §7.5.4   | UCP `create_checkout` + `booking` extension                                                                                                                                             |
-  | §7.5.6   | Acquire SPT from `payment_handlers`                                                                                                                                                     |
-  | §7.5.7   | UCP `complete_checkout`                                                                                                                                                                 |
-  | §7.5.8   | Await `booking.confirmed` webhook ([GH-057](#gh-057-link-platform-booking-webhook-receiver)); assert `order_id` + `booking_id` match checkout                                           |
+  | Calendar | `flow calendar skip` (headless CI via `--calendar-skip`) or `flow calendar connect` (interactive demo with Google OAuth) per [§11.2](../specification.md#112-buyer-calendar-freebusy-extension) |
+  | §7.5.2   | `POST /availability/query` for that `service_id`; platform filters slots when calendar connected                                                                                              |
+  | §7.5.4   | UCP `create_checkout` + `booking` extension                                                                                                                                                   |
+  | §7.5.6   | Acquire SPT from `payment_handlers`                                                                                                                                                           |
+  | §7.5.7   | UCP `complete_checkout`                                                                                                                                                                       |
+  | §7.5.8   | Await `booking.confirmed` webhook ([GH-057](#gh-057-link-platform-booking-webhook-receiver)); assert `order_id` + `booking_id` match checkout                                                 |
 
    Skip §7.5.3 (holds) and §7.5.5 (non-payment actions) for demo. Demo does **not** call `search_business`.
 3. Start webhook receiver before checkout; register callback URL on merchant via `USP_DEMO_PLATFORM_WEBHOOK_URL` ([GH-014](#gh-014-demo-merchant-readiness-prerequisite)).
@@ -1469,14 +1615,15 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ## 12. Definition of Done
 
-1. **GH-005** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → §7.5.2 availability → steps 4, 6, 7, **8** (webhook `order_id` correlation).
-2. **GH-013** registry entry created via `RegistrationRequest` with full `profile_url` and `deployment_mode: ucp_native` (Link not involved).
-3. **GH-024** Link discovery: `search_services` + `GET profile_url` + capability match + `**GET /services/{service_id}`** verified independently of booking E2E.
-4. **GH-044** atomic complete per [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): failed charge never confirms booking.
-5. No Standalone endpoints required for demo (`/.well-known/usp`, `checkout_systems`, `confirm-payment` not used).
-6. Link codebase contains **no** `POST /registry/businesses` call.
-7. UCP checkout uses `Idempotency-Key` on create/complete; `payment_handlers` on profile and checkout; `booking` extension per `[paid_bookings.json](../schemas/paid_bookings.json)`.
-8. All in-scope tasks linked to filed GitHub issues (see [Missing GitHub issues](#missing-github-issues) until filed).
+1. **GH-005** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → calendar gate → §7.5.2 availability (+ platform filter when connected) → steps 4, 6, 7, **8** (webhook `order_id` correlation).
+2. **GH-003b** calendar gate and slot filtering verified in flow tests and interactive demo path (`calendar connect` or `calendar skip`).
+3. **GH-013** registry entry created via `RegistrationRequest` with full `profile_url` and `deployment_mode: ucp_native` (Link not involved).
+4. **GH-024** Link discovery: `search_services` + `GET profile_url` + capability match + `**GET /services/{service_id}`** verified independently of booking E2E.
+5. **GH-044** atomic complete per [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): failed charge never confirms booking.
+6. No Standalone endpoints required for demo (`/.well-known/usp`, `checkout_systems`, `confirm-payment` not used).
+7. Link codebase contains **no** `POST /registry/businesses` call.
+8. UCP checkout uses `Idempotency-Key` on create/complete; `payment_handlers` on profile and checkout; `booking` extension per `[paid_bookings.json](../schemas/paid_bookings.json)`.
+9. All in-scope tasks linked to filed GitHub issues (see [Missing GitHub issues](#missing-github-issues) until filed).
 
 ---
 
@@ -1527,6 +1674,7 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 
 ### Conformance and polish (non-blocking for demo)
 
+- Link-hosted calendar OAuth service (`calendar.link.com`) and LPOS token vault ([linkusp-cli #4](https://github.com/yahalomran/linkusp-cli/issues/4)) — demo uses local Google OAuth or `calendar skip`
 - `GET /bookings/{id}` empty query fix (demo uses `get_checkout` + webhook)
 - HTTP 200 error bodies, camelCase cleanup, pagination, availability quirk (minor `usp-impl` conformance)
 - USP MCP binding, OAuth discovery
@@ -1597,6 +1745,26 @@ Implement `GET /services/{service_id}` ([§3.12.3](../specification.md#3123-get-
 
 ---
 
+### GH-003b: Link agent buyer calendar free/busy gate and slot filtering
+
+**Repo:** `yahalomran/linkusp-cli`  
+**Labels:** `track-a`, `usp`, `calendar`, `demo`
+
+**Description:**
+
+Implement platform-side buyer calendar conflict checking per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) before availability: hard calendar gate (`flow calendar ask|skip|connect`), Google FreeBusy fetch in demo mode, `filter_slots_by_busy_times` after `POST /availability/query`, and agent-facing filter metadata. Align with ds-general USP subagent (`connect_customer_calendar`, `query_availability` inline filter) and existing linkusp-cli flow gates.
+
+**Acceptance criteria:**
+
+- [ ] `flow availability` fails with `calendar_gate_not_completed` until `calendar connect` or `calendar skip` completes.
+- [ ] When connected, availability response excludes slots overlapping buyer busy blocks (touching boundaries do not overlap).
+- [ ] Flow JSON includes `calendar_filtered` and `slots_filtered` when filtering runs.
+- [ ] `calendar skip` works without `GOOGLE_CALENDAR_CLIENT_ID` / client secret.
+- [ ] Agent skill documents calendar gate as Step 3 (before availability) with OAuth link relay pattern.
+- [ ] No buyer calendar data sent to merchant `POST /availability/query`.
+
+---
+
 ### GH-004: Link agent Stripe SPT acquisition
 
 **Repo:** `yahalomran/linkusp-cli`  
@@ -1620,7 +1788,7 @@ Implement platform-side SPT acquisition using handler config from checkout respo
 
 **Description:**
 
-Add `linkusp demo ucp-native --registry URL --query "service name"` running [USP §7.7.2](../specification.md#772-paid-service-flow-ucp-checkout) / [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): registry service search → profile → `**GET /services/{service_id}`** → §7.5.2 availability → steps 4, 6, 7, **8**. Discovery: `**search_services` only** → `GET profile_url` → live catalog get — demo service must already be indexed (GH-013 + GH-011).
+Add `linkusp demo ucp-native --registry URL --query "service name"` running [USP §7.7.2](../specification.md#772-paid-service-flow-ucp-checkout) / [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): registry service search → profile → `**GET /services/{service_id}`** → calendar gate ([§11.2](../specification.md#112-buyer-calendar-freebusy-extension)) → §7.5.2 availability (+ platform filter) → steps 4, 6, 7, **8**. Discovery: `**search_services` only** → `GET profile_url` → live catalog get — demo service must already be indexed (GH-013 + GH-011).
 
 **Acceptance criteria:**
 
@@ -1628,6 +1796,7 @@ Add `linkusp demo ucp-native --registry URL --query "service name"` running [USP
 - [ ] No hardcoded Wix merchant URL; uses `search_services` + `GET profile_url` only (no `search_business`).
 - [ ] Calls `**GET /services/{service_id}`** after profile and before availability per [§6.3](../specification.md#63-service-search---post-registrysearch_services).
 - [ ] Uses live `Service` from catalog get for `booking.service_type`, line item price, and availability `service_id`.
+- [ ] Headless CI path uses `--calendar-skip`; interactive demo documents `calendar connect` option.
 - [ ] Asserts `checkout.status == completed`, `booking.booking_status == confirmed`, and `order_id` present.
 - [ ] Receives `booking.confirmed` webhook ([GH-057](#gh-057-link-platform-booking-webhook-receiver)) with `order_id` matching checkout and `booking_id` matching `booking.booking_id`.
 - [ ] Documented in README for sprint demo.

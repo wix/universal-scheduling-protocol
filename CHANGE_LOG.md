@@ -1,5 +1,11 @@
 # Change Log
 
+## 14/06/26 at 16:43:39 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added buyer calendar free/busy availability slot filtering to the UCP-Native demo in `plans/USP+UCP_implementation_plan.md`, aligned with linkusp-cli (`flow calendar ask|connect|skip`, `filter_slots_by_busy_times`) and ds-general USP subagent (Scenario 2 calendar gate before `query_availability`): expanded §1 sequence diagram (steps 7-11), detailed steps, demo success criteria, §2.1 discovery and §2.2 architecture, §2.3 normative map (step 1c / §11.2), §3.2 Calendar section, gap G-27, Task A3b, GH-003b, GH-005/Task A5/Definition of Done updates; renumbered checkout/webhook steps 12-21
+
+---
+
 ## 14/06/26 at 16:17:19 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Augmented §1 step-by-step flow in `plans/USP+UCP_implementation_plan.md` with per-step field provenance tables (fields obtained/consumed → later `create_checkout`, `complete_checkout`, and webhook use), traceable to `paid_bookings.json` BookingContext, UCP checkout body, and upstream registry/catalog/availability schemas
