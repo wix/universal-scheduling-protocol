@@ -6,6 +6,160 @@
 
 ---
 
+## 16/06/26 at 12:40:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Filed all 44 USP+UCP plan work items as GitHub issues [#60–#103](https://github.com/wix-private/universal-scheduling-protocol-spec/issues) in `wix-private/universal-scheduling-protocol-spec` (label `v1` for in-scope demo; `v > 1` for GH-054, GH-055, GH-098, GH-099)
+- Updated `plans/USP+UCP_implementation_plan.md`: central issue-tracking assumption, replaced all `GH-NNN` placeholders with live issue URLs, removed Task A1–F5 headings in favor of issue-linked track sections, replaced Missing GitHub issues section with issue index table
+- Added `scripts/issue_map.json` and `scripts/update_plan_issues.py` for plan ID to issue number mapping
+
+---
+
+## 15/06/26 at 14:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed internal step cross-references in `plans/USP+UCP_implementation_plan.md` after calendar renumbering (profile/catalog/availability/checkout tables now point at steps 5, 9, 12, 14, 17; step 9 Fields consumed as table; step 17/20 UCP correlation fields)
+- Added UCP conformance gaps G-28–G-34 to §4 matrix with demo issues GH-058–GH-064, §2.3 UCP checkout binding rows, sprint timeline, Definition of Done, and Missing GitHub issues section; moved 3DS/G-21 to out-of-scope via GH-098
+- Added § Out of scope — UCP conformance gaps (future) rollup for auth, trusted UI, 3DS, full UCP surface, and related non-demo items
+- Created issue drafts under `.github/issue-drafts/` for GH-058–GH-064 (demo in-scope) and GH-098 (UCP conformance gaps out of scope)
+
+---
+
+## 14/06/26 at 16:43:39 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added buyer calendar free/busy availability slot filtering to the UCP-Native demo in `plans/USP+UCP_implementation_plan.md`, aligned with linkusp-cli (`flow calendar ask|connect|skip`, `filter_slots_by_busy_times`) and ds-general USP subagent (Scenario 2 calendar gate before `query_availability`): expanded §1 sequence diagram (steps 7-11), detailed steps, demo success criteria, §2.1 discovery and §2.2 architecture, §2.3 normative map (step 1c / §11.2), §3.2 Calendar section, gap G-27, Task A3b, GH-003b, GH-005/Task A5/Definition of Done updates; renumbered checkout/webhook steps 12-21
+
+---
+
+## 14/06/26 at 16:17:19 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Augmented §1 step-by-step flow in `plans/USP+UCP_implementation_plan.md` with per-step field provenance tables (fields obtained/consumed → later `create_checkout`, `complete_checkout`, and webhook use), traceable to `paid_bookings.json` BookingContext, UCP checkout body, and upstream registry/catalog/availability schemas
+
+---
+
+## 14/06/26 at 16:13:58 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed relative hyperlinks in `plans/USP+UCP_implementation_plan.md` after move from repo root (`../specification.md`, `../schemas/`, `../openapi/`, `../openrpc/`, `../USP+UCP_readiness.md`, `../.github/issue-drafts/`, same-file `#` anchors); repaired broken GH-055 link in `CHANGE_LOG.md`
+
+---
+
+## 14/06/26 at 14:56:22 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the client-side `deployment_mode` post-filter step from the demo in `USP+UCP_implementation_plan.md` (sequence diagram, step-by-step flow, discovery path, Tasks A5/C2/C5, GH-005/021/024, out-of-scope, and GH-055 consumer scope); registry-side capability/payment filters via GH-055 are documented as the correct solution when agents need to narrow by deployment mode, payment handlers, or other USP/UCP capabilities
+
+---
+
+## 14/06/26 at 14:47:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Numbered all interaction steps (1-19) in the §1 target demo sequence diagram in `USP+UCP_implementation_plan.md`, added the implicit availability response arrow, and inserted a matching step-by-step explanation list so each chronology step states what happens and why it is required
+
+---
+
+## 14/06/26 at 14:42:29 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Reinstated spec-aligned **`GET /services/{service_id}`** in `USP+UCP_implementation_plan.md` demo path (after profile, before availability) per USP §6.3 live-catalog requirement; updated sequence diagram, §2.1/§2.2/§7.5 alignment, Tasks A3/A5/C5, GH-003/005/024, Definition of Done; kept `POST /services/list` out of scope
+
+---
+
+## 14/06/26 at 14:33:03 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `POST /services/list` from demo flow in `USP+UCP_implementation_plan.md` (sequence diagram, architecture, §7.5 map, Tasks A3/A5, GH-003/005); demo uses registry `search_services` + `service_id` then availability only, aligned with linkusp-cli and ds-general agents; added out-of-scope [Merchant-direct catalog discovery](#merchant-direct-catalog-discovery) section for list
+
+---
+
+## 10/06/26 at 18:55:51 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Trimmed `USP+UCP_implementation_plan.md` gap matrix to in-scope gaps only (removed G-05–G-08, G-11, G-13, G-14, G-16–G-19, G-22–G-25); out-of-scope section no longer references removed matrix IDs
+
+---
+
+## 10/06/26 at 18:49:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Brought `booking.confirmed` webhook with `order_id` into demo scope in `USP+UCP_implementation_plan.md` (USP §7.5 step 8): P0 gap G-12, Tasks D5/C6, GH-056/057, E2E/assertion updates, sequence diagram, removed from out-of-scope conformance list
+
+---
+
+## 10/06/26 at 18:44:07 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added plan §2.4 clarifying what "`paid_bookings` extends `checkout`" means (profile `extends` field verification, schema/protocol behavior, agent obligations); expanded Task C3, GH-022, GH-040, demo success criteria, and §2.1 discovery step 5 with explicit checks and `verify_paid_bookings_extends_checkout` example
+
+---
+
+## 10/06/26 at 18:39:45 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Switched demo discovery path in `USP+UCP_implementation_plan.md` to **`search_services` only**: updated sequence diagram, §2.1 discovery steps, Track B/C/A tasks, Definition of Done, and GH-005/011/013/021/024 to use `ServiceSearchResult` with client-side `business.deployment_mode == ucp_native` post-filter (registry still implements business search for API completeness)
+
+---
+
+## 10/06/26 at 18:19:33 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added future-version out-of-scope task and [GH-055](plans/USP+UCP_implementation_plan.md#gh-055-registry-capability-and-payment-search-filters) to `plans/USP+UCP_implementation_plan.md` for registry business/service search filters on indexed profile-derived fields (capabilities, `payment_handlers`, `supports_spt`) with staleness and re-validation on register/update
+
+---
+
+## 10/06/26 at 18:03:28 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned `USP+UCP_implementation_plan.md` with USP §6 (registry `profile_url` as full document URL, `RegistrationRequest` shape, search filters, no capabilities snapshot), §7.2–7.5 (UCP-Native profile, §7.5 flow mapping, atomic complete), and UCP checkout/idempotency/payment_handlers; added normative protocol alignment map (§2.3), fixed discovery/E2E/registry examples and GH issue acceptance criteria
+
+---
+
+## 10/06/26 at 17:50:43 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Refactored `USP+UCP_implementation_plan.md` to treat Link platform and USP registry as independent ecosystem components: registry registration moved to Track B operator process (GH-013/014), Track C reworked as registry consumer only (GH-020-024), added ecosystem architecture section, updated gap matrix (G-26), calendar, and GitHub issue specs; Link no longer registers businesses
+
+---
+
+## 10/06/26 at 15:30:17 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Rewrote `USP+UCP_implementation_plan.md` as a single 2-week UCP-Native demo sprint with six parallel tracks (Link agent, registry, onboarding, Wix usp-impl, UCP+USP extension, Stripe SPT), updated gap matrix, fixed Mermaid diagrams, per-task rationale and steps, GitHub issue anchors (GH-001 through GH-054), and an Out of scope section for holds, mixed cart, order capability, and Standalone Mode
+
+---
+
+## 10/06/26 at 11:43:30 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added GitHub issue draft for `usp-impl` Pattern B checkout return relay (`.github/issue-drafts/usp-impl-checkout-return-relay-body.md`) documenting the Wix Headless allowed-redirect-domain failure and why a merchant-owned relay in `usp-impl` is required to serve arbitrary USP agents on redirect checkout
+
+---
+
+## 09/06/26 at 14:46:30 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `USP+UCP_implementation_plan.md`, a phased gap-closure plan mapping all P0-P2 items from the readiness report to concrete tasks across `usp-impl` and `ecom/acp-checkout`, including architecture decisions, acceptance criteria, dependencies, risks, and GA checklist for USP Section 7.7.2
+
+---
+
+## 09/06/26 at 14:40:24 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added source-verified `ecom/acp-checkout` section to `USP+UCP_readiness.md` from downloaded codebase at `/Users/ranya/Downloads/ecom-master/server/agentic-checkout`, documenting UCP REST/MCP lifecycle, Google Pay-only payment handlers, and Stripe delegated-checkout as a separate webhook path (not UCP SPT)
+- Revised Stripe SPT and UCP checkout readiness estimates and gap tables to reflect that no Stripe UCP payment handler or `paid_bookings` integration exists in either `acp-checkout` or `usp-impl`
+
+---
+
+## 09/06/26 at 14:20:38 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Replaced inferred `usp-impl` architecture in `USP+UCP_readiness.md` with verified source-level analysis from downloaded codebase at `/Users/ranya/Downloads/wix-vmr-repo-master/usp-impl`, including handler layout, RPC scope, payment path (`ChannelType.WEB` + redirect), and documented source bugs (`GetBooking` empty query, `ConfirmPayment` gaps)
+- Cross-referenced internal `usp-implemented-methods-gap-report.md` to confirm UCP-Native blockers (no holds, no UCP types, no SPT) and updated readiness estimates
+
+---
+
+## 09/06/26 at 14:14:49 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added inferred source-level architecture section to `USP+UCP_readiness.md` for Wix `usp-impl`, mapping RPC operations (`ListServices`, `CreateBooking`, etc.) and deployable artifact `com.wixpress.usp.impl.usp-impl` from live `x-wix-responded-by` headers after GitHub MCP remained unavailable for the private repo
+- Expanded endpoint matrix and spec-divergence tables with black-box findings (404 routes, auth-gated operations, ID codecs, error model) so implementers have operation-level detail without source checkout
+
+---
+
+## 09/06/26 at 14:05:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Revised `USP+UCP_readiness.md` after analyzing Wix `usp-impl` via live deployments (`hvac-koby`, `rolucknow.com`) and `linkusp-cli` integration, since GitHub MCP could not read the private `wix-vmr-repo` repository
+- Documented that `usp-impl` already ships Standalone Mode USP (catalog, availability, create-booking with redirect payment) while UCP-Native `paid_bookings`, merged `/.well-known/ucp` profile, Stripe `payment_handlers`, and atomic SPT checkout remain gaps
+
+---
+
+## 09/06/26 at 13:41:59 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `USP+UCP_readiness.md` gap analysis report evaluating Wix readiness to support USP as a UCP extension with Stripe Shared Payment Tokens, so implementers can see which components exist versus what still blocks end-to-end paid booking checkout
+- Mapped required USP Section 7 capabilities (catalog, availability, bookings, paid_bookings) and UCP payment architecture requirements against Wix's `ecom` agentic-checkout module structure and public Bookings/ecom APIs
+
+---
+
 ## 27/05/26 at 17:48:19 by [itays](mailto:itays@wix.com)
 
 - Restructured Overview tab sidebar to match UCP's pattern (8 items vs previous 4) — moved Specification overview, Security, Extensions, and Playground from the Specification tab into Overview so the home page sidebar has comparable depth to ucp.dev
