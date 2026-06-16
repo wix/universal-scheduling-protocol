@@ -133,6 +133,14 @@
   - [GH-055: Registry capability and payment search filters](#gh-055-registry-capability-and-payment-search-filters)
   - [GH-056: usp-impl booking.confirmed webhook](#gh-056-usp-impl-bookingconfirmed-webhook)
   - [GH-057: Link platform booking webhook receiver](#gh-057-link-platform-booking-webhook-receiver)
+  - [GH-058: Platform UCP profile and UCP-Agent negotiation](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)
+  - [GH-059: Complete checkout signals](#gh-059-complete-checkout-signals)
+  - [GH-060: Checkout totals and links validation](#gh-060-checkout-totals-and-links-validation)
+  - [GH-061: Spec order.id vs order_id alignment](#gh-061-spec-orderid-vs-ucp-order-object)
+  - [GH-062: Spec payment_handlers and available_instruments](#gh-062-spec-payment_handlers-and-available_instruments)
+  - [GH-063: Spec UCP profile capability spec/schema requirements](#gh-063-spec-ucp-profile-capability-specschema-requirements)
+  - [GH-064: UCP protocol and capability version negotiation](#gh-064-ucp-protocol-and-capability-version-negotiation)
+  - [GH-098: UCP conformance gaps (out of scope)](#gh-098-ucp-conformance-gaps-out-of-scope)
   - [GH-099: usp-impl merchant checkout return relay (Standalone only)](#gh-099-usp-impl-merchant-checkout-return-relay-standalone-only)
 - [References](#references)
 
@@ -192,7 +200,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
 
   | Field obtained                             | Used in step(s)                                                                                 | Required for                                            |
   | ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-  | `service_id`                               | 5 (path), 7 (`availability.query.service_id`), 9 (`booking.service_id`, `line_items[].item.id`) | Catalog fetch, availability, `create_checkout`          |
+  | `service_id`                               | 5 (path), 9 (`availability.query.service_id`), 12 (`booking.service_id`, `line_items[].item.id`) | Catalog fetch, availability, `create_checkout`          |
   | `business.profile_url`                     | 3 (`GET {profile_url}`)                                                                         | UCP profile fetch                                       |
   | `business.deployment_mode`                 | (discovery / GH-055 only; demo does not client-filter)                                          | Merchant mode validation when registry supports it      |
   | `business.name`                            | (display / logging only)                                                                        | Not sent on `create_checkout`                           |
@@ -211,10 +219,10 @@ Field names in the following detailed steps description refer to  `[paid_booking
 
   | Field obtained                                                                                                                                                  | Used in step(s)                                            | Required for                                                                                                                        |
   | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-  | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 9 (precondition)                                           | Confirm UCP-Native paid path before `create_checkout`                                                                               |
-  | `ucp.services["dev.ucp.shopping"]` (REST base URL)                                                                                                              | 9 (`POST create_checkout`), 14 (`POST complete_checkout`)  | UCP checkout REST                                                                                                                   |
-  | `ucp.services["dev.usp.services"]` (or catalog capability endpoint)                                                                                             | 5 (`GET /services/{id}`), 7 (`POST /availability/query`)   | USP catalog + availability                                                                                                          |
-  | `payment_handlers` (e.g. Stripe SPT handler id, `type`, `endpoint`, `schema`)                                                                                   | 12 (SPT acquisition); 11 (may repeat on checkout response) | Platform-side token acquisition per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) |
+  | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 12 (precondition)                                          | Confirm UCP-Native paid path before `create_checkout`                                                                               |
+  | `ucp.services["dev.ucp.shopping"]` (REST base URL)                                                                                                              | 12 (`POST create_checkout`), 17 (`POST complete_checkout`) | UCP checkout REST                                                                                                                   |
+  | `ucp.services["dev.usp.services"]` (or catalog capability endpoint)                                                                                             | 5 (`GET /services/{id}`), 9 (`POST /availability/query`)  | USP catalog + availability                                                                                                          |
+  | `payment_handlers` (e.g. Stripe SPT handler `id`, `config`, `available_instruments`)                                                                            | 15 (SPT acquisition); 14 (may repeat on checkout response) | Platform-side token acquisition per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) |
   | `business.currency` (when present on profile)                                                                                                                   | 12 (fallback for `currency` if not taken from step 6)      | Top-level checkout `currency`                                                                                                       |
   | `availability` capability config (e.g. `holds: false`)                                                                                                          | 12 (confirm demo path skips `hold_id`)                     | Hold-free demo scope                                                                                                                |
 
@@ -263,7 +271,17 @@ Field names in the following detailed steps description refer to  `[paid_booking
 
 9. **Availability query** (`Agent` → `USP`): The agent calls `POST /availability/query` for the chosen `service_id` and time window.
   **Why:** [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 2 requires confirming bookable slots before checkout; this selects a concrete slot for the `paid_bookings` extension. **No changes to the business request** when calendar is connected ([§11.2.6](../specification.md#1126-integration-with-availability-query)).
-   **Fields consumed (this request):** `service_id` from step 2 / confirmed by step 6 `Service.id`; USP endpoint from step 4; optional `timezone` from step 2 or step 6; optional `resource_id` when step 6 `resources[].selectable` is true; `start_date` / `end_date` from agent time window.
+   **Fields consumed (this request):**
+
+  | Field / request input       | Source step(s)              | Notes                                                                                          |
+  | --------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------- |
+  | `availability.query.service_id` | 2, 6                    | Must equal live `Service.id` from step 6                                                       |
+  | USP REST base URL           | 4                           | From `ucp.services["dev.usp.services"]` (or catalog capability endpoint)                      |
+  | `timezone`                  | 2, 6, 4 (optional)          | Optional on `availability.query`; may default from registry hit, service, or profile           |
+  | `resource_id`               | 6, 11 (optional)            | Only when step 6 `resources[].selectable` is true and buyer selected a resource before query    |
+  | `start_date` / `end_date`   | Agent (buyer intent)        | RFC 3339 window; aligned with step 8 busy fetch when calendar connected                        |
+  | `calendar_gate_completed`   | 7 (precondition)            | Platform gate only; **not** sent on `POST /availability/query`                               |
+
    **Fields obtained:** none (request only; response fields arrive in step 10).
 10. **Available slots** (`USP` → `Agent`): `usp-impl` returns matching `[TimeSlot](../schemas/availability.json)` entries.
   **Why:** Checkout requires a schema-valid `SlotReference` tied to real capacity; without this response the agent cannot build a valid `booking` object on `create_checkout`.
@@ -338,7 +356,16 @@ Field names in the following detailed steps description refer to  `[paid_booking
 
 17. **Complete checkout** (`Agent` → `UCP`): The agent calls UCP `POST complete_checkout` with the SPT and checkout session reference.
   **Why:** Atomic payment-plus-confirmation gate per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) steps 6-7.
-    **Fields consumed (this request):** checkout `id` from step 14; SPT credential from step 16; UCP REST base URL from step 4; `Idempotency-Key` (header, agent-generated).
+    **Fields consumed (this request):**
+
+  | Field / request input              | Source step(s)     | Notes                                                                                    |
+  | ---------------------------------- | ------------------ | ---------------------------------------------------------------------------------------- |
+  | Checkout session `id`              | 14                 | Path/body reference for `complete_checkout`                                              |
+  | `payment.instruments[]` + SPT      | 15-16              | `handler_id` from step 14 `payment_handlers`; `credential.token` from Stripe           |
+  | UCP REST base URL                  | 4                  | From `ucp.services["dev.ucp.shopping"]`                                                  |
+  | `Idempotency-Key` (header)         | Agent-generated    | UCP idempotency per [§7.3](../specification.md#73-inherited-infrastructure)              |
+  | `signals` (e.g. `dev.ucp.buyer_ip`) | Agent environment | Optional on UCP schema; send when available ([GH-059](#gh-059-complete-checkout-signals)) |
+
     **Fields obtained:** none synchronously on agent leg (response in step 20).
 18. **Charge payment** (`UCP` → `Stripe`): `acp-checkout` charges via `StripeSptProviderAdapter`.
   **Why:** Funds must be captured (or authorized per handler config) before the merchant commits the booking.
@@ -352,12 +379,13 @@ Field names in the following detailed steps description refer to  `[paid_booking
   **Why:** Synchronous success signal for demo assertions per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) atomicity guarantees.
     **Fields obtained → later use:**
 
-  | Field obtained                      | Used in step(s)          | Required for                              |
-  | ----------------------------------- | ------------------------ | ----------------------------------------- |
-  | `status: completed`                 | Demo assertions          | End-to-end success                        |
-  | `order_id`                          | 21 (webhook correlation) | Must match `booking.confirmed` payload    |
-  | `booking.booking_status: confirmed` | Demo assertions          | When step 6 `confirmation_mode` is `auto` |
-  | `booking.booking_id`                | 21                       | Must match webhook `booking_id`           |
+  | Field obtained                      | Used in step(s)          | Required for                                                                                    |
+  | ----------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------- |
+  | `status: completed`                 | Demo assertions          | End-to-end success                                                                              |
+  | `order.id` (UCP) / `order_id` (USP) | 21 (webhook correlation) | UCP native field is `order.id`; USP/webhook use `order_id` alias per [GH-061](#gh-061-spec-orderid-vs-ucp-order-object) |
+  | `totals`, `links`                   | Agent UX (optional)      | UCP-required on checkout object; validate present per [GH-060](#gh-060-checkout-totals-and-links-validation) |
+  | `booking.booking_status: confirmed` | Demo assertions          | When step 6 `confirmation_mode` is `auto`                                                     |
+  | `booking.booking_id`                | 21                       | Must match webhook `booking_id`                                                                 |
 
 21. **Booking webhook** (`USP` → `Agent`): `usp-impl` asynchronously `POST`s `booking.confirmed`.
   **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification; signature verified per [§10.1.1](../specification.md#1011-webhook-security).
@@ -628,7 +656,14 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | `payment_handlers` on profile and checkout response                                              | UCP payment architecture                | GH-052, GH-022                |
 | Extension field `booking` on checkout object                                                     | USP `paid_bookings.json` ⊂ UCP checkout | GH-041                        |
 | Line item `item.price` in minor units; MUST match catalog                                        | USP §7.4                                | GH-042                        |
-| `continue_url` + `get_checkout` poll on 3DS / `complete_in_progress`                             | UCP + USP §7.5                          | GH-054 (best-effort)          |
+| `continue_url` + `get_checkout` poll on 3DS / `complete_in_progress`                             | UCP + USP §7.5                          | [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (out of demo scope) |
+| `UCP-Agent` header + platform profile on every UCP request                                         | UCP negotiation                         | [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)        |
+| `signals` on `complete_checkout` (e.g. `dev.ucp.buyer_ip`)                                       | UCP checkout + payment                  | [GH-059](#gh-059-complete-checkout-signals)                             |
+| Checkout response includes `totals` and `links`                                                  | UCP checkout schema                     | [GH-060](#gh-060-checkout-totals-and-links-validation)                  |
+| `order.id` (UCP) mapped to USP `order_id` / webhook correlation                                  | UCP complete checkout + USP §5.4.1      | [GH-061](#gh-061-spec-orderid-vs-ucp-order-object)                      |
+| `payment_handlers` reverse-domain arrays + `available_instruments` resolution                      | UCP payment architecture                | [GH-062](#gh-062-spec-payment_handlers-and-available_instruments), GH-052 |
+| Profile capabilities declare `spec` + `schema` URLs                                                | UCP profile                             | [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements), GH-040 |
+| Protocol + capability version intersection (not fixed date literals)                               | UCP versioning                          | [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation)       |
 | Error `messages[]` with severity (recoverable, error)                                            | UCP error handling                      | GH-042, GH-044                |
 | Cancel atomicity: checkout `canceled`, booking `canceled`                                        | USP §7.5                                | GH-045                        |
 
@@ -735,7 +770,7 @@ Buyer calendar conflict checking is **in demo scope** as a platform-side showcas
 
 | Component                   | Calendar behavior                                                                                                                                                                                                     |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **linkusp-cli**             | Hard gate: `flow calendar ask                                                                                                                                                                                         |
+| **linkusp-cli**             | Hard gate: `flow calendar ask\|connect\|skip` before `flow availability`; demo uses local Google OAuth; production uses Link-hosted calendar. Filter: `linkusp.calendar.filter.filter_slots_by_busy_times`. |
 | **ds-general USP subagent** | Scenario 2 Step 1: ask buyer to "check your personal calendar" before `query_availability`; `connect_customer_calendar` / `skip_calendar_filter`; inline filter in `query_availability` with `filtered_out_slots` UX. |
 
 
@@ -755,8 +790,8 @@ Buyer calendar conflict checking is **in demo scope** as a platform-side showcas
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | 1-2  | [GH-001](#gh-001-link-agent-ucp-native-profile-discovery) + [GH-002](#gh-002-link-agent-ucp-checkout-client) **parallel**                       | [GH-010](#gh-010-registry-minimal-deploy)                                                             | [GH-020](#gh-020-link-platform-configurable-registry-client)                                                          | [GH-030](#gh-030-usp-impl-internal-orchestration-rpc-proto)                                                                   | [GH-040](#gh-040-ucp-profile-merge-usp-capabilities) **parallel** with [GH-041](#gh-041-paid_bookings-booking-extension-schema) | [GH-050](#gh-050-payments-platform-spt-charge-contract) |
 | 3-4  | [GH-003](#gh-003-link-agent-usp-catalog-and-scheduling-client) + [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) | [GH-011](#gh-011-registry-search-apis)                                                                | [GH-021](#gh-021-link-platform-registry-search-and-profile-resolution)                                                | [GH-031](#gh-031-usp-impl-creatependingbooking-rpc) **parallel** with [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc) | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                            | [GH-051](#gh-051-stripe-spt-provider-adapter)           |
-| 5    | Integration stub tests                                                                                                                          | [GH-012](#gh-012-registry-profile-url-validation)                                                     | [GH-022](#gh-022-link-platform-profile-capability-negotiation)                                                        | [GH-033](#gh-033-usp-impl-cancelpendingbooking-rpc)                                                                           | [GH-043](#gh-043-booking-status-mapping-on-checkout)                                                                            | [GH-052](#gh-052-register-spt-handler-in-profile)       |
-| 6-7  | [GH-004](#gh-004-link-agent-stripe-spt-acquisition)                                                                                             | [GH-013](#gh-013-register-demo-wix-merchant) + [GH-014](#gh-014-demo-merchant-readiness-prerequisite) | [GH-023](#gh-023-link-platform-auth-consent-handshake)                                                                | Unit tests for RPCs                                                                                                           | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking) depends D2,F2                                                         | [GH-053](#gh-053-booking-aware-payment-orchestration)   |
+| 5    | Integration stub tests + [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)                                                       | [GH-012](#gh-012-registry-profile-url-validation)                                                     | [GH-022](#gh-022-link-platform-profile-capability-negotiation) + [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation) | [GH-033](#gh-033-usp-impl-cancelpendingbooking-rpc)                                                                           | [GH-043](#gh-043-booking-status-mapping-on-checkout) + [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements)    | [GH-052](#gh-052-register-spt-handler-in-profile) + [GH-062](#gh-062-spec-payment_handlers-and-available_instruments) |
+| 6-7  | [GH-004](#gh-004-link-agent-stripe-spt-acquisition) + [GH-059](#gh-059-complete-checkout-signals) + [GH-060](#gh-060-checkout-totals-and-links-validation) | [GH-013](#gh-013-register-demo-wix-merchant) + [GH-014](#gh-014-demo-merchant-readiness-prerequisite) | [GH-023](#gh-023-link-platform-auth-consent-handshake) (stub; full auth in [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope)) | Unit tests for RPCs                                                                                                           | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking) depends D2,F2 + [GH-061](#gh-061-spec-orderid-vs-ucp-order-object) | [GH-053](#gh-053-booking-aware-payment-orchestration)   |
 | 8    | [GH-005](#gh-005-link-agent-demo-e2e-command)                                                                                                   | Registry smoke test                                                                                   | [GH-024](#gh-024-link-platform-discovery-integration-test) + [GH-057](#gh-057-link-platform-booking-webhook-receiver) | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook)                                                                          | [GH-045](#gh-045-atomic-ucpcancelcheckout-with-booking)                                                                         | SPT integration tests                                   |
 | 9-10 | **Cross-track demo rehearsal** (incl. webhook)                                                                                                  |                                                                                                       |                                                                                                                       |                                                                                                                               | **Bug fix buffer**                                                                                                              |                                                         |
 
@@ -783,10 +818,18 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 | G-15 | Registry / cold-start                       | **P0**        | B       | [GH-010](#gh-010-registry-minimal-deploy) through [GH-013](#gh-013-register-demo-wix-merchant)                                                                |
 | G-26 | Link registry consumer                      | **P0**        | C       | [GH-020](#gh-020-link-platform-configurable-registry-client) through [GH-024](#gh-024-link-platform-discovery-integration-test)                               |
 | G-27 | Buyer calendar free/busy slot filtering     | **P1**        | A       | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering), [GH-005](#gh-005-link-agent-demo-e2e-command)                                 |
+| G-28 | Platform UCP profile / `UCP-Agent` / negotiation | **P1** | C, A    | [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)                                                                                               |
+| G-29 | `signals` on `complete_checkout`            | **P1**        | A       | [GH-059](#gh-059-complete-checkout-signals)                                                                                                                      |
+| G-30 | Checkout `totals` / `links` not validated     | **P1**        | A, E    | [GH-060](#gh-060-checkout-totals-and-links-validation)                                                                                                           |
+| G-31 | `order.id` vs USP `order_id` undocumented   | **P1**        | Spec    | [GH-061](#gh-061-spec-orderid-vs-ucp-order-object)                                                                                                               |
+| G-32 | `payment_handlers` / `available_instruments` spec drift | **P1** | Spec, F | [GH-062](#gh-062-spec-payment_handlers-and-available_instruments), [GH-052](#gh-052-register-spt-handler-in-profile)                                             |
+| G-33 | Profile capability `spec` / `schema` incomplete | **P1**    | Spec, E | [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements), [GH-040](#gh-040-ucp-profile-merge-usp-capabilities)                                      |
+| G-34 | UCP protocol/capability version negotiation | **P1**        | C, A    | [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation)                                                                                                |
 | G-09 | No idempotency on `complete_checkout`       | **P1**        | E       | [GH-046](#gh-046-execution-guard-on-complete_checkout)                                                                                                        |
 | G-20 | Price mismatch handling                     | **P1**        | E       | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                                                          |
-| G-21 | 3DS / `continue_url` on SPT                 | **P1**        | F       | [GH-054](#gh-054-spt-3ds-continue_url-handling) (best-effort for demo)                                                                                        |
 
+
+**Out of scope (no matrix ID):** UCP auth/identity, trusted UI, 3DS escalation, full UCP commerce surface, and other non-demo conformance items are tracked in [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) under [Out of scope — future version](#out-of-scope--future-version).
 
 ---
 
@@ -1649,23 +1692,23 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task F5 — SPT 3DS / `continue_url` (best-effort)
+### Task F5 — SPT 3DS / `continue_url` (out of scope)
 
 
-|                |                                                 |
-| -------------- | ----------------------------------------------- |
-| **Issue**      | [GH-054](#gh-054-spt-3ds-continue_url-handling) |
-| **Depends on** | GH-053                                          |
-| **Timeline**   | Days 8-10 if time                               |
+|                |                                                                 |
+| -------------- | --------------------------------------------------------------- |
+| **Issue**      | [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (rollup); [GH-054](#gh-054-spt-3ds-continue_url-handling) (detail) |
+| **Depends on** | GH-053                                                          |
+| **Timeline**   | Future sprint                                                   |
 
 
-**Why:** Some test cards require 3DS; demo should not silently fail ([G-21](#4-gap-to-workstream-matrix)).
+**Why:** Some test cards require 3DS; full UCP maps this to `requires_escalation` + buyer handoff. **Not in the 2-week demo** — demo uses non-3DS test cards only.
 
-**What:**
+**What (future):**
 
-1. Map Stripe `requires_action` to checkout `complete_in_progress` + `continue_url`.
+1. Map Stripe `requires_action` to checkout `requires_escalation` + `continue_url`.
 2. Agent polls `get_checkout` after buyer completes 3DS.
-3. If not complete by day 8, document demo uses non-3DS test card only.
+3. Document trusted-UI requirements per UCP platform guidelines.
 
 ---
 
@@ -1676,7 +1719,7 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 | ------------------------------------------------- | -------------------------------- | ---------------------------------------------- |
 | Registry lists demo merchant (operator process)   | Track B                          | GH-013, GH-014                                 |
 | Link discovery against registry (no registration) | Track C                          | GH-021, GH-022, GH-024                         |
-| First full E2E on registry-discovered merchant    | Track A + all                    | GH-005, GH-013, GH-044, GH-052, GH-056, GH-057 |
+| First full E2E on registry-discovered merchant    | Track A + all                    | GH-005, GH-013, GH-044, GH-052, GH-056, GH-057, GH-058–GH-064 |
 | Fix integration defects                           | Whichever track owns the failure | —                                              |
 | Demo rehearsal + recording                        | PM / all leads                   | Green E2E                                      |
 
@@ -1693,7 +1736,8 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 6. No Standalone endpoints required for demo (`/.well-known/usp`, `checkout_systems`, `confirm-payment` not used).
 7. Link codebase contains **no** `POST /registry/businesses` call.
 8. UCP checkout uses `Idempotency-Key` on create/complete; `payment_handlers` on profile and checkout; `booking` extension per `[paid_bookings.json](../schemas/paid_bookings.json)`.
-9. All in-scope tasks linked to filed GitHub issues (see [Missing GitHub issues](#missing-github-issues) until filed).
+9. **GH-058** through **GH-064** closed or verified: platform `UCP-Agent`, `signals`, `totals`/`links`, spec alignment ([GH-061](#gh-061-spec-orderid-vs-ucp-order-object)–[GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements)), version negotiation.
+10. All in-scope tasks linked to filed GitHub issues (see [Missing GitHub issues](#missing-github-issues) until filed).
 
 ---
 
@@ -1741,6 +1785,19 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 - **Re-validation:** on `POST`/`PUT /registry/businesses`, re-fetch profile and refresh index; reject or flag registration when indexed payment/capability claims diverge from reachable profile.
 - **Schema/spec:** extend `[schemas/registry.json](../schemas/registry.json)` (`RegistrationRequest`, `RegistryEntry`, `BusinessSearchRequest`, `ServiceSearchRequest`) and USP §6; linkusp consumer updates in a follow-on sprint ([GH-055](#gh-055-registry-capability-and-payment-search-filters)).
 - Demo uses `**search_services` only** with profile fetch for capability and Stripe/SPT negotiation; no registry capability/payment request filters and no client-side post-filters in the 2-week sprint ([GH-055](#gh-055-registry-capability-and-payment-search-filters) is the correct solution when agents need those filters).
+
+### UCP conformance gaps (future)
+
+Full UCP agent-commerce conformance beyond the UCP-Native paid booking demo path. Tracked in a single rollup issue: [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (draft: [`.github/issue-drafts/gh-098-ucp-conformance-gaps.md`](../.github/issue-drafts/gh-098-ucp-conformance-gaps.md)).
+
+Includes (non-exhaustive):
+
+- **Auth, identity, consent** — OAuth, identity linking, checkout scopes ([GH-023](#gh-023-link-platform-auth-consent-handshake) demo stub only)
+- **Trusted UI / agent handoff** — UCP platform guideline that checkout finalization uses a trusted, deterministic UI (unless AP2 mandates apply); demo is fully agent-driven via `linkusp demo ucp-native`
+- **3DS / payment escalation** — `requires_escalation`, `continue_url`, buyer handoff ([GH-054](#gh-054-spt-3ds-continue_url-handling) deferred)
+- **Full UCP commerce surface** — `dev.ucp.shopping.order`, fulfillment extension, mixed cart, AP2 mandates, MCP/A2A/embedded transports
+- **HTTP message signatures** on UCP REST (when profile declares signing requirements beyond demo webhook path)
+- **Eligibility / mandate extensions** not required for single-service paid bookings demo
 
 ### Conformance and polish (non-blocking for demo)
 
@@ -2307,15 +2364,204 @@ Reorder payment flow for bookings: validate, charge, then mark completed and fin
 ### GH-054: SPT 3DS continue_url handling
 
 **Repo:** `wix-private/ecom`  
-**Labels:** `track-f`, `nice-to-have`
+**Labels:** `track-f`, `out-of-scope`, `ucp-conformance`
 
 **Description:**
 
-Map Stripe `requires_action` to UCP `complete_in_progress` + `continue_url`; agent polls `get_checkout`.
+Map Stripe `requires_action` to UCP `requires_escalation` + `continue_url`; agent polls `get_checkout` after buyer handoff. **Out of scope for 2-week demo** — see [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope). Demo uses non-3DS test cards.
+
+**Acceptance criteria (future sprint):**
+
+- [ ] Documented test card for 3DS path with trusted-UI handoff.
+- [ ] `requires_escalation` lifecycle aligned with UCP payment architecture.
+
+---
+
+### GH-058: Platform UCP profile and UCP-Agent negotiation
+
+**Repo:** `yahalomran/linkusp-cli` / Link platform  
+**Labels:** `track-c`, `track-a`, `ucp-native`, `demo`
+
+**Description:**
+
+UCP requires platforms to advertise a **platform profile** on every UCP REST request via the `UCP-Agent` header and run the **capability intersection algorithm** (version match, extension pruning) against the business profile. GH-022 validates the business side only; this issue adds the platform side.
+
+Draft body: [`.github/issue-drafts/gh-058-platform-ucp-agent-negotiation.md`](../.github/issue-drafts/gh-058-platform-ucp-agent-negotiation.md).
 
 **Acceptance criteria:**
 
-- [ ] Documented test card for 3DS path OR explicit demo uses non-3DS card.
+- [ ] Platform hosts or references a canonical platform UCP profile URL (demo: config or static fixture).
+- [ ] All UCP checkout REST calls from Link/`linkusp-cli` send `UCP-Agent: profile="<platform_profile_url>"`.
+- [ ] Intersection helper: prune business capabilities/extensions not supported by platform profile; fail fast with actionable error before `create_checkout`.
+- [ ] Unit test with fixture business + platform profiles (mismatch and match cases).
+- [ ] Documented in GH-005 E2E flow.
+
+**Depends on:** GH-001, GH-022.
+
+---
+
+### GH-059: Complete checkout signals
+
+**Repo:** `yahalomran/linkusp-cli`  
+**Labels:** `track-a`, `ucp-native`, `demo`
+
+**Description:**
+
+UCP `complete_checkout` accepts optional `signals` (e.g. `dev.ucp.buyer_ip`, `dev.ucp.user_agent`) for fraud/risk. Businesses may require them via recoverable `messages` with `code: signal`. Platform should populate signals when available.
+
+Draft body: [`.github/issue-drafts/gh-059-complete-checkout-signals.md`](../.github/issue-drafts/gh-059-complete-checkout-signals.md).
+
+**Acceptance criteria:**
+
+- [ ] `complete_checkout` request builder accepts and sends `signals` map when agent environment provides values.
+- [ ] Handle recoverable `messages` requesting missing signals (retry with signals populated).
+- [ ] Unit test: mock business requiring `dev.ucp.buyer_ip`.
+- [ ] GH-005 E2E sends at least one signal when running in networked environment.
+
+**Depends on:** GH-002, GH-004.
+
+---
+
+### GH-060: Checkout totals and links validation
+
+**Repo:** `yahalomran/linkusp-cli`; `wix-private/wix-vmr-repo` (assertions)  
+**Labels:** `track-a`, `track-e`, `ucp-native`, `demo`
+
+**Description:**
+
+UCP checkout responses **MUST** include `totals` and `links` (legal/compliance). Plan acceptance criteria previously focused on `status`, `booking`, and order correlation only. Add validation on agent and merchant responses.
+
+Draft body: [`.github/issue-drafts/gh-060-checkout-totals-links-validation.md`](../.github/issue-drafts/gh-060-checkout-totals-links-validation.md).
+
+**Acceptance criteria:**
+
+- [ ] Agent validates `totals` and `links` present on `create_checkout` / `get_checkout` responses when `status` is `ready_for_complete` or `completed`.
+- [ ] `usp-impl` / `acp-checkout` responses include schema-valid `totals` and `links` (GH-042 integration test).
+- [ ] GH-005 assertions fail with clear message if missing.
+- [ ] Document which `links` types the demo merchant returns (terms, privacy, etc.).
+
+**Depends on:** GH-002, GH-042.
+
+---
+
+### GH-061: Spec order.id vs order_id alignment
+
+**Repo:** `kobym707/universal-scheduling-protocol`  
+**Labels:** `spec`, `ucp-native`, `demo`
+
+**Description:**
+
+UCP native complete-checkout shape exposes **`order.id`** inside an `order` object. USP §7.5 and webhooks use top-level **`order_id`** for correlation. Spec must document the mapping so adapters and agents do not assume root-level `order_id` on UCP responses.
+
+Draft body: [`.github/issue-drafts/gh-061-order-id-order-object-mapping.md`](../.github/issue-drafts/gh-061-order-id-order-object-mapping.md).
+
+**Acceptance criteria:**
+
+- [ ] [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) state: UCP returns `order.id`; USP/webhook field `order_id` **SHOULD** equal that value.
+- [ ] Example JSON in §7.4/§7.5 shows both UCP `order` object and USP `order_id` alias where applicable.
+- [ ] No contradiction with `[schemas/paid_bookings.json](../schemas/paid_bookings.json)` checkout extension examples.
+- [ ] Plan step 20 table references this normative text.
+
+**Depends on:** None (spec-only; implementers follow after merge).
+
+---
+
+### GH-062: Spec payment_handlers and available_instruments
+
+**Repo:** `kobym707/universal-scheduling-protocol`  
+**Labels:** `spec`, `ucp-native`, `demo`
+
+**Description:**
+
+Current UCP payment architecture uses reverse-domain keys with **arrays** of handler objects (`id`, `version`, `config`, `available_instruments`). USP §7 examples simplify handler shape. Align spec with UCP and document that checkout response `payment_handlers` is authoritative for instrument resolution.
+
+Draft body: [`.github/issue-drafts/gh-062-payment-handlers-available-instruments.md`](../.github/issue-drafts/gh-062-payment-handlers-available-instruments.md).
+
+**Acceptance criteria:**
+
+- [ ] §7.2 / §7.4 profile and checkout examples use UCP-conformant `payment_handlers` structure (or explicit USP subset with normative mapping table).
+- [ ] Document `available_instruments` resolution: platform **MUST** use instruments from checkout response when present.
+- [ ] Cross-reference [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
+- [ ] GH-052 demo merchant profile updated to match spec text.
+
+**Depends on:** GH-040 (examples must match merged spec).
+
+---
+
+### GH-063: Spec UCP profile capability spec/schema requirements
+
+**Repo:** `kobym707/universal-scheduling-protocol`  
+**Labels:** `spec`, `ucp-native`, `demo`
+
+**Description:**
+
+UCP profile requires **`spec`** and **`schema`** URLs on every capability declaration. USP §7.2 examples sometimes omit them on `dev.ucp.shopping.checkout`. Update normative requirements and examples.
+
+Draft body: [`.github/issue-drafts/gh-063-profile-capability-spec-schema.md`](../.github/issue-drafts/gh-063-profile-capability-spec-schema.md).
+
+**Acceptance criteria:**
+
+- [ ] §7.2 **MUST** require `spec` + `schema` on each capability entry in `/.well-known/ucp`.
+- [ ] All §7 examples and GH-040 fixture profiles include valid URLs for `dev.ucp.shopping.checkout`, `dev.usp.services.*` capabilities.
+- [ ] GH-012 registry validation note: unreachable `spec`/`schema` URLs are registration warnings (optional).
+- [ ] GH-022 negotiation rejects capabilities missing required metadata.
+
+**Depends on:** GH-040.
+
+---
+
+### GH-064: UCP protocol and capability version negotiation
+
+**Repo:** `yahalomran/linkusp-cli` / Link platform  
+**Labels:** `track-c`, `track-a`, `ucp-native`, `demo`
+
+**Description:**
+
+Replace fixed date literals (e.g. `2026-01-11`) in examples and client code with **runtime version intersection** between platform and business profiles per UCP versioning rules.
+
+Draft body: [`.github/issue-drafts/gh-064-ucp-version-negotiation.md`](../.github/issue-drafts/gh-064-ucp-version-negotiation.md).
+
+**Acceptance criteria:**
+
+- [ ] Version intersection helper selects highest mutually supported protocol + capability versions.
+- [ ] UCP REST requests include negotiated version headers/fields per UCP binding (not hardcoded demo date).
+- [ ] Fail fast when business requires a capability version the platform does not support.
+- [ ] Unit tests: platform older/newer than business; extension version mismatch.
+- [ ] Plan examples updated to say "negotiated version" where a fixed date appeared.
+
+**Depends on:** GH-058, GH-022.
+
+---
+
+### GH-098: UCP conformance gaps (out of scope)
+
+**Repo:** `kobym707/universal-scheduling-protocol` (tracking); work spans Link, Wix, spec  
+**Labels:** `out-of-scope`, `ucp-conformance`, `future`
+
+**Description:**
+
+Rollup of UCP conformance gaps **explicitly excluded** from the 2-week UCP-Native demo. In-scope demo gaps are G-28–G-34 / GH-058–GH-064.
+
+Draft body: [`.github/issue-drafts/gh-098-ucp-conformance-gaps.md`](../.github/issue-drafts/gh-098-ucp-conformance-gaps.md).
+
+**Tracked gaps (summary):**
+
+| # | Topic | Notes |
+| --- | --- | --- |
+| 2 | Auth / identity / consent | GH-023 demo stub only; full OAuth/scopes deferred |
+| 3 | Trusted UI / agent handoff | Agent-driven demo vs UCP platform trusted-UI guideline |
+| 10 | 3DS / `requires_escalation` | GH-054; non-3DS cards in demo |
+| 11 | Full UCP surface | Order capability, fulfillment, AP2, MCP/A2A, mixed cart |
+| + | HTTP message signatures on UCP REST | When profile mandates beyond webhook signing |
+| + | Eligibility / mandate extensions | Not needed for single-service demo |
+
+**Acceptance criteria:**
+
+- [ ] Issue body lists each gap with spec reference and suggested future GH split.
+- [ ] Plan [Out of scope — future version](#out-of-scope--future-version) links here.
+- [ ] No demo Definition of Done item blocked on this issue.
+
+**Note:** **Not required for UCP-Native demo.** File for post-demo UCP hardening backlog.
 
 ---
 
