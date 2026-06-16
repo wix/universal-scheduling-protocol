@@ -1,5 +1,13 @@
 # Change Log
 
+## 16/06/26 at 12:40:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Filed all 44 USP+UCP plan work items as GitHub issues [#60–#103](https://github.com/wix-private/universal-scheduling-protocol-spec/issues) in `wix-private/universal-scheduling-protocol-spec` (label `v1` for in-scope demo; `v > 1` for GH-054, GH-055, GH-098, GH-099)
+- Updated `plans/USP+UCP_implementation_plan.md`: central issue-tracking assumption, replaced all `GH-NNN` placeholders with live issue URLs, removed Task A1–F5 headings in favor of issue-linked track sections, replaced Missing GitHub issues section with issue index table
+- Added `scripts/issue_map.json` and `scripts/update_plan_issues.py` for plan ID to issue number mapping
+
+---
+
 ## 15/06/26 at 14:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed internal step cross-references in `plans/USP+UCP_implementation_plan.md` after calendar renumbering (profile/catalog/availability/checkout tables now point at steps 5, 9, 12, 14, 17; step 9 Fields consumed as table; step 17/20 UCP correlation fields)
