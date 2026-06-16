@@ -1,5 +1,14 @@
 # Change Log
 
+## 15/06/26 at 14:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed internal step cross-references in `plans/USP+UCP_implementation_plan.md` after calendar renumbering (profile/catalog/availability/checkout tables now point at steps 5, 9, 12, 14, 17; step 9 Fields consumed as table; step 17/20 UCP correlation fields)
+- Added UCP conformance gaps G-28–G-34 to §4 matrix with demo issues GH-058–GH-064, §2.3 UCP checkout binding rows, sprint timeline, Definition of Done, and Missing GitHub issues section; moved 3DS/G-21 to out-of-scope via GH-098
+- Added § Out of scope — UCP conformance gaps (future) rollup for auth, trusted UI, 3DS, full UCP surface, and related non-demo items
+- Created issue drafts under `.github/issue-drafts/` for GH-058–GH-064 (demo in-scope) and GH-098 (UCP conformance gaps out of scope)
+
+---
+
 ## 14/06/26 at 16:43:39 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added buyer calendar free/busy availability slot filtering to the UCP-Native demo in `plans/USP+UCP_implementation_plan.md`, aligned with linkusp-cli (`flow calendar ask|connect|skip`, `filter_slots_by_busy_times`) and ds-general USP subagent (Scenario 2 calendar gate before `query_availability`): expanded §1 sequence diagram (steps 7-11), detailed steps, demo success criteria, §2.1 discovery and §2.2 architecture, §2.3 normative map (step 1c / §11.2), §3.2 Calendar section, gap G-27, Task A3b, GH-003b, GH-005/Task A5/Definition of Done updates; renumbered checkout/webhook steps 12-21
