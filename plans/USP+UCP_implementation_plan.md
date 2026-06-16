@@ -11,6 +11,7 @@
 - **One developer per task**; unlimited developers; work proceeds in **parallel tracks** wherever dependencies allow.
 - Demo scope excludes **holds**, **mixed cart**, and `**dev.ucp.shopping.order`**.
 - **Link platform and USP registry are independent ecosystem components** (see [§2.1](#21-usp-ecosystem-link-platform-vs-registry)).
+- **Central issue tracking:** All sprint work items are filed in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec) (label `v1` = in-scope demo; label `v > 1` = post-demo). Implementation may land in other repos per issue body.
 
 **Repos:**
 
@@ -48,47 +49,34 @@
   - [3.2 Calendar](#32-calendar)
 - [4. Gap-to-Workstream Matrix](#4-gap-to-workstream-matrix)
 - [5. Track A — Link Agent USP (`linkusp-cli`)](#5-track-a--link-agent-usp-linkusp-cli)
-  - [Task A1 — UCP-Native profile wire models](#task-a1--ucp-native-profile-wire-models)
-  - [Task A2 — UCP checkout client with `booking` extension](#task-a2--ucp-checkout-client-with-booking-extension)
-  - [Task A3 — USP catalog + scheduling client](#task-a3--usp-catalog--scheduling-client)
-  - [Task A3b — Buyer calendar free/busy gate and slot filtering](#task-a3b--buyer-calendar-freebusy-gate-and-slot-filtering)
-  - [Task A4 — Stripe SPT acquisition](#task-a4--stripe-spt-acquisition)
-  - [Task A5 — Demo E2E command](#task-a5--demo-e2e-command)
+  - [GH-001: Link agent UCP-Native profile wire models](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)
+  - [GH-002: Link agent UCP checkout client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61)
+  - [GH-003: Link agent USP catalog and scheduling client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62)
+  - [GH-003b: Buyer calendar free/busy gate](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63)
+  - [GH-004: Stripe SPT acquisition](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64)
+  - [GH-005: Demo E2E command](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)
+  - [GH-058: Platform UCP profile and UCP-Agent negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)
+  - [GH-059: Complete checkout signals](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96)
+  - [GH-060: Checkout totals and links validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97)
 - [6. Track B — USP Registry](#6-track-b--usp-registry)
-  - [Task B1 — Minimal registry deploy](#task-b1--minimal-registry-deploy)
-  - [Task B2 — Search APIs](#task-b2--search-apis)
-  - [Task B3 — Profile URL validation](#task-b3--profile-url-validation)
-  - [Task B4 — Demo merchant readiness (registration prerequisite)](#task-b4--demo-merchant-readiness-registration-prerequisite)
-  - [Task B5 — Register demo Wix merchant](#task-b5--register-demo-wix-merchant)
+  - [GH-010 through GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)
 - [7. Track C — Link Platform (Registry Consumer)](#7-track-c--link-platform-registry-consumer)
-  - [Task C1 — Configurable registry client](#task-c1--configurable-registry-client)
-  - [Task C2 — Service search and profile URL resolution](#task-c2--service-search-and-profile-url-resolution)
-  - [Task C3 — Profile fetch and capability negotiation](#task-c3--profile-fetch-and-capability-negotiation)
-  - [Task C4 — Auth and consent handshake](#task-c4--auth-and-consent-handshake)
-  - [Task C5 — Discovery integration test](#task-c5--discovery-integration-test)
-  - [Task C6 — Booking webhook receiver](#task-c6--booking-webhook-receiver)
+  - [GH-020 through GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71)
+  - [GH-057: Booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)
+  - [GH-064: UCP version negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101)
 - [8. Track D — Wix Business USP (`usp-impl`)](#8-track-d--wix-business-usp-usp-impl)
-  - [Task D1 — Internal orchestration RPC proto](#task-d1--internal-orchestration-rpc-proto)
-  - [Task D2 — `CreatePendingBooking` RPC](#task-d2--creatependingbooking-rpc)
-  - [Task D3 — `FinalizeBookingOnPayment` RPC](#task-d3--finalizebookingonpayment-rpc)
-  - [Task D4 — `CancelPendingBooking` RPC](#task-d4--cancelpendingbooking-rpc)
-  - [Task D5 — `booking.confirmed` webhook emission](#task-d5--bookingconfirmed-webhook-emission)
+  - [GH-030 through GH-033](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)
+  - [GH-056: booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)
 - [9. Track E — Core UCP + USP Extension (`acp-checkout`)](#9-track-e--core-ucp--usp-extension-acp-checkout)
-  - [Task E1 — UCP profile merge with USP capabilities](#task-e1--ucp-profile-merge-with-usp-capabilities)
-  - [Task E2 — `paid_bookings` booking extension schema](#task-e2--paid_bookings-booking-extension-schema)
-  - [Task E3 — Wire `ucpCreateCheckout` to `usp-impl](#task-e3--wire-ucpcreatecheckout-to-usp-impl)`
-  - [Task E4 — Booking status mapping](#task-e4--booking-status-mapping)
-  - [Task E5 — Atomic `ucpCompleteCheckout` with booking](#task-e5--atomic-ucpcompletecheckout-with-booking)
-  - [Task E6 — Atomic `ucpCancelCheckout` with booking](#task-e6--atomic-ucpcancelcheckout-with-booking)
-  - [Task E7 — Execution guard on `complete_checkout](#task-e7--execution-guard-on-complete_checkout)`
+  - [GH-040 through GH-046](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)
+  - [GH-061: Spec order.id vs order_id](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)
+  - [GH-063: Profile capability spec/schema](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100)
 - [10. Track F — Payment with Stripe SPT](#10-track-f--payment-with-stripe-spt)
-  - [Task F1 — Payments platform SPT charge contract](#task-f1--payments-platform-spt-charge-contract)
-  - [Task F2 — `StripeSptProviderAdapter](#task-f2--stripesptprovideradapter)`
-  - [Task F3 — Register SPT handler in profile](#task-f3--register-spt-handler-in-profile)
-  - [Task F4 — Booking-aware payment orchestration](#task-f4--booking-aware-payment-orchestration)
-  - [Task F5 — SPT 3DS / `continue_url` (best-effort)](#task-f5--spt-3ds--continue_url-best-effort)
+  - [GH-050 through GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87)
+  - [GH-054 / GH-098 (out of scope)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93)
 - [11. Cross-Track Integration (Days 9-10)](#11-cross-track-integration-days-9-10)
 - [12. Definition of Done](#12-definition-of-done)
+- [GitHub issues](#github-issues)
 - [Out of scope — future version](#out-of-scope--future-version)
   - [Merchant-direct catalog discovery](#merchant-direct-catalog-discovery)
   - [Holds](#holds)
@@ -97,51 +85,6 @@
   - [Standalone Mode and redirect checkout](#standalone-mode-and-redirect-checkout)
   - [Registry search filters for business capabilities and payment readiness](#registry-search-filters-for-business-capabilities-and-payment-readiness)
   - [Conformance and polish (non-blocking for demo)](#conformance-and-polish-non-blocking-for-demo)
-- [Missing GitHub issues](#missing-github-issues)
-  - [GH-001: Link agent UCP-Native profile wire models](#gh-001-link-agent-ucp-native-profile-wire-models)
-  - [GH-002: Link agent UCP checkout client](#gh-002-link-agent-ucp-checkout-client)
-  - [GH-003: Link agent USP catalog and scheduling client](#gh-003-link-agent-usp-catalog-and-scheduling-client)
-  - [GH-003b: Link agent buyer calendar free/busy gate and slot filtering](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering)
-  - [GH-004: Link agent Stripe SPT acquisition](#gh-004-link-agent-stripe-spt-acquisition)
-  - [GH-005: Link agent demo E2E command](#gh-005-link-agent-demo-e2e-command)
-  - [GH-010: Registry minimal deploy](#gh-010-registry-minimal-deploy)
-  - [GH-011: Registry search APIs](#gh-011-registry-search-apis)
-  - [GH-012: Registry profile URL validation](#gh-012-registry-profile-url-validation)
-  - [GH-013: Register demo Wix merchant](#gh-013-register-demo-wix-merchant)
-  - [GH-014: Demo merchant readiness prerequisite](#gh-014-demo-merchant-readiness-prerequisite)
-  - [GH-020: Link platform configurable registry client](#gh-020-link-platform-configurable-registry-client)
-  - [GH-021: Link platform service search and profile resolution](#gh-021-link-platform-service-search-and-profile-resolution)
-  - [GH-022: Link platform profile capability negotiation](#gh-022-link-platform-profile-capability-negotiation)
-  - [GH-023: Link platform auth consent handshake](#gh-023-link-platform-auth-consent-handshake)
-  - [GH-024: Link platform discovery integration test](#gh-024-link-platform-discovery-integration-test)
-  - [GH-030: usp-impl internal orchestration RPC proto](#gh-030-usp-impl-internal-orchestration-rpc-proto)
-  - [GH-031: usp-impl CreatePendingBooking RPC](#gh-031-usp-impl-creatependingbooking-rpc)
-  - [GH-032: usp-impl FinalizeBookingOnPayment RPC](#gh-032-usp-impl-finalizebookingonpayment-rpc)
-  - [GH-033: usp-impl CancelPendingBooking RPC](#gh-033-usp-impl-cancelpendingbooking-rpc)
-  - [GH-040: UCP profile merge USP capabilities](#gh-040-ucp-profile-merge-usp-capabilities)
-  - [GH-041: paid_bookings booking extension schema](#gh-041-paid_bookings-booking-extension-schema)
-  - [GH-042: ucpCreateCheckout wire to usp-impl](#gh-042-ucpcreatecheckout-wire-to-usp-impl)
-  - [GH-043: Booking status mapping on checkout](#gh-043-booking-status-mapping-on-checkout)
-  - [GH-044: Atomic ucpCompleteCheckout with booking](#gh-044-atomic-ucpcompletecheckout-with-booking)
-  - [GH-045: Atomic ucpCancelCheckout with booking](#gh-045-atomic-ucpcancelcheckout-with-booking)
-  - [GH-046: Execution guard on complete_checkout](#gh-046-execution-guard-on-complete_checkout)
-  - [GH-050: Payments platform SPT charge contract](#gh-050-payments-platform-spt-charge-contract)
-  - [GH-051: Stripe SptProviderAdapter](#gh-051-stripe-sptprovideradapter)
-  - [GH-052: Register SPT handler in profile](#gh-052-register-spt-handler-in-profile)
-  - [GH-053: Booking-aware payment orchestration](#gh-053-booking-aware-payment-orchestration)
-  - [GH-054: SPT 3DS continue_url handling](#gh-054-spt-3ds-continue_url-handling)
-  - [GH-055: Registry capability and payment search filters](#gh-055-registry-capability-and-payment-search-filters)
-  - [GH-056: usp-impl booking.confirmed webhook](#gh-056-usp-impl-bookingconfirmed-webhook)
-  - [GH-057: Link platform booking webhook receiver](#gh-057-link-platform-booking-webhook-receiver)
-  - [GH-058: Platform UCP profile and UCP-Agent negotiation](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)
-  - [GH-059: Complete checkout signals](#gh-059-complete-checkout-signals)
-  - [GH-060: Checkout totals and links validation](#gh-060-checkout-totals-and-links-validation)
-  - [GH-061: Spec order.id vs order_id alignment](#gh-061-spec-orderid-vs-ucp-order-object)
-  - [GH-062: Spec payment_handlers and available_instruments](#gh-062-spec-payment_handlers-and-available_instruments)
-  - [GH-063: Spec UCP profile capability spec/schema requirements](#gh-063-spec-ucp-profile-capability-specschema-requirements)
-  - [GH-064: UCP protocol and capability version negotiation](#gh-064-ucp-protocol-and-capability-version-negotiation)
-  - [GH-098: UCP conformance gaps (out of scope)](#gh-098-ucp-conformance-gaps-out-of-scope)
-  - [GH-099: usp-impl merchant checkout return relay (Standalone only)](#gh-099-usp-impl-merchant-checkout-return-relay-standalone-only)
 - [References](#references)
 
 ---
@@ -195,14 +138,14 @@ Field names in the following detailed steps description refer to  `[paid_booking
    **Fields consumed (this request):** `USP_REGISTRY_URL` (agent config); search filters (`query`, `location`, `verticals`, `categories`, etc.) from  user intent.  
    **Fields obtained:** none (request only; response fields arrive in step 2).
 2. **Search results** (`Registry` → `Agent`): The registry returns one or more `[ServiceSearchResult](../schemas/registry.json)` hits.
-  **Why:** The agent needs a stable service identifier and the full profile document URL before it can evaluate capabilities or talk to the merchant. Note that filtering by `deployment_mode`, payment handlers, or other USP/UCP capabilities (e.g. a Stripe Link USP agent needs only services offered by business with UCP checkout setup and a Stripe account) should be a future USP registry search feature ([GH-055](#gh-055-registry-capability-and-payment-search-filters)) but it is out of the scope for the demo.
+  **Why:** The agent needs a stable service identifier and the full profile document URL before it can evaluate capabilities or talk to the merchant. Note that filtering by `deployment_mode`, payment handlers, or other USP/UCP capabilities (e.g. a Stripe Link USP agent needs only services offered by business with UCP checkout setup and a Stripe account) should be a future USP registry search feature ([GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94)) but it is out of the scope for the demo.
    **Fields obtained → later use:**
 
   | Field obtained                             | Used in step(s)                                                                                 | Required for                                            |
   | ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
   | `service_id`                               | 5 (path), 9 (`availability.query.service_id`), 12 (`booking.service_id`, `line_items[].item.id`) | Catalog fetch, availability, `create_checkout`          |
   | `business.profile_url`                     | 3 (`GET {profile_url}`)                                                                         | UCP profile fetch                                       |
-  | `business.deployment_mode`                 | (discovery / GH-055 only; demo does not client-filter)                                          | Merchant mode validation when registry supports it      |
+  | `business.deployment_mode`                 | (discovery / [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) only; demo does not client-filter)                                          | Merchant mode validation when registry supports it      |
   | `business.name`                            | (display / logging only)                                                                        | Not sent on `create_checkout`                           |
   | `service_name`                             | (discovery ranking / display only)                                                              | Checkout title uses live `Service.name` from step 6     |
   | `pricing`                                  | (discovery hint only; **not** used on `create_checkout`)                                        | Superseded by step 6 live `Service.pricing`             |
@@ -364,7 +307,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | `payment.instruments[]` + SPT      | 15-16              | `handler_id` from step 14 `payment_handlers`; `credential.token` from Stripe           |
   | UCP REST base URL                  | 4                  | From `ucp.services["dev.ucp.shopping"]`                                                  |
   | `Idempotency-Key` (header)         | Agent-generated    | UCP idempotency per [§7.3](../specification.md#73-inherited-infrastructure)              |
-  | `signals` (e.g. `dev.ucp.buyer_ip`) | Agent environment | Optional on UCP schema; send when available ([GH-059](#gh-059-complete-checkout-signals)) |
+  | `signals` (e.g. `dev.ucp.buyer_ip`) | Agent environment | Optional on UCP schema; send when available ([GH-059](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96)) |
 
     **Fields obtained:** none synchronously on agent leg (response in step 20).
 18. **Charge payment** (`UCP` → `Stripe`): `acp-checkout` charges via `StripeSptProviderAdapter`.
@@ -382,8 +325,8 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | Field obtained                      | Used in step(s)          | Required for                                                                                    |
   | ----------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------- |
   | `status: completed`                 | Demo assertions          | End-to-end success                                                                              |
-  | `order.id` (UCP) / `order_id` (USP) | 21 (webhook correlation) | UCP native field is `order.id`; USP/webhook use `order_id` alias per [GH-061](#gh-061-spec-orderid-vs-ucp-order-object) |
-  | `totals`, `links`                   | Agent UX (optional)      | UCP-required on checkout object; validate present per [GH-060](#gh-060-checkout-totals-and-links-validation) |
+  | `order.id` (UCP) / `order_id` (USP) | 21 (webhook correlation) | UCP native field is `order.id`; USP/webhook use `order_id` alias per [GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) |
+  | `totals`, `links`                   | Agent UX (optional)      | UCP-required on checkout object; validate present per [GH-060](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) |
   | `booking.booking_status: confirmed` | Demo assertions          | When step 6 `confirmation_mode` is `auto`                                                     |
   | `booking.booking_id`                | 21                       | Must match webhook `booking_id`                                                                 |
 
@@ -461,7 +404,7 @@ Treat both as correlating signals, not as a strict sequence:
 
 1. **Webhook first:** Process `booking.confirmed` idempotently (dedupe on `event_id` per §9.2.3). The payload already carries `booking_id` and `order_id`, so you do not need step 20 to arrive first. The agent already had `booking_id` from step 14 (`create_checkout`).
 2. **Response arrives later:** Reconcile: same `booking_id`, same `order_id`, same terminal state. This should be a no-op merge, not a state conflict.
-3. **Demo E2E (GH-005):** The test asserts both step 20 fields and step 21 correlation. `wait_for_booking_confirmed(booking_id, order_id)` can return before `complete_checkout` returns to the caller. That is fine as long as both eventually agree.
+3. **Demo E2E ([GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)):** The test asserts both step 20 fields and step 21 correlation. `wait_for_booking_confirmed(booking_id, order_id)` can return before `complete_checkout` returns to the caller. That is fine as long as both eventually agree.
 
 **What the spec does *not* guarantee:**
 
@@ -475,7 +418,7 @@ Treat both as correlating signals, not as a strict sequence:
 - [ ] Link agent completes the flow above against one **registry-listed** Wix demo merchant end-to-end.
 - [ ] Link discovers the service and merchant via `**POST /registry/search_services` only** (no hardcoded merchant URL in agent config; no `search_business` in demo path); then `**GET /services/{service_id}`** for live catalog per [§6.3](../specification.md#63-service-search---post-registrysearch_services) before availability and checkout.
 - [ ] **Buyer calendar gate** completes before availability (`calendar connect` or `calendar skip` per [§11.2](../specification.md#112-buyer-calendar-freebusy-extension)); when connected, slots are filtered platform-side against opaque busy blocks and conflicting times are not offered.
-- [ ] Service search uses at least one filter per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) (e.g. `query` plus optional `verticals`/`categories`); no client-side post-filter by `deployment_mode` or payment handlers in the demo ([GH-055](#gh-055-registry-capability-and-payment-search-filters) is the correct solution when agents need those filters).
+- [ ] Service search uses at least one filter per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) (e.g. `query` plus optional `verticals`/`categories`); no client-side post-filter by `deployment_mode` or payment handlers in the demo ([GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) is the correct solution when agents need those filters).
 - [ ] Link fetches business profile via `GET {profile_url}` where `profile_url` is the **full profile document URL** (e.g. `https://{host}/.well-known/ucp`), not site origin + appended path.
 - [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
 - [ ] Payment uses UCP `complete_checkout` with platform-acquired SPT per [UCP payment handlers](https://ucp.dev/latest/specification/overview/#payment-architecture) (not Standalone `confirm-payment`).
@@ -596,16 +539,16 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | Requirement                                                              | Spec                        | Plan enforcement                                                               |
 | ------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------ |
 | Registry optional; cold-start only                                       | §6 intro                    | Demo uses registry; direct `profile_url` also valid but not used               |
-| `profile_url` is full profile document URL                               | §6.1, `RegistrationRequest` | GH-012, GH-013, GH-021, GH-022                                                 |
-| `deployment_mode: ucp_native` on register                                | §6.1                        | GH-013                                                                         |
-| Demo discovery via service search only                                   | §6.3                        | GH-021, GH-005, GH-024                                                         |
-| `deployment_mode` on service search hits (`RegistryBusinessRef`)         | §6.3 response               | GH-021 returns metadata; GH-055 registry request filters when needed           |
-| Registry validates reachable profile before accept                       | §6.1 MUST                   | GH-012                                                                         |
-| Service search requires ≥1 filter                                        | §6.3 MUST                   | GH-011, GH-021                                                                 |
-| Fetch live catalog at booking time (registry snapshot non-authoritative) | §6.3 MUST                   | GH-003 `GET /services/{service_id}` after profile                              |
-| Platform calendar free/busy filter before slot selection                 | §11.2                       | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) |
-| Registry `usp` envelope describes **registry**, not business             | §6.1                        | GH-010 implementers note                                                       |
-| Federated registries; business may register with multiple                | §6.7                        | Link uses configurable `USP_REGISTRY_URL` (GH-020)                             |
+| `profile_url` is full profile document URL                               | §6.1, `RegistrationRequest` | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68), [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)                                                 |
+| `deployment_mode: ucp_native` on register                                | §6.1                        | [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)                                                                         |
+| Demo discovery via service search only                                   | §6.3                        | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65), [GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)                                                         |
+| `deployment_mode` on service search hits (`RegistryBusinessRef`)         | §6.3 response               | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72) returns metadata; [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) registry request filters when needed           |
+| Registry validates reachable profile before accept                       | §6.1 MUST                   | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)                                                                         |
+| Service search requires ≥1 filter                                        | §6.3 MUST                   | [GH-011](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67), [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)                                                                 |
+| Fetch live catalog at booking time (registry snapshot non-authoritative) | §6.3 MUST                   | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) `GET /services/{service_id}` after profile                              |
+| Platform calendar free/busy filter before slot selection                 | §11.2                       | [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) |
+| Registry `usp` envelope describes **registry**, not business             | §6.1                        | [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) implementers note                                                       |
+| Federated registries; business may register with multiple                | §6.7                        | Link uses configurable `USP_REGISTRY_URL` ([GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71))                             |
 | Platforms search only; never register                                    | §6.2–6.3 (consumer ops)     | Track C; no `POST /registry/businesses` in Link                                |
 
 
@@ -614,13 +557,13 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 
 | Requirement                                                                              | Spec                                                              | Plan enforcement        |
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------- |
-| Single `/.well-known/ucp`; no `/.well-known/usp`                                         | §7.1                                                              | GH-040; greenfield demo |
-| No `checkout_systems` in profile                                                         | §7.2, §7.1                                                        | GH-040, GH-022          |
-| `dev.usp.services` service entry with REST endpoint                                      | §7.2                                                              | GH-040                  |
-| Capabilities: `catalog`, `availability`, `bookings`, `paid_bookings`                     | §7.2                                                              | GH-040                  |
-| `paid_bookings` extends `dev.ucp.shopping.checkout` (profile `extends` field + protocol) | §7.2, §7.4, [§2.4](#24-what-paid_bookings-extends-checkout-means) | GH-022, GH-040, GH-041  |
-| `dev.ucp.shopping.checkout` capability present                                           | §7.2                                                              | GH-040, GH-022          |
-| `availability` may declare `holds: false`                                                | §4, demo scope                                                    | GH-040                  |
+| Single `/.well-known/ucp`; no `/.well-known/usp`                                         | §7.1                                                              | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80); greenfield demo |
+| No `checkout_systems` in profile                                                         | §7.2, §7.1                                                        | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)          |
+| `dev.usp.services` service entry with REST endpoint                                      | §7.2                                                              | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                  |
+| Capabilities: `catalog`, `availability`, `bookings`, `paid_bookings`                     | §7.2                                                              | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                  |
+| `paid_bookings` extends `dev.ucp.shopping.checkout` (profile `extends` field + protocol) | §7.2, §7.4, [§2.4](#24-what-paid_bookings-extends-checkout-means) | [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)  |
+| `dev.ucp.shopping.checkout` capability present                                           | §7.2                                                              | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)          |
+| `availability` may declare `holds: false`                                                | §4, demo scope                                                    | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                  |
 
 
 #### USP + UCP paid booking flow ([§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee))
@@ -629,18 +572,18 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | Step | Normative action                                           | Plan task                                                                                                                                                                                                                                                                        |
 | ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | `POST /services/list`                                      | Out of scope — demo uses registry `search_services` for cold-start, then `GET /services/{service_id}` for live catalog ([§6.3](../specification.md#63-service-search---post-registrysearch_services); [merchant-direct list](#merchant-direct-catalog-discovery) remains future) |
-| 1b   | `GET /services/{service_id}`                               | GH-003 — booking-time catalog hydration per [§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)                                                                                                                                                             |
-| 1c   | Buyer calendar gate + platform free/busy filter            | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) — [§11.2](../specification.md#112-buyer-calendar-freebusy-extension); no change to `POST /availability/query`                                                                                     |
-| 2    | `POST /availability/query`                                 | GH-003, GH-021                                                                                                                                                                                                                                                                   |
+| 1b   | `GET /services/{service_id}`                               | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) — booking-time catalog hydration per [§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)                                                                                                                                                             |
+| 1c   | Buyer calendar gate + platform free/busy filter            | [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) — [§11.2](../specification.md#112-buyer-calendar-freebusy-extension); no change to `POST /availability/query`                                                                                     |
+| 2    | `POST /availability/query`                                 | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62), [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)                                                                                                                                                                                                                                                                   |
 | 3    | Hold slot (if `holds: true`)                               | Out of scope                                                                                                                                                                                                                                                                     |
-| 4    | UCP `create_checkout` + `booking`; **no** `POST /bookings` | GH-002, GH-042                                                                                                                                                                                                                                                                   |
-| 4a   | Return `ready_for_complete` when complete                  | GH-042                                                                                                                                                                                                                                                                           |
-| 4b   | `price_mismatch` recoverable message                       | GH-042                                                                                                                                                                                                                                                                           |
-| 5    | Non-payment `booking.actions` before payment               | GH-043 (`actions_pending`)                                                                                                                                                                                                                                                       |
-| 6    | Acquire payment token from `payment_handlers`              | GH-004, GH-052                                                                                                                                                                                                                                                                   |
-| 7    | UCP `complete_checkout`; atomic payment + booking          | GH-044, GH-032, GH-053                                                                                                                                                                                                                                                           |
-| 7a   | `booking_status` derivation from checkout `status`         | GH-043                                                                                                                                                                                                                                                                           |
-| 7b   | On payment failure: booking stays `pending`                | GH-044, GH-053                                                                                                                                                                                                                                                                   |
+| 4    | UCP `create_checkout` + `booking`; **no** `POST /bookings` | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61), [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                                                                                                                                                                                                                                   |
+| 4a   | Return `ready_for_complete` when complete                  | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                                                                                                                                                                                                                                           |
+| 4b   | `price_mismatch` recoverable message                       | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                                                                                                                                                                                                                                           |
+| 5    | Non-payment `booking.actions` before payment               | [GH-043](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83) (`actions_pending`)                                                                                                                                                                                                                                                       |
+| 6    | Acquire payment token from `payment_handlers`              | [GH-004](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)                                                                                                                                                                                                                                                                   |
+| 7    | UCP `complete_checkout`; atomic payment + booking          | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78), [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)                                                                                                                                                                                                                                                           |
+| 7a   | `booking_status` derivation from checkout `status`         | [GH-043](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83)                                                                                                                                                                                                                                                                           |
+| 7b   | On payment failure: booking stays `pending`                | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)                                                                                                                                                                                                                                                                   |
 | 8    | Webhook `booking.confirmed` with `order_id`                | [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 8                                                                                                                                                                                                      |
 
 
@@ -649,23 +592,23 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 
 | Requirement                                                                                      | UCP spec                                | Plan enforcement              |
 | ------------------------------------------------------------------------------------------------ | --------------------------------------- | ----------------------------- |
-| Checkout lifecycle: `incomplete`, `ready_for_complete`, `completed`, …                           | UCP status values                       | GH-043, GH-042                |
-| `create_checkout` / `get_checkout` / `update_checkout` / `complete_checkout` / `cancel_checkout` | UCP REST                                | GH-002, Wix `UcpHttpAdapter`  |
-| `Idempotency-Key` on create (and complete)                                                       | UCP idempotency, USP §7.3               | GH-046, existing create guard |
-| `payment.instruments[]` + `credential` on `complete_checkout`                                    | UCP complete checkout                   | GH-002, GH-004                |
-| `payment_handlers` on profile and checkout response                                              | UCP payment architecture                | GH-052, GH-022                |
-| Extension field `booking` on checkout object                                                     | USP `paid_bookings.json` ⊂ UCP checkout | GH-041                        |
-| Line item `item.price` in minor units; MUST match catalog                                        | USP §7.4                                | GH-042                        |
-| `continue_url` + `get_checkout` poll on 3DS / `complete_in_progress`                             | UCP + USP §7.5                          | [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (out of demo scope) |
-| `UCP-Agent` header + platform profile on every UCP request                                         | UCP negotiation                         | [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)        |
-| `signals` on `complete_checkout` (e.g. `dev.ucp.buyer_ip`)                                       | UCP checkout + payment                  | [GH-059](#gh-059-complete-checkout-signals)                             |
-| Checkout response includes `totals` and `links`                                                  | UCP checkout schema                     | [GH-060](#gh-060-checkout-totals-and-links-validation)                  |
-| `order.id` (UCP) mapped to USP `order_id` / webhook correlation                                  | UCP complete checkout + USP §5.4.1      | [GH-061](#gh-061-spec-orderid-vs-ucp-order-object)                      |
-| `payment_handlers` reverse-domain arrays + `available_instruments` resolution                      | UCP payment architecture                | [GH-062](#gh-062-spec-payment_handlers-and-available_instruments), GH-052 |
-| Profile capabilities declare `spec` + `schema` URLs                                                | UCP profile                             | [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements), GH-040 |
-| Protocol + capability version intersection (not fixed date literals)                               | UCP versioning                          | [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation)       |
-| Error `messages[]` with severity (recoverable, error)                                            | UCP error handling                      | GH-042, GH-044                |
-| Cancel atomicity: checkout `canceled`, booking `canceled`                                        | USP §7.5                                | GH-045                        |
+| Checkout lifecycle: `incomplete`, `ready_for_complete`, `completed`, …                           | UCP status values                       | [GH-043](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83), [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                |
+| `create_checkout` / `get_checkout` / `update_checkout` / `complete_checkout` / `cancel_checkout` | UCP REST                                | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61), Wix `UcpHttpAdapter`  |
+| `Idempotency-Key` on create (and complete)                                                       | UCP idempotency, USP §7.3               | [GH-046](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86), existing create guard |
+| `payment.instruments[]` + `credential` on `complete_checkout`                                    | UCP complete checkout                   | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61), [GH-004](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64)                |
+| `payment_handlers` on profile and checkout response                                              | UCP payment architecture                | [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)                |
+| Extension field `booking` on checkout object                                                     | USP `paid_bookings.json` ⊂ UCP checkout | [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)                        |
+| Line item `item.price` in minor units; MUST match catalog                                        | USP §7.4                                | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                        |
+| `continue_url` + `get_checkout` poll on 3DS / `complete_in_progress`                             | UCP + USP §7.5                          | [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) (out of demo scope) |
+| `UCP-Agent` header + platform profile on every UCP request                                         | UCP negotiation                         | [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)        |
+| `signals` on `complete_checkout` (e.g. `dev.ucp.buyer_ip`)                                       | UCP checkout + payment                  | [GH-059](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96)                             |
+| Checkout response includes `totals` and `links`                                                  | UCP checkout schema                     | [GH-060](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97)                  |
+| `order.id` (UCP) mapped to USP `order_id` / webhook correlation                                  | UCP complete checkout + USP §5.4.1      | [GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)                      |
+| `payment_handlers` reverse-domain arrays + `available_instruments` resolution                      | UCP payment architecture                | [GH-062](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) |
+| Profile capabilities declare `spec` + `schema` URLs                                                | UCP profile                             | [GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) |
+| Protocol + capability version intersection (not fixed date literals)                               | UCP versioning                          | [GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101)       |
+| Error `messages[]` with severity (recoverable, error)                                            | UCP error handling                      | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82), [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84)                |
+| Cancel atomicity: checkout `canceled`, booking `canceled`                                        | USP §7.5                                | [GH-045](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85)                        |
 
 
 #### Inherited from UCP only (USP §7.3 — do not reimplement in Standalone layers)
@@ -674,7 +617,7 @@ Discovery after `profile_url` fetch, capability negotiation, versioning, RFC 945
 
 ### 2.4 What "`paid_bookings` extends `checkout`" means
 
-This phrase appears throughout capability negotiation ([GH-022](#gh-022-link-platform-profile-capability-negotiation)). It has a **profile declaration** meaning and a **protocol** meaning. Implementers must satisfy both.
+This phrase appears throughout capability negotiation ([GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)). It has a **profile declaration** meaning and a **protocol** meaning. Implementers must satisfy both.
 
 #### Profile declaration (what linkusp verifies)
 
@@ -721,7 +664,7 @@ Therefore, after verification, linkusp **MUST**:
 
 #### Wix publisher obligation (Track E)
 
-`acp-checkout` profile merge ([GH-040](#gh-040-ucp-profile-merge-usp-capabilities)) **MUST** emit the `extends` field on the `paid_bookings` capability entry so linkusp verification succeeds.
+`acp-checkout` profile merge ([GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)) **MUST** emit the `extends` field on the `paid_bookings` capability entry so linkusp verification succeeds.
 
 ---
 
@@ -783,22 +726,22 @@ Buyer calendar conflict checking is **in demo scope** as a platform-side showcas
 | Production (`--secrets-mode linkusp`) | `link-cli calendar connect` (Link-hosted)                     | Link calendar service `POST /calendar/busy`             |
 
 
-**Sprint placement:** [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) on Track A days 3-5 (parallel with GH-003); wired into agent skill ([usp-platform-link/SKILL.md](https://github.com/yahalomran/linkusp-cli/blob/main/skills/usp-platform-link/SKILL.md)) and GH-005 E2E (`--calendar-skip` for headless CI; interactive demo uses connect).
+**Sprint placement:** [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) on Track A days 3-5 (parallel with [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62)); wired into agent skill ([usp-platform-link/SKILL.md](https://github.com/yahalomran/linkusp-cli/blob/main/skills/usp-platform-link/SKILL.md)) and [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E (`--calendar-skip` for headless CI; interactive demo uses connect).
 
 
 | Day  | Track A Link agent                                                                                                                              | Track B USP registry                                                                                  | Track C Link platform                                                                                                 | Track D usp-impl                                                                                                              | Track E UCP+USP                                                                                                                 | Track F Stripe SPT                                      |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 1-2  | [GH-001](#gh-001-link-agent-ucp-native-profile-discovery) + [GH-002](#gh-002-link-agent-ucp-checkout-client) **parallel**                       | [GH-010](#gh-010-registry-minimal-deploy)                                                             | [GH-020](#gh-020-link-platform-configurable-registry-client)                                                          | [GH-030](#gh-030-usp-impl-internal-orchestration-rpc-proto)                                                                   | [GH-040](#gh-040-ucp-profile-merge-usp-capabilities) **parallel** with [GH-041](#gh-041-paid_bookings-booking-extension-schema) | [GH-050](#gh-050-payments-platform-spt-charge-contract) |
-| 3-4  | [GH-003](#gh-003-link-agent-usp-catalog-and-scheduling-client) + [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) | [GH-011](#gh-011-registry-search-apis)                                                                | [GH-021](#gh-021-link-platform-registry-search-and-profile-resolution)                                                | [GH-031](#gh-031-usp-impl-creatependingbooking-rpc) **parallel** with [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc) | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                            | [GH-051](#gh-051-stripe-spt-provider-adapter)           |
-| 5    | Integration stub tests + [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)                                                       | [GH-012](#gh-012-registry-profile-url-validation)                                                     | [GH-022](#gh-022-link-platform-profile-capability-negotiation) + [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation) | [GH-033](#gh-033-usp-impl-cancelpendingbooking-rpc)                                                                           | [GH-043](#gh-043-booking-status-mapping-on-checkout) + [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements)    | [GH-052](#gh-052-register-spt-handler-in-profile) + [GH-062](#gh-062-spec-payment_handlers-and-available_instruments) |
-| 6-7  | [GH-004](#gh-004-link-agent-stripe-spt-acquisition) + [GH-059](#gh-059-complete-checkout-signals) + [GH-060](#gh-060-checkout-totals-and-links-validation) | [GH-013](#gh-013-register-demo-wix-merchant) + [GH-014](#gh-014-demo-merchant-readiness-prerequisite) | [GH-023](#gh-023-link-platform-auth-consent-handshake) (stub; full auth in [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope)) | Unit tests for RPCs                                                                                                           | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking) depends D2,F2 + [GH-061](#gh-061-spec-orderid-vs-ucp-order-object) | [GH-053](#gh-053-booking-aware-payment-orchestration)   |
-| 8    | [GH-005](#gh-005-link-agent-demo-e2e-command)                                                                                                   | Registry smoke test                                                                                   | [GH-024](#gh-024-link-platform-discovery-integration-test) + [GH-057](#gh-057-link-platform-booking-webhook-receiver) | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook)                                                                          | [GH-045](#gh-045-atomic-ucpcancelcheckout-with-booking)                                                                         | SPT integration tests                                   |
+| 1-2  | [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60) + [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61) **parallel**                       | [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)                                                             | [GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71)                                                          | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)                                                                   | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) **parallel** with [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81) | [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) |
+| 3-4  | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) + [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) | [GH-011](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67)                                                                | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)                                                | [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77) **parallel** with [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78) | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                                            | [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)           |
+| 5    | Integration stub tests + [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)                                                       | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)                                                     | [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73) + [GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | [GH-033](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79)                                                                           | [GH-043](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83) + [GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100)    | [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) + [GH-062](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) |
+| 6-7  | [GH-004](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) + [GH-059](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) + [GH-060](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) + [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) | [GH-023](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74) (stub; full auth in [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102)) | Unit tests for RPCs                                                                                                           | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) depends D2,F2 + [GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) | [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)   |
+| 8    | [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)                                                                                                   | Registry smoke test                                                                                   | [GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75) + [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)                                                                          | [GH-045](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85)                                                                         | SPT integration tests                                   |
 | 9-10 | **Cross-track demo rehearsal** (incl. webhook)                                                                                                  |                                                                                                       |                                                                                                                       |                                                                                                                               | **Bug fix buffer**                                                                                                              |                                                         |
 
 
-**Critical path:** GH-030 → GH-031/032 → GH-044 ← GH-051/053 ← GH-050 → GH-056 (webhook emit) → GH-057 (webhook receive) → GH-013 (registry listing + service index) → GH-021/022 (Link service search discovery) → GH-005 demo.
+**Critical path:** [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76) → [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)/032 → [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) ← [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)/053 ← [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) → [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) (webhook emit) → [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) (webhook receive) → [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (registry listing + service index) → [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)/022 (Link service search discovery) → [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) demo.
 
-**Note:** [GH-013](#gh-013-register-demo-wix-merchant) and [GH-014](#gh-014-demo-merchant-readiness-prerequisite) run on **Track B / Wix ops**, not Link. Link work ([Track C](#7-track-c--link-platform-registry-consumer)) assumes the demo merchant is already registered before day 8 E2E.
+**Note:** [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) and [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) run on **Track B / Wix ops**, not Link. Link work ([Track C](#7-track-c--link-platform-registry-consumer)) assumes the demo merchant is already registered before day 8 E2E.
 
 ---
 
@@ -809,27 +752,27 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 | ID   | Gap                                         | Demo priority | Track   | GitHub issue                                                                                                                                                  |
 | ---- | ------------------------------------------- | ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G-01 | No USP in `/.well-known/ucp`                | **P0**        | E       | [GH-040](#gh-040-ucp-profile-merge-usp-capabilities)                                                                                                          |
-| G-02 | No `paid_bookings` extension                | **P0**        | E       | [GH-041](#gh-041-paid_bookings-booking-extension-schema), [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                |
-| G-03 | No atomic `complete_checkout`               | **P0**        | E, D    | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking), [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc)                                            |
-| G-04 | No Stripe UCP payment handler               | **P0**        | F       | [GH-051](#gh-051-stripe-spt-provider-adapter), [GH-052](#gh-052-register-spt-handler-in-profile)                                                              |
-| G-10 | Site feature gating                         | **P0**        | B, D    | [GH-014](#gh-014-demo-merchant-readiness-prerequisite) (Wix prereq before registry registration)                                                              |
-| G-12 | Webhook `booking.confirmed` with `order_id` | **P0**        | D, C, A | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook), [GH-057](#gh-057-link-platform-booking-webhook-receiver), [GH-005](#gh-005-link-agent-demo-e2e-command) |
-| G-15 | Registry / cold-start                       | **P0**        | B       | [GH-010](#gh-010-registry-minimal-deploy) through [GH-013](#gh-013-register-demo-wix-merchant)                                                                |
-| G-26 | Link registry consumer                      | **P0**        | C       | [GH-020](#gh-020-link-platform-configurable-registry-client) through [GH-024](#gh-024-link-platform-discovery-integration-test)                               |
-| G-27 | Buyer calendar free/busy slot filtering     | **P1**        | A       | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering), [GH-005](#gh-005-link-agent-demo-e2e-command)                                 |
-| G-28 | Platform UCP profile / `UCP-Agent` / negotiation | **P1** | C, A    | [GH-058](#gh-058-platform-ucp-profile-and-ucp-agent-negotiation)                                                                                               |
-| G-29 | `signals` on `complete_checkout`            | **P1**        | A       | [GH-059](#gh-059-complete-checkout-signals)                                                                                                                      |
-| G-30 | Checkout `totals` / `links` not validated     | **P1**        | A, E    | [GH-060](#gh-060-checkout-totals-and-links-validation)                                                                                                           |
-| G-31 | `order.id` vs USP `order_id` undocumented   | **P1**        | Spec    | [GH-061](#gh-061-spec-orderid-vs-ucp-order-object)                                                                                                               |
-| G-32 | `payment_handlers` / `available_instruments` spec drift | **P1** | Spec, F | [GH-062](#gh-062-spec-payment_handlers-and-available_instruments), [GH-052](#gh-052-register-spt-handler-in-profile)                                             |
-| G-33 | Profile capability `spec` / `schema` incomplete | **P1**    | Spec, E | [GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements), [GH-040](#gh-040-ucp-profile-merge-usp-capabilities)                                      |
-| G-34 | UCP protocol/capability version negotiation | **P1**        | C, A    | [GH-064](#gh-064-ucp-protocol-and-capability-version-negotiation)                                                                                                |
-| G-09 | No idempotency on `complete_checkout`       | **P1**        | E       | [GH-046](#gh-046-execution-guard-on-complete_checkout)                                                                                                        |
-| G-20 | Price mismatch handling                     | **P1**        | E       | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl)                                                                                                          |
+| G-01 | No USP in `/.well-known/ucp`                | **P0**        | E       | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                                                                                                          |
+| G-02 | No `paid_bookings` extension                | **P0**        | E       | [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81), [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                |
+| G-03 | No atomic `complete_checkout`               | **P0**        | E, D    | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)                                            |
+| G-04 | No Stripe UCP payment handler               | **P0**        | F       | [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)                                                              |
+| G-10 | Site feature gating                         | **P0**        | B, D    | [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) (Wix prereq before registry registration)                                                              |
+| G-12 | Webhook `booking.confirmed` with `order_id` | **P0**        | D, C, A | [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92), [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) |
+| G-15 | Registry / cold-start                       | **P0**        | B       | [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) through [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)                                                                |
+| G-26 | Link registry consumer                      | **P0**        | C       | [GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71) through [GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)                               |
+| G-27 | Buyer calendar free/busy slot filtering     | **P1**        | A       | [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63), [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)                                 |
+| G-28 | Platform UCP profile / `UCP-Agent` / negotiation | **P1** | C, A    | [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)                                                                                               |
+| G-29 | `signals` on `complete_checkout`            | **P1**        | A       | [GH-059](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96)                                                                                                                      |
+| G-30 | Checkout `totals` / `links` not validated     | **P1**        | A, E    | [GH-060](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97)                                                                                                           |
+| G-31 | `order.id` vs USP `order_id` undocumented   | **P1**        | Spec    | [GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)                                                                                                               |
+| G-32 | `payment_handlers` / `available_instruments` spec drift | **P1** | Spec, F | [GH-062](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)                                             |
+| G-33 | Profile capability `spec` / `schema` incomplete | **P1**    | Spec, E | [GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                                      |
+| G-34 | UCP protocol/capability version negotiation | **P1**        | C, A    | [GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101)                                                                                                |
+| G-09 | No idempotency on `complete_checkout`       | **P1**        | E       | [GH-046](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86)                                                                                                        |
+| G-20 | Price mismatch handling                     | **P1**        | E       | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                                                                                          |
 
 
-**Out of scope (no matrix ID):** UCP auth/identity, trusted UI, 3DS escalation, full UCP commerce surface, and other non-demo conformance items are tracked in [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) under [Out of scope — future version](#out-of-scope--future-version).
+**Out of scope (no matrix ID):** UCP auth/identity, trusted UI, 3DS escalation, full UCP commerce surface, and other non-demo conformance items are tracked in [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) under [Out of scope — future version](#out-of-scope--future-version).
 
 ---
 
@@ -838,17 +781,16 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 **Team:** Link / agent platform  
 **Timeline:** Days 1-8 (E2E on days 9-10)
 
-### Task A1 — UCP-Native profile wire models
+### [GH-001: Link agent UCP-Native profile wire models](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)
 
 
 |                   |                                                           |
 | ----------------- | --------------------------------------------------------- |
-| **Issue**         | [GH-001](#gh-001-link-agent-ucp-native-profile-discovery) |
-| **Depends on**    | None (unit-test with fixture JSON until GH-040 lands)     |
-| **Parallel with** | GH-002, GH-020, GH-030, GH-040                            |
+| **Depends on**    | None (unit-test with fixture JSON until [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) lands)     |
+| **Parallel with** | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61), [GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71), [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                            |
 
 
-**Why:** Booking/scheduling clients need typed models for the UCP profile document. **Registry search and profile consumption orchestration** live in [Track C](#7-track-c--link-platform-registry-consumer) (GH-021, GH-022); Track A provides shared wire types used by both discovery and checkout flows.
+**Why:** Booking/scheduling clients need typed models for the UCP profile document. **Registry search and profile consumption orchestration** live in [Track C](#7-track-c--link-platform-registry-consumer) ([GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)); Track A provides shared wire types used by both discovery and checkout flows.
 
 **What:**
 
@@ -857,18 +799,17 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 3. Expose helpers: `usp_rest_endpoint()`, `ucp_rest_endpoint()`, `requires_paid_bookings()`.
 4. **Do not** implement registry registration or embed a registry URL as a Link-owned service.
 
-**Note:** `discover_service_via_registry()` + `consume_profile()` are implemented under Track C (GH-021, GH-022). Track A imports that module in GH-005 E2E.
+**Note:** `discover_service_via_registry()` + `consume_profile()` are implemented under Track C ([GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)). Track A imports that module in [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E.
 
 ---
 
-### Task A2 — UCP checkout client with `booking` extension
+### [GH-002: Link agent UCP checkout client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61)
 
 
 |                   |                                                  |
 | ----------------- | ------------------------------------------------ |
-| **Issue**         | [GH-002](#gh-002-link-agent-ucp-checkout-client) |
-| **Depends on**    | GH-001                                           |
-| **Parallel with** | GH-003                                           |
+| **Depends on**    | [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)                                           |
+| **Parallel with** | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62)                                           |
 
 
 **Why:** [USP §7.7.2](../specification.md#772-paid-service-flow-ucp-checkout) creates a pending booking via UCP `create_checkout` with the `paid_bookings` extension, not `POST /bookings`.
@@ -883,14 +824,13 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task A3 — USP catalog + scheduling client
+### [GH-003: Link agent USP catalog and scheduling client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62)
 
 
 |                   |                                                                |
 | ----------------- | -------------------------------------------------------------- |
-| **Issue**         | [GH-003](#gh-003-link-agent-usp-catalog-and-scheduling-client) |
-| **Depends on**    | GH-001                                                         |
-| **Parallel with** | GH-002                                                         |
+| **Depends on**    | [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)                                                         |
+| **Parallel with** | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61)                                                         |
 
 
 **Why:** After registry `search_services` yields `service_id` and profile fetch resolves the USP endpoint, the agent **MUST** load live catalog per [§6.3](../specification.md#63-service-search---post-registrysearch_services) via `GET /services/{service_id}` before availability and checkout (replaces normative §7.5.1 list for the known id).
@@ -907,14 +847,13 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task A3b — Buyer calendar free/busy gate and slot filtering
+### [GH-003b: Link agent buyer calendar free/busy gate and slot filtering](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63)
 
 
 |                   |                                                                                |
 | ----------------- | ------------------------------------------------------------------------------ |
-| **Issue**         | [GH-003b](#gh-003b-link-agent-buyer-calendar-freebusy-gate-and-slot-filtering) |
-| **Depends on**    | GH-003 (availability client)                                                   |
-| **Parallel with** | GH-004                                                                         |
+| **Depends on**    | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) (availability client)                                                   |
+| **Parallel with** | [GH-004](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64)                                                                         |
 
 
 **Why:** [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) lets platforms cross-reference buyer busy times with business availability entirely on the platform side. The demo must show the agent asking for calendar consent, optionally connecting via OAuth, and filtering slots before the buyer picks a time. Matches existing `linkusp flow calendar` gates and ds-general USP subagent Scenario 2.
@@ -933,14 +872,13 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task A4 — Stripe SPT acquisition
+### [GH-004: Link agent Stripe SPT acquisition](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64)
 
 
 |                   |                                                     |
 | ----------------- | --------------------------------------------------- |
-| **Issue**         | [GH-004](#gh-004-link-agent-stripe-spt-acquisition) |
-| **Depends on**    | GH-002, GH-052 (handler config shape)               |
-| **Parallel with** | GH-044                                              |
+| **Depends on**    | [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) (handler config shape)               |
+| **Parallel with** | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84)                                              |
 
 
 **Why:** Platform must acquire an SPT from Stripe using handler config from the checkout response before `complete_checkout`.
@@ -954,13 +892,12 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task A5 — Demo E2E command
+### [GH-005: Link agent demo E2E command](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)
 
 
 |                |                                                                                                |
 | -------------- | ---------------------------------------------------------------------------------------------- |
-| **Issue**      | [GH-005](#gh-005-link-agent-demo-e2e-command)                                                  |
-| **Depends on** | GH-001–004, GH-003b, GH-013 (merchant already in registry), GH-021–024, GH-044, GH-056, GH-057 |
+| **Depends on** | [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)–004, [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63), [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (merchant already in registry), [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)–024, [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) |
 | **Timeline**   | Days 7-10                                                                                      |
 
 
@@ -981,12 +918,30 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
   | §7.5.4   | UCP `create_checkout` + `booking` extension                                                                                                                                                     |
   | §7.5.6   | Acquire SPT from `payment_handlers`                                                                                                                                                             |
   | §7.5.7   | UCP `complete_checkout`                                                                                                                                                                         |
-  | §7.5.8   | Await `booking.confirmed` webhook ([GH-057](#gh-057-link-platform-booking-webhook-receiver)); assert `order_id` + `booking_id` match checkout                                                   |
+  | §7.5.8   | Await `booking.confirmed` webhook ([GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)); assert `order_id` + `booking_id` match checkout                                                   |
 
    Skip §7.5.3 (holds) and §7.5.5 (non-payment actions) for demo. Demo does **not** call `search_business`.
-3. Start webhook receiver before checkout; register callback URL on merchant via `USP_DEMO_PLATFORM_WEBHOOK_URL` ([GH-014](#gh-014-demo-merchant-readiness-prerequisite)).
+3. Start webhook receiver before checkout; register callback URL on merchant via `USP_DEMO_PLATFORM_WEBHOOK_URL` ([GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)).
 4. Demo must **not** hardcode Wix merchant URL; discovery goes through service search + `business.profile_url` only.
 5. Exit non-zero on any step failure with structured log output; assert `checkout.status == completed`, `booking.booking_status == confirmed`, `order_id` present, and webhook `order_id` correlation.
+
+---
+
+### [GH-058: Platform UCP profile and UCP-Agent negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) (Track A)
+
+**Track A scope:** Platform-side `UCP-Agent` header on every UCP REST call; capability intersection against business profile before `create_checkout`. See issue for acceptance criteria and dependency on [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60) and [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73).
+
+---
+
+### [GH-059: Complete checkout signals](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) (Track A)
+
+**Track A scope:** Populate optional `signals` (e.g. `dev.ucp.buyer_ip`) on `complete_checkout` when agent environment provides values; handle recoverable messages requesting missing signals. Wired into [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E.
+
+---
+
+### [GH-060: Checkout totals and links validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) (Track A + E)
+
+**Track A scope:** Agent validates `totals` and `links` on checkout responses when `status` is `ready_for_complete` or `completed`; [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) assertions fail clearly if missing. Merchant-side response shape is Track E ([GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)).
 
 ---
 
@@ -995,12 +950,11 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 **Team:** USP spec / platform  
 **Timeline:** Days 1-7
 
-### Task B1 — Minimal registry deploy
+### [GH-010: Registry minimal deploy](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)
 
 
 |                   |                                           |
 | ----------------- | ----------------------------------------- |
-| **Issue**         | [GH-010](#gh-010-registry-minimal-deploy) |
 | **Depends on**    | None                                      |
 | **Parallel with** | All Week 1 track starts                   |
 
@@ -1015,14 +969,13 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task B2 — Search APIs
+### [GH-011: Registry search APIs](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67)
 
 
 |                   |                                        |
 | ----------------- | -------------------------------------- |
-| **Issue**         | [GH-011](#gh-011-registry-search-apis) |
-| **Depends on**    | GH-010                                 |
-| **Parallel with** | GH-012                                 |
+| **Depends on**    | [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)                                 |
+| **Parallel with** | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)                                 |
 
 
 **Why:** Demo cold-start uses `**search_services` only** ([§6.3](../specification.md#63-service-search---post-registrysearch_services)); registry must index catalog services from registered UCP-Native merchants so Link can find a bookable service by query.
@@ -1032,17 +985,16 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 1. Implement `BusinessSearchRequest` / `ServiceSearchRequest` per `[schemas/registry.json](../schemas/registry.json)`; reject requests with no search filter (pagination/context alone).
 2. Index services per business: `service_id`, `service_name`, `category`, `pricing`, `duration_minutes`, embedded `business` ref (`profile_url`, `deployment_mode`, `name`) per `[ServiceSearchResult](../schemas/registry.json)`.
 3. Index business metadata from `RegistrationRequest` / `RegistryEntry` for business search (implemented but **not** used in demo path).
-4. Service search returns `business.deployment_mode` on each hit as discovery metadata (registry-side filtering by `deployment_mode`, capabilities, or payment handlers is [GH-055](#gh-055-registry-capability-and-payment-search-filters)).
+4. Service search returns `business.deployment_mode` on each hit as discovery metadata (registry-side filtering by `deployment_mode`, capabilities, or payment handlers is [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94)).
 
 ---
 
-### Task B3 — Profile URL validation
+### [GH-012: Registry profile URL validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)
 
 
 |                |                                                   |
 | -------------- | ------------------------------------------------- |
-| **Issue**      | [GH-012](#gh-012-registry-profile-url-validation) |
-| **Depends on** | GH-010                                            |
+| **Depends on** | [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)                                            |
 
 
 **Why:** Registry spec requires reachable `profile_url` returning valid UCP profile.
@@ -1058,14 +1010,13 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 ---
 
-### Task B4 — Demo merchant readiness (registration prerequisite)
+### [GH-014: Demo merchant readiness prerequisite](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)
 
 
 |                   |                                                        |
 | ----------------- | ------------------------------------------------------ |
-| **Issue**         | [GH-014](#gh-014-demo-merchant-readiness-prerequisite) |
-| **Depends on**    | GH-040 (UCP profile live on demo site)                 |
-| **Parallel with** | GH-012                                                 |
+| **Depends on**    | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) (UCP profile live on demo site)                 |
+| **Parallel with** | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)                                                 |
 | **Timeline**      | Days 5-6                                               |
 
 
@@ -1074,20 +1025,19 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 **What:**
 
 1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings`, Stripe `payment_handlers`, and `signing_keys` (for webhook verification).
-2. Record the **exact** `profile_url` value to use in GH-013 (full URL including `/.well-known/ucp` path).
-3. Document `USP_DEMO_PLATFORM_WEBHOOK_URL` wiring: Wix demo merchant reads this env/config so [GH-056](#gh-056-usp-impl-booking-confirmed-webhook) can POST `booking.confirmed` to the Link agent callback during E2E.
+2. Record the **exact** `profile_url` value to use in [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (full URL including `/.well-known/ucp` path).
+3. Document `USP_DEMO_PLATFORM_WEBHOOK_URL` wiring: Wix demo merchant reads this env/config so [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) can POST `booking.confirmed` to the Link agent callback during E2E.
 4. Script run by registry operator or Wix ops before `POST /registry/businesses`.
 5. **Link platform does not run this checklist** (but provides webhook URL value when ops run E2E rehearsal).
 
 ---
 
-### Task B5 — Register demo Wix merchant
+### [GH-013: Register demo Wix merchant](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)
 
 
 |                |                                              |
 | -------------- | -------------------------------------------- |
-| **Issue**      | [GH-013](#gh-013-register-demo-wix-merchant) |
-| **Depends on** | GH-012, GH-014                               |
+| **Depends on** | [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68), [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)                               |
 | **Timeline**   | Day 6-7                                      |
 
 
@@ -1127,14 +1077,13 @@ curl -X POST "$REGISTRY_URL/registry/businesses" \
 
 Link is a **consumer** of the USP ecosystem. It configures which registry to query but does **not** register businesses. Other AI platforms can use the same registry with the same discovery flow.
 
-### Task C1 — Configurable registry client
+### [GH-020: Link platform configurable registry client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71)
 
 
 |                   |                                                              |
 | ----------------- | ------------------------------------------------------------ |
-| **Issue**         | [GH-020](#gh-020-link-platform-configurable-registry-client) |
-| **Depends on**    | None (stub registry URL until GH-010 lands)                  |
-| **Parallel with** | GH-001, GH-010                                               |
+| **Depends on**    | None (stub registry URL until [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) lands)                  |
+| **Parallel with** | [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60), [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)                                               |
 
 
 **Why:** Link must work with **any** USP registry endpoint, not an embedded or Link-owned registry.
@@ -1160,14 +1109,13 @@ def search_services(query: str, verticals: list[str] | None = None) -> list[Serv
 
 ---
 
-### Task C2 — Service search and profile URL resolution
+### [GH-021: Link platform service search and profile resolution](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)
 
 
 |                   |                                                                        |
 | ----------------- | ---------------------------------------------------------------------- |
-| **Issue**         | [GH-021](#gh-021-link-platform-registry-search-and-profile-resolution) |
-| **Depends on**    | GH-020, GH-011                                                         |
-| **Parallel with** | GH-003                                                                 |
+| **Depends on**    | [GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71), [GH-011](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67)                                                         |
+| **Parallel with** | [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62)                                                                 |
 
 
 **Why:** Cold-start discovery: agent finds a **service** in the registry and obtains `service_id` plus `business.profile_url` before any direct merchant API calls. Demo uses **service search only**.
@@ -1193,13 +1141,12 @@ def discover_service_via_registry(query: str) -> DiscoveredService:
 
 ---
 
-### Task C3 — Profile fetch and capability negotiation
+### [GH-022: Link platform profile capability negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)
 
 
 |                |                                                                |
 | -------------- | -------------------------------------------------------------- |
-| **Issue**      | [GH-022](#gh-022-link-platform-profile-capability-negotiation) |
-| **Depends on** | GH-021, GH-001                                                 |
+| **Depends on** | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)                                                 |
 | **Timeline**   | Days 5-6                                                       |
 
 
@@ -1248,13 +1195,12 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 
 ---
 
-### Task C4 — Auth and consent handshake
+### [GH-023: Link platform auth consent handshake](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74)
 
 
 |                |                                                        |
 | -------------- | ------------------------------------------------------ |
-| **Issue**      | [GH-023](#gh-023-link-platform-auth-consent-handshake) |
-| **Depends on** | GH-022                                                 |
+| **Depends on** | [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)                                                 |
 | **Timeline**   | Days 6-7                                               |
 
 
@@ -1269,33 +1215,31 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 
 ---
 
-### Task C5 — Discovery integration test
+### [GH-024: Link platform discovery integration test](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)
 
 
 |                |                                                            |
 | -------------- | ---------------------------------------------------------- |
-| **Issue**      | [GH-024](#gh-024-link-platform-discovery-integration-test) |
-| **Depends on** | GH-021, GH-022, GH-013                                     |
+| **Depends on** | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)                                     |
 | **Timeline**   | Day 8                                                      |
 
 
-**Why:** Prove Link discovers an **already-registered** demo service without hardcoded URLs, before full booking E2E (GH-005).
+**Why:** Prove Link discovers an **already-registered** demo service without hardcoded URLs, before full booking E2E ([GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)).
 
 **What:**
 
 1. Test: `search_services` → profile fetch → capability match → endpoint extraction → `**GET /services/{service_id}`** returns live `Service` with `type` and `pricing`; assert `service_id` present.
-2. Uses live or staging registry with GH-013 demo entry and indexed demo service.
-3. **Does not** register the merchant or call `search_business` (registration is GH-013, Track B).
+2. Uses live or staging registry with [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) demo entry and indexed demo service.
+3. **Does not** register the merchant or call `search_business` (registration is [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), Track B).
 
 ---
 
-### Task C6 — Booking webhook receiver
+### [GH-057: Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)
 
 
 |                |                                                          |
 | -------------- | -------------------------------------------------------- |
-| **Issue**      | [GH-057](#gh-057-link-platform-booking-webhook-receiver) |
-| **Depends on** | GH-022, GH-056                                           |
+| **Depends on** | [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)                                           |
 | **Timeline**   | Days 7-8                                                 |
 
 
@@ -1304,11 +1248,17 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 **What:**
 
 1. Minimal HTTPS (or HTTP for local demo) webhook server in linkusp / Link platform; expose URL via `--webhook-callback` or ephemeral port.
-2. Document callback URL in GH-014 readiness as `USP_DEMO_PLATFORM_WEBHOOK_URL` for Wix demo merchant.
+2. Document callback URL in [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) readiness as `USP_DEMO_PLATFORM_WEBHOOK_URL` for Wix demo merchant.
 3. Verify inbound webhook signature using `signing_keys` from business UCP profile ([§10.1.1](../specification.md#1011-webhook-security)).
 4. Parse `[BookingEvent](../schemas/webhook_event.json)`; idempotent handling on `event_id` per [§9.2.3](../specification.md#923-webhook-notifications).
-5. Expose `wait_for_booking_confirmed(booking_id, order_id, timeout)` for GH-005 E2E.
+5. Expose `wait_for_booking_confirmed(booking_id, order_id, timeout)` for [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E.
 6. Respond `2xx` within 10 seconds to acknowledge receipt.
+
+---
+
+### [GH-064: UCP protocol and capability version negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) (Track C)
+
+**Track C scope:** Runtime version intersection between platform and business profiles; negotiated version on UCP REST requests (not hardcoded demo dates). Depends on [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) and [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73). See issue for acceptance criteria.
 
 ---
 
@@ -1317,14 +1267,13 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 **Team:** USP / Bookings (`wix-vmr-repo`)  
 **Timeline:** Days 1-8
 
-### Task D1 — Internal orchestration RPC proto
+### [GH-030: usp-impl internal orchestration RPC proto](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)
 
 
 |                   |                                                             |
 | ----------------- | ----------------------------------------------------------- |
-| **Issue**         | [GH-030](#gh-030-usp-impl-internal-orchestration-rpc-proto) |
 | **Depends on**    | None                                                        |
-| **Parallel with** | GH-040, GH-050                                              |
+| **Parallel with** | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87)                                              |
 
 
 **Why:** `acp-checkout` (Scala) must call booking logic without cross-repo Java coupling. Internal gRPC keeps REST surface unchanged.
@@ -1345,14 +1294,13 @@ rpc CancelPendingBooking(CancelPendingBookingRequest) returns (CancelPendingBook
 
 ---
 
-### Task D2 — `CreatePendingBooking` RPC
+### [GH-031: usp-impl CreatePendingBooking RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)
 
 
 |                   |                                                     |
 | ----------------- | --------------------------------------------------- |
-| **Issue**         | [GH-031](#gh-031-usp-impl-creatependingbooking-rpc) |
-| **Depends on**    | GH-030                                              |
-| **Parallel with** | GH-032                                              |
+| **Depends on**    | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)                                              |
+| **Parallel with** | [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)                                              |
 
 
 **Why:** UCP `create_checkout` must create a Wix booking in `pending` state without starting redirect checkout.
@@ -1377,14 +1325,13 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task D3 — `FinalizeBookingOnPayment` RPC
+### [GH-032: usp-impl FinalizeBookingOnPayment RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)
 
 
 |                   |                                                         |
 | ----------------- | ------------------------------------------------------- |
-| **Issue**         | [GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc) |
-| **Depends on**    | GH-030                                                  |
-| **Parallel with** | GH-031                                                  |
+| **Depends on**    | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)                                                  |
+| **Parallel with** | [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)                                                  |
 
 
 **Why:** Atomic `complete_checkout` must confirm booking only after successful SPT charge ([USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee)).
@@ -1397,17 +1344,16 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 4. If `confirmation_mode == auto`: set booking confirmed.
 5. Return final `booking_status` for checkout response mapping.
 6. **Do not** release hold (holds out of scope).
-7. On confirmed: enqueue `**booking.confirmed` webhook** dispatch ([GH-056](#gh-056-usp-impl-booking-confirmed-webhook)) with `order_id` in payload.
+7. On confirmed: enqueue `**booking.confirmed` webhook** dispatch ([GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)) with `order_id` in payload.
 
 ---
 
-### Task D4 — `CancelPendingBooking` RPC
+### [GH-033: usp-impl CancelPendingBooking RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79)
 
 
 |                |                                                     |
 | -------------- | --------------------------------------------------- |
-| **Issue**      | [GH-033](#gh-033-usp-impl-cancelpendingbooking-rpc) |
-| **Depends on** | GH-030                                              |
+| **Depends on** | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)                                              |
 | **Timeline**   | Day 5                                               |
 
 
@@ -1420,13 +1366,12 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task D5 — `booking.confirmed` webhook emission
+### [GH-056: usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)
 
 
 |                |                                                      |
 | -------------- | ---------------------------------------------------- |
-| **Issue**      | [GH-056](#gh-056-usp-impl-booking-confirmed-webhook) |
-| **Depends on** | GH-032                                               |
+| **Depends on** | [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)                                               |
 | **Timeline**   | Days 7-8                                             |
 
 
@@ -1436,8 +1381,8 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 1. After `FinalizeBookingOnPayment` confirms booking (`confirmation_mode: auto`), POST `booking.confirmed` to platform `webhook_url` per `[schemas/webhook_event.json](../schemas/webhook_event.json)` (`$defs/BookingEvent`).
 2. Payload **MUST** include: `event`, `event_id`, `booking_id`, `order_id`, `timestamp`; **SHOULD** include `data` (full booking).
-3. Sign payload per [§10.1.1](../specification.md#1011-webhook-security) (RFC 9421); publish `signing_keys` on business UCP profile ([GH-040](#gh-040-ucp-profile-merge-usp-capabilities) or this task).
-4. Resolve callback URL from demo config `USP_DEMO_PLATFORM_WEBHOOK_URL` (set in [GH-014](#gh-014-demo-merchant-readiness-prerequisite)); production path uses platform profile `webhook_url` (`[schemas/profile.json](../schemas/profile.json)`).
+3. Sign payload per [§10.1.1](../specification.md#1011-webhook-security) (RFC 9421); publish `signing_keys` on business UCP profile ([GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) or this task).
+4. Resolve callback URL from demo config `USP_DEMO_PLATFORM_WEBHOOK_URL` (set in [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)); production path uses platform profile `webhook_url` (`[schemas/profile.json](../schemas/profile.json)`).
 5. Delivery is **async best-effort** (not part of atomic `complete_checkout`); retry per [§9.2.3](../specification.md#923-webhook-notifications).
 6. Idempotent on `event_id` per booking confirmation.
 
@@ -1448,14 +1393,13 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 **Team:** Commerce / UCP (`ecom`)  
 **Timeline:** Days 1-8
 
-### Task E1 — UCP profile merge with USP capabilities
+### [GH-040: UCP profile merge USP capabilities](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)
 
 
 |                   |                                                      |
 | ----------------- | ---------------------------------------------------- |
-| **Issue**         | [GH-040](#gh-040-ucp-profile-merge-usp-capabilities) |
 | **Depends on**    | None                                                 |
-| **Parallel with** | GH-030, GH-041                                       |
+| **Parallel with** | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76), [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)                                       |
 
 
 **Why:** Single `/.well-known/ucp` is the only discovery endpoint for UCP-Native demo ([G-01](#4-gap-to-workstream-matrix)).
@@ -1472,14 +1416,13 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task E2 — `paid_bookings` booking extension schema
+### [GH-041: paid_bookings booking extension schema](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)
 
 
 |                   |                                                          |
 | ----------------- | -------------------------------------------------------- |
-| **Issue**         | [GH-041](#gh-041-paid_bookings-booking-extension-schema) |
 | **Depends on**    | None                                                     |
-| **Parallel with** | GH-040                                                   |
+| **Parallel with** | [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                                                   |
 
 
 **Why:** Checkout request/response must carry `booking` per `[paid_bookings.json](../schemas/paid_bookings.json)` ([G-02](#4-gap-to-workstream-matrix)).
@@ -1492,13 +1435,12 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task E3 — Wire `ucpCreateCheckout` to `usp-impl`
+### [GH-042: ucpCreateCheckout wire to usp-impl](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)
 
 
 |                |                                                      |
 | -------------- | ---------------------------------------------------- |
-| **Issue**      | [GH-042](#gh-042-ucpcreatecheckout-wire-to-usp-impl) |
-| **Depends on** | GH-031, GH-041                                       |
+| **Depends on** | [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77), [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)                                       |
 | **Timeline**   | Days 3-6                                             |
 
 
@@ -1514,14 +1456,13 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task E4 — Booking status mapping
+### [GH-043: Booking status mapping on checkout](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83)
 
 
 |                   |                                                      |
 | ----------------- | ---------------------------------------------------- |
-| **Issue**         | [GH-043](#gh-043-booking-status-mapping-on-checkout) |
-| **Depends on**    | GH-041                                               |
-| **Parallel with** | GH-042                                               |
+| **Depends on**    | [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)                                               |
+| **Parallel with** | [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                               |
 
 
 **Why:** USP §7.5 defines derivation from UCP checkout status to `booking.booking_status`.
@@ -1533,13 +1474,12 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### Task E5 — Atomic `ucpCompleteCheckout` with booking
+### [GH-044: Atomic ucpCompleteCheckout with booking](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84)
 
 
 |                |                                                           |
 | -------------- | --------------------------------------------------------- |
-| **Issue**      | [GH-044](#gh-044-atomic-ucpcompletecheckout-with-booking) |
-| **Depends on** | GH-032, GH-053, GH-042                                    |
+| **Depends on** | [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78), [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90), [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                    |
 | **Timeline**   | Days 6-8                                                  |
 
 
@@ -1548,7 +1488,7 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 **What:**
 
 1. Detect booking checkout in `ucpCompleteCheckout`.
-2. Call booking-aware payment flow (Track F GH-053):
+2. Call booking-aware payment flow (Track F [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)):
   - Re-validate slot via `ValidateBookingExtension`
   - Charge SPT
   - On success: `markCheckoutAsCompleted` + `FinalizeBookingOnPayment`
@@ -1567,13 +1507,12 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task E6 — Atomic `ucpCancelCheckout` with booking
+### [GH-045: Atomic ucpCancelCheckout with booking](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85)
 
 
 |                |                                                         |
 | -------------- | ------------------------------------------------------- |
-| **Issue**      | [GH-045](#gh-045-atomic-ucpcancelcheckout-with-booking) |
-| **Depends on** | GH-033, GH-042                                          |
+| **Depends on** | [GH-033](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79), [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)                                          |
 | **Timeline**   | Day 8                                                   |
 
 
@@ -1586,13 +1525,12 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task E7 — Execution guard on `complete_checkout`
+### [GH-046: Execution guard on complete_checkout](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86)
 
 
 |                |                                                        |
 | -------------- | ------------------------------------------------------ |
-| **Issue**      | [GH-046](#gh-046-execution-guard-on-complete_checkout) |
-| **Depends on** | GH-044                                                 |
+| **Depends on** | [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84)                                                 |
 | **Timeline**   | Day 8                                                  |
 
 
@@ -1605,20 +1543,31 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
+### [GH-061: Spec order.id vs order_id alignment](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) (Track E / spec)
+
+**Track E scope:** Implementers and adapters must map UCP `order.id` to USP/webhook `order_id`; update spec §7.5 / §5.4.1 normative text and examples. See issue for acceptance criteria.
+
+---
+
+### [GH-063: Spec UCP profile capability spec/schema requirements](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100) (Track E / spec)
+
+**Track E scope:** Demo merchant profile from [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) must include `spec` + `schema` URLs on every capability per UCP profile rules; spec §7.2 updated accordingly.
+
+---
+
 ## 10. Track F — Payment with Stripe SPT
 
 **Team:** Commerce / Payments (`ecom` + Payments platform)  
 **Timeline:** Days 1-8
 
-### Task F1 — Payments platform SPT charge contract
+### [GH-050: Payments platform SPT charge contract](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87)
 
 
 |                   |                                                         |
 | ----------------- | ------------------------------------------------------- |
-| **Issue**         | [GH-050](#gh-050-payments-platform-spt-charge-contract) |
 | **Depends on**    | None                                                    |
 | **Timeline**      | Days 1-2 (**blocker**)                                  |
-| **Parallel with** | GH-030, GH-040                                          |
+| **Parallel with** | [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                                          |
 
 
 **Why:** Must confirm how SPT token reaches `chargeForOrder` (or alternate API) before adapter implementation ([G-04](#4-gap-to-workstream-matrix)).
@@ -1631,14 +1580,13 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task F2 — `StripeSptProviderAdapter`
+### [GH-051: Stripe SptProviderAdapter](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)
 
 
 |                   |                                               |
 | ----------------- | --------------------------------------------- |
-| **Issue**         | [GH-051](#gh-051-stripe-spt-provider-adapter) |
-| **Depends on**    | GH-050                                        |
-| **Parallel with** | GH-031                                        |
+| **Depends on**    | [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87)                                        |
+| **Parallel with** | [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)                                        |
 
 
 **Why:** `PaymentHandlerService` today only registers Google Pay; demo requires Stripe SPT handler.
@@ -1648,17 +1596,16 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 1. New `payment/StripeSptProviderAdapter.scala` implementing `PaymentProviderAdapter`.
 2. `handlerId` per Stripe UCP registration.
 3. `buildHandler`: return Stripe config struct from Cashier or static test config.
-4. `chargeForOrder`: map SPT credential to charge request per GH-050 contract.
+4. `chargeForOrder`: map SPT credential to charge request per [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) contract.
 
 ---
 
-### Task F3 — Register SPT handler in profile
+### [GH-052: Register SPT handler in profile](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)
 
 
 |                |                                                   |
 | -------------- | ------------------------------------------------- |
-| **Issue**      | [GH-052](#gh-052-register-spt-handler-in-profile) |
-| **Depends on** | GH-051, GH-040                                    |
+| **Depends on** | [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88), [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)                                    |
 | **Timeline**   | Days 5-6                                          |
 
 
@@ -1672,13 +1619,18 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task F4 — Booking-aware payment orchestration
+### [GH-062: Spec payment_handlers and available_instruments](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) (Track F / spec)
+
+**Track F scope:** Demo merchant profile and checkout `payment_handlers` from [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) must match UCP-conformant handler shape; spec §7.2 / §7.4 aligned with [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
+
+---
+
+### [GH-053: Booking-aware payment orchestration](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)
 
 
 |                |                                                       |
 | -------------- | ----------------------------------------------------- |
-| **Issue**      | [GH-053](#gh-053-booking-aware-payment-orchestration) |
-| **Depends on** | GH-051, GH-032                                        |
+| **Depends on** | [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88), [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)                                        |
 | **Timeline**   | Days 6-8                                              |
 
 
@@ -1692,13 +1644,12 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ---
 
-### Task F5 — SPT 3DS / `continue_url` (out of scope)
+### [GH-054: SPT 3DS continue_url handling](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) / [GH-098: UCP conformance gaps (out of scope)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) (Track F, out of scope)
 
 
 |                |                                                                 |
 | -------------- | --------------------------------------------------------------- |
-| **Issue**      | [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (rollup); [GH-054](#gh-054-spt-3ds-continue_url-handling) (detail) |
-| **Depends on** | GH-053                                                          |
+| **Depends on** | [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)                                                          |
 | **Timeline**   | Future sprint                                                   |
 
 
@@ -1717,9 +1668,9 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 | Activity                                          | Owner                            | Depends on                                     |
 | ------------------------------------------------- | -------------------------------- | ---------------------------------------------- |
-| Registry lists demo merchant (operator process)   | Track B                          | GH-013, GH-014                                 |
-| Link discovery against registry (no registration) | Track C                          | GH-021, GH-022, GH-024                         |
-| First full E2E on registry-discovered merchant    | Track A + all                    | GH-005, GH-013, GH-044, GH-052, GH-056, GH-057, GH-058–GH-064 |
+| Registry lists demo merchant (operator process)   | Track B                          | [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)                                 |
+| Link discovery against registry (no registration) | Track C                          | [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)                         |
+| First full E2E on registry-discovered merchant    | Track A + all                    | [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65), [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89), [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92), [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)–[GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) |
 | Fix integration defects                           | Whichever track owns the failure | —                                              |
 | Demo rehearsal + recording                        | PM / all leads                   | Green E2E                                      |
 
@@ -1728,16 +1679,16 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ## 12. Definition of Done
 
-1. **GH-005** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → calendar gate → §7.5.2 availability (+ platform filter when connected) → steps 4, 6, 7, **8** (webhook `order_id` correlation).
-2. **GH-003b** calendar gate and slot filtering verified in flow tests and interactive demo path (`calendar connect` or `calendar skip`).
-3. **GH-013** registry entry created via `RegistrationRequest` with full `profile_url` and `deployment_mode: ucp_native` (Link not involved).
-4. **GH-024** Link discovery: `search_services` + `GET profile_url` + capability match + `**GET /services/{service_id}`** verified independently of booking E2E.
-5. **GH-044** atomic complete per [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): failed charge never confirms booking.
+1. **[GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → calendar gate → §7.5.2 availability (+ platform filter when connected) → steps 4, 6, 7, **8** (webhook `order_id` correlation).
+2. **[GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63)** calendar gate and slot filtering verified in flow tests and interactive demo path (`calendar connect` or `calendar skip`).
+3. **[GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)** registry entry created via `RegistrationRequest` with full `profile_url` and `deployment_mode: ucp_native` (Link not involved).
+4. **[GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)** Link discovery: `search_services` + `GET profile_url` + capability match + `**GET /services/{service_id}`** verified independently of booking E2E.
+5. **[GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84)** atomic complete per [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): failed charge never confirms booking.
 6. No Standalone endpoints required for demo (`/.well-known/usp`, `checkout_systems`, `confirm-payment` not used).
 7. Link codebase contains **no** `POST /registry/businesses` call.
 8. UCP checkout uses `Idempotency-Key` on create/complete; `payment_handlers` on profile and checkout; `booking` extension per `[paid_bookings.json](../schemas/paid_bookings.json)`.
-9. **GH-058** through **GH-064** closed or verified: platform `UCP-Agent`, `signals`, `totals`/`links`, spec alignment ([GH-061](#gh-061-spec-orderid-vs-ucp-order-object)–[GH-063](#gh-063-spec-ucp-profile-capability-specschema-requirements)), version negotiation.
-10. All in-scope tasks linked to filed GitHub issues (see [Missing GitHub issues](#missing-github-issues) until filed).
+9. **[GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)** through **[GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101)** closed or verified: platform `UCP-Agent`, `signals`, `totals`/`links`, spec alignment ([GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)–[GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100)), version negotiation.
+10. All in-scope tasks linked to filed GitHub issues in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec) (label `v1`).
 
 ---
 
@@ -1773,7 +1724,7 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 - `/.well-known/usp` profile publishing
 - Redirect checkout via `RedirectSessionService` / `ChannelType.WEB`
 - `POST /bookings/{id}/confirm-payment`
-- Checkout return relay ([GH-099](#gh-099-usp-impl-merchant-checkout-return-relay-standalone-only) — Standalone-only)
+- Checkout return relay ([GH-099](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) — Standalone-only)
 - `checkout_systems: ["redirect"]`
 
 ### Registry search filters for business capabilities and payment readiness
@@ -1783,18 +1734,18 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 - **Population:** snapshot from `GET {profile_url}` at register/update and on periodic re-index (catalog feed or poll per [§6.3](../specification.md#63-service-search---post-registrysearch_services)); store `profile_indexed_at` / `last_validated_at` on `RegistryEntry` and service hits.
 - **Staleness:** search results remain non-authoritative; platforms **MUST** still fetch live profile at booking time per [§6.3](../specification.md#63-service-search---post-registrysearch_services). Document max index age and when filters are best-effort vs strict.
 - **Re-validation:** on `POST`/`PUT /registry/businesses`, re-fetch profile and refresh index; reject or flag registration when indexed payment/capability claims diverge from reachable profile.
-- **Schema/spec:** extend `[schemas/registry.json](../schemas/registry.json)` (`RegistrationRequest`, `RegistryEntry`, `BusinessSearchRequest`, `ServiceSearchRequest`) and USP §6; linkusp consumer updates in a follow-on sprint ([GH-055](#gh-055-registry-capability-and-payment-search-filters)).
-- Demo uses `**search_services` only** with profile fetch for capability and Stripe/SPT negotiation; no registry capability/payment request filters and no client-side post-filters in the 2-week sprint ([GH-055](#gh-055-registry-capability-and-payment-search-filters) is the correct solution when agents need those filters).
+- **Schema/spec:** extend `[schemas/registry.json](../schemas/registry.json)` (`RegistrationRequest`, `RegistryEntry`, `BusinessSearchRequest`, `ServiceSearchRequest`) and USP §6; linkusp consumer updates in a follow-on sprint ([GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94)).
+- Demo uses `**search_services` only** with profile fetch for capability and Stripe/SPT negotiation; no registry capability/payment request filters and no client-side post-filters in the 2-week sprint ([GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) is the correct solution when agents need those filters).
 
 ### UCP conformance gaps (future)
 
-Full UCP agent-commerce conformance beyond the UCP-Native paid booking demo path. Tracked in a single rollup issue: [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope) (draft: [`.github/issue-drafts/gh-098-ucp-conformance-gaps.md`](../.github/issue-drafts/gh-098-ucp-conformance-gaps.md)).
+Full UCP agent-commerce conformance beyond the UCP-Native paid booking demo path. Tracked in rollup issue [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102).
 
 Includes (non-exhaustive):
 
-- **Auth, identity, consent** — OAuth, identity linking, checkout scopes ([GH-023](#gh-023-link-platform-auth-consent-handshake) demo stub only)
+- **Auth, identity, consent** — OAuth, identity linking, checkout scopes ([GH-023](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74) demo stub only)
 - **Trusted UI / agent handoff** — UCP platform guideline that checkout finalization uses a trusted, deterministic UI (unless AP2 mandates apply); demo is fully agent-driven via `linkusp demo ucp-native`
-- **3DS / payment escalation** — `requires_escalation`, `continue_url`, buyer handoff ([GH-054](#gh-054-spt-3ds-continue_url-handling) deferred)
+- **3DS / payment escalation** — `requires_escalation`, `continue_url`, buyer handoff ([GH-054](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) deferred)
 - **Full UCP commerce surface** — `dev.ucp.shopping.order`, fulfillment extension, mixed cart, AP2 mandates, MCP/A2A/embedded transports
 - **HTTP message signatures** on UCP REST (when profile declares signing requirements beyond demo webhook path)
 - **Eligibility / mandate extensions** not required for single-service paid bookings demo
@@ -1806,848 +1757,63 @@ Includes (non-exhaustive):
 - HTTP 200 error bodies, camelCase cleanup, pagination, availability quirk (minor `usp-impl` conformance)
 - USP MCP binding, OAuth discovery
 - ACP adapter stubs (`AcpHttpAdapter` `???` methods)
-- Full idempotency on all USP REST endpoints (demo covers `complete_checkout` only via [GH-046](#gh-046-execution-guard-on-complete_checkout))
+- Full idempotency on all USP REST endpoints (demo covers `complete_checkout` only via [GH-046](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86))
 - Manual `confirmation_mode: manual` UCP flow (demo uses `confirmation_mode: auto` only)
 - Load testing, observability runbooks, GA hardening
 
 ---
 
-## Missing GitHub issues
+## GitHub issues
+
+All work items are tracked in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec). In-scope demo issues carry label `v1`; post-demo issues carry `v > 1`.
+
+| Plan ID | Issue | Scope |
+| ------- | ----- | ----- |
+| [GH-001](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60) | [#60 Link agent UCP-Native profile wire models](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60) | v1 |
+| [GH-002](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61) | [#61 Link agent UCP checkout client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/61) | v1 |
+| [GH-003](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) | [#62 Link agent USP catalog and scheduling client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) | v1 |
+| [GH-003b](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) | [#63 Link agent buyer calendar free/busy gate and slot filtering](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) | v1 |
+| [GH-004](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) | [#64 Link agent Stripe SPT acquisition](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) | v1 |
+| [GH-005](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) | [#65 Link agent demo E2E command](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) | v1 |
+| [GH-010](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) | [#66 Registry minimal deploy](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) | v1 |
+| [GH-011](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67) | [#67 Registry search APIs](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67) | v1 |
+| [GH-012](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68) | [#68 Registry profile URL validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68) | v1 |
+| [GH-013](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) | [#69 Register demo Wix merchant](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) | v1 |
+| [GH-014](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) | [#70 Demo merchant readiness prerequisite](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) | v1 |
+| [GH-020](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71) | [#71 Link platform configurable registry client](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71) | v1 |
+| [GH-021](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72) | [#72 Link platform service search and profile resolution](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72) | v1 |
+| [GH-022](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73) | [#73 Link platform profile capability negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73) | v1 |
+| [GH-023](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74) | [#74 Link platform auth consent handshake](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74) | v1 |
+| [GH-024](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75) | [#75 Link platform discovery integration test](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75) | v1 |
+| [GH-030](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76) | [#76 usp-impl internal orchestration RPC proto](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76) | v1 |
+| [GH-031](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77) | [#77 usp-impl CreatePendingBooking RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77) | v1 |
+| [GH-032](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78) | [#78 usp-impl FinalizeBookingOnPayment RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78) | v1 |
+| [GH-033](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79) | [#79 usp-impl CancelPendingBooking RPC](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79) | v1 |
+| [GH-040](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) | [#80 UCP profile merge USP capabilities](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) | v1 |
+| [GH-041](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81) | [#81 paid_bookings booking extension schema](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81) | v1 |
+| [GH-042](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82) | [#82 ucpCreateCheckout wire to usp-impl](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82) | v1 |
+| [GH-043](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83) | [#83 Booking status mapping on checkout](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83) | v1 |
+| [GH-044](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) | [#84 Atomic ucpCompleteCheckout with booking](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) | v1 |
+| [GH-045](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85) | [#85 Atomic ucpCancelCheckout with booking](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85) | v1 |
+| [GH-046](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86) | [#86 Execution guard on complete_checkout](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/86) | v1 |
+| [GH-050](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) | [#87 Payments platform SPT charge contract](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) | v1 |
+| [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88) | [#88 Stripe SptProviderAdapter](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88) | v1 |
+| [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) | [#89 Register SPT handler in profile](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) | v1 |
+| [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | [#90 Booking-aware payment orchestration](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | v1 |
+| [GH-054](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | [#93 SPT 3DS continue_url handling](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | v > 1 |
+| [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | [#94 Registry capability and payment search filters](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | v > 1 |
+| [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | [#91 usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | v1 |
+| [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [#92 Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | v1 |
+| [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | [#95 Platform UCP profile and UCP-Agent negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | v1 |
+| [GH-059](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) | [#96 Complete checkout signals](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) | v1 |
+| [GH-060](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | [#97 Checkout totals and links validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | v1 |
+| [GH-061](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) | [#98 Spec order.id vs order_id alignment](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) | v1 |
+| [GH-062](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) | [#99 Spec payment_handlers and available_instruments](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) | v1 |
+| [GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100) | [#100 Spec UCP profile capability spec/schema requirements](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100) | v1 |
+| [GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | [#101 UCP protocol and capability version negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | v1 |
+| [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | [#102 UCP conformance gaps (out of scope)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | v > 1 |
+| [GH-099](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | [#103 usp-impl merchant checkout return relay (Standalone only)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | v > 1 |
 
-File these in `[kobym707/universal-scheduling-protocol](https://github.com/kobym707/universal-scheduling-protocol)` (or the owning repo per track). After filing, replace `#GH-NNN` anchors below with live issue URLs.
-
----
-
-### GH-001: Link agent UCP-Native profile wire models
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `ucp-native`
-
-**Description:**
-
-Typed models for the UCP profile document JSON (`ucp.capabilities`, `ucp.services`, `ucp.payment_handlers`, `business`) returned by `GET {profile_url}`. Registry search and profile fetch orchestration are **Track C** (GH-021, GH-022), not this issue.
-
-**Acceptance criteria:**
-
-- [ ] `UcpNativeContext` parses Wix demo profile fixture.
-- [ ] Helper methods extract USP and UCP REST endpoints.
-- [ ] No registry registration code.
-
----
-
-### GH-002: Link agent UCP checkout client
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `ucp-native`, `paid_bookings`
-
-**Description:**
-
-Add UCP checkout client methods: `create_checkout`, `get_checkout`, `update_checkout`, `complete_checkout`, `cancel_checkout` with `booking` extension on create per `[schemas/paid_bookings.json](https://github.com/kobym707/universal-scheduling-protocol/blob/main/schemas/paid_bookings.json)` and [UCP checkout REST](https://ucp.dev/latest/specification/checkout-rest/).
-
-**Acceptance criteria:**
-
-- [ ] Create sends `booking` + matching service `line_item` (`item.price` in minor units per [§7.4](../specification.md#74-paid-bookings-extension-schema)).
-- [ ] Create/complete send `Idempotency-Key` header per UCP idempotency.
-- [ ] Complete sends `payment.instruments[].credential.token` (SPT) with correct `handler_id`.
-- [ ] Parses `booking.booking_id`, `booking.booking_status`, and checkout `status` from responses.
-
----
-
-### GH-003: Link agent USP catalog and scheduling client
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `usp`
-
-**Description:**
-
-Implement `GET /services/{service_id}` ([§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)) after profile fetch for live catalog per [§6.3](../specification.md#63-service-search---post-registrysearch_services); refactor existing Wix USP adapter for `POST /availability/query`; map slots to `paid_bookings` `SlotReference`. Cold-start `service_id` comes from registry `search_services` (no `POST /services/list`). No hold APIs.
-
-**Acceptance criteria:**
-
-- [ ] `get_service(service_id)` returns full `[Service](../schemas/catalog.json)` from merchant USP endpoint (including `type`, `pricing`, `policies`).
-- [ ] `query_availability` runs after `get_service`, using `service_id` from registry hit.
-- [ ] Slot mapper produces `id`, `start`, `end`, `duration` for checkout `booking.slot`.
-- [ ] Checkout builder maps `Service.type` → `booking.service_type` and live `pricing` → line item `item.price`.
-- [ ] Demo path does not call `POST /services/list`.
-
----
-
-### GH-003b: Link agent buyer calendar free/busy gate and slot filtering
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `usp`, `calendar`, `demo`
-
-**Description:**
-
-Implement platform-side buyer calendar conflict checking per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) before availability: hard calendar gate (`flow calendar ask|skip|connect`), Google FreeBusy fetch in demo mode, `filter_slots_by_busy_times` after `POST /availability/query`, and agent-facing filter metadata. Align with ds-general USP subagent (`connect_customer_calendar`, `query_availability` inline filter) and existing linkusp-cli flow gates.
-
-**Acceptance criteria:**
-
-- [ ] `flow availability` fails with `calendar_gate_not_completed` until `calendar connect` or `calendar skip` completes.
-- [ ] When connected, availability response excludes slots overlapping buyer busy blocks (touching boundaries do not overlap).
-- [ ] Flow JSON includes `calendar_filtered` and `slots_filtered` when filtering runs.
-- [ ] `calendar skip` works without `GOOGLE_CALENDAR_CLIENT_ID` / client secret.
-- [ ] Agent skill documents calendar gate as Step 3 (before availability) with OAuth link relay pattern.
-- [ ] No buyer calendar data sent to merchant `POST /availability/query`.
-
----
-
-### GH-004: Link agent Stripe SPT acquisition
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `stripe`, `spt`
-
-**Description:**
-
-Implement platform-side SPT acquisition using handler config from checkout response; build credential for `complete_checkout`.
-
-**Acceptance criteria:**
-
-- [ ] Test-mode SPT acquired for demo Stripe connected account.
-- [ ] Token passed to `complete_checkout` in correct instrument/handler shape.
-
----
-
-### GH-005: Link agent demo E2E command
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `demo`, `e2e`
-
-**Description:**
-
-Add `linkusp demo ucp-native --registry URL --query "service name"` running [USP §7.7.2](../specification.md#772-paid-service-flow-ucp-checkout) / [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): registry service search → profile → `**GET /services/{service_id}`** → calendar gate ([§11.2](../specification.md#112-buyer-calendar-freebusy-extension)) → §7.5.2 availability (+ platform filter) → steps 4, 6, 7, **8**. Discovery: `**search_services` only** → `GET profile_url` → live catalog get — demo service must already be indexed (GH-013 + GH-011).
-
-**Acceptance criteria:**
-
-- [ ] Single command completes paid booking demo with exit code 0.
-- [ ] No hardcoded Wix merchant URL; uses `search_services` + `GET profile_url` only (no `search_business`).
-- [ ] Calls `**GET /services/{service_id}`** after profile and before availability per [§6.3](../specification.md#63-service-search---post-registrysearch_services).
-- [ ] Uses live `Service` from catalog get for `booking.service_type`, line item price, and availability `service_id`.
-- [ ] Headless CI path uses `--calendar-skip`; interactive demo documents `calendar connect` option.
-- [ ] Asserts `checkout.status == completed`, `booking.booking_status == confirmed`, and `order_id` present.
-- [ ] Receives `booking.confirmed` webhook ([GH-057](#gh-057-link-platform-booking-webhook-receiver)) with `order_id` matching checkout and `booking_id` matching `booking.booking_id`.
-- [ ] Documented in README for sprint demo.
-
----
-
-### GH-010: Registry minimal deploy
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `track-b`, `registry`
-
-**Description:**
-
-Deploy minimal USP registry with `POST /registry/businesses` and storage for demo.
-
-**Acceptance criteria:**
-
-- [ ] HTTPS endpoint live.
-- [ ] Register and retrieve business entry.
-- [ ] Conforms to `[schemas/registry.json](../schemas/registry.json)` `$defs/RegistrationRequest`.
-
----
-
-### GH-011: Registry search APIs
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `track-b`, `registry`
-
-**Description:**
-
-Implement `POST /registry/search_business` and `POST /registry/search_services` per `[BusinessSearchRequest](../schemas/registry.json)` / `[ServiceSearchRequest](../schemas/registry.json)`.
-
-**Acceptance criteria:**
-
-- [ ] Rejects business search with no filter (pagination/context only) per [§6.2](../specification.md#62-business-search---post-registrysearch_business).
-- [ ] Rejects service search with no filter per [§6.3](../specification.md#63-service-search---post-registrysearch_services).
-- [ ] `deployment_mode: ucp_native` filter on **business search** returns only UCP-Native entries (API completeness; demo does not use this path).
-- [ ] **Service search** returns demo paid service with `service_id`, pricing, and `business.profile_url` + `business.deployment_mode: ucp_native` (primary demo discovery path).
-- [ ] Service index refreshed when merchant registered or catalog changes.
-
----
-
-### GH-012: Registry profile URL validation
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `track-b`, `registry`
-
-**Description:**
-
-On registration, `GET {profile_url}` and validate profile for declared `deployment_mode` per [§6.1](../specification.md#61-business-registration---post-registrybusinesses). For `ucp_native`, require `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings`.
-
-**Acceptance criteria:**
-
-- [ ] Invalid or unreachable profile rejected with `profile_unreachable` / `validation_error`.
-- [ ] Valid Wix demo profile accepted when `profile_url` is full `https://{host}/.well-known/ucp` URL.
-- [ ] Registry response `usp` envelope describes registry, not business capabilities.
-
----
-
-### GH-013: Register demo Wix merchant
-
-**Repo:** `kobym707/universal-scheduling-protocol` (registry)  
-**Labels:** `track-b`, `demo`, `registration`
-
-**Description:**
-
-Register designated Wix Bookings demo site in the USP registry via `POST /registry/businesses`. This is a **registry operator process** — not implemented in Link platform.
-
-**Acceptance criteria:**
-
-- [ ] Entry created via registry API (admin tooling or documented curl), not via Link.
-- [ ] `RegistrationRequest` includes `deployment_mode: ucp_native`, `verticals`, `categories`, `timezone`, and `location` when in-person.
-- [ ] Demo paid service discoverable via `search_services` with `query`; hit includes `business.deployment_mode: ucp_native` and `business.profile_url`.
-- [ ] `GET profile_url` returns merged UCP profile with USP capabilities + Stripe `payment_handlers`.
-
----
-
-### GH-014: Demo merchant readiness prerequisite
-
-**Repo:** Wix ops / registry operator docs  
-**Labels:** `track-b`, `demo`, `prerequisite`
-
-**Description:**
-
-Checklist run **before** GH-013 registry registration: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, profile validates, `signing_keys` present for webhooks, `USP_DEMO_PLATFORM_WEBHOOK_URL` documented for E2E.
-
-**Acceptance criteria:**
-
-- [ ] Script or runbook owned by registry operator / Wix ops, not Link.
-- [ ] Documented as prerequisite to `POST /registry/businesses`.
-- [ ] Documents how Wix demo merchant receives platform webhook URL for [GH-056](#gh-056-usp-impl-booking-confirmed-webhook).
-- [ ] Exits non-zero if Wix site not ready.
-
----
-
-### GH-020: Link platform configurable registry client
-
-**Repo:** `yahalomran/linkusp-cli` / Link platform  
-**Labels:** `track-c`, `registry-consumer`
-
-**Description:**
-
-Configurable `USP_REGISTRY_URL`; HTTP client for registry **read/search** APIs only. Link must not implement business registration.
-
-**Acceptance criteria:**
-
-- [ ] Registry URL is configuration, not hardcoded to a Link-owned service.
-- [ ] Client implements search/get registration endpoints.
-- [ ] No `POST /registry/businesses` in Link codebase.
-
----
-
-### GH-021: Link platform service search and profile resolution
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-c`, `discovery`
-
-**Description:**
-
-Cold-start: `**POST /registry/search_services`** with `query` (and optional `verticals`/`categories`), select hit, extract `service_id` and `business.profile_url` for downstream profile fetch. Demo does **not** use `search_business` or client-side post-filters; registry-side capability/payment filters are [GH-055](#gh-055-registry-capability-and-payment-search-filters).
-
-**Acceptance criteria:**
-
-- [ ] `discover_service_via_registry(query)` returns `service_id` and `profile_url` from `ServiceSearchResult`.
-- [ ] Search request satisfies [§6.3](../specification.md#63-service-search---post-registrysearch_services) filter requirement.
-- [ ] No client-side post-filter by `deployment_mode` or payment handlers (use [GH-055](#gh-055-registry-capability-and-payment-search-filters) when those filters are needed).
-- [ ] Agent config has no hardcoded merchant URL.
-- [ ] Demo code paths do not call `search_business`.
-
----
-
-### GH-022: Link platform profile capability negotiation
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-c`, `ucp-native`, `discovery`
-
-**Description:**
-
-After registry returns `profile_url`, `GET profile_url` (full document URL), match capabilities per [§7.2](../specification.md#72-profile-registration-in-well-knownucp), **verify `paid_bookings` extends `checkout`** per [plan §2.4](#24-what-paid_bookings-extends-checkout-means), read `payment_handlers`, extract service endpoints.
-
-`**paid_bookings` extends `checkout` — implementer checklist:**
-
-1. Both `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings` exist in `ucp.capabilities`.
-2. `paid_bookings[0].extends == "dev.ucp.shopping.checkout"` (profile declaration).
-3. Downstream agent uses UCP `create_checkout` / `complete_checkout` with `booking` extension, not Standalone `POST /bookings` (protocol behavior).
-
-**Acceptance criteria:**
-
-- [ ] Does not append `/.well-known/ucp` to `profile_url`.
-- [ ] Fails if `dev.ucp.shopping.checkout` or `dev.usp.services.paid_bookings` missing.
-- [ ] Fails if `paid_bookings` present but `extends` is missing or not `dev.ucp.shopping.checkout`.
-- [ ] Unit test: fixture with wrong `extends` value is rejected with clear error.
-- [ ] Extracts USP and UCP REST endpoints from `ucp.services`.
-- [ ] Parses `payment_handlers` for Stripe SPT acquisition; no `checkout_systems` expected.
-- [ ] `UcpNativeContext` signals paid-bookings-via-UCP-checkout mode to GH-002 checkout client.
-
----
-
-### GH-023: Link platform auth consent handshake
-
-**Repo:** Link platform  
-**Labels:** `track-c`, `auth`
-
-**Description:**
-
-Implement UCP-inherited auth/consent/token exchange required by demo merchant profile before checkout calls.
-
-**Acceptance criteria:**
-
-- [ ] Tokens attached to USP/UCP requests per profile requirements.
-- [ ] Demo exception documented if auth not required for catalog step.
-
----
-
-### GH-024: Link platform discovery integration test
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-c`, `demo`, `integration`
-
-**Description:**
-
-Integration test: `search_services` → `GET profile_url` → capability match → `**GET /services/{service_id}`** returns live catalog, using GH-013 demo service index. Does not register merchants.
-
-**Acceptance criteria:**
-
-- [ ] Passes against staging registry with pre-registered demo service.
-- [ ] Asserts `ServiceSearchResult.business.deployment_mode == ucp_native` and `service_id` present.
-- [ ] Asserts live `Service.type` and `pricing` from catalog get (not registry snapshot alone).
-- [ ] No `search_business` or registration calls in test suite.
-
----
-
-### GH-030: usp-impl internal orchestration RPC proto
-
-**Repo:** `wix-private/wix-vmr-repo` (private)  
-**Labels:** `track-d`, `usp-impl`
-
-**Description:**
-
-Add internal gRPC RPCs: `ValidateBookingExtension`, `CreatePendingBooking`, `FinalizeBookingOnPayment`, `CancelPendingBooking` to `usp_impl.proto`.
-
-**Acceptance criteria:**
-
-- [ ] Proto compiles and generates Java/Scala clients.
-- [ ] No public REST exposure required for demo.
-
----
-
-### GH-031: usp-impl CreatePendingBooking RPC
-
-**Repo:** `wix-private/wix-vmr-repo`  
-**Labels:** `track-d`, `usp-impl`
-
-**Description:**
-
-Implement pending booking creation without redirect checkout; validate slot; return `booking_id`.
-
-**Acceptance criteria:**
-
-- [ ] RPC creates Wix booking in pending state.
-- [ ] Does not invoke `RedirectSessionService`.
-- [ ] Unit tests with mocked Bookings API.
-
----
-
-### GH-032: usp-impl FinalizeBookingOnPayment RPC
-
-**Repo:** `wix-private/wix-vmr-repo`  
-**Labels:** `track-d`, `usp-impl`
-
-**Description:**
-
-Confirm booking after successful payment with amount/currency validation; auto-confirm when mode is auto.
-
-**Acceptance criteria:**
-
-- [ ] Rejects amount mismatch.
-- [ ] Returns `booking_status: confirmed` for auto mode.
-- [ ] Associates `order_id` from checkout.
-- [ ] Triggers async `booking.confirmed` webhook dispatch ([GH-056](#gh-056-usp-impl-booking-confirmed-webhook)) on auto confirm.
-
----
-
-### GH-033: usp-impl CancelPendingBooking RPC
-
-**Repo:** `wix-private/wix-vmr-repo`  
-**Labels:** `track-d`, `usp-impl`
-
-**Description:**
-
-Cancel pending booking for UCP `cancel_checkout` integration.
-
-**Acceptance criteria:**
-
-- [ ] Idempotent cancel.
-- [ ] Pending booking transitions to canceled.
-
----
-
-### GH-040: UCP profile merge USP capabilities
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `acp-checkout`
-
-**Description:**
-
-Extend `UcpCapabilities` and `UcpServices` to publish USP capabilities on `GET /.well-known/ucp` per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `holds: false`; no `checkout_systems`.
-
-**Acceptance criteria:**
-
-- [ ] Single profile contains `dev.ucp.shopping.checkout` + `dev.usp.services.`* including `paid_bookings` with `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)).
-- [ ] `dev.usp.services` endpoint points to usp-impl REST base.
-- [ ] Profile is valid at the `profile_url` registered in GH-013.
-
----
-
-### GH-041: paid_bookings booking extension schema
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `paid_bookings`
-
-**Description:**
-
-Add `booking` object to UCP checkout proto, mappers, and mutators per `paid_bookings.json`.
-
-**Acceptance criteria:**
-
-- [ ] Create/update/get checkout round-trip `booking` fields.
-- [ ] JSON matches canonical schema field names (snake_case).
-
----
-
-### GH-042: ucpCreateCheckout wire to usp-impl
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `paid_bookings`
-
-**Description:**
-
-On create with `booking` extension per [§7.5 step 4](../specification.md#75-checkout-flow-and-atomicity-guarantee): call `CreatePendingBooking`, build Bookings ecom line item, return `ready_for_complete` with `booking_id` and `payment_handlers`. No separate `POST /bookings`.
-
-**Acceptance criteria:**
-
-- [ ] End-to-end create returns `status: ready_for_complete`, `booking.booking_status: pending`, `booking_id`.
-- [ ] `price_mismatch` recoverable message when catalog price diverges per [§7.4](../specification.md#74-paid-bookings-extension-schema).
-- [ ] Line item `item.price` matches catalog minor units.
-- [ ] Uses `STRIPE_AGENTIC_CHECKOUT` channel.
-
----
-
-### GH-043: Booking status mapping on checkout
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `paid_bookings`
-
-**Description:**
-
-Implement USP §7.5 derivation rules in `UcpMappers`; block ready when `actions_pending`.
-
-**Acceptance criteria:**
-
-- [ ] Status mapping unit tests for completed/canceled/in-progress cases.
-
----
-
-### GH-044: Atomic ucpCompleteCheckout with booking
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `demo`, `p0`
-
-**Description:**
-
-Booking-aware [§7.5 step 7](../specification.md#75-checkout-flow-and-atomicity-guarantee) `complete_checkout`: validate slot, charge SPT via `payment_handlers`, atomically mark checkout completed and finalize booking per atomicity guarantee.
-
-**Acceptance criteria:**
-
-- [ ] Success: `status: completed`, `order_id`, `booking.booking_status: confirmed` when `confirmation_mode: auto`.
-- [ ] Charge failure: booking stays `pending`; checkout returns UCP payment error; no partial confirm per [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee).
-- [ ] `slot_unavailable` if slot invalid at complete time; payment not processed.
-- [ ] Integration test with mocked usp-impl + Stripe.
-
----
-
-### GH-045: Atomic ucpCancelCheckout with booking
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`
-
-**Description:**
-
-Cancel checkout and pending booking together.
-
-**Acceptance criteria:**
-
-- [ ] After cancel, `booking_status: canceled`.
-
----
-
-### GH-046: Execution guard on complete_checkout
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-e`, `idempotency`
-
-**Description:**
-
-Prevent double charge on retried `complete_checkout` with same idempotency key.
-
-**Acceptance criteria:**
-
-- [ ] Duplicate complete returns same completed checkout without second charge.
-
----
-
-### GH-050: Payments platform SPT charge contract
-
-**Repo:** Wix Payments platform + `ecom`  
-**Labels:** `track-f`, `blocker`
-
-**Description:**
-
-Document and implement (or stub) API path for charging Stripe SPT via Cashier/PaymentService.
-
-**Acceptance criteria:**
-
-- [ ] Written contract with example `ChargeForOrderRequest`.
-- [ ] Test charge succeeds in Stripe test mode OR documented fallback approved.
-
----
-
-### GH-051: Stripe SptProviderAdapter
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-f`, `stripe`
-
-**Description:**
-
-New `PaymentProviderAdapter` for Stripe SPT following `GooglePayProviderAdapter` pattern.
-
-**Acceptance criteria:**
-
-- [ ] `canHandle`, `buildHandler`, `chargeForOrder` implemented.
-- [ ] Unit tests with mock PaymentService.
-
----
-
-### GH-052: Register SPT handler in profile
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-f`, `stripe`
-
-**Description:**
-
-Expose Stripe handler in `getCapabilities` and per-checkout `payment_handlers` for connected demo merchants.
-
-**Acceptance criteria:**
-
-- [ ] Demo merchant profile includes Stripe handler entry.
-- [ ] `resolvePaymentHandlers` returns handler on create/get checkout.
-
----
-
-### GH-053: Booking-aware payment orchestration
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-f`, `track-e`, `p0`
-
-**Description:**
-
-Reorder payment flow for bookings: validate, charge, then mark completed and finalize booking.
-
-**Acceptance criteria:**
-
-- [ ] No `ChargeFailedAfterCompletionException` with confirmed booking.
-- [ ] Documented sequence diagram in PR.
-
----
-
-### GH-054: SPT 3DS continue_url handling
-
-**Repo:** `wix-private/ecom`  
-**Labels:** `track-f`, `out-of-scope`, `ucp-conformance`
-
-**Description:**
-
-Map Stripe `requires_action` to UCP `requires_escalation` + `continue_url`; agent polls `get_checkout` after buyer handoff. **Out of scope for 2-week demo** — see [GH-098](#gh-098-ucp-conformance-gaps-out-of-scope). Demo uses non-3DS test cards.
-
-**Acceptance criteria (future sprint):**
-
-- [ ] Documented test card for 3DS path with trusted-UI handoff.
-- [ ] `requires_escalation` lifecycle aligned with UCP payment architecture.
-
----
-
-### GH-058: Platform UCP profile and UCP-Agent negotiation
-
-**Repo:** `yahalomran/linkusp-cli` / Link platform  
-**Labels:** `track-c`, `track-a`, `ucp-native`, `demo`
-
-**Description:**
-
-UCP requires platforms to advertise a **platform profile** on every UCP REST request via the `UCP-Agent` header and run the **capability intersection algorithm** (version match, extension pruning) against the business profile. GH-022 validates the business side only; this issue adds the platform side.
-
-Draft body: [`.github/issue-drafts/gh-058-platform-ucp-agent-negotiation.md`](../.github/issue-drafts/gh-058-platform-ucp-agent-negotiation.md).
-
-**Acceptance criteria:**
-
-- [ ] Platform hosts or references a canonical platform UCP profile URL (demo: config or static fixture).
-- [ ] All UCP checkout REST calls from Link/`linkusp-cli` send `UCP-Agent: profile="<platform_profile_url>"`.
-- [ ] Intersection helper: prune business capabilities/extensions not supported by platform profile; fail fast with actionable error before `create_checkout`.
-- [ ] Unit test with fixture business + platform profiles (mismatch and match cases).
-- [ ] Documented in GH-005 E2E flow.
-
-**Depends on:** GH-001, GH-022.
-
----
-
-### GH-059: Complete checkout signals
-
-**Repo:** `yahalomran/linkusp-cli`  
-**Labels:** `track-a`, `ucp-native`, `demo`
-
-**Description:**
-
-UCP `complete_checkout` accepts optional `signals` (e.g. `dev.ucp.buyer_ip`, `dev.ucp.user_agent`) for fraud/risk. Businesses may require them via recoverable `messages` with `code: signal`. Platform should populate signals when available.
-
-Draft body: [`.github/issue-drafts/gh-059-complete-checkout-signals.md`](../.github/issue-drafts/gh-059-complete-checkout-signals.md).
-
-**Acceptance criteria:**
-
-- [ ] `complete_checkout` request builder accepts and sends `signals` map when agent environment provides values.
-- [ ] Handle recoverable `messages` requesting missing signals (retry with signals populated).
-- [ ] Unit test: mock business requiring `dev.ucp.buyer_ip`.
-- [ ] GH-005 E2E sends at least one signal when running in networked environment.
-
-**Depends on:** GH-002, GH-004.
-
----
-
-### GH-060: Checkout totals and links validation
-
-**Repo:** `yahalomran/linkusp-cli`; `wix-private/wix-vmr-repo` (assertions)  
-**Labels:** `track-a`, `track-e`, `ucp-native`, `demo`
-
-**Description:**
-
-UCP checkout responses **MUST** include `totals` and `links` (legal/compliance). Plan acceptance criteria previously focused on `status`, `booking`, and order correlation only. Add validation on agent and merchant responses.
-
-Draft body: [`.github/issue-drafts/gh-060-checkout-totals-links-validation.md`](../.github/issue-drafts/gh-060-checkout-totals-links-validation.md).
-
-**Acceptance criteria:**
-
-- [ ] Agent validates `totals` and `links` present on `create_checkout` / `get_checkout` responses when `status` is `ready_for_complete` or `completed`.
-- [ ] `usp-impl` / `acp-checkout` responses include schema-valid `totals` and `links` (GH-042 integration test).
-- [ ] GH-005 assertions fail with clear message if missing.
-- [ ] Document which `links` types the demo merchant returns (terms, privacy, etc.).
-
-**Depends on:** GH-002, GH-042.
-
----
-
-### GH-061: Spec order.id vs order_id alignment
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `spec`, `ucp-native`, `demo`
-
-**Description:**
-
-UCP native complete-checkout shape exposes **`order.id`** inside an `order` object. USP §7.5 and webhooks use top-level **`order_id`** for correlation. Spec must document the mapping so adapters and agents do not assume root-level `order_id` on UCP responses.
-
-Draft body: [`.github/issue-drafts/gh-061-order-id-order-object-mapping.md`](../.github/issue-drafts/gh-061-order-id-order-object-mapping.md).
-
-**Acceptance criteria:**
-
-- [ ] [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) state: UCP returns `order.id`; USP/webhook field `order_id` **SHOULD** equal that value.
-- [ ] Example JSON in §7.4/§7.5 shows both UCP `order` object and USP `order_id` alias where applicable.
-- [ ] No contradiction with `[schemas/paid_bookings.json](../schemas/paid_bookings.json)` checkout extension examples.
-- [ ] Plan step 20 table references this normative text.
-
-**Depends on:** None (spec-only; implementers follow after merge).
-
----
-
-### GH-062: Spec payment_handlers and available_instruments
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `spec`, `ucp-native`, `demo`
-
-**Description:**
-
-Current UCP payment architecture uses reverse-domain keys with **arrays** of handler objects (`id`, `version`, `config`, `available_instruments`). USP §7 examples simplify handler shape. Align spec with UCP and document that checkout response `payment_handlers` is authoritative for instrument resolution.
-
-Draft body: [`.github/issue-drafts/gh-062-payment-handlers-available-instruments.md`](../.github/issue-drafts/gh-062-payment-handlers-available-instruments.md).
-
-**Acceptance criteria:**
-
-- [ ] §7.2 / §7.4 profile and checkout examples use UCP-conformant `payment_handlers` structure (or explicit USP subset with normative mapping table).
-- [ ] Document `available_instruments` resolution: platform **MUST** use instruments from checkout response when present.
-- [ ] Cross-reference [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
-- [ ] GH-052 demo merchant profile updated to match spec text.
-
-**Depends on:** GH-040 (examples must match merged spec).
-
----
-
-### GH-063: Spec UCP profile capability spec/schema requirements
-
-**Repo:** `kobym707/universal-scheduling-protocol`  
-**Labels:** `spec`, `ucp-native`, `demo`
-
-**Description:**
-
-UCP profile requires **`spec`** and **`schema`** URLs on every capability declaration. USP §7.2 examples sometimes omit them on `dev.ucp.shopping.checkout`. Update normative requirements and examples.
-
-Draft body: [`.github/issue-drafts/gh-063-profile-capability-spec-schema.md`](../.github/issue-drafts/gh-063-profile-capability-spec-schema.md).
-
-**Acceptance criteria:**
-
-- [ ] §7.2 **MUST** require `spec` + `schema` on each capability entry in `/.well-known/ucp`.
-- [ ] All §7 examples and GH-040 fixture profiles include valid URLs for `dev.ucp.shopping.checkout`, `dev.usp.services.*` capabilities.
-- [ ] GH-012 registry validation note: unreachable `spec`/`schema` URLs are registration warnings (optional).
-- [ ] GH-022 negotiation rejects capabilities missing required metadata.
-
-**Depends on:** GH-040.
-
----
-
-### GH-064: UCP protocol and capability version negotiation
-
-**Repo:** `yahalomran/linkusp-cli` / Link platform  
-**Labels:** `track-c`, `track-a`, `ucp-native`, `demo`
-
-**Description:**
-
-Replace fixed date literals (e.g. `2026-01-11`) in examples and client code with **runtime version intersection** between platform and business profiles per UCP versioning rules.
-
-Draft body: [`.github/issue-drafts/gh-064-ucp-version-negotiation.md`](../.github/issue-drafts/gh-064-ucp-version-negotiation.md).
-
-**Acceptance criteria:**
-
-- [ ] Version intersection helper selects highest mutually supported protocol + capability versions.
-- [ ] UCP REST requests include negotiated version headers/fields per UCP binding (not hardcoded demo date).
-- [ ] Fail fast when business requires a capability version the platform does not support.
-- [ ] Unit tests: platform older/newer than business; extension version mismatch.
-- [ ] Plan examples updated to say "negotiated version" where a fixed date appeared.
-
-**Depends on:** GH-058, GH-022.
-
----
-
-### GH-098: UCP conformance gaps (out of scope)
-
-**Repo:** `kobym707/universal-scheduling-protocol` (tracking); work spans Link, Wix, spec  
-**Labels:** `out-of-scope`, `ucp-conformance`, `future`
-
-**Description:**
-
-Rollup of UCP conformance gaps **explicitly excluded** from the 2-week UCP-Native demo. In-scope demo gaps are G-28–G-34 / GH-058–GH-064.
-
-Draft body: [`.github/issue-drafts/gh-098-ucp-conformance-gaps.md`](../.github/issue-drafts/gh-098-ucp-conformance-gaps.md).
-
-**Tracked gaps (summary):**
-
-| # | Topic | Notes |
-| --- | --- | --- |
-| 2 | Auth / identity / consent | GH-023 demo stub only; full OAuth/scopes deferred |
-| 3 | Trusted UI / agent handoff | Agent-driven demo vs UCP platform trusted-UI guideline |
-| 10 | 3DS / `requires_escalation` | GH-054; non-3DS cards in demo |
-| 11 | Full UCP surface | Order capability, fulfillment, AP2, MCP/A2A, mixed cart |
-| + | HTTP message signatures on UCP REST | When profile mandates beyond webhook signing |
-| + | Eligibility / mandate extensions | Not needed for single-service demo |
-
-**Acceptance criteria:**
-
-- [ ] Issue body lists each gap with spec reference and suggested future GH split.
-- [ ] Plan [Out of scope — future version](#out-of-scope--future-version) links here.
-- [ ] No demo Definition of Done item blocked on this issue.
-
-**Note:** **Not required for UCP-Native demo.** File for post-demo UCP hardening backlog.
-
----
-
-### GH-055: Registry capability and payment search filters
-
-**Repo:** `kobym707/universal-scheduling-protocol` (spec + reference registry); `yahalomran/linkusp-cli` (consumer)  
-**Labels:** `track-b`, `track-c`, `registry`, `future`, `out-of-scope`
-
-**Description:**
-
-Allow AI platforms to filter registry **business** and **service** search by indexed business-specific aspects from the live UCP/USP profile, so consumers can narrow results before per-merchant `GET {profile_url}` (e.g. UCP-Native only, `paid_bookings` present, Stripe SPT via `payment_handlers` / `supports_spt`).
-
-**Scope:**
-
-1. **Spec and schema** — Extend USP §6 and `[schemas/registry.json](../schemas/registry.json)`:
-  - Add searchable/indexed fields on `RegistryEntry` (and optionally on `ServiceSearchResult.business`): capability IDs, `payment_handlers` handler IDs, derived booleans (`supports_spt`, `supports_paid_bookings`, etc.).
-  - Add matching filters to `BusinessSearchRequest` and `ServiceSearchRequest` (including `deployment_mode` on service search for parity with business search).
-  - Document staleness: indexed data is a snapshot; booking-time decisions still require live profile per §6.3.
-2. **Registry implementation** — On register/update and scheduled re-index:
-  - `GET {profile_url}` and extract capabilities + `payment_handlers`.
-  - Persist `profile_indexed_at` / `last_validated_at`; refresh on catalog feed or poll.
-  - Re-validate on registration when indexed claims must match reachable profile.
-3. **Platform consumer (linkusp)** — Query parameters / client helpers to pass new filters on `search_business` and `search_services` when [GH-055](#gh-055-registry-capability-and-payment-search-filters) is implemented (no client-side post-filter fallback).
-
-**Acceptance criteria:**
-
-- [ ] `search_business` and `search_services` accept filters for `deployment_mode`, at least one capability ID, and `supports_spt` (or equivalent `payment_handlers` handler ID).
-- [ ] Registration with `deployment_mode: ucp_native` indexes Stripe handler when present in profile `payment_handlers`.
-- [ ] Service search returns only hits whose indexed business satisfies filters (or documents best-effort semantics).
-- [ ] Spec states indexed fields are non-authoritative; live `GET profile_url` required before checkout.
-- [ ] Integration test: register UCP-Native merchant with Stripe handler; `search_services` with `supports_spt: true` returns demo service; standalone-only merchant excluded.
-
-**Depends on:** GH-010, GH-011, GH-012 (baseline registry). **Out of scope for 2-week UCP-Native demo.**
-
----
-
-### GH-056: usp-impl booking.confirmed webhook
-
-**Repo:** `wix-private/wix-vmr-repo`  
-**Labels:** `track-d`, `usp-impl`, `webhooks`, `demo`
-
-**Description:**
-
-After UCP-Native paid checkout confirms a booking ([GH-032](#gh-032-usp-impl-finalizebookingonpayment-rpc)), emit `**booking.confirmed`** per [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks). Payload per `[schemas/webhook_event.json](../schemas/webhook_event.json)`; **SHOULD** include `order_id` for UCP correlation.
-
-**Acceptance criteria:**
-
-- [ ] POST signed webhook to `USP_DEMO_PLATFORM_WEBHOOK_URL` (demo) after auto-confirm.
-- [ ] Payload includes `event`, `event_id`, `booking_id`, `order_id`, `timestamp`.
-- [ ] RFC 9421 signature; business UCP profile exposes `signing_keys`.
-- [ ] Async delivery (not blocking `complete_checkout` response); retry per [§9.2.3](../specification.md#923-webhook-notifications).
-- [ ] Unit/integration test with mock HTTP callback.
-
----
-
-### GH-057: Link platform booking webhook receiver
-
-**Repo:** `yahalomran/linkusp-cli` / Link platform  
-**Labels:** `track-c`, `track-a`, `webhooks`, `demo`
-
-**Description:**
-
-Platform-side receiver for `**booking.confirmed`** per [§7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee). Verifies signature, correlates `order_id` with completed checkout, supports GH-005 E2E.
-
-**Acceptance criteria:**
-
-- [ ] Minimal webhook HTTP server; `--webhook-callback` or auto-bound local URL.
-- [ ] Verifies RFC 9421 signature using business profile `signing_keys`.
-- [ ] Idempotent on `event_id`; returns 2xx within 10 seconds.
-- [ ] `wait_for_booking_confirmed(booking_id, order_id, timeout)` API for E2E.
-- [ ] Integration test with GH-056 mock/staging merchant.
-
----
-
-### GH-099: usp-impl merchant checkout return relay (Standalone only)
-
-**Repo:** `wix-private/wix-vmr-repo`  
-**Labels:** `standalone`, `out-of-scope`
-
-**Description:**
-
-Standalone redirect checkout return relay for arbitrary agent domains. Draft body: `[.github/issue-drafts/usp-impl-checkout-return-relay-body.md](../.github/issue-drafts/usp-impl-checkout-return-relay-body.md)`.
-
-**Note:** **Not required for UCP-Native demo.** File only if Standalone redirect work resumes.
-
----
 
 ## References
 
