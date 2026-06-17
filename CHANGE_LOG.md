@@ -1,5 +1,27 @@
 # Change Log
 
+## 17/06/26 at 08:58:31 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Pointed every `#54`–`#59` reference in `plans/usp-registry-design-plan.md` at canonical GitHub issue URLs on `wix-private/universal-scheduling-protocol-spec` so links work from forks, exports, and readers who are not already in the spec repo tree
+- Confirmed via the API that those five issues still match the plan topics (categories, registry discovery, `signing_key` requirement, registration auth, search filter semantics); issue numbers needed no correction
+- Posted the same short cross-reference comment on each of #54, #55, #56, #58, and #59 so the tickets link back to Part 1 §1.10 of the design plan on `main`
+
+---
+
+## 16/06/26 at 17:54:50 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added a table of contents and cross-reference hyperlinks throughout `plans/usp-registry-design-plan.md` so readers can navigate between Part 1/2/3 sections, the decision log, and phasing phases without scrolling
+- Linked registry design sections to normative repo artifacts (`specification.md` §6/§3/§9/§10, `schemas/registry.json`, OpenAPI/OpenRPC bindings, site docs) and external references (UCP profile, RFC 9421/9457) so protocol gaps and implementation choices trace back to source material
+
+---
+
+## 16/06/26 at 17:19:23 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Triaged GitHub issues in `wix-private/universal-scheduling-protocol-spec`: closed [#53](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/53) as duplicate of [#103](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) (GH-099), assigned `maoryeh` to #103 with `track-d`/`usp-impl` labels, closed [#19](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/19) as superseded by sprint Track C #71-#75, labeled all 24 previously unscoped open issues with `v>1` plus component labels (`spec`, `usp-impl`, `registry`, `standalone`, `bug`, `question`), and added `out-of-scope` to #51
+- Renamed scope label references from `v > 1` to `v>1` in `plans/USP+UCP_implementation_plan.md` and `scripts/update_plan_issues.py` to match the renamed GitHub label
+
+---
+
 ## 14/06/26 at 15:22:07 by [maorye](mailto:maorye@wix.com)
 
 - Added `docs/usp-registry-design-plan.md` — the design plan for the USP discovery registry (`dev.usp.discovery.registry`, §6). Organized in three parts: vendor-neutral protocol-level design (operations, wire model, ownership handshake, ingestion contract, filter semantics), the Wix implementation (Vespa/vFeed/vSearch, projection, ingestion/auth/search), and phasing (Phase 1 demo = no auth + registration + push-only service ingestion + business/service search, then auth, conformant pull+subscription ingestion, MCP, Wix onboarding, hybrid ranking). Includes Mermaid flow diagrams and a decision log scoped Protocol-vs-Impl. Placed in the spec repo so the registry design is reviewed in context alongside the related spec issues (#54/#55/#56/#58/#59) it surfaced.
