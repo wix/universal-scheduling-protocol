@@ -11,7 +11,7 @@
 - **One developer per task**; unlimited developers; work proceeds in **parallel tracks** wherever dependencies allow.
 - Demo scope excludes **holds**, **mixed cart**, and `**dev.ucp.shopping.order`**.
 - **Link platform and USP registry are independent ecosystem components** (see [§2.1](#21-usp-ecosystem-link-platform-vs-registry)).
-- **Central issue tracking:** All sprint work items are filed in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec) (label `v1` = in-scope demo; label `v > 1` = post-demo). Implementation may land in other repos per issue body.
+- **Central issue tracking:** All sprint work items are filed in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec) (label `v1` = in-scope demo; label `v>1` = post-demo). Implementation may land in other repos per issue body.
 
 **Repos:**
 
@@ -1765,7 +1765,7 @@ Includes (non-exhaustive):
 
 ## GitHub issues
 
-All work items are tracked in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec). In-scope demo issues carry label `v1`; post-demo issues carry `v > 1`.
+All work items are tracked in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec). In-scope demo issues carry label `v1`; post-demo issues carry `v>1`.
 
 | Plan ID | Issue | Scope |
 | ------- | ----- | ----- |
@@ -1800,8 +1800,8 @@ All work items are tracked in [wix-private/universal-scheduling-protocol-spec](h
 | [GH-051](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88) | [#88 Stripe SptProviderAdapter](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88) | v1 |
 | [GH-052](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) | [#89 Register SPT handler in profile](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) | v1 |
 | [GH-053](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | [#90 Booking-aware payment orchestration](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | v1 |
-| [GH-054](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | [#93 SPT 3DS continue_url handling](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | v > 1 |
-| [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | [#94 Registry capability and payment search filters](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | v > 1 |
+| [GH-054](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | [#93 SPT 3DS continue_url handling](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | v>1 |
+| [GH-055](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | [#94 Registry capability and payment search filters](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | v>1 |
 | [GH-056](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | [#91 usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | v1 |
 | [GH-057](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [#92 Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | v1 |
 | [GH-058](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | [#95 Platform UCP profile and UCP-Agent negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | v1 |
@@ -1811,8 +1811,8 @@ All work items are tracked in [wix-private/universal-scheduling-protocol-spec](h
 | [GH-062](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) | [#99 Spec payment_handlers and available_instruments](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) | v1 |
 | [GH-063](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100) | [#100 Spec UCP profile capability spec/schema requirements](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100) | v1 |
 | [GH-064](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | [#101 UCP protocol and capability version negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | v1 |
-| [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | [#102 UCP conformance gaps (out of scope)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | v > 1 |
-| [GH-099](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | [#103 usp-impl merchant checkout return relay (Standalone only)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | v > 1 |
+| [GH-098](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | [#102 UCP conformance gaps (out of scope)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102) | v>1 |
+| [GH-099](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | [#103 usp-impl merchant checkout return relay (Standalone only)](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) | v>1 |
 
 
 ## References
