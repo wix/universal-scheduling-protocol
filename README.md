@@ -38,15 +38,15 @@ USP solves this with core support for **appointments**, **group sessions**, **re
 
 ### Implementer Quick Start
 
-Everyone starts with the **domain core (Sections 1-5)** - these define the 
-scheduling capabilities shared by both modes. After the domain core, read the 
-section for your deployment mode (6 or 7) according to the following table, then 
-shared infrastructure (8-9), and optionally extensions (10).
+Everyone starts with the **domain core (Sections 1-5)** - these define the
+scheduling capabilities shared by both modes. After the domain core, read the
+section for your deployment mode (7 or 8) according to the following table, then
+shared infrastructure (9-10), and optionally extensions (11).
 
 | If your platform...  | Choose              | Mode section                                    |
 |----------------------|---------------------|-------------------------------------------------|
-| Already supports UCP | **UCP-Native Mode** | [Section 6](specification.md#6-ucp-native-mode) |
-| Does not support UCP | **Standalone Mode** | [Section 7](specification.md#7-standalone-mode) |
+| Already supports UCP | **UCP-Native Mode** | [Section 7](specification.md#7-ucp-native-mode) |
+| Does not support UCP | **Standalone Mode** | [Section 8](specification.md#8-standalone-mode) |
 
 ```mermaid
 graph TD
@@ -57,51 +57,57 @@ graph TD
         S4 --> S5["5. Booking Lifecycle"]
     end
 
+    subgraph optional [Optional]
+        S6["6. Discovery Registry"]
+    end
+
     subgraph ucpPath [UCP-Native Mode]
-        S6["6. UCP-Native Mode"]
+        S7["7. UCP-Native Mode"]
     end
 
     subgraph standalonePath [Standalone Mode]
-        S7["7. Standalone Mode"]
+        S8["8. Standalone Mode"]
     end
 
     subgraph shared [Shared Infrastructure]
-        S8["8. Transport Bindings"]
-        S8 --> S9["9. Security"]
+        S9["9. Transport Bindings"]
+        S9 --> S10["10. Security"]
     end
 
     subgraph extensions [Extensions]
-        S10["10. Extensions"]
+        S11["11. Extensions"]
     end
 
     subgraph appendices [Appendices]
-        S11["11. Operation Reference"]
-        S11 --> S12["12. IANA"]
-        S12 --> S13["13. References"]
+        S12["12. Operation Reference"]
+        S12 --> S13["13. IANA"]
+        S13 --> S14["14. References"]
     end
 
-    S5 --> S6
     S5 --> S7
-    S6 --> S8
-    S7 --> S8
-    S9 --> S10
+    S5 --> S8
+    S5 -.-> S6
+    S7 --> S9
+    S8 --> S9
     S10 --> S11
+    S11 --> S12
 ```
 
-For detailed step-by-step implementation stages for each deployment mode, see 
-[Section 1.5: Deployment Modes and Implementation Guide](specification.md#15-deployment-modes-and-implementation-guide) in the specification.
+For detailed step-by-step implementation stages for each deployment mode, see
+[Section 1.5: Deployment Modes](specification.md#15-deployment-modes) in the specification.
 
 ### Capabilities
 
-USP defines three core capabilities and optional extensions:
+USP defines three core scheduling capabilities, optional registry and payment modules, and extensions:
 
 | Capability | Namespace | Mode | Section |
 |------------|-----------|------|---------|
 | Service Catalog | `dev.usp.services.catalog` | Both | [Section 3](specification.md#3-service-catalog) |
 | Availability | `dev.usp.services.availability` | Both | [Section 4](specification.md#4-availability) |
 | Bookings | `dev.usp.services.bookings` | Both | [Section 5](specification.md#5-booking-lifecycle) |
-| Paid Bookings | `dev.usp.services.paid_bookings` | UCP-Native only | [Section 6.4](specification.md#64-paid-bookings-extension-schema) |
-| Waitlist | `dev.usp.services.waitlist` | Both (extension) | [Section 10.1](specification.md#101-waitlist-extension) |
+| Discovery Registry | `dev.usp.discovery.registry` | Both (optional) | [Section 6](specification.md#6-discovery-registry-optional) |
+| Paid Bookings | `dev.usp.services.paid_bookings` | UCP-Native only | [Section 7.4](specification.md#74-paid-bookings-extension-schema) |
+| Waitlist | `dev.usp.services.waitlist` | Both (extension) | [Section 11.1](specification.md#111-waitlist-extension) |
 
 **Core capabilities** (catalog, availability, bookings) handle the full scheduling lifecycle and are shared across both deployment modes.
 
@@ -109,7 +115,7 @@ USP defines three core capabilities and optional extensions:
 
 ### Transport Bindings
 
-USP supports multiple transport bindings. See [Section 8](specification.md#8-transport-bindings) of the specification.
+USP supports multiple transport bindings. See [Section 9](specification.md#9-transport-bindings) of the specification.
 
 | Binding | Description |
 |---------|-------------|
@@ -134,7 +140,7 @@ USP's payment handling depends on the deployment mode:
 
 | Artifact | Path | Description |
 |----------|------|-------------|
-| JSON Schemas | `schemas/services/` | `catalog.json`, `availability.json`, `booking.json`, `paid_bookings.json`, `waitlist.json` |
+| JSON Schemas | `schemas/` | `catalog.json`, `availability.json`, `booking.json`, `paid_bookings.json`, `waitlist.json`, `registry.json`, `profile.json`, `usp.json`, `webhook_event.json`, `rest_common.json`, `acp_booking_extension.json`, `calendar_freebusy.json` |
 | OpenAPI Spec | `openapi/usp-rest.json` | OpenAPI 3.1.0 for all REST operations |
 | OpenRPC Spec | `openrpc/usp-mcp.json` | OpenRPC for all MCP methods |
 
@@ -144,13 +150,13 @@ USP references IETF standards directly for all cross-cutting infrastructure:
 
 | Concern | Standard | Section |
 |---------|----------|---------|
-| Discovery | RFC 8615 (Well-Known URIs) | [Section 7.2](specification.md#72-business-profile-well-knownusp) (Standalone) |
-| Error model | RFC 9457 (Problem Details for HTTP APIs) | [Section 8.1](specification.md#81-rest-binding) |
-| Authorization | RFC 6749 (OAuth 2.0), RFC 9449 (DPoP) | [Section 9.2.3](specification.md#923-authentication-and-authorization) (Standalone) |
-| Transport security | RFC 8446 (TLS 1.3), RFC 9110 (HTTP Semantics) | [Section 8.6](specification.md#86-transport-infrastructure-for-standalone-mode) (Standalone) |
-| Idempotency | draft-ietf-httpapi-idempotency-key-header | [Section 8.1.1](specification.md#811-idempotency) |
-| Webhook verification | RFC 9421 (HTTP Message Signatures) | [Section 9.1.1](specification.md#911-webhook-security) |
-| Rate limiting | draft-ietf-httpapi-ratelimit-headers | [Section 9.2.2](specification.md#922-rate-limiting) (Standalone) |
+| Discovery | RFC 8615 (Well-Known URIs) | [Section 8.2](specification.md#82-business-profile-well-knownusp) (Standalone) |
+| Error model | RFC 9457 (Problem Details for HTTP APIs) | [Section 9.1](specification.md#91-rest-binding) |
+| Authorization | RFC 6749 (OAuth 2.0), RFC 9449 (DPoP) | [Section 10.2.3](specification.md#1023-authentication-and-authorization) (Standalone) |
+| Transport security | RFC 8446 (TLS 1.3), RFC 9110 (HTTP Semantics) | [Section 10.2.1](specification.md#1021-transport-security) (Standalone) |
+| Idempotency | draft-ietf-httpapi-idempotency-key-header | [Section 9.1.1](specification.md#911-idempotency) |
+| Webhook verification | RFC 9421 (HTTP Message Signatures) | [Section 10.1.1](specification.md#1011-webhook-security) |
+| Rate limiting | draft-ietf-httpapi-ratelimit-headers | [Section 10.2.2](specification.md#1022-rate-limiting) (Standalone) |
 
 ## Key Design Principles
 

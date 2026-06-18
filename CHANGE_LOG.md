@@ -1,5 +1,12 @@
 # Change Log
 
+## 18/06/26 at 23:49:03 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Brought `README.md` in line with the current specification outline (domain core through optional Section 6 Discovery Registry, Sections 7-8 deployment modes, 9-10 infrastructure, 11 extensions, 12-14 appendices), updated internal links, cross-cutting RFC section pointers, the machine-readable artifacts path (`schemas/` plus the full current schema file list), and the Mermaid implementer diagram, because those details had drifted after Section 6 and later renumbering landed on `main`.
+- Expanded `specification.md` Section 1 Introduction with the narrative from [wix-private/universal-scheduling-protocol-spec PR #38](https://github.com/wix-private/universal-scheduling-protocol-spec/pull/38) (problem framing, agentic design call-outs, protocol structure overview) while citing existing informative references and avoiding ambiguous punctuation, so first-time readers get the same motivation without reviving a stale merge branch.
+
+---
+
 ## 17/06/26 at 17:22:24 by [maorye](mailto:maorye@wix.com)
 
 - Updated `plans/usp-registry-design-plan.md` — the design plan for the USP discovery registry (`dev.usp.discovery.registry`, §6). Organized in three parts: vendor-neutral protocol-level design (operations, wire model, ownership handshake, ingestion contract, filter semantics), the Wix implementation (Vespa/vFeed/vSearch, projection, ingestion/auth/search), and phasing (Phase 1 demo = no auth + registration + push-only service ingestion + business/service search, then auth, conformant pull+subscription ingestion, MCP, Wix onboarding, hybrid ranking). Includes Mermaid flow diagrams and a decision log scoped Protocol-vs-Impl. Merged the latest design content onto the existing `plans/` version (keeping its table of contents, cross-reference hyperlinks, and canonical issue URLs) and removed the earlier `docs/` copy so the plan lives only under `plans/`.
