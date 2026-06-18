@@ -1,5 +1,12 @@
 # Change Log
 
+## 17/06/26 at 17:22:24 by [maorye](mailto:maorye@wix.com)
+
+- Updated `plans/usp-registry-design-plan.md` — the design plan for the USP discovery registry (`dev.usp.discovery.registry`, §6). Organized in three parts: vendor-neutral protocol-level design (operations, wire model, ownership handshake, ingestion contract, filter semantics), the Wix implementation (Vespa/vFeed/vSearch, projection, ingestion/auth/search), and phasing (Phase 1 demo = no auth + registration + push-only service ingestion + business/service search, then auth, conformant pull+subscription ingestion, MCP, Wix onboarding, hybrid ranking). Includes Mermaid flow diagrams and a decision log scoped Protocol-vs-Impl. Merged the latest design content onto the existing `plans/` version (keeping its table of contents, cross-reference hyperlinks, and canonical issue URLs) and removed the earlier `docs/` copy so the plan lives only under `plans/`.
+- Per PR #57 review: the catalog `availability_hint` (§3.6) is **indexed and searched against** by the registry as a ranking/recall signal but is **not** returned in `ServiceSearchResult` and is **never** a hard filter — so it is an implementation choice only, requiring no spec or schema change (the source field already exists on catalog `Service`). Recorded the trust & anti-abuse concerns (legitimacy verification, Sybil/registry-pollution — issue #106) and the marketplace/aggregator-relay federation case (folded into #55) raised in review.
+
+---
+
 ## 17/06/26 at 08:58:31 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Pointed every `#54`–`#59` reference in `plans/usp-registry-design-plan.md` at canonical GitHub issue URLs on `wix-private/universal-scheduling-protocol-spec` so links work from forks, exports, and readers who are not already in the spec repo tree
@@ -19,12 +26,6 @@
 
 - Triaged GitHub issues in `wix-private/universal-scheduling-protocol-spec`: closed [#53](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/53) as duplicate of [#103](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/103) (GH-099), assigned `maoryeh` to #103 with `track-d`/`usp-impl` labels, closed [#19](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/19) as superseded by sprint Track C #71-#75, labeled all 24 previously unscoped open issues with `v>1` plus component labels (`spec`, `usp-impl`, `registry`, `standalone`, `bug`, `question`), and added `out-of-scope` to #51
 - Renamed scope label references from `v > 1` to `v>1` in `plans/USP+UCP_implementation_plan.md` and `scripts/update_plan_issues.py` to match the renamed GitHub label
-
----
-
-## 14/06/26 at 15:22:07 by [maorye](mailto:maorye@wix.com)
-
-- Added `docs/usp-registry-design-plan.md` — the design plan for the USP discovery registry (`dev.usp.discovery.registry`, §6). Organized in three parts: vendor-neutral protocol-level design (operations, wire model, ownership handshake, ingestion contract, filter semantics), the Wix implementation (Vespa/vFeed/vSearch, projection, ingestion/auth/search), and phasing (Phase 1 demo = no auth + registration + push-only service ingestion + business/service search, then auth, conformant pull+subscription ingestion, MCP, Wix onboarding, hybrid ranking). Includes Mermaid flow diagrams and a decision log scoped Protocol-vs-Impl. Placed in the spec repo so the registry design is reviewed in context alongside the related spec issues (#54/#55/#56/#58/#59) it surfaced.
 
 ---
 
