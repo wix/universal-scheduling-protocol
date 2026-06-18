@@ -173,15 +173,77 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 The Universal Scheduling Protocol (USP) is an open standard that enables
 consumer platforms and AI agents to **discover**, **check availability of**, and
-**book** time-based services from businesses.
+**book** time-based services from businesses, covering appointments, group
+sessions, reservations, and rentals across any commerce-enabled vertical.
 
-USP defines the complete scheduling domain - service catalog, availability,
-holds, and bookings - with two deployment modes: UCP-Native
-Mode ([Section 7](#7-ucp-native-mode)) for platforms using the Universal
-Commerce Protocol, and Standalone Mode ([Section 8](#8-standalone-mode)) for
-self-contained deployments. Cross-cutting concerns (security, authorization,
-error format, idempotency, webhook verification) reference IETF standards
-directly.
+**The problem.** Today's scheduling landscape is fragmented. iCalendar
+([RFC 5545]) and CalDAV Scheduling ([RFC 6638]) handle calendar data
+sharing within organizations. [OpenActive](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) covers activity bookings for physical
+sports. [schema.org/Service](https://schema.org/Service) models services for search engine indexing. None of them
+provide a complete, interoperable path from service discovery through booking
+and payment that works *across* organizations and commerce protocols. The gaps
+are consistent:
+
+- **Discovery**: no standard way for a platform to ask what services a business offers, what their pricing and policies are, and when they are roughly available for scheduling.
+- **Real-time availability**: no standard slot query API that returns specific bookable windows with assigned resources, capacity state, and hold support.
+- **Booking lifecycle**: no unified create/confirm/reschedule/cancel model with webhooks and idempotency guarantees that works across platforms.
+- **Payment coordination**: no flexible handoff model that works whether payment is free, redirect-based, or handled by an atomic commerce protocol.
+- **Buyer context**: no mechanism for passing the buyer's own calendar commitments so that only non-conflicting slots are surfaced.
+
+USP closes all five gaps in a single, cohesive protocol.
+
+**Designed for agentic scheduling.** A growing share of scheduling interactions
+are initiated and orchestrated by AI agents acting autonomously on behalf of
+buyers, rather than humans clicking through UIs. USP is built from the ground up
+for this model. Several features exist specifically to make agents effective:
+
+*Availability hints* ([Section 3.6](#36-availability-hint)). Before issuing a
+real-time slot query, an agent needs to know *when* it is productive to ask.
+Each service carries an `availability_hint`, a machine-readable signal with the
+next likely available window, a schedule pattern, and a staleness TTL. Agents
+use this to skip empty date ranges and query only windows that are likely to
+contain open slots, avoiding wasted API calls on dead periods.
+
+*Buyer free/busy* ([Section 11.2](#112-buyer-calendar-freebusy-extension)). When
+a platform knows the buyer's existing calendar commitments, it can pass them as a
+`BuyerFreeBusy` object, a merged, anonymized list of opaque busy blocks across
+calendar providers. The business pre-filters its availability response to exclude
+slots that conflict with the buyer's schedule, so the agent only presents times
+that actually work for the buyer.
+
+*Slot-per-resource model* ([Section 4.1](#41-time-slot)). A slot returned from
+an availability query is a fully self-contained booking token: it encodes both
+the time window *and* the assigned resource (for example, a specific stylist or room).
+If three stylists are free at 3 pm, the business returns three separate slots,
+one per stylist. Picking a slot picks both the time and the resource in a single
+step, eliminating the race condition between resource selection and booking
+creation.
+
+*Checkout modes* ([Section 7](#7-ucp-native-mode), [Section 8](#8-standalone-mode)).
+USP does not prescribe a payment system. It defines two deployment paths.
+**UCP-Native Mode** is for platforms that already use the Universal Commerce
+Protocol: scheduling capabilities register directly in the UCP profile and
+payment is handled atomically by UCP's checkout. **Standalone Mode** is for
+self-contained deployments: the business surfaces a `payment_context` object
+that platforms hand off to any checkout system, with redirect and ACP extension
+variants also available. Free services skip payment entirely in both modes.
+
+*Human escalation via actions* ([Section 5.2](#52-booking-schema)). When an
+agent cannot complete a step autonomously, for example, when a business requires
+a signed consent form or intake questionnaire before confirming, the booking
+enters `requires_action` status. Each action carries a `continue_url` the agent
+can hand to a human for out-of-band completion. Once resolved, the booking flow
+resumes programmatically.
+
+**Protocol structure.** USP defines the scheduling domain, service catalog,
+availability, holds, and bookings, as the shared domain core (Sections 1-5),
+applicable to both deployment modes. The mode sections (Section 7 UCP-Native, Section 8
+Standalone) cover discovery, payment, and infrastructure specific to each path.
+An optional Discovery Registry (Section 6) solves the cold-start problem of finding
+USP-enabled businesses. Transport, security, errors, and idempotency are covered
+in Sections 9-10, referencing IETF standards directly. Extensions (Section 11) add
+vertical-specific capabilities such as waitlist management and buyer calendar
+integration.
 
 The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this
 document are to be interpreted as described in [RFC 2119] and [RFC 8174]. These
