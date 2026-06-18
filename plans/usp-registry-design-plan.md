@@ -108,7 +108,9 @@ Fixed by [`schemas/registry.json`](../schemas/registry.json). A registry stores 
   `status` {active|inactive}, `created_at`. Source = the **registration body** ([`RegistrationRequest`](../schemas/registry.json#/$defs/RegistrationRequest)).
 - **[`ServiceSearchResult`](../schemas/registry.json#/$defs/ServiceSearchResult)** (service): `service_id`, `service_name`, `business{id,profile_url,deployment_mode,name}`,
   `category`, `duration_minutes?`, `pricing` (full catalog [`Pricing`](../schemas/catalog.json#/$defs/Pricing), by `$ref`), `location?`, `timezone`,
-  `last_indexed_at?`. Source = the business's **catalog feed**, reduced to this thin shape.
+  `last_indexed_at?`. Source = the business's **catalog feed**, reduced to this thin shape. (The wire shape is
+  unchanged — no spec/schema change. The catalog's `availability_hint` is *indexed and searched against* by our
+  registry but is **not** returned in `ServiceSearchResult`; see Part 2 [§2.3](#23-two-vespa-doc-types)/[§2.4](#24-projection-rules-catalog-service-servicesd).)
 
 The service shape is a deliberate **thin snapshot** — name/category/price/duration/location, enough to *match*
 and *rank*. Everything needed to *transact* (policies, capacity, resources, live availability, current price)
@@ -185,6 +187,10 @@ Filters are **hard constraints** (a yes/no contract clients reason about); `quer
 - `duration_range` — interval **overlap** (a range service matches if its offered interval overlaps the filter);
   duration-less services are excluded from duration filters but shown when none is set ([D6](#appendix-decision-log)).
 - `verticals[]` / `categories[]` — OR within a field (match any).
+- **Availability is deliberately NOT a filter.** `ServiceSearchRequest` has no time-window field, and the
+  projected `availability_hint` is approximate + time-decaying — using it to exclude results would false-negative
+  (hide services that still have slots). It is a **ranking/recall signal only** (semantic match on `summary`,
+  soft nudge on `next_available_date`); real availability is narrowed live at booking.
 - A request **MUST** carry ≥1 real filter, else `validation_error`; zero matches → **HTTP 200 + empty array**
   (never an error).
 
@@ -216,10 +222,13 @@ Post-discovery booking uses [USP §4 Availability](../specification.md#4-availab
 Dogfooding output — building the registry against the spec revealed these protocol-level questions/gaps:
 
 - **[#54](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/54)** — multi-taxonomy `categories[]` on catalog [`Service`](../schemas/catalog.json#/$defs/Service): needed, or is one flat category enough? (See [§2.4](#24-projection-rules-catalog-service-servicesd), [D9](#appendix-decision-log), [O7](#open-need-a-call-later).)
-- **[#55](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/55)** — registry **discovery / federation** is undefined: how do clients find registries; one canonical vs many? (Relates to [USP §6.7](../specification.md#67-registry-governance).)
+- **[#55](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/55)** — registry **discovery / federation** is undefined: how do clients find registries; one canonical vs many? (Relates to [USP §6.7](../specification.md#67-registry-governance).) Includes the **marketplace/aggregator relay** case — a SaaS platform registers once and the registry fans out / merges its hosted catalog rather than indexing each provider.
 - **[#56](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/56)** — should registration **require** a published `signing_key`? (See [§1.5](#15-registration-ownership-proof-the-handshake), [O15](#open-need-a-call-later).)
 - **[#58](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/58)** — registration is **not authenticated**: [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) mandates reachability but not ownership proof. (See [§1.5](#15-registration-ownership-proof-the-handshake), [§1.6](#16-read-access-posture), [D17](#appendix-decision-log), [D18](#appendix-decision-log).)
 - **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — registry search **filter-matching semantics** are unspecified (range/currency/geo/free). (See [§1.8](#18-search-filter-semantics).)
+- **[#106](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/106)** — registry **trust & anti-abuse**: ownership ≠ legitimacy (CA-style verification?) and Sybil / registry-pollution prevention. Hardening layer above the index; not Phase 1.
+
+Note: the registry **indexes and searches against** the catalog's `availability_hint` ([USP §3.6](../specification.md#36-availability-hint)) as a ranking/recall signal, but does **not** return it in `ServiceSearchResult` — so this is an implementation choice only, requiring **no spec/schema change** (the source field already exists on catalog `Service`).
 
 ---
 
@@ -275,6 +284,8 @@ Replace: the POC's RetrievalService embedding-KB engine → Vespa structured sea
   `pricing_json`, `location`, `timezone`, `last_indexed_at`. Indexed-not-returned: `description` (BM25),
   `vertical` (attr), `status`. Filter attrs: `duration_min_minutes`/`duration_max_minutes`, `currency`,
   `price_min_amount`/`price_max_amount` (minor units, long), `location_geo` (position), `channel`.
+  Availability: `availability_summary` (text, for semantic/recall — fed to the embedding in the hybrid phase),
+  `availability_next_date` (date attr, for a soft "soonest"/"not-before" ranking nudge), `availability_generated_at`.
   Reserved: `content_embedding` (tensor, empty in [phase 1](#phase-1-demo-no-auth)).
 
 ## 2.4 Projection rules (catalog Service → service.sd)
@@ -290,6 +301,11 @@ Source: catalog [`Service`](../schemas/catalog.json#/$defs/Service) from [§3.1 
   `fixed`→min=max=amount; `variable`→price_range; `hourly`/`per_person`→price_range if present else amount;
   `free`→0. Within-currency only ([D7](#appendix-decision-log), [D8](#appendix-decision-log), [O3](#open-need-a-call-later)).
 - **Multi-location**: one doc per (service, location); virtual/phone ⇒ no `location_geo` ([USP §2.6](../specification.md#26-multi-location-businesses), [D10](#appendix-decision-log)).
+- **Availability hint**: pass `summary`→`availability_summary` (semantic field, embedded in the hybrid phase),
+  `next_available_date`→`availability_next_date` (date attr), `generated_at`→`availability_generated_at`.
+  **Index-only — not returned in `ServiceSearchResult`** and not a spec/schema change. **Not a hard filter**
+  either — it informs ranking/recall only (semantic match on the summary; soft "soonest"/"not-before" nudge on
+  the date). Stale + approximate, so it can never exclude a result.
 
 ## 2.5 Ingestion implementation
 
@@ -487,6 +503,9 @@ per registry). "Where" points to the section.
 | O11 | Governance status-flip policy | Impl | TBD thresholds; auto-reactivate on recovery | [2.6](#26-auth-implementation) |
 | O14 | Scale/NFR targets | Impl | TBD (needs # businesses, # services, QPS, latency SLO, vFeed/vSearch sizing) | [Part 3](#part-3-phasing-test-strategy) |
 | O15 | `signing_keys` mandatory for registration? | Protocol | option (b): require on registration; not global-mandatory. Tracked as [#56](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/56) | [1.5](#15-registration-ownership-proof-the-handshake) |
+| O16 | `availability_hint` use in search | Impl | **Index-only**: ingested from catalog [§3.6](../specification.md#36-availability-hint), indexed + searched against, **not** returned in `ServiceSearchResult` and **no spec/schema change**. Ranking/recall signal only, **never a hard filter** (stale + approximate). Semantic match on `summary` (hybrid phase) + soft `next_available_date` nudge; deeper use evaluated in Phase 6. | [1.8](#18-search-filter-semantics), [2.4](#24-projection-rules-catalog-service-servicesd) |
+| O17 | Registry trust & anti-abuse | Protocol | Legitimacy verification (CA-style?) + Sybil/pollution prevention — hardening layer, not Phase 1. Tracked as [#106](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/106) | [1.10](#110-spec-items-this-design-surfaced) |
+| O18 | Marketplace/aggregator relay | Protocol | A marketplace registers once; registry fans out / merges its hosted catalog instead of indexing each provider. Federation case — tracked under [#55](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/55) | [1.10](#110-spec-items-this-design-surfaced) |
 
 ### Resolved during design (originally open)
 
