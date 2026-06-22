@@ -3482,6 +3482,10 @@ shopping, services, scheduling - are registered in the UCP profile. The
 scheduling domain ([Sections 3-5](#3-service-catalog)) works identically; only
 the discovery and payment paths differ from Standalone Mode.
 
+Paid checkout uses UCP `payment_handlers` on the same profile and on checkout
+responses, per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture)
+(not the Standalone `checkout_systems` discovery field in [Section 8.2](#82-business-profile-well-knownusp)).
+
 ### 7.2 Profile Registration in /.well-known/ucp
 
 Businesses register USP scheduling capabilities in their UCP profile alongside
@@ -3545,6 +3549,22 @@ other UCP capabilities:
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
+        }
+      ]
+    },
+    "payment_handlers": {
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
+          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "available_instruments": [
+            { "type": "shared_payment_token" }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
         }
       ]
     },
@@ -3706,11 +3726,20 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
       ]
     },
     "payment_handlers": {
-      "stripe_card": {
-        "type": "processor_tokenizer",
-        "endpoint": "https://api.stripe.com/v1/tokens",
-        "schema": "https://ucp.dev/schemas/handlers/stripe.json"
-      }
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
+          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "available_instruments": [
+            { "type": "shared_payment_token" }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
+        }
+      ]
     }
   },
   "id": "chk_abc123",
@@ -3763,6 +3792,34 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
   ]
 }
 ```
+
+#### Payment handlers and instruments (UCP)
+
+UCP-Native paid bookings reuse UCP `payment_handlers` as defined in the
+[UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
+
+**Wire shape:** `ucp.payment_handlers` is an object whose property names are
+**reverse-domain handler identifiers** (for example
+`com.stripe.agentic_commerce.shared_payment_token`). Each property value is an
+**array** of **handler instance** objects. Each instance **MUST** include an `id`
+(string) and `version` (string), and **MAY** include `spec`, `schema`, `config`,
+and `available_instruments` as required by that handler's specification.
+
+**Profile vs checkout:** The business UCP profile **MAY** include
+`payment_handlers` so platforms can discover integrations early. At payment
+time, **`create_checkout` and `get_checkout` responses are authoritative:** the
+business intersects platform capability, cart context, and its own policies,
+then returns resolved handler instances and `available_instruments` for that
+checkout. Platforms **MUST** treat `available_instruments` on the **checkout
+response** as authoritative when present and **MUST** acquire credentials only
+for instruments the checkout allows. Profile `payment_handlers` alone **MUST
+NOT** override or replace checkout-time `available_instruments` resolution.
+
+**`complete_checkout`:** The request body follows UCP [Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
+Each object in `payment.instruments[]` includes a `handler_id` that **MUST**
+equal the `id` of one of the handler **instances** returned on the checkout the
+platform is completing (the same checkout object from `create_checkout` or the
+latest `get_checkout`), not the reverse-domain key under `payment_handlers`.
 
 The `totals` field follows the [UCP Total](https://ucp.dev/latest/specification/checkout/#total)
 shape and [UCP checkout](https://ucp.dev/schemas/shopping/checkout.json) schema.
@@ -3852,8 +3909,11 @@ profile, it uses this flow:
    ** The platform presents actions to the buyer in array order and calls the
    appropriate action-completion endpoints. Non-payment actions **SHOULD** be
    resolved before proceeding to payment (see Action Ordering below).
-6. **[UCP] Acquire payment token** from the PSP using handler configuration from
-   the checkout response.
+6. **[UCP] Acquire payment token** from the PSP using the handler instances and
+   resolved `available_instruments` from the **checkout response** (see
+   [Section 7.4](#74-paid-bookings-extension-schema)); profile `payment_handlers`
+   are not authoritative for instrument choice when the checkout supplies
+   `available_instruments`.
 7. **[UCP] Complete checkout** with the payment token. The business
    atomically: (a) processes the payment with the PSP, (b) transitions
    `BookingContext.booking_status` per the derivation rules above (to `confirmed`
@@ -4084,7 +4144,7 @@ sequenceDiagram
     B-->>P: checkout (checkout_id, booking_id, handlers)
     P->>PSP: 5. request payment token
     PSP-->>P: payment token
-    P->>B: 6. complete_checkout (payment_data with token)
+    P->>B: 6. complete_checkout (payment.instruments with credential)
     Note over B: Atomic: payment + booking confirmation
     B->>PSP: process payment token
     PSP-->>B: payment processed
@@ -4151,10 +4211,18 @@ The full shape matches [Section 7.4](#74-paid-bookings-extension-schema). Exampl
   },
   "ucp": {
     "payment_handlers": {
-      "stripe_card": {
-        "type": "processor_tokenizer",
-        "endpoint": "https://api.stripe.com/v1/tokens"
-      }
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "available_instruments": [
+            { "type": "shared_payment_token" }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
+        }
+      ]
     }
   }
 }
@@ -4163,13 +4231,21 @@ The full shape matches [Section 7.4](#74-paid-bookings-extension-schema). Exampl
 **3. `complete_checkout` (UCP) — request body (illustrative):**
 
 Payment fields follow [UCP Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
-Shape is processor-specific; example:
+Shape is processor-specific; `handler_id` **MUST** match the handler instance `id`
+from the checkout response (see [Section 7.4](#74-paid-bookings-extension-schema)):
 
 ```json
 {
-  "payment_data": {
-    "handler_id": "stripe_card",
-    "token": "tok_visa"
+  "payment": {
+    "instruments": [
+      {
+        "handler_id": "stripe_spt_demo_h1",
+        "credential": {
+          "type": "shared_payment_token",
+          "token": "spt_ExampleOpaqueTokenNotForProduction"
+        }
+      }
+    ]
   }
 }
 ```
@@ -4357,14 +4433,17 @@ consulted per-transaction.
 | `redirect` | Business provides a `continue_url` on the payment action for buyer-facing payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return) and [Section 8.6.3](#863-redirect-payment-flow-paid-service). |
 | `embedded` | Business supports platform-processed payment via `confirm-payment`. See [Section 8.5.4](#854-embedded-and-generic-payment-flow) and [Section 8.6.2](#862-embedded-payment-flow-paid-service). |
 
-> **Design note (vs. UCP `payment_handlers`):** USP uses a flat `checkout_systems`
-> array for **discovery-time** compatibility only (which checkout paths the
-> business supports). Per-transaction amounts, line items, and metadata are in
-> [`PaymentContext`](#852-payment-context) on the payment action. Detailed PSP
-> configuration (instruments, handler schemas) is agreed **out of band** during
-> platform–business onboarding. Businesses that need to advertise richer payment
-> configuration **MAY** add vendor-defined entries under `capabilities` (see
-> [Section 2.5](#25-namespace-governance)).
+> **Design note (UCP-Native vs Standalone payment discovery):** In **Standalone
+> Mode**, USP uses a flat `checkout_systems` array for **discovery-time**
+> compatibility only (which checkout paths the business supports). Per-transaction
+> amounts, line items, and metadata are in [`PaymentContext`](#852-payment-context)
+> on the payment action; detailed PSP configuration is often agreed out of band.
+> In **UCP-Native Mode**, payment discovery and execution follow UCP
+> `payment_handlers` on the profile and on checkout responses (reverse-domain
+> keys, handler arrays, `available_instruments`), per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture)
+> and [Section 7.4](#74-paid-bookings-extension-schema). Businesses that need to
+> advertise richer payment configuration in Standalone Mode **MAY** add
+> vendor-defined entries under `capabilities` (see [Section 2.5](#25-namespace-governance)).
 
 A business offering only free or pay-at-service services **MAY** omit
 `checkout_systems` entirely.

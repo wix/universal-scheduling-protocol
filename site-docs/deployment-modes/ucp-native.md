@@ -236,11 +236,20 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
       ]
     },
     "payment_handlers": {
-      "stripe_card": {
-        "type": "processor_tokenizer",
-        "endpoint": "https://api.stripe.com/v1/tokens",
-        "schema": "https://ucp.dev/schemas/handlers/stripe.json"
-      }
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
+          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "available_instruments": [
+            { "type": "shared_payment_token" }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
+        }
+      ]
     }
   },
   "id": "chk_abc123",
@@ -314,6 +323,10 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 
     `line_items[].item.price` **MUST** match the service's current catalog price. If the business detects a mismatch at `create_checkout` or `update_checkout`, it **MUST** return a business outcome message with code `price_mismatch` and severity `recoverable`.
 
+### Payment handlers (UCP)
+
+`ucp.payment_handlers` uses **reverse-domain keys** mapping to **arrays** of handler instances (`id`, `version`, optional `spec`, `schema`, `config`, `available_instruments`) per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture). Profile handlers are indicative; **`available_instruments` on the checkout response is authoritative** when present. On `complete_checkout`, each `payment.instruments[].handler_id` **MUST** match the handler instance `id` from that checkout (see [USP §7.4](../../specification.md#74-paid-bookings-extension-schema)).
+
 ---
 
 ## Checkout Flow and Atomicity Guarantee
@@ -339,7 +352,7 @@ When the platform detects `dev.usp.services.paid_bookings` in the UCP profile, i
 3. *(If business supports holds)* **[USP] Hold the slot** via `POST /availability/holds`
 4. **[UCP] Create checkout** with the booking extension (including `hold_id` if step 3 was performed). No separate `create_booking` call is needed.
 5. *(If non-payment actions are present)* **[USP] Complete non-payment actions.** Present actions to the buyer in array order. Non-payment actions **SHOULD** be resolved before payment.
-6. **[UCP] Acquire payment token** from the PSP using handler configuration from the checkout response.
+6. **[UCP] Acquire payment token** from the PSP using handler instances and resolved `available_instruments` from the **checkout response** (profile handlers are not authoritative for instruments when checkout supplies `available_instruments`).
 7. **[UCP] Complete checkout** with the payment token. The business atomically processes payment and transitions the booking.
 8. **[USP] Webhook notification.** The business sends a `booking.confirmed` webhook.
 
@@ -484,7 +497,7 @@ sequenceDiagram
     B-->>P: checkout (checkout_id, booking_id, handlers)
     P->>PSP: 5. request payment token
     PSP-->>P: payment token
-    P->>B: 6. complete_checkout (payment_data with token)
+    P->>B: 6. complete_checkout (payment.instruments with credential)
     Note over B: Atomic: payment + booking confirmation
     B->>PSP: process payment token
     PSP-->>B: payment processed
@@ -549,10 +562,18 @@ sequenceDiagram
       },
       "ucp": {
         "payment_handlers": {
-          "stripe_card": {
-            "type": "processor_tokenizer",
-            "endpoint": "https://api.stripe.com/v1/tokens"
-          }
+          "com.stripe.agentic_commerce.shared_payment_token": [
+            {
+              "id": "stripe_spt_demo_h1",
+              "version": "2026-01-11",
+              "available_instruments": [
+                { "type": "shared_payment_token" }
+              ],
+              "config": {
+                "publishable_key": "pk_test_ExampleNotForProduction"
+              }
+            }
+          ]
         }
       }
     }
@@ -562,9 +583,16 @@ sequenceDiagram
 
     ```json
     {
-      "payment_data": {
-        "handler_id": "stripe_card",
-        "token": "tok_visa"
+      "payment": {
+        "instruments": [
+          {
+            "handler_id": "stripe_spt_demo_h1",
+            "credential": {
+              "type": "shared_payment_token",
+              "token": "spt_ExampleOpaqueTokenNotForProduction"
+            }
+          }
+        ]
       }
     }
     ```
