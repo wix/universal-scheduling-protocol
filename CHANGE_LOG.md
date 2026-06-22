@@ -1,6 +1,18 @@
 # Change Log
 
-## 18/06/26 at 23:49:03 by [Ran Yahalom](mailto:ranya@wix.com)
+## 22/06/26 at 09:45:35 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Repaired UTF-8 mojibake in `plans/USP+UCP_implementation_plan.md` (arrow `→`, section sign `§`, middle dot `·`, em dash turned into spaced hyphen ` - `) and normalized table-of-contents fragment links so GitHub-style anchors match the corrected headings, because the plan had been saved with Latin-1 mis-decoding of those UTF-8 sequences and stale double-hyphen slugs.
+
+---
+
+## 21/06/26 at 21:25:39 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Closed the gap tracked as [wix-private/universal-scheduling-protocol-spec#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99): `specification.md` §7.2 / §7.4 / §7.5 / §7.7.2 now show UCP-conformant `payment_handlers` (reverse-domain keys, handler arrays, `available_instruments`), normative rules that checkout responses override the profile at payment time with a **MUST** on using checkout `available_instruments` when present, and `complete_checkout` examples use `payment.instruments[].handler_id` tied to the handler instance `id`, so implementers stop mis-parsing flat `stripe_card` shapes and match [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
+- Updated `site-docs/deployment-modes/ucp-native.md`, `plans/USP+UCP_implementation_plan.md` (step 4, §2.4 verification, [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) / [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) text), the Standalone §8.2 design note to separate UCP `payment_handlers` from `checkout_systems`, and added `docs/ucp-native-demo-merchant-profile.example.json` as the canonical illustrative merged profile for the demo, so Track E/F work and registry docs stay aligned with the same wire examples.
+
+---
+
 
 - Brought `README.md` in line with the current specification outline (domain core through optional Section 6 Discovery Registry, Sections 7-8 deployment modes, 9-10 infrastructure, 11 extensions, 12-14 appendices), updated internal links, cross-cutting RFC section pointers, the machine-readable artifacts path (`schemas/` plus the full current schema file list), and the Mermaid implementer diagram, because those details had drifted after Section 6 and later renumbering landed on `main`.
 - Expanded `specification.md` Section 1 Introduction with the narrative from [wix-private/universal-scheduling-protocol-spec PR #38](https://github.com/wix-private/universal-scheduling-protocol-spec/pull/38) (problem framing, agentic design call-outs, protocol structure overview) while citing existing informative references and avoiding ambiguous punctuation, so first-time readers get the same motivation without reviving a stale merge branch.
