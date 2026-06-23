@@ -1,5 +1,46 @@
 # Change Log
 
+## 23/06/26 at 20:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Moved all `signing_keys`-related work out of demo scope: created GitHub issue [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) "usp-impl: RFC 9421 outbound webhook signing + signing_keys in merchant profile" (v>1, track-d, @maoryeh) as the single post-demo home for both Wix publishing signing_keys and signing outbound booking.confirmed webhooks
+- Updated #91 (usp-impl booking.confirmed webhook) to send unsigned webhooks for demo and reference #116 for post-demo signing, removing the RFC 9421 criterion that was in scope
+- Updated #70 (Demo merchant readiness prerequisite) to remove `signing_keys` presence from the demo checklist description, with an explicit note that it is deferred to #116
+- Updated #102 (UCP conformance gaps rollup) to add a new tracked gap row and prose section for Wix RFC 9421 outbound signing (#116), and added #116 to the dedicated post-demo implementation issues table alongside #112, #114, #115
+- Updated `plans/USP+UCP_implementation_plan.md` to reflect the same scope reduction: step 21 description, demo success criteria, #70 readiness checklist, #92 webhook receiver step 3, #91 signing step, and the out-of-scope section now all explicitly state the demo webhook is unsigned and point to #116 / #115 for post-demo hardening
+
+---
+
+## 23/06/26 at 17:45:39 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Created GitHub issue #114 "Link: publish hosted per-agent platform profile (LINK_UCP_PLATFORM_PROFILE_URL)" (labels: v>1, track-a; assigned: yahalomran) with per-agent profile architecture (relay / tunnel / deployed), HTTPS hosting constraints, and `booking_webhook.py` durability requirements - motivated by #102 part (a) Link side lacking a dedicated actionable issue
+- Created GitHub issue #115 "Link: RFC 9421 webhook signature verification (booking.confirmed inbound)" (labels: v>1, track-a; assigned: yahalomran) to replace the `LINKUSP_WEBHOOK_VERIFY=1` header-presence stub with full §10.1.1 verification - motivated by #102 rollup bullet having no dedicated Link implementation issue
+- Updated GitHub issue #102 with cross-refs to #114 and #115 in summary table, subsections, and a new "Dedicated post-demo implementation issues" table linking #114, #115, and #112
+- Updated GitHub issue #112 to reference #114 (Link profile prerequisite) and #115 (inbound verification) in the production path steps and references
+
+---
+
+## 22/06/26 at 13:55:56 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Expanded GitHub issue #112 background with the full end-to-end "zero registration" production path (5 steps, §8.3 and §9.2.3 normative citations, `profile_unreachable`/`profile_malformed` error types, `FinalizeBookingOnPayment` trigger, signing-key publication detail, and Step 5 Link-side verification consequences) - motivated by the earlier description being accurate but too shallow to serve as a complete spec reference for the implementer
+- Updated GitHub issue #112 acceptance criteria to replace the silent-fallback criterion with an explicit requirement that fetch failures MUST surface as protocol errors, and added a note that `USP_DEMO_PLATFORM_WEBHOOK_URL` may only remain as a clearly-labelled non-conformant dev override
+- Expanded GitHub issue #102 "Production webhook URL derivation" subsection with the §9.2.3 normative quote, the "zero registration" framing, and the split between the already-structurally-complete Link side and the Wix-side `profile_unreachable`/`profile_malformed` obligation - also added `event_id` deduplication confirmation requirement to the RFC 9421 webhook verification bullet
+
+---
+
+## 22/06/26 at 13:45:38 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Created GitHub issue #112 "usp-impl: derive webhook_url from platform profile (UCP-Agent header)" (labels: v>1, webhooks, track-d, usp-impl; assigned: maoryeh) to track the untracked Wix production path where the callback URL is derived from the UCP-Agent header rather than the out-of-band USP_DEMO_PLATFORM_WEBHOOK_URL env var - motivated by #91 step 4 naming this path without a dedicated issue or acceptance criteria
+- Updated GitHub issue #102 "UCP conformance gaps" to add two new subsections in "Additional gaps": (a) "Production webhook URL derivation" covering the Link profile publication and Wix UCP-Agent fetch approach with cross-ref to #112; (b) "Full RFC 9421 webhook signature verification" covering replacement of the LINKUSP_WEBHOOK_VERIFY=1 header-presence stub - both gaps were previously untracked in any issue
+- Added comment to GitHub issue #91 tagging @maoryeh and cross-referencing the new #112 issue as the dedicated follow-on for the production webhook URL derivation path named in #91 step 4
+
+---
+
+## 22/06/26 at 13:29:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Created GitHub issue #111 "Consider per-capability webhook_url in USP to align with UCP's registration model" to track the design discussion around replacing USP's top-level `webhook_url` with per-capability `config.webhook_url` entries - motivated by the inconsistency between USP's current model and UCP's capability-scoped webhook registration, which creates a structural hybrid in UCP-Native mode profiles
+
+---
+
 ## 22/06/26 at 09:45:35 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Repaired UTF-8 mojibake in `plans/USP+UCP_implementation_plan.md` (arrow `→`, section sign `§`, middle dot `·`, em dash turned into spaced hyphen ` - `) and normalized table-of-contents fragment links so GitHub-style anchors match the corrected headings, because the plan had been saved with Latin-1 mis-decoding of those UTF-8 sequences and stale double-hyphen slugs.

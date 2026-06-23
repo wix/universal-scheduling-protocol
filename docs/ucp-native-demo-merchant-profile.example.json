@@ -1,0 +1,97 @@
+{
+  "ucp": {
+    "version": "2026-01-11",
+    "services": {
+      "dev.ucp.shopping": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/latest/specification/overview/",
+          "transport": "rest",
+          "endpoint": "https://business.example.com/ucp/v1",
+          "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
+        }
+      ],
+      "dev.usp.services": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification",
+          "transport": "rest",
+          "endpoint": "https://business.example.com/usp/v1",
+          "schema": "https://usp.dev/services/rest.openapi.json"
+        }
+      ]
+    },
+    "capabilities": {
+      "dev.ucp.shopping.checkout": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/latest/specification/checkout/",
+          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
+        }
+      ],
+      "dev.usp.services.catalog": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#3-service-catalog",
+          "schema": "https://usp.dev/schemas/services/catalog.json"
+        }
+      ],
+      "dev.usp.services.availability": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#4-availability",
+          "schema": "https://usp.dev/schemas/services/availability.json"
+        }
+      ],
+      "dev.usp.services.bookings": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp.dev/schemas/services/booking.json"
+        }
+      ],
+      "dev.usp.services.paid_bookings": [
+        {
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "extends": "dev.ucp.shopping.checkout"
+        }
+      ]
+    },
+    "payment_handlers": {
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
+          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "available_instruments": [
+            {
+              "type": "shared_payment_token"
+            }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
+        }
+      ]
+    },
+    "business": {
+      "name": "Sunrise Wellness Studio",
+      "timezone": "America/New_York",
+      "currency": "USD"
+    }
+  },
+  "signing_keys": [
+    {
+      "kid": "business_ucp_demo_2026",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "WbbXwVYGdJoP4Xm3qCkGvBRcRvKtEfXDbWvPzpPS8LA",
+      "y": "sP4jHHxYqC89HBo8TjrtVOAGHfJDflYxw7MFMxuFMPY",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ]
+}

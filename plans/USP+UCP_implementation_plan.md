@@ -331,14 +331,13 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | `booking.booking_id`  | 21  | Must match webhook `booking_id`  |
 
 21. **Booking webhook** (`USP` → `Agent`): `usp-impl` asynchronously `POST`s `booking.confirmed`.
-  **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification; signature verified per [§10.1.1](../specification.md#1011-webhook-security).
+  **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification. Webhook is **unsigned** for demo; RFC 9421 signing (Wix [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116)) and verification (Link [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)) are post-demo.
   **Fields obtained → later use:**
 
-  | Field obtained  | Used in step(s)  | Required for  |
-  | ------------------------- | ------------------ | ----------------------------------------------------------------- |
-  | `booking_id`  | Demo assertions  | Must equal step 14 / 20 `booking.booking_id`  |
-  | `order_id`  | Demo assertions  | Must equal step 20 `order_id`  |
-  | Webhook signature headers | Agent verification | [§10.1.1](../specification.md#1011-webhook-security) authenticity |
+  | Field obtained | Used in step(s) | Required for |
+  | -------------- | --------------- | ------------ |
+  | `booking_id`   | Demo assertions | Must equal step 14 / 20 `booking.booking_id` |
+  | `order_id`     | Demo assertions | Must equal step 20 `order_id` |
 
 
 ## Why are the last two steps **BOTH** needed?
@@ -411,7 +410,7 @@ Treat both as correlating signals, not as a strict sequence:
 - Webhook-before-response ordering (or the reverse) is not specified.
 - §9.2.3 only guarantees **causal order among events for the same booking** (e.g. `booking.confirmed` before `booking.canceled`), not ordering relative to the checkout HTTP response.
 
-**Practical implication:** A well-built platform handles either order. If the webhook says confirmed but the HTTP call is still in flight, trust the webhook for booking state (after signature verification) and treat the late response as confirmation. If the response returns but the webhook is slow or never arrives, do not block the user: you already have the sync result, and you can poll `get_checkout` / `GET /bookings` as backup. The dangerous pattern is requiring webhook-before-response or response-before-webhook as a hard gate; the safe pattern is idempotent merge on `(booking_id, order_id)`.
+**Practical implication:** A well-built platform handles either order. If the webhook says confirmed but the HTTP call is still in flight, trust the webhook for booking state and treat the late response as confirmation. If the response returns but the webhook is slow or never arrives, do not block the user: you already have the sync result, and you can poll `get_checkout` / `GET /bookings` as backup. The dangerous pattern is requiring webhook-before-response or response-before-webhook as a hard gate; the safe pattern is idempotent merge on `(booking_id, order_id)`.
 
 ## Demo success criteria (day 10)
 
@@ -423,7 +422,7 @@ Treat both as correlating signals, not as a strict sequence:
 - [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
 - [ ] Payment uses UCP `complete_checkout` with platform-acquired SPT per [UCP payment handlers](https://ucp.dev/latest/specification/overview/#payment-architecture) (not Standalone `confirm-payment`).
 - [ ] Atomic completion per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): `booking.booking_status: confirmed` when `confirmation_mode` is `auto` and checkout `status: completed`.
-- [ ] `**booking.confirmed` webhook** received with `booking_id` and `order_id` matching the completed checkout ([§5.4.1](../specification.md#541-booking-webhooks), `[schemas/webhook_event.json](../schemas/webhook_event.json)`); signature verified per [§10.1.1](../specification.md#1011-webhook-security).
+- [ ] `**booking.confirmed` webhook** received with `booking_id` and `order_id` matching the completed checkout ([§5.4.1](../specification.md#541-booking-webhooks), `[schemas/webhook_event.json](../schemas/webhook_event.json)`); webhook is **unsigned** for demo (RFC 9421 signing/verification deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) / [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)).
 
 ---
 
@@ -1025,7 +1024,7 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 **What:**
 
-1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings`, Stripe `payment_handlers`, and `signing_keys` (for webhook verification).
+1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings`, and Stripe `payment_handlers`. (`signing_keys` publication is not required for demo; deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116).)
 2. Record the **exact** `profile_url` value to use in [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (full URL including `/.well-known/ucp` path).
 3. Document `USP_DEMO_PLATFORM_WEBHOOK_URL` wiring: Wix demo merchant reads this env/config so [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) can POST `booking.confirmed` to the Link agent callback during E2E.
 4. Script run by registry operator or Wix ops before `POST /registry/businesses`.
@@ -1250,7 +1249,7 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 
 1. Minimal HTTPS (or HTTP for local demo) webhook server in linkusp / Link platform; expose URL via `--webhook-callback` or ephemeral port.
 2. Document callback URL in [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) readiness as `USP_DEMO_PLATFORM_WEBHOOK_URL` for Wix demo merchant.
-3. Verify inbound webhook signature using `signing_keys` from business UCP profile ([§10.1.1](../specification.md#1011-webhook-security)).
+3. Accept incoming `booking.confirmed` payload without signature verification for demo (Wix sends unsigned webhooks; `signing_keys` not published). Full RFC 9421 verification deferred to post-demo ([#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)).
 4. Parse `[BookingEvent](../schemas/webhook_event.json)`; idempotent handling on `event_id` per [§9.2.3](../specification.md#923-webhook-notifications).
 5. Expose `wait_for_booking_confirmed(booking_id, order_id, timeout)` for [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E.
 6. Respond `2xx` within 10 seconds to acknowledge receipt.
@@ -1382,7 +1381,7 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 1. After `FinalizeBookingOnPayment` confirms booking (`confirmation_mode: auto`), POST `booking.confirmed` to platform `webhook_url` per `[schemas/webhook_event.json](../schemas/webhook_event.json)` (`$defs/BookingEvent`).
 2. Payload **MUST** include: `event`, `event_id`, `booking_id`, `order_id`, `timestamp`; **SHOULD** include `data` (full booking).
-3. Sign payload per [§10.1.1](../specification.md#1011-webhook-security) (RFC 9421); publish `signing_keys` on business UCP profile ([#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80) or this task).
+3. Webhook is sent **unsigned** for demo (no `Signature` / `Signature-Input` headers). RFC 9421 signing and `signing_keys` publication deferred to post-demo ([#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116)).
 4. Resolve callback URL from demo config `USP_DEMO_PLATFORM_WEBHOOK_URL` (set in [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)); production path uses platform profile `webhook_url` (`[schemas/profile.json](../schemas/profile.json)`).
 5. Delivery is **async best-effort** (not part of atomic `complete_checkout`); retry per [§9.2.3](../specification.md#923-webhook-notifications).
 6. Idempotent on `event_id` per booking confirmation.
@@ -1748,6 +1747,8 @@ Includes (non-exhaustive):
 - **Trusted UI / agent handoff** - UCP platform guideline that checkout finalization uses a trusted, deterministic UI (unless AP2 mandates apply); demo is fully agent-driven via `linkusp demo ucp-native`
 - **3DS / payment escalation** - `requires_escalation`, `continue_url`, buyer handoff ([#93](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) deferred)
 - **Full UCP commerce surface** - `dev.ucp.shopping.order`, fulfillment extension, mixed cart, AP2 mandates, MCP/A2A/embedded transports
+- **RFC 9421 outbound webhook signing (Wix)** - `signing_keys` publication and signing of `booking.confirmed`; tracked in [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) (@maoryeh)
+- **RFC 9421 inbound webhook verification (Link)** - replace `LINKUSP_WEBHOOK_VERIFY=1` stub with full signature verification against business `signing_keys`; tracked in [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115) (@yahalomran)
 - **HTTP message signatures** on UCP REST (when profile declares signing requirements beyond demo webhook path)
 - **Eligibility / mandate extensions** not required for single-service paid bookings demo
 
