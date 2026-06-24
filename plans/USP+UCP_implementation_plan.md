@@ -1,7 +1,7 @@
 # USP + UCP + SPT Demo Implementation Plan
 
 **Date:** 2026-06-10 (rev. spec-aligned)  
-**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), optionally **connects the buyer's calendar** and **filters availability slots** against personal busy times per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (platform-side only; no business changes), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp.services.paid_bookings` + Stripe SPT), receives `**booking.confirmed`** webhook with correlated `**order_id`** ([§7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee), [§5.4.1](../specification.md#541-booking-webhooks)), and ends with `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` - with **no Standalone Mode**, **no `checkout_systems` redirect**, and **no migration** from prior deployments.
+**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), optionally **connects the buyer's calendar** and **filters availability slots** against personal busy times per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (platform-side only; no business changes), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp.services.paid_bookings` + Stripe SPT), and ends with synchronous `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` on the `complete_checkout` response (plan step 20 / §7.5 step 7) - with **no Standalone Mode**, **no `checkout_systems` redirect**, **no `booking.confirmed` webhook E2E** ([§7.5 step 8](#post-demo-bookingconfirmed-webhook-e2e) deferred post-demo), and **no migration** from prior deployments.
 
 **Normative references:** [USP `specification.md](../specification.md)` §6 (registry), §7 (UCP-Native), `[schemas/paid_bookings.json](../schemas/paid_bookings.json)`, `[schemas/registry.json](../schemas/registry.json)`; [UCP checkout](https://ucp.dev/latest/specification/checkout/), [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture), [Stripe UCP/SPT](https://docs.stripe.com/agentic-commerce/protocol).
 
@@ -9,7 +9,7 @@
 
 - Greenfield: nothing in production; no dual-publish, no Standalone profile, no legacy clients to support.
 - **One developer per task**; unlimited developers; work proceeds in **parallel tracks** wherever dependencies allow.
-- Demo scope excludes **holds**, **mixed cart**, and `**dev.ucp.shopping.order`**.
+- Demo scope excludes **holds**, **mixed cart**, `**dev.ucp.shopping.order`**, and **`booking.confirmed` webhook E2E** (§7.5 step 8 / plan step 21; post-demo [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)).
 - **Link platform and USP registry are independent ecosystem components** (see [§2.1](#21-usp-ecosystem-link-platform-vs-registry)).
 - **Central issue tracking:** All sprint work items are filed in [wix-private/universal-scheduling-protocol-spec](https://github.com/wix-private/universal-scheduling-protocol-spec) (label `v1` = in-scope demo; label `v>1` = post-demo). Implementation may land in other repos per issue body.
 
@@ -62,11 +62,9 @@
   - [#66 through #70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66)
 - [7. Track C - Link Platform (Registry Consumer)](#7-track-c-link-platform-registry-consumer)
   - [#71 through #75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71)
-  - [#92: Booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)
   - [#101: UCP version negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101)
 - [8. Track D - Wix Business USP (`usp-impl`)](#8-track-d-wix-business-usp-usp-impl)
   - [#76 through #79](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76)
-  - [#91: booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)
 - [9. Track E - Core UCP + USP Extension (`acp-checkout`)](#9-track-e-core-ucp-usp-extension-acp-checkout)
   - [#80 through #86](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)
   - [#98: Spec order.id vs order_id](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)
@@ -84,6 +82,7 @@
   - `[dev.ucp.shopping.order` capability](#devucpshoppingorder-capability)
   - [Standalone Mode and redirect checkout](#standalone-mode-and-redirect-checkout)
   - [Registry search filters for business capabilities and payment readiness](#registry-search-filters-for-business-capabilities-and-payment-readiness)
+  - [Post-demo: `booking.confirmed` webhook E2E](#post-demo-bookingconfirmed-webhook-e2e)
   - [Conformance and polish (non-blocking for demo)](#conformance-and-polish-non-blocking-for-demo)
 - [References](#references)
 
@@ -122,8 +121,7 @@ sequenceDiagram
   UCP->>Stripe: 18. Charge via StripeSptProviderAdapter
   UCP->>USP: 19. FinalizeBookingOnPayment RPC
   UCP-->>Agent: 20. completed plus order_id plus booking_status confirmed
-  USP-->>Agent: 21. POST booking.confirmed webhook with order_id
-  Note over Agent,USP: async best-effort per 7.5 step 8 agent verifies signature
+  Note over Agent,UCP: Demo ends here. Step 21 booking.confirmed webhook is post-demo.
 ```
 
 
@@ -280,7 +278,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | --------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
   | `id` (checkout session id)  | 17  | `complete_checkout` path/body reference  |
   | `status: ready_for_complete`  | 15-17 (gate)  | Proceed to SPT + complete without `update_checkout`  |
-  | `booking.booking_id`  | 17, 20, 21  | Correlation; webhook match  |
+  | `booking.booking_id`  | 17, 20  | Correlation; demo success assertion  |
   | `booking.booking_status: pending` | 20 (before complete) | Expected post-create state  |
   | `payment_handlers`  | 15  | SPT acquisition when not already cached from step 4  |
   | `booking.actions[]` (if present)  | - | **Demo avoids:** would require [§7.5 step 5](../specification.md#75-checkout-flow-and-atomicity-guarantee) before payment |
@@ -325,14 +323,14 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | Field obtained  | Used in step(s)  | Required for  |
   | ----------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------- |
   | `status: completed`  | Demo assertions  | End-to-end success  |
-  | `order.id` (UCP) / `order_id` (USP) | 21 (webhook correlation) | UCP native field is `order.id`; USP/webhook use `order_id` alias per [#98](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) |
-  | `totals`, `links`  | Agent UX (optional)  | UCP-required on checkout object; validate present per [#97](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) |
+  | `order.id` (UCP) / `order_id` (USP) | Demo assertions  | UCP native field is `order.id`; USP uses `order_id` alias per [#98](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) |
+  | `totals`, `links`  | Agent UX (optional)  | UCP-required on checkout object; validate present per [#97](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97)  |
   | `booking.booking_status: confirmed` | Demo assertions  | When step 6 `confirmation_mode` is `auto`  |
-  | `booking.booking_id`  | 21  | Must match webhook `booking_id`  |
+  | `booking.booking_id`  | Demo assertions  | Must match step 14 `booking.booking_id`  |
 
-21. **Booking webhook** (`USP` → `Agent`): `usp-impl` asynchronously `POST`s `booking.confirmed`.
-  **Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification. Webhook is **unsigned** for demo; RFC 9421 signing (Wix [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116)) and verification (Link [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)) are post-demo.
-  **Fields obtained → later use:**
+21. **Booking webhook** (`USP` → `Agent`, **post-demo only**): `usp-impl` asynchronously `POST`s `booking.confirmed`.
+  **Why (post-demo):** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) durable notification for production platforms. **Out of demo scope** because the demo uses `confirmation_mode: auto` and asserts terminal state on the synchronous `complete_checkout` response (step 20); webhook signing/verification and production URL derivation are also post-demo ([#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116), [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115), [#112](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/112)). Tracked in [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) (emit) and [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) (receive).
+  **Fields obtained → later use (post-demo E2E only):**
 
   | Field obtained | Used in step(s) | Required for |
   | -------------- | --------------- | ------------ |
@@ -340,7 +338,9 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | `order_id`     | Demo assertions | Must equal step 20 `order_id` |
 
 
-## Why are the last two steps **BOTH** needed?
+## Why are steps 20 and 21 **both** needed? (Demo ends at step 20)
+
+The **2-week demo ends at step 20** (synchronous `complete_checkout` response). Step 21 remains normative for production platforms but is [out of demo scope](#post-demo-bookingconfirmed-webhook-e2e).
 
 ### When the synchronous response is not enough
 
@@ -403,7 +403,7 @@ Treat both as correlating signals, not as a strict sequence:
 
 1. **Webhook first:** Process `booking.confirmed` idempotently (dedupe on `event_id` per §9.2.3). The payload already carries `booking_id` and `order_id`, so you do not need step 20 to arrive first. The agent already had `booking_id` from step 14 (`create_checkout`).
 2. **Response arrives later:** Reconcile: same `booking_id`, same `order_id`, same terminal state. This should be a no-op merge, not a state conflict.
-3. **Demo E2E ([#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)):** The test asserts both step 20 fields and step 21 correlation. `wait_for_booking_confirmed(booking_id, order_id)` can return before `complete_checkout` returns to the caller. That is fine as long as both eventually agree.
+3. **Demo E2E ([#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)):** The test asserts step 20 fields only (`status: completed`, `booking.booking_status: confirmed`, `order_id` on the `complete_checkout` response). Step 21 webhook correlation is post-demo ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)).
 
 **What the spec does *not* guarantee:**
 
@@ -422,7 +422,7 @@ Treat both as correlating signals, not as a strict sequence:
 - [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
 - [ ] Payment uses UCP `complete_checkout` with platform-acquired SPT per [UCP payment handlers](https://ucp.dev/latest/specification/overview/#payment-architecture) (not Standalone `confirm-payment`).
 - [ ] Atomic completion per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): `booking.booking_status: confirmed` when `confirmation_mode` is `auto` and checkout `status: completed`.
-- [ ] `**booking.confirmed` webhook** received with `booking_id` and `order_id` matching the completed checkout ([§5.4.1](../specification.md#541-booking-webhooks), `[schemas/webhook_event.json](../schemas/webhook_event.json)`); webhook is **unsigned** for demo (RFC 9421 signing/verification deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) / [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)).
+- [ ] `order_id` present on the synchronous `complete_checkout` response (`order.id` / `order_id` per [#98](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)); demo does **not** require `booking.confirmed` webhook E2E ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) post-demo).
 
 ---
 
@@ -583,7 +583,7 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | 7  | UCP `complete_checkout`; atomic payment + booking  | [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#78](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78), [#90](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)  |
 | 7a  | `booking_status` derivation from checkout `status`  | [#83](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83)  |
 | 7b  | On payment failure: booking stays `pending`  | [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#90](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)  |
-| 8  | Webhook `booking.confirmed` with `order_id`  | [§7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 8  |
+| 8  | Webhook `booking.confirmed` with `order_id`  | Out of scope (post-demo [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92))  |
 
 
 #### UCP checkout binding ([ucp.dev](https://ucp.dev/latest/specification/checkout/))
@@ -735,11 +735,11 @@ Buyer calendar conflict checking is **in demo scope** as a platform-side showcas
 | 3-4  | [#62](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/62) + [#63](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63) | [#67](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/67)  | [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)  | [#77](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77) **parallel** with [#78](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78) | [#82](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/82)  | [#88](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)  |
 | 5  | Integration stub tests + [#95](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)  | [#68](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/68)  | [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73) + [#101](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) | [#79](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/79)  | [#83](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/83) + [#100](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/100)  | [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) + [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) |
 | 6-7  | [#64](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) + [#96](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) + [#97](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) + [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) | [#74](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/74) (stub; full auth in [#102](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102)) | Unit tests for RPCs  | [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) depends D2,F2 + [#98](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98) | [#90](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90)  |
-| 8  | [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)  | Registry smoke test  | [#75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75) + [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)  | [#85](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85)  | SPT integration tests  |
-| 9-10 | **Cross-track demo rehearsal** (incl. webhook)  |  |  |  | **Bug fix buffer**  |  |
+| 8  | [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)  | Registry smoke test  | [#75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)  | Unit tests for RPCs  | [#85](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/85)  | SPT integration tests  |
+| 9-10 | **Cross-track demo rehearsal**  |  |  |  | **Bug fix buffer**  |  |
 
 
-**Critical path:** [#76](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76) → [#77](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)/032 → [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) â [#88](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)/053 â [#87](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) → [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) (webhook emit) → [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) (webhook receive) → [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (registry listing + service index) → [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)/022 (Link service search discovery) → [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) demo.
+**Critical path:** [#76](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/76) → [#77](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/77)/032 → [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) ← [#88](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88)/053 ← [#87](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/87) → [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (registry listing + service index) → [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)/022 (Link service search discovery) → [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) demo. Webhook emit/receive ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)) is **not** on the demo critical path.
 
 **Note:** [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) and [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) run on **Track B / Wix ops**, not Link. Link work ([Track C](#7-track-c-link-platform-registry-consumer)) assumes the demo merchant is already registered before day 8 E2E.
 
@@ -757,7 +757,6 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 | G-03 | No atomic `complete_checkout`  | **P0**  | E, D  | [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#78](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)  |
 | G-04 | No Stripe UCP payment handler  | **P0**  | F  | [#88](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/88), [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)  |
 | G-10 | Site feature gating  | **P0**  | B, D  | [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) (Wix prereq before registry registration)  |
-| G-12 | Webhook `booking.confirmed` with `order_id` | **P0**  | D, C, A | [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92), [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) |
 | G-15 | Registry / cold-start  | **P0**  | B  | [#66](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/66) through [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)  |
 | G-26 | Link registry consumer  | **P0**  | C  | [#71](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/71) through [#75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)  |
 | G-27 | Buyer calendar free/busy slot filtering  | **P1**  | A  | [#63](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63), [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)  |
@@ -897,7 +896,7 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 |  |  |
 | -------------- | ---------------------------------------------------------------------------------------------- |
-| **Depends on** | [#60](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)â004, [#63](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63), [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (merchant already in registry), [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)â024, [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) |
+| **Depends on** | [#60](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/60)–004, [#63](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63), [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (merchant already in registry), [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72)–024, [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84) |
 | **Timeline**  | Days 7-10  |
 
 
@@ -917,13 +916,11 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
   | §7.5.2  | `POST /availability/query` for that `service_id`; platform filters slots when calendar connected  |
   | §7.5.4  | UCP `create_checkout` + `booking` extension  |
   | §7.5.6  | Acquire SPT from `payment_handlers`  |
-  | §7.5.7  | UCP `complete_checkout`  |
-  | §7.5.8  | Await `booking.confirmed` webhook ([#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)); assert `order_id` + `booking_id` match checkout  |
+  | §7.5.7  | UCP `complete_checkout`; assert `status: completed`, `booking.booking_status: confirmed`, and `order_id` on response  |
 
-  Skip §7.5.3 (holds) and §7.5.5 (non-payment actions) for demo. Demo does **not** call `search_business`.
-3. Start webhook receiver before checkout; register callback URL on merchant via `USP_DEMO_PLATFORM_WEBHOOK_URL` ([#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)).
-4. Demo must **not** hardcode Wix merchant URL; discovery goes through service search + `business.profile_url` only.
-5. Exit non-zero on any step failure with structured log output; assert `checkout.status == completed`, `booking.booking_status == confirmed`, `order_id` present, and webhook `order_id` correlation.
+  Skip §7.5.3 (holds), §7.5.5 (non-payment actions), and §7.5.8 (`booking.confirmed` webhook E2E; post-demo [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)) for demo. Demo does **not** call `search_business`.
+3. Demo must **not** hardcode Wix merchant URL; discovery goes through service search + `business.profile_url` only.
+4. Exit non-zero on any step failure with structured log output; assert `checkout.status == completed`, `booking.booking_status == confirmed`, and `order_id` present on the `complete_checkout` response (no webhook assertion).
 
 ---
 
@@ -1026,9 +1023,8 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings`, and Stripe `payment_handlers`. (`signing_keys` publication is not required for demo; deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116).)
 2. Record the **exact** `profile_url` value to use in [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (full URL including `/.well-known/ucp` path).
-3. Document `USP_DEMO_PLATFORM_WEBHOOK_URL` wiring: Wix demo merchant reads this env/config so [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) can POST `booking.confirmed` to the Link agent callback during E2E.
-4. Script run by registry operator or Wix ops before `POST /registry/businesses`.
-5. **Link platform does not run this checklist** (but provides webhook URL value when ops run E2E rehearsal).
+3. Script run by registry operator or Wix ops before `POST /registry/businesses`.
+4. **Link platform does not run this checklist.** Webhook URL wiring (`USP_DEMO_PLATFORM_WEBHOOK_URL`) is **not** required for demo; deferred with [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) / [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) post-demo.
 
 ---
 
@@ -1234,25 +1230,24 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
 
 ---
 
-### [#92: Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)
+### [#92: Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) (post-demo, label `v>1`)
 
 
 |  |  |
 | -------------- | -------------------------------------------------------- |
 | **Depends on** | [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)  |
-| **Timeline**  | Days 7-8  |
+| **Timeline**  | Post-demo  |
 
 
-**Why:** Demo must complete [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee): platform receives `booking.confirmed` and correlates `order_id` with the UCP checkout ([G-12](#4-gap-to-workstream-matrix)).
+**Why (post-demo):** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) durable notification path. **Out of demo scope** because the demo asserts terminal state on the synchronous `complete_checkout` response; linkusp-cli does not require a webhook listener for the default demo flow.
 
 **What:**
 
-1. Minimal HTTPS (or HTTP for local demo) webhook server in linkusp / Link platform; expose URL via `--webhook-callback` or ephemeral port.
-2. Document callback URL in [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70) readiness as `USP_DEMO_PLATFORM_WEBHOOK_URL` for Wix demo merchant.
-3. Accept incoming `booking.confirmed` payload without signature verification for demo (Wix sends unsigned webhooks; `signing_keys` not published). Full RFC 9421 verification deferred to post-demo ([#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115)).
-4. Parse `[BookingEvent](../schemas/webhook_event.json)`; idempotent handling on `event_id` per [§9.2.3](../specification.md#923-webhook-notifications).
-5. Expose `wait_for_booking_confirmed(booking_id, order_id, timeout)` for [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65) E2E.
-6. Respond `2xx` within 10 seconds to acknowledge receipt.
+1. Minimal HTTPS (or HTTP for local dev) webhook server in linkusp / Link platform; expose URL via hosted platform profile ([#114](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/114)) or ephemeral port for integration tests.
+2. Accept incoming `booking.confirmed` payload; full RFC 9421 verification per [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115).
+3. Parse `[BookingEvent](../schemas/webhook_event.json)`; idempotent handling on `event_id` per [§9.2.3](../specification.md#923-webhook-notifications).
+4. Expose `wait_for_booking_confirmed(booking_id, order_id, timeout)` for post-demo E2E against [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91).
+5. Respond `2xx` within 10 seconds to acknowledge receipt.
 
 ---
 
@@ -1344,7 +1339,7 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 4. If `confirmation_mode == auto`: set booking confirmed.
 5. Return final `booking_status` for checkout response mapping.
 6. **Do not** release hold (holds out of scope).
-7. On confirmed: enqueue `**booking.confirmed` webhook** dispatch ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)) with `order_id` in payload.
+7. On confirmed: enqueue `booking.confirmed` webhook dispatch ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), post-demo) with `order_id` in payload.
 
 ---
 
@@ -1366,23 +1361,23 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 ---
 
-### [#91: usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)
+### [#91: usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) (post-demo, label `v>1`)
 
 
 |  |  |
 | -------------- | ---------------------------------------------------- |
 | **Depends on** | [#78](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/78)  |
-| **Timeline**  | Days 7-8  |
+| **Timeline**  | Post-demo  |
 
 
-**Why:** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) require the business to notify the platform when a booking becomes confirmed after UCP-Native paid checkout; payload **SHOULD** include UCP `order_id` for correlation ([G-12](#4-gap-to-workstream-matrix)).
+**Why (post-demo):** [USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee) and [§5.4.1](../specification.md#541-booking-webhooks) require the business to notify the platform when a booking becomes confirmed. **Out of demo scope** because the demo ends at the synchronous `complete_checkout` response with `confirmation_mode: auto`.
 
 **What:**
 
 1. After `FinalizeBookingOnPayment` confirms booking (`confirmation_mode: auto`), POST `booking.confirmed` to platform `webhook_url` per `[schemas/webhook_event.json](../schemas/webhook_event.json)` (`$defs/BookingEvent`).
 2. Payload **MUST** include: `event`, `event_id`, `booking_id`, `order_id`, `timestamp`; **SHOULD** include `data` (full booking).
-3. Webhook is sent **unsigned** for demo (no `Signature` / `Signature-Input` headers). RFC 9421 signing and `signing_keys` publication deferred to post-demo ([#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116)).
-4. Resolve callback URL from demo config `USP_DEMO_PLATFORM_WEBHOOK_URL` (set in [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)); production path uses platform profile `webhook_url` (`[schemas/profile.json](../schemas/profile.json)`).
+3. RFC 9421 signing and `signing_keys` publication per [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116).
+4. Resolve callback URL from platform profile `webhook_url` via UCP-Agent header ([#112](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/112)); `USP_DEMO_PLATFORM_WEBHOOK_URL` may remain as a clearly-labelled non-conformant dev override only.
 5. Delivery is **async best-effort** (not part of atomic `complete_checkout`); retry per [§9.2.3](../specification.md#923-webhook-notifications).
 6. Idempotent on `event_id` per booking confirmation.
 
@@ -1670,7 +1665,7 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 | ------------------------------------------------- | -------------------------------- | ---------------------------------------------- |
 | Registry lists demo merchant (operator process)  | Track B  | [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [#70](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/70)  |
 | Link discovery against registry (no registration) | Track C  | [#72](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/72), [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [#75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)  |
-| First full E2E on registry-discovered merchant  | Track A + all  | [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65), [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89), [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92), [#95](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)â[#101](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) |
+| First full E2E on registry-discovered merchant  | Track A + all  | [#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65), [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69), [#84](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/84), [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89), [#95](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95)–[#101](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/101) |
 | Fix integration defects  | Whichever track owns the failure | - |
 | Demo rehearsal + recording  | PM / all leads  | Green E2E  |
 
@@ -1679,7 +1674,7 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 ## 12. Definition of Done
 
-1. **[#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → calendar gate → §7.5.2 availability (+ platform filter when connected) → steps 4, 6, 7, **8** (webhook `order_id` correlation).
+1. **[#65](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/65)** passes using registry discovery only (no hardcoded merchant URL in Link); demo flow: registry service search → profile → `**GET /services/{service_id}`** (§6.3 live catalog) → calendar gate → §7.5.2 availability (+ platform filter when connected) → §7.5.4–7 (create_checkout + SPT + complete_checkout); assert `status: completed`, `booking.booking_status: confirmed`, and `order_id` on the synchronous response.
 2. **[#63](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/63)** calendar gate and slot filtering verified in flow tests and interactive demo path (`calendar connect` or `calendar skip`).
 3. **[#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69)** registry entry created via `RegistrationRequest` with full `profile_url` and `deployment_mode: ucp_native` (Link not involved).
 4. **[#75](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/75)** Link discovery: `search_services` + `GET profile_url` + capability match + `**GET /services/{service_id}`** verified independently of booking E2E.
@@ -1717,7 +1712,7 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 ### `dev.ucp.shopping.order` capability
 
 - Order read API and profile capability
-- Demo verifies `order_id` via checkout response and `booking.confirmed` webhook only (no order read API)
+- Demo verifies `order_id` via the synchronous `complete_checkout` response only (no order read API; no webhook E2E)
 
 ### Standalone Mode and redirect checkout
 
@@ -1737,6 +1732,25 @@ The following are **explicitly excluded** from the 2-week UCP-Native demo:
 - **Schema/spec:** extend `[schemas/registry.json](../schemas/registry.json)` (`RegistrationRequest`, `RegistryEntry`, `BusinessSearchRequest`, `ServiceSearchRequest`) and USP §6; linkusp consumer updates in a follow-on sprint ([#94](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94)).
 - Demo uses `**search_services` only** with profile fetch for capability and Stripe/SPT negotiation; no registry capability/payment request filters and no client-side post-filters in the 2-week sprint ([#94](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) is the correct solution when agents need those filters).
 
+### Post-demo: `booking.confirmed` webhook E2E
+
+End-to-end async notification after UCP-Native paid checkout ([USP §7.5 step 8](../specification.md#75-checkout-flow-and-atomicity-guarantee), plan step 21). **Not required for the 2-week demo** because:
+
+- Demo uses `confirmation_mode: auto`; terminal state is returned synchronously on `complete_checkout` (plan step 20).
+- The spec treats webhook delivery as best-effort and recommends `get_checkout` / `GET /bookings/{id}` as source of truth.
+- linkusp-cli does not require a webhook listener for the default demo flow.
+
+**Tracked post-demo:**
+
+| Component | Issue | Notes |
+| --------- | ----- | ----- |
+| Wix emit `booking.confirmed` | [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | Includes `order_id` correlation |
+| Link receive + correlate | [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | Depends on [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) |
+| Production webhook URL derivation | [#112](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/112) | UCP-Agent → platform profile `webhook_url` |
+| Hosted platform profile | [#114](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/114) | Link-side prerequisite |
+| RFC 9421 inbound verification | [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115) | Link |
+| RFC 9421 outbound signing | [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) | Wix `signing_keys` |
+
 ### UCP conformance gaps (future)
 
 Full UCP agent-commerce conformance beyond the UCP-Native paid booking demo path. Tracked in rollup issue [#102](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/102).
@@ -1749,13 +1763,14 @@ Includes (non-exhaustive):
 - **Full UCP commerce surface** - `dev.ucp.shopping.order`, fulfillment extension, mixed cart, AP2 mandates, MCP/A2A/embedded transports
 - **RFC 9421 outbound webhook signing (Wix)** - `signing_keys` publication and signing of `booking.confirmed`; tracked in [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) (@maoryeh)
 - **RFC 9421 inbound webhook verification (Link)** - replace `LINKUSP_WEBHOOK_VERIFY=1` stub with full signature verification against business `signing_keys`; tracked in [#115](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/115) (@yahalomran)
+- **`booking.confirmed` webhook E2E** - emit ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91)) and receive ([#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92)); see [Post-demo: `booking.confirmed` webhook E2E](#post-demo-bookingconfirmed-webhook-e2e)
 - **HTTP message signatures** on UCP REST (when profile declares signing requirements beyond demo webhook path)
 - **Eligibility / mandate extensions** not required for single-service paid bookings demo
 
 ### Conformance and polish (non-blocking for demo)
 
 - Link-hosted calendar OAuth service (`calendar.link.com`) and LPOS token vault ([linkusp-cli #4](https://github.com/yahalomran/linkusp-cli/issues/4)) - demo uses local Google OAuth or `calendar skip`
-- `GET /bookings/{id}` empty query fix (demo uses `get_checkout` + webhook)
+- `GET /bookings/{id}` empty query fix (demo uses `get_checkout` response for terminal state)
 - HTTP 200 error bodies, camelCase cleanup, pagination, availability quirk (minor `usp-impl` conformance)
 - USP MCP binding, OAuth discovery
 - ACP adapter stubs (`AcpHttpAdapter` `???` methods)
@@ -1804,8 +1819,8 @@ All work items are tracked in [wix-private/universal-scheduling-protocol-spec](h
 | [#90](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | [#90 Booking-aware payment orchestration](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/90) | v1 |
 | [#93](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | [#93 SPT 3DS continue_url handling](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/93) | v>1 |
 | [#94](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | [#94 Registry capability and payment search filters](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) | v>1 |
-| [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | [#91 usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | v1 |
-| [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [#92 Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | v1 |
+| [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | [#91 usp-impl booking.confirmed webhook](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) | v>1 |
+| [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | [#92 Link platform booking webhook receiver](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) | v>1 |
 | [#95](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | [#95 Platform UCP profile and UCP-Agent negotiation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/95) | v1 |
 | [#96](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) | [#96 Complete checkout signals](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/96) | v1 |
 | [#97](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | [#97 Checkout totals and links validation](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/97) | v1 |

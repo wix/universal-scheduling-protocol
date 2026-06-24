@@ -1,5 +1,18 @@
 # Change Log
 
+## 24/06/26 at 10:43:20 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Applied GitHub issue updates via wix-github MCP for the step 21 scope cut: #65 body + scope comment (demo ends at sync `complete_checkout`, no webhook assertion), #70 (removed `USP_DEMO_PLATFORM_WEBHOOK_URL` from demo checklist), #91 and #92 relabeled `v>1` with post-demo acceptance criteria; reopened #92 as open post-demo work
+
+---
+
+## 24/06/26 at 08:53:27 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Moved plan step 21 (`booking.confirmed` webhook E2E) out of demo scope in `plans/USP+UCP_implementation_plan.md`: demo now ends at synchronous `complete_checkout` (step 20) with `status: completed`, `order_id`, and `booking.booking_status: confirmed`; removed G-12 from the in-scope gap matrix; updated sequence diagram, success criteria, Definition of Done, #65/#70/#91/#92 task sections, sprint calendar/critical path, and added a dedicated "Post-demo: booking.confirmed webhook E2E" out-of-scope section linking #91, #92, #112, #114, #115, #116
+- Added GitHub issue update drafts under `.github/issue-drafts/` for #65, #70, #91 (v>1), and #92 (v>1) reflecting the same scope cut; wix-github MCP returned 401 on issue update (credentials unavailable in this session), so issues need a manual apply or re-run after auth is restored
+
+---
+
 ## 23/06/26 at 20:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Moved all `signing_keys`-related work out of demo scope: created GitHub issue [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) "usp-impl: RFC 9421 outbound webhook signing + signing_keys in merchant profile" (v>1, track-d, @maoryeh) as the single post-demo home for both Wix publishing signing_keys and signing outbound booking.confirmed webhooks
