@@ -2885,7 +2885,7 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 | `event`        | string  | **Yes**  | Event type (e.g., `booking.confirmed`, `booking.canceled`).                                                                                                                                                               |
 | `event_id`     | string  | **Yes**  | Unique event identifier. Platforms **MUST** use this for idempotent processing ([Section 9.2.3](#923-webhook-notifications)).                                                                                        |
 | `booking_id`   | string  | **Yes**  | The booking this event relates to.                                                                                                                                                                                        |
-| `order_id`     | string  | No       | UCP order ID. **SHOULD** be included when the booking was created via [UCP-Native Mode](#7-ucp-native-mode) checkout.                                                                                                  |
+| `order_id`     | string  | No       | UCP order ID. **SHOULD** be included when the booking was created via [UCP-Native Mode](#7-ucp-native-mode) checkout, and **SHOULD** equal the completed checkout's `order.id` ([Section 7.5](#75-checkout-flow-and-atomicity-guarantee)). |
 | `timestamp`    | string  | **Yes**  | RFC 3339 timestamp of when the event occurred.                                                                                                                                                                            |
 | `data`         | object  | No       | Full booking object (same schema as [Section 5.2](#52-booking-schema)). **SHOULD** be included for `confirmed`, `canceled`, `rescheduled`, `completed`, `no_show`, `refund_issued`, `dispute_opened`, and `dispute_resolved` events. **MAY** be omitted for `reminder` events (the `booking_id` is sufficient to fetch current state). For informational `service_started` and `service_updated` events ([Section 5.5.3](#553-service-delivery-events)), **MAY** be omitted or included as needed. |
 
@@ -3489,7 +3489,18 @@ responses, per the [UCP payment architecture](https://ucp.dev/latest/specificati
 ### 7.2 Profile Registration in /.well-known/ucp
 
 Businesses register USP scheduling capabilities in their UCP profile alongside
-other UCP capabilities:
+other UCP capabilities.
+
+Every entry under `ucp.capabilities` **MUST** include `version` and **MUST**
+include `spec` and `schema` URLs identifying the capability's specification and
+JSON Schema. This applies to `dev.ucp.shopping.checkout` and to every
+`dev.usp.services.*` capability. A profile that omits `spec` or `schema` on any
+capability entry is not a valid UCP profile. A discovery registry
+([Section 6](#6-discovery-registry-optional)) **MAY** warn when these URLs are
+unreachable, and booking-time capability negotiation **SHOULD** reject capability
+entries missing this metadata.
+
+An example profile:
 
 ```json
 {
@@ -3518,7 +3529,9 @@ other UCP capabilities:
     "capabilities": {
       "dev.ucp.shopping.checkout": [
         {
-          "version": "2026-01-11"
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/latest/specification/checkout/",
+          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
       "dev.usp.services.catalog": [
@@ -3596,17 +3609,23 @@ other UCP capabilities:
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#3-service-catalog",
+          "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#4-availability",
+          "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ]
     }
@@ -3716,12 +3735,17 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
     "capabilities": {
       "dev.ucp.shopping.checkout": [
         {
-          "version": "2026-01-11"
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/latest/specification/checkout/",
+          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-02-09",
+          "spec": "https://usp.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "extends": "dev.ucp.shopping.checkout"
         }
       ]
     },
@@ -3920,18 +3944,42 @@ profile, it uses this flow:
    when `confirmation_mode` is `auto` and no non-payment actions remain pending;
    payment collected with `booking_status` remaining `pending` when
    `confirmation_mode` is `manual`), and (c) returns the completed checkout with
-   the `order_id` and updated `booking_status`.
+   the UCP `order` object (`order.id`) and updated `booking_status` (see
+   [`order.id` vs `order_id`](#orderid-vs-order_id) below).
 
 8. **[USP] Webhook notification.** The business sends a `booking.confirmed`
    webhook (when the booking becomes confirmed) or defers it until manual
    confirmation when `confirmation_mode` is `manual`. The webhook payload
-   **SHOULD** include the UCP `order_id` in an `order_id` field alongside
-   `booking_id` so platforms can correlate USP bookings with UCP orders.
-   Webhook delivery is best-effort and asynchronous; it is **not** part of the
-   atomic `complete_checkout` transaction. Platforms **SHOULD** use
+   **SHOULD** include the UCP order identifier — the checkout's `order.id` — in an
+   `order_id` field alongside `booking_id` so platforms can correlate USP bookings
+   with UCP orders. Webhook delivery is best-effort and asynchronous; it is **not**
+   part of the atomic `complete_checkout` transaction. Platforms **SHOULD** use
    [`get_checkout`](https://ucp.dev/latest/specification/checkout/#get-checkout)
    or `GET /bookings/{booking_id}` as the source of truth rather than relying
    solely on webhooks. See [Section 5.4.1](#541-booking-webhooks).
+
+##### `order.id` vs `order_id`
+
+The UCP `complete_checkout` (and `get_checkout`) response exposes the order
+identifier as **`order.id`** inside the `order` object, per the
+[UCP checkout response](https://ucp.dev/latest/specification/checkout/). USP
+correlation — including the `booking.confirmed` webhook
+([Section 5.4.1](#541-booking-webhooks)) — uses a top-level **`order_id`** field,
+which **SHOULD** equal that `order.id`. Adapters bridging UCP and USP **MUST** map
+between the two; agents **MUST NOT** assume a root-level `order_id` on a UCP
+checkout response unless the binding documents one.
+
+The completed UCP checkout carries the order object:
+
+```json
+"order": { "id": "ord_ucp_001" }
+```
+
+while the USP `booking.confirmed` webhook carries the aliased top-level field:
+
+```json
+"order_id": "ord_ucp_001"
+```
 
 For the full specification of `create_checkout`, `complete_checkout`, and
 payment handlers, see the [UCP Specification](https://ucp.dev/latest/specification/overview/)
