@@ -1,5 +1,13 @@
 # Change Log
 
+## 01/07/26 at 16:07:29 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Expanded `plans/USP+UCP_implementation_plan.md` [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) section with full detail from [issue comment #4761877725](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89#issuecomment-4761877725): checkout `payment_handlers` must expose Stripe SPT prerequisites (`network_id`), server-side HTTP 402 / `mpp decode` resolution during checkout creation, checkout-over-profile authority, acceptance criteria, and cross-links to [#64](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) and [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) - so the implementation plan matches the GitHub issue guidance for UCP-native SPT acquisition
+- Updated [#64](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) and demo-flow step 15 in the same plan to state the agent reads `network_id` from checkout `payment_handlers` (not merchant HTTP probing) when required for `shared_payment_token` spend requests
+- Added normative intent note under [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) that PSP acquisition inputs such as `network_id` belong only on UCP checkout `payment_handlers`, not USP-only extension fields
+
+---
+
 ## 23/06/26 at 20:12:36 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Moved all `signing_keys`-related work out of demo scope: created GitHub issue [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116) "usp-impl: RFC 9421 outbound webhook signing + signing_keys in merchant profile" (v>1, track-d, @maoryeh) as the single post-demo home for both Wix publishing signing_keys and signing outbound booking.confirmed webhooks
