@@ -285,7 +285,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
 
 15. **Acquire SPT** (`Agent` → `Stripe`): The Link platform obtains a Shared Payment Token via Stripe's UCP/SPT flow.
   **Why:** UCP-Native completion uses platform-acquired SPT on `complete_checkout`; the agent does not collect card data directly.
-  **Fields consumed (this request):** `payment_handlers` config from step 4 and/or step 14; checkout context from step 14.
+  **Fields consumed (this request):** `payment_handlers` config from step 4 and/or step 14 (including PSP acquisition inputs such as `network_id` when required for `shared_payment_token` spend requests; checkout response is authoritative per [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)); checkout context from step 14.
   **Fields obtained:** none (request only; credential in step 16).
 16. **SPT credential** (`Stripe` → `Agent`): Stripe returns the SPT credential bound to the checkout context.
   **Why:** `complete_checkout` must present a valid, scoped payment token for `StripeSptProviderAdapter`.
@@ -884,10 +884,11 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 **What:**
 
-1. Read Stripe handler `config` / instrument schema from checkout `payment_handlers`.
-2. Call Stripe tokenizer flow per [Stripe SPT docs](https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens).
-3. Build `CompleteCheckoutRequest.payment.instruments[].credential.token`.
-4. Handle test-mode credentials for demo merchant.
+1. Read Stripe handler `config` / instrument schema from checkout `payment_handlers` on **`get_checkout` / `create_checkout` / `update_checkout`** (checkout overrides profile at payment time; see [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89), [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99)).
+2. When `link-cli spend-request create` uses `credential_type: shared_payment_token`, read **`network_id`** (when required) from the same checkout `payment_handlers` entry - do **not** probe merchant HTTP 402 / run `mpp decode` on the UCP-native path when checkout already carries the hint ([#89 comment](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89#issuecomment-4761877725)).
+3. Call Stripe tokenizer / link-cli spend-request flow per [Stripe SPT docs](https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens); exact link-cli flags and optional vs required `network_id` stay in **link-cli** create-payment-credential docs.
+4. Build `CompleteCheckoutRequest.payment.instruments[].credential.token`.
+5. Handle test-mode credentials for demo merchant.
 
 ---
 
@@ -1606,17 +1607,32 @@ def complete(checkoutId, payment, bookingId)(cs: CallScope): Future[CheckoutResp
 
 **Why:** Agent acquires SPT using handler config from profile `payment_handlers` and checkout response `payment_handlers` per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) ([G-04](#4-gap-to-workstream-matrix)).
 
+**Problem** ([issue comment](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89#issuecomment-4761877725)): Link USP agents using `link-cli spend-request create` with **`shared_payment_token`** may need **`network_id`** (from MPP / HTTP 402 style challenges in redirect-style flows). For **UCP-native** paid bookings, the agent should get PSP-specific acquisition parameters from **UCP**, not from scraping merchant pages.
+
 **What:**
 
 1. Register adapter in `AcpCheckoutService`: `Seq(googlePayAdapter, stripeSptAdapter)` (Google Pay optional for demo).
-2. `resolvePaymentHandlers`: include Stripe when merchant has Stripe connected + demo flag.
+2. `resolvePaymentHandlers`: include Stripe when merchant has Stripe connected + demo flag; return handler on **`create_checkout` / `get_checkout` / `update_checkout`** (per issue acceptance criteria).
 3. `getCapabilities`: include Stripe entry in `payment_handlers` using **UCP-conformant** shape (reverse-domain handler namespace, array of instances with `id`, `version`, `config`, `available_instruments`) matching [USP §7.2 / §7.4](../specification.md#72-profile-registration-in-well-knownucp) and [`docs/ucp-native-demo-merchant-profile.example.json`](../docs/ucp-native-demo-merchant-profile.example.json).
+4. **Checkout `payment_handlers` must expose Stripe SPT prerequisites (e.g. `network_id`):** When resolving Stripe SPT `payment_handlers` for a checkout session, embed **session-scoped acquisition fields** (including **`network_id`** when the PSP requires it) in the **checkout response's** `payment_handlers` entry for the Stripe SPT handler - in handler `config` and/or per-instrument fields per Stripe's published handler JSON schema. **Checkout response overrides profile** at payment time ([#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99)).
+5. **Server-side `network_id` resolution:** If `network_id` is only discoverable via an internal HTTP 402 to the merchant's own payment URL, perform that resolution **server-side while creating the checkout session** (e.g. `link-cli mpp decode`), then attach the decoded value to **`payment_handlers`** so the platform agent has a single JSON source of truth before `complete_checkout`.
+
+**Acceptance criteria (from issue + comment):**
+
+- [ ] Demo merchant profile includes Stripe handler entry.
+- [ ] `resolvePaymentHandlers` returns handler on create/get checkout with session-scoped Stripe SPT prerequisites when required (e.g. `network_id` in handler `config` per Stripe schema).
+- [ ] Checkout `payment_handlers` overrides profile at payment time.
+- [ ] Exact `network_id` field name and optional vs required semantics follow **Stripe handler JSON schema** and **link-cli** create-payment-credential docs (not duplicated in USP repos).
+
+**Cross-links:** [#64](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) (agent consumes handler config for SPT acquisition), [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) (normative UCP handler shape in spec).
 
 ---
 
 ### [#99: Spec payment_handlers and available_instruments](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) (Track F / spec)
 
 **Track F scope:** Addressed in this repo: [USP §7.2 / §7.4](../specification.md#72-profile-registration-in-well-knownucp) and site docs aligned with [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture); demo profile example at [`docs/ucp-native-demo-merchant-profile.example.json`](../docs/ucp-native-demo-merchant-profile.example.json). Wix `acp-checkout` ([#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89)) must emit the same wire shape at runtime.
+
+**Normative intent ([#99 comment](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99#issuecomment-4761877757)):** PSP-specific inputs required before the buyer-approved credential exists (for example Stripe **`network_id`** for `shared_payment_token` spend requests) are carried **only** via UCP **`payment_handlers`** on the **checkout** object (authoritative), not via parallel USP REST fields on bookings, catalog, or registry ([#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89#issuecomment-4761877725)).
 
 ---
 
