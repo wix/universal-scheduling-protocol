@@ -10,18 +10,18 @@
 /* ---------- Playground Tokens ---------- */
 :root {
   /* Core palette */
-  --pg-primary: #1a73e8;
-  --pg-primary-light: #4285f4;
-  --pg-primary-lighter: #1a73e8;
-  --pg-primary-dark: #1557b0;
-  --pg-primary-darkest: #0d47a1;
+  --pg-primary: #0d9488;
+  --pg-primary-light: #14b8a6;
+  --pg-primary-lighter: #14b8a6;
+  --pg-primary-dark: #0f766e;
+  --pg-primary-darkest: #115e59;
 
-  /* Backgrounds — light theme, matches site */
+  /* Backgrounds — light neutral theme */
   --pg-bg: transparent;
-  --pg-bg-0: #f4faf2;
-  --pg-bg-elevated: #e9f3e5;
-  --pg-bg-surface: #ddecd8;
-  --pg-bg-code: #e9f3e5;
+  --pg-bg-0: #fff;
+  --pg-bg-elevated: #f8f9fa;
+  --pg-bg-surface: #f1f3f4;
+  --pg-bg-code: #f8f9fa;
 
   /* Text — dark on light */
   --pg-text: #202124;
@@ -42,7 +42,7 @@
 
   /* Method colors */
   --pg-method-get: #16a34a;
-  --pg-method-post: #1a73e8;
+  --pg-method-post: #0d9488;
   --pg-method-patch: #d97706;
   --pg-method-delete: #dc2626;
 
@@ -56,7 +56,7 @@
   /* Shadows */
   --pg-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --pg-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-  --pg-glow: 0 0 12px rgba(26, 115, 232, 0.15);
+  --pg-glow: 0 0 12px rgba(13, 148, 136, 0.15);
 
   /* Transitions */
   --pg-transition: 0.2s ease;
@@ -1854,7 +1854,7 @@
 
 /* Syntax highlighting tokens */
 .pg-tok-key  { color: #5c6370; }
-.pg-tok-str  { color: #1a73e8; }
+.pg-tok-str  { color: #0d9488; }
 .pg-tok-num  { color: #d97706; }
 .pg-tok-bool { color: #16a34a; }
 .pg-tok-null { color: #dc2626; }

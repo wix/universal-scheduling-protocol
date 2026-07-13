@@ -1,5 +1,18 @@
 # Change Log
 
+## 13/07/26 at 22:31:32 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Moved Overview and Specification navigation into the left sidebar only (matching UCP) by removing `navigation.tabs` and `navigation.tabs.sticky` from `mkdocs.yml`, and added defensive CSS in `extra.css` to hide the header tab bar and keep top-level nav items visible in the primary panel on all viewports
+
+---
+
+## 13/07/26 at 22:29:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Reverted the site from green-tinted page backgrounds to white and neutral gray surfaces (`#fff`, `#f8f9fa`, `#f1f3f4`) in `extra.css`, restored teal accent colors (`#0d9488`) for links, badges, and active tabs, and added a subtle hero radial glow matching the earlier site
+- Aligned playground panel and code backgrounds in `playground.css` to the same neutral palette and teal primary tokens
+
+---
+
 ## 13/07/26 at 22:19:08 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed homepage Catalog / Availability / Booking sub-tabs (and Standalone / UCP-Native main tabs) not switching by aligning `openTab` and `openSubTab` in `extra.js` with the `onclick` + element-id markup in `home.html`, which toggles `.active` on `.tab-pane` and `.sub-tab-pane` siblings
