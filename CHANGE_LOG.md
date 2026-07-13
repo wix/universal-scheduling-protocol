@@ -1,5 +1,12 @@
 # Change Log
 
+## 13/07/26 at 16:03:04 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `package.json` with `python3 -m mkdocs build` so Vercel treats the project as a static MkDocs site instead of a Python serverless app (Vercel CLI 55+ errors on missing Python entrypoints when only `requirements.txt` is present)
+- Added `vercel.json` with `outputDirectory: site`, `/spec` rewrites, `/github` redirect, and cache/security headers aligned with `render.yaml` so Vercel deployment matches the existing Render static-site behavior
+
+---
+
 ## 13/07/26 at 14:52:16 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added optional `availability_hint` to `ServiceSearchResult` in `schemas/registry.json` (by `$ref` to catalog `AvailabilityHint`), so registry service search can pass through the catalog's approximate availability signal and agents can reason about near-term availability without an extra catalog fetch per hit
