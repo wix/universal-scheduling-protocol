@@ -1,5 +1,13 @@
 # Change Log
 
+## 13/07/26 at 14:52:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added optional `availability_hint` to `ServiceSearchResult` in `schemas/registry.json` (by `$ref` to catalog `AvailabilityHint`), so registry service search can pass through the catalog's approximate availability signal and agents can reason about near-term availability without an extra catalog fetch per hit
+- Updated `specification.md` §6.3 and `site-docs/specification/discovery-registry.md` with response examples and normative guidance: registries SHOULD pass through the hint when present at index time; platforms MUST NOT treat it as authoritative or as a hard availability filter
+- Aligned `plans/usp-registry-design-plan.md` §1.4, §1.10, and §2.3 with the wire-model change (replacing the prior index-only, not-returned decision from PR #57 review)
+
+---
+
 ## 03/07/26 at 13:08:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Refined `docs/dtc_charter_nomination.md` to increase GC approval odds: removed leftover assistant-conversation text from the submission body (e.g. "If you want, I can save this as a markdown file..."), which would have been embarrassing if filed as-is, and clearly fenced the internal submission notes behind a delete-before-filing marker
