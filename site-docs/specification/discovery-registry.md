@@ -252,7 +252,12 @@ Search the registry for specific **services** offered by registered businesses. 
             "coordinates": { "lat": 40.7484, "lng": -73.9967 }
           },
           "timezone": "America/New_York",
-          "last_indexed_at": "2026-03-14T08:00:00Z"
+          "last_indexed_at": "2026-03-14T08:00:00Z",
+          "availability_hint": {
+            "summary": "Good availability this week, especially Tuesday and Wednesday afternoons.",
+            "generated_at": "2026-03-14T07:00:00Z",
+            "next_available_date": "2026-03-15"
+          }
         },
         {
           "service_id": "svc_massage_90",
@@ -283,7 +288,7 @@ Search the registry for specific **services** offered by registered businesses. 
     ```
 
 !!! tip "Indexing Strategy"
-    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions----post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions.
+    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions----post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter.
 
 ---
 
