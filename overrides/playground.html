@@ -39,7 +39,7 @@
   </div>
 
   {# ── Description ── #}
-  <p class="pg-intro">Walk through a complete USP scheduling flow step-by-step. This interactive demo runs entirely in the browser, simulating payloads and validating against real USP schemas at each stage.</p>
+  <p class="pg-intro">Walk through a complete USP scheduling flow step-by-step. This interactive demo runs entirely in the browser, simulating request and response payloads from USP scenario fixtures at each stage.</p>
 
   {# ── Step Navigation Tabs ── #}
   <div class="pg-step-nav" id="pg-step-nav">
@@ -179,8 +179,8 @@
       <div class="pg-panes">
         <div class="pg-code-panel">
           <div class="pg-pane-header">
-            <span class="pg-method-badge pg-method-post">POST</span>
-            <span class="pg-path">/services/list</span>
+            <span class="pg-method-badge pg-method-post" id="pg-browse-method">POST</span>
+            <span class="pg-path" id="pg-browse-path">/services/list</span>
             <button class="pg-btn pg-btn-copy" data-target="pg-browse-request">Copy</button>
           </div>
           <pre class="pg-code"><code id="pg-browse-request"></code></pre>
@@ -225,8 +225,8 @@
       <div class="pg-panes">
         <div class="pg-code-panel">
           <div class="pg-pane-header">
-            <span class="pg-method-badge pg-method-post">POST</span>
-            <span class="pg-path">/availability/query</span>
+            <span class="pg-method-badge pg-method-post" id="pg-availability-method">POST</span>
+            <span class="pg-path" id="pg-availability-path">/availability/query</span>
             <button class="pg-btn pg-btn-copy" data-target="pg-availability-request">Copy</button>
           </div>
           <pre class="pg-code"><code id="pg-availability-request"></code></pre>
@@ -260,7 +260,7 @@
         <select class="pg-select" id="pg-hold-scenario">
           <option value="hold_granted" selected>Hold Granted</option>
           <option value="slot_unavailable">Slot Unavailable (409)</option>
-          <option value="hold_limit_exceeded">Hold Limit Exceeded (409)</option>
+          <option value="hold_limit_exceeded">Hold Limit Exceeded (429)</option>
         </select>
         <button class="pg-btn pg-btn-run" id="pg-hold-run">
           <span class="pg-btn-text">Run Request</span>
@@ -269,8 +269,8 @@
       <div class="pg-panes">
         <div class="pg-code-panel">
           <div class="pg-pane-header">
-            <span class="pg-method-badge pg-method-post">POST</span>
-            <span class="pg-path">/availability/hold</span>
+            <span class="pg-method-badge pg-method-post" id="pg-hold-method">POST</span>
+            <span class="pg-path" id="pg-hold-path">/availability/hold</span>
             <button class="pg-btn pg-btn-copy" data-target="pg-hold-request">Copy</button>
           </div>
           <pre class="pg-code"><code id="pg-hold-request"></code></pre>
@@ -315,8 +315,8 @@
       <div class="pg-panes">
         <div class="pg-code-panel">
           <div class="pg-pane-header">
-            <span class="pg-method-badge pg-method-post">POST</span>
-            <span class="pg-path">/bookings</span>
+            <span class="pg-method-badge pg-method-post" id="pg-book-method">POST</span>
+            <span class="pg-path" id="pg-book-path">/bookings</span>
             <button class="pg-btn pg-btn-copy" data-target="pg-book-request">Copy</button>
           </div>
           <pre class="pg-code"><code id="pg-book-request"></code></pre>
@@ -349,7 +349,7 @@
         <label>Scenario</label>
         <select class="pg-select" id="pg-payment-scenario">
           <option value="payment_success" selected>Payment Success</option>
-          <option value="payment_failed">Payment Failed (422)</option>
+          <option value="payment_failed">Payment Failed (402)</option>
           <option value="deposit_flow">Deposit Flow</option>
         </select>
         <button class="pg-btn pg-btn-run" id="pg-payment-run">
@@ -359,8 +359,8 @@
       <div class="pg-panes">
         <div class="pg-code-panel">
           <div class="pg-pane-header">
-            <span class="pg-method-badge pg-method-post">POST</span>
-            <span class="pg-path">/bookings/{id}/confirm-payment</span>
+            <span class="pg-method-badge pg-method-post" id="pg-payment-method">POST</span>
+            <span class="pg-path" id="pg-payment-path">/bookings/{id}/confirm-payment</span>
             <button class="pg-btn pg-btn-copy" data-target="pg-payment-request">Copy</button>
           </div>
           <pre class="pg-code"><code id="pg-payment-request"></code></pre>

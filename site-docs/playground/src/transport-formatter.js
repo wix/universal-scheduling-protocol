@@ -13,6 +13,7 @@
 const MCP_TOOL_MAP = {
   'GET /.well-known/usp':                    'usp_profile_get',
   'GET /.well-known/ucp':                    'ucp_profile_get',
+  'GET /services':                           'usp_catalog_list',
   'POST /services/list':                     'usp_catalog_list',
   'GET /services/{service_id}':              'usp_catalog_get',
   'POST /services/lookup':                   'usp_catalog_lookup',
@@ -95,7 +96,13 @@ function randomIdempotencyKey() {
  * @returns {{ display: string, language: string }}
  */
 function formatRest(stepConfig, requestBody) {
-  const { method, path } = stepConfig;
+  const { method } = stepConfig;
+  let { path } = stepConfig;
+  const query = stepConfig.query || (method === 'GET' && requestBody && typeof requestBody === 'object' ? requestBody : null);
+  if (query && typeof query === 'object' && Object.keys(query).length > 0) {
+    const qs = new URLSearchParams(query).toString();
+    if (qs) path = `${path}?${qs}`;
+  }
   const headers = {
     Host: 'api.business.example.com',
     'Content-Type': 'application/json',
