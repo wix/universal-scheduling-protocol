@@ -3,33 +3,7 @@
  */
 
 import { formatForTransport } from './transport-formatter.js';
-
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function highlightJson(json) {
-  var ph = [], idx = 0;
-  function hold(html) { var i = idx++; ph.push(html); return '\x00' + i + '\x00'; }
-  var out = json;
-  out = out.replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, function (_, k, c) {
-    return hold('<span class="pg-tok-key">' + escapeHtml(k) + '</span>') + c;
-  });
-  out = out.replace(/("(?:[^"\\]|\\.)*")/g, function (_, s) {
-    return hold('<span class="pg-tok-str">' + escapeHtml(s) + '</span>');
-  });
-  out = out.replace(/\b(-?\d+(?:\.\d+)?)\b/g, function (_, n) {
-    return hold('<span class="pg-tok-num">' + n + '</span>');
-  });
-  out = out.replace(/\b(true|false)\b/g, function (_, b) {
-    return hold('<span class="pg-tok-bool">' + b + '</span>');
-  });
-  out = out.replace(/\b(null)\b/g, function (_, n) {
-    return hold('<span class="pg-tok-null">' + n + '</span>');
-  });
-  out = out.replace(/\x00(\d+)\x00/g, function (_, i) { return ph[Number(i)]; });
-  return out;
-}
+import { highlightJson, escapeHtml } from './code-editor.js';
 
 function showJson(elId, obj) {
   var el = document.getElementById(elId);

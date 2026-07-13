@@ -1,5 +1,11 @@
 # Change Log
 
+## 13/07/26 at 22:10:35 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed playground response panes showing corrupted numeric placeholder output instead of real scenario JSON by reusing `highlightJson` from `code-editor.js` in `playground-controller.js`, which uses non-numeric placeholder tokens that survive the number-highlighting pass
+
+---
+
 ## 13/07/26 at 22:04:57 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Swapped the site surface palette to a green-tinted background scale (`--usp-bg-0` through `--usp-bg-4`) in `extra.css`, wired header, promo cards, sections, code blocks, partner carousel, and footer to those tokens, and kept normal body/landing text black via `--md-typeset-color` and `.landing-page { color: #000 }`
