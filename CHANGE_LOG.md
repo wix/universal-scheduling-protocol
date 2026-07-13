@@ -1,5 +1,29 @@
 # Change Log
 
+## 13/07/26 at 23:39:10 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed missing right margin on playground screens by adding symmetric horizontal padding and a centered max-width on `.pg-playground`, setting `min-width: 0` on split/grid panes to prevent overflow, and consolidating responsive padding so nested sections no longer double up horizontal inset
+
+---
+
+## 13/07/26 at 23:36:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made UCP-Native the default deployment mode in the homepage "See it in action" carousel by listing it first in the tab bar and marking its pane active on load, so visitors see the primary integration path before Standalone
+
+---
+
+## 13/07/26 at 23:35:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the homepage "Endorsed across the ecosystem" partner marquee from `home.html`, deleted all partner-carousel/chip CSS from `extra.css`, and dropped unused industry-tab autoplay logic from `extra.js`, so the site no longer displays placeholder partner, sponsor, or endorser affiliations
+
+---
+
+## 13/07/26 at 23:06:49 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Changed `repo_name` in `mkdocs.yml` to "USP on GitHub" so the header source link matches the UCP site label instead of showing a truncated repository slug
+
+---
+
 ## 13/07/26 at 22:34:17 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed the homepage "Co-developed by industry leaders" partner tabs section from `home.html` and dropped the unused `#industry-tabs` CSS rules from `extra.css`, because that placeholder content is not ready to publish yet

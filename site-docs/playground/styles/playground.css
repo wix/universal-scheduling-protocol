@@ -69,6 +69,10 @@
 
 .pg-playground {
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 2rem 2rem;
   color: var(--pg-text);
   font-family: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
@@ -405,6 +409,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  min-width: 0;
 }
 
 .pg-request-pane,
@@ -1233,17 +1238,21 @@
    ========================================================================== */
 
 @media (max-width: 1024px) {
+  .pg-playground {
+    padding: 0 1.5rem 1.5rem;
+  }
+
   .pg-content {
     max-width: 100%;
-    padding: 1.5rem;
+    padding: 1.5rem 0;
   }
 
   .pg-header {
-    padding: 1rem 1.5rem;
+    padding: 1rem 0;
   }
 
   .pg-stepper {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 0;
   }
 
   .pg-step-connector {
@@ -1260,10 +1269,14 @@
    ========================================================================== */
 
 @media (max-width: 768px) {
+  .pg-playground {
+    padding: 0 1rem 1.5rem;
+  }
+
   /* Header stacks */
   .pg-header {
     flex-wrap: wrap;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0;
     gap: 0.5rem;
   }
 
@@ -1299,7 +1312,7 @@
 
   /* Content */
   .pg-content {
-    padding: 1.25rem 1rem;
+    padding: 1.25rem 0;
   }
 
   .pg-step-header__title {
@@ -1364,8 +1377,12 @@
    ========================================================================== */
 
 @media (max-width: 480px) {
+  .pg-playground {
+    padding: 0 0.75rem 1.25rem;
+  }
+
   .pg-content {
-    padding: 1rem 0.75rem;
+    padding: 1rem 0;
   }
 
   .pg-mode-toggle__option {
@@ -1636,6 +1653,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -1656,6 +1674,7 @@
   grid-template-columns: 320px 1fr;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
@@ -1710,6 +1729,7 @@
   border: 1px solid var(--pg-border);
   border-radius: var(--pg-radius);
   overflow: hidden;
+  min-width: 0;
 }
 
 .pg-code-panel .pg-pane-header {
