@@ -1,250 +1,395 @@
 /**
- * playground-controller.js — Lightweight controller for the USP Playground.
- * Handles step switching, scenario selection, mock request execution,
- * and code display. Works on pre-rendered HTML from playground.html template.
+ * playground-controller.js — USP Playground (UCP-style request/response panes + transport formatting).
  */
 
-(function () {
-  'use strict';
+import { formatForTransport } from './transport-formatter.js';
 
-  // ── Syntax highlighting ──────────────────────────────────────────
-  function escapeHtml(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
-  function highlightJson(json) {
-    var ph = [], idx = 0;
-    function hold(html) { var i = idx++; ph.push(html); return '\x00' + i + '\x00'; }
-    var out = json;
-    out = out.replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, function (_, k, c) {
-      return hold('<span class="pg-tok-key">' + escapeHtml(k) + '</span>') + c;
-    });
-    out = out.replace(/("(?:[^"\\]|\\.)*")/g, function (_, s) {
-      return hold('<span class="pg-tok-str">' + escapeHtml(s) + '</span>');
-    });
-    out = out.replace(/\b(-?\d+(?:\.\d+)?)\b/g, function (_, n) {
-      return hold('<span class="pg-tok-num">' + n + '</span>');
-    });
-    out = out.replace(/\b(true|false)\b/g, function (_, b) {
-      return hold('<span class="pg-tok-bool">' + b + '</span>');
-    });
-    out = out.replace(/\b(null)\b/g, function (_, n) {
-      return hold('<span class="pg-tok-null">' + n + '</span>');
-    });
-    out = out.replace(/\x00(\d+)\x00/g, function (_, i) { return ph[Number(i)]; });
-    return out;
-  }
+function highlightJson(json) {
+  var ph = [], idx = 0;
+  function hold(html) { var i = idx++; ph.push(html); return '\x00' + i + '\x00'; }
+  var out = json;
+  out = out.replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, function (_, k, c) {
+    return hold('<span class="pg-tok-key">' + escapeHtml(k) + '</span>') + c;
+  });
+  out = out.replace(/("(?:[^"\\]|\\.)*")/g, function (_, s) {
+    return hold('<span class="pg-tok-str">' + escapeHtml(s) + '</span>');
+  });
+  out = out.replace(/\b(-?\d+(?:\.\d+)?)\b/g, function (_, n) {
+    return hold('<span class="pg-tok-num">' + n + '</span>');
+  });
+  out = out.replace(/\b(true|false)\b/g, function (_, b) {
+    return hold('<span class="pg-tok-bool">' + b + '</span>');
+  });
+  out = out.replace(/\b(null)\b/g, function (_, n) {
+    return hold('<span class="pg-tok-null">' + n + '</span>');
+  });
+  out = out.replace(/\x00(\d+)\x00/g, function (_, i) { return ph[Number(i)]; });
+  return out;
+}
 
-  function showJson(elId, obj) {
-    var el = document.getElementById(elId);
-    if (!el) return;
-    var json = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-    el.innerHTML = highlightJson(json);
-  }
+function showJson(elId, obj) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var json = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+  el.innerHTML = highlightJson(json);
+}
 
-  // ── Scenario data cache ──────────────────────────────────────────
-  var cache = {};
+function showText(elId, text) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+}
 
-  function loadScenario(file, key, cb) {
-    if (cache[file]) {
-      return cb(cache[file][key] || null);
+function showFormattedRequest(elId, formatted) {
+  if (formatted.language === 'json') {
+    try {
+      showJson(elId, JSON.parse(formatted.display));
+    } catch {
+      showText(elId, formatted.display);
     }
-    var basePath = window.location.pathname.indexOf('/playground') >= 0 ? './' : 'playground/';
-    fetch(basePath + 'scenarios/' + file + '.json')
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        cache[file] = data;
-        cb(data[key] || null);
-      })
-      .catch(function () { cb(null); });
+  } else {
+    showText(elId, formatted.display);
+  }
+}
+
+function setStatus(stepId, status) {
+  var badge = document.getElementById('pg-' + stepId + '-status');
+  if (!badge) return;
+  badge.style.display = 'inline-flex';
+  badge.className = 'pg-status-badge ' + (status >= 400 ? 'pg-status-4xx' : 'pg-status-2xx');
+  badge.textContent = status >= 400 ? status + ' Error' : status + ' OK';
+}
+
+var cache = {};
+var stepState = {};
+
+function loadScenario(file, key, cb) {
+  if (cache[file]) {
+    return cb(cache[file][key] || null);
+  }
+  var basePath = window.location.pathname.indexOf('/playground') >= 0 ? './' : 'playground/';
+  fetch(basePath + 'scenarios/' + file + '.json')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      cache[file] = data;
+      cb(data[key] || null);
+    })
+    .catch(function () { cb(null); });
+}
+
+var currentStep = 'discovery';
+var currentMode = 'standalone';
+var currentTransport = 'rest';
+
+var stepFiles = {
+  discovery: 'business-profile',
+  negotiation: 'platform-profile',
+  browse: 'services',
+  availability: 'availability',
+  hold: 'holds',
+  book: 'bookings',
+  payment: 'payment',
+  manage: 'manage'
+};
+
+var negotiationKeys = {
+  'full-match': 'standard',
+  'partial-match': 'standard',
+  'incompatible': 'standard'
+};
+
+var manageOps = {
+  view_booking: { method: 'GET', path: '/bookings/{booking_id}' },
+  update_booking: { method: 'PATCH', path: '/bookings/{booking_id}' },
+  cancel_booking: { method: 'POST', path: '/bookings/{booking_id}/cancel' },
+  reschedule_booking: { method: 'POST', path: '/bookings/{booking_id}/reschedule' },
+  booking_confirmed: { method: 'POST', path: '/webhooks (simulated)' },
+  booking_canceled: { method: 'POST', path: '/webhooks (simulated)' }
+};
+
+function capabilityNames(profile) {
+  var caps = profile && profile.usp && profile.usp.capabilities;
+  if (!caps) return [];
+  return Object.keys(caps);
+}
+
+function renderNegotiationGrid(businessCaps, negotiatedCaps) {
+  var grid = document.getElementById('pg-negotiation-grid');
+  var businessEl = document.getElementById('pg-negotiation-business');
+  var intersectionEl = document.getElementById('pg-negotiation-intersection');
+  if (!grid || !businessEl || !intersectionEl) return;
+
+  businessEl.innerHTML = businessCaps.map(function (c) {
+    return '<li>' + escapeHtml(c) + '</li>';
+  }).join('');
+  intersectionEl.innerHTML = negotiatedCaps.map(function (c) {
+    return '<li>' + escapeHtml(c) + '</li>';
+  }).join('');
+  grid.classList.remove('pg-hidden');
+}
+
+function updateDiscoveryPath() {
+  var pathEl = document.getElementById('pg-discovery-path');
+  if (pathEl) {
+    pathEl.textContent = currentMode === 'ucp-native' ? '/.well-known/ucp' : '/.well-known/usp';
+  }
+}
+
+function requestBodyFromScenario(data) {
+  if (!data || !data.request) return null;
+  if (data.request.body) return data.request.body;
+  if (data.request.query) return data.request.query;
+  return null;
+}
+
+function stepConfigFromScenario(data, stepId, scenarioKey) {
+  if (stepId === 'discovery') {
+    var path = currentMode === 'ucp-native' ? '/.well-known/ucp' : '/.well-known/usp';
+    return { method: 'GET', path: path };
+  }
+  if (stepId === 'negotiation') {
+    return { method: 'POST', path: '/capability-negotiation' };
+  }
+  if (stepId === 'manage') {
+    return manageOps[scenarioKey] || manageOps.view_booking;
+  }
+  if (data && data.request) {
+    return { method: data.request.method, path: data.request.path };
+  }
+  return { method: 'GET', path: '/' };
+}
+
+function negotiationProfilePayload(data) {
+  if (data.response && data.response.body) return data.response.body;
+  if (data.response) return data.response;
+  return data;
+}
+
+function renderRequestPane(stepId, data, scenarioKey) {
+  var requestEl = document.getElementById('pg-' + stepId + '-request');
+  if (!requestEl || !data) return;
+
+  var config = stepConfigFromScenario(data, stepId, scenarioKey);
+  var body = stepId === 'negotiation'
+    ? negotiationProfilePayload(data)
+    : requestBodyFromScenario(data);
+
+  var formatted = formatForTransport(config, body, currentTransport);
+  showFormattedRequest(requestEl.id, formatted);
+
+  if (stepId === 'discovery') {
+    var methodEl = document.getElementById('pg-discovery-method');
+    var pathEl = document.getElementById('pg-discovery-path');
+    if (methodEl) methodEl.textContent = config.method;
+    if (pathEl) pathEl.textContent = config.path;
+  }
+}
+
+function refreshCurrentStepRequest() {
+  var state = stepState[currentStep];
+  if (state) renderRequestPane(currentStep, state.data, state.scenarioKey);
+}
+
+function runStep(stepId) {
+  var selectEl = document.getElementById('pg-' + stepId + '-scenario');
+  var responseEl = document.getElementById('pg-' + stepId + '-response');
+  var runBtn = document.getElementById('pg-' + stepId + '-run');
+  if (!selectEl || !responseEl) return;
+
+  var scenarioKey = selectEl.value;
+  var file = stepFiles[stepId];
+  if (!file) return;
+
+  if (runBtn) {
+    runBtn.disabled = true;
+    var label = runBtn.querySelector('.pg-btn-text');
+    if (label) label.textContent = 'Loading...';
   }
 
-  // ── Step switching ───────────────────────────────────────────────
-  var currentStep = 'discovery';
-
-  function switchStep(stepId) {
-    currentStep = stepId;
-    document.querySelectorAll('.pg-step').forEach(function (s) {
-      s.classList.toggle('pg-step-visible', s.getAttribute('data-step') === stepId);
-    });
-    document.querySelectorAll('.pg-step-pill').forEach(function (p) {
-      p.classList.toggle('pg-step-pill-active', p.getAttribute('data-step') === stepId);
-    });
+  var actualFile = file;
+  var actualKey = scenarioKey;
+  if (stepId === 'manage' && scenarioKey.indexOf('booking_') === 0) {
+    actualFile = 'webhooks';
+  }
+  if (stepId === 'negotiation') {
+    actualKey = negotiationKeys[scenarioKey] || 'standard';
   }
 
-  // ── Step pill clicks ─────────────────────────────────────────────
-  document.querySelectorAll('.pg-step-pill').forEach(function (pill) {
-    pill.addEventListener('click', function () {
-      switchStep(this.getAttribute('data-step'));
-    });
-  });
+  loadScenario(actualFile, actualKey, function (data) {
+    setTimeout(function () {
+      if (data) {
+        stepState[stepId] = { data: data, scenarioKey: scenarioKey };
+        renderRequestPane(stepId, data, scenarioKey);
 
-  // ── Next/Back buttons ────────────────────────────────────────────
-  document.querySelectorAll('.pg-btn-next').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      switchStep(this.getAttribute('data-next'));
-    });
-  });
-  document.querySelectorAll('.pg-btn-back').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      switchStep(this.getAttribute('data-prev'));
-    });
-  });
-
-  // ── Copy buttons ─────────────────────────────────────────────────
-  document.querySelectorAll('.pg-btn-copy').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var target = document.getElementById(this.getAttribute('data-target'));
-      if (!target) return;
-      var text = target.textContent || '';
-      navigator.clipboard.writeText(text).then(function () {
-        btn.textContent = 'Copied!';
-        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
-      });
-    });
-  });
-
-  // ── Mode toggle ──────────────────────────────────────────────────
-  document.querySelectorAll('#pg-mode-toggle .pg-toggle-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('#pg-mode-toggle .pg-toggle-btn').forEach(function (b) {
-        b.classList.remove('pg-toggle-active');
-      });
-      this.classList.add('pg-toggle-active');
-    });
-  });
-
-  // ── Transport toggle ─────────────────────────────────────────────
-  document.querySelectorAll('#pg-transport-toggle .pg-toggle-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('#pg-transport-toggle .pg-toggle-btn').forEach(function (b) {
-        b.classList.remove('pg-toggle-active');
-      });
-      this.classList.add('pg-toggle-active');
-    });
-  });
-
-  // ── Scenario file map ────────────────────────────────────────────
-  var stepFiles = {
-    discovery:    'business-profile',
-    negotiation:  'platform-profile',
-    browse:       'services',
-    availability: 'availability',
-    hold:         'holds',
-    book:         'bookings',
-    payment:      'payment',
-    manage:       'manage'
-  };
-
-  // ── Run button handlers ──────────────────────────────────────────
-
-  function runStep(stepId) {
-    var selectEl = document.getElementById('pg-' + stepId + '-scenario');
-    var codeEl = document.getElementById('pg-' + stepId + '-code');
-    var runBtn = document.getElementById('pg-' + stepId + '-run');
-    if (!selectEl || !codeEl) return;
-
-    var scenarioKey = selectEl.value;
-    var file = stepFiles[stepId];
-    if (!file) return;
-
-    // Loading state
-    if (runBtn) {
-      runBtn.disabled = true;
-      runBtn.querySelector('.pg-btn-text').textContent = 'Loading...';
-    }
-
-    // Handle manage step - may need webhooks file
-    var actualFile = file;
-    if (stepId === 'manage' && scenarioKey.indexOf('booking_') === 0) {
-      actualFile = 'webhooks';
-    }
-
-    loadScenario(actualFile, scenarioKey, function (data) {
-      // Simulated delay
-      setTimeout(function () {
-        if (data) {
-          var display;
-          var status = 200;
-          if (data.response && data.response.body) {
-            display = data.response.body;
-            status = data.response.status || 200;
-          } else if (data.response) {
-            display = data.response;
-          } else if (data.payload) {
-            display = data.payload;
-          } else {
-            display = data;
-          }
-          showJson(codeEl.id, display);
-
-          var header = codeEl.closest('.pg-code-panel').querySelector('.pg-pane-header');
-          var existingBadge = header.querySelector('.pg-status-badge');
-          if (existingBadge) existingBadge.remove();
-          var badge = document.createElement('span');
-          badge.className = 'pg-status-badge ' + (status >= 400 ? 'pg-status-4xx' : 'pg-status-2xx');
-          badge.textContent = status >= 400 ? status + ' Error' : status + ' OK';
-          header.appendChild(badge);
+        var display;
+        var status = 200;
+        if (stepId === 'negotiation' && scenarioKey === 'incompatible') {
+          status = 409;
+          display = { error: 'No overlapping capabilities between platform and business profiles' };
+        } else if (data.response && data.response.body) {
+          display = data.response.body;
+          status = data.response.status || 200;
+        } else if (data.response) {
+          display = data.response;
+        } else if (data.payload) {
+          display = data.payload;
         } else {
-          showJson(codeEl.id, { error: 'Scenario not found', scenario: scenarioKey });
+          display = data;
         }
 
-        if (runBtn) {
-          runBtn.disabled = false;
-          runBtn.querySelector('.pg-btn-text').textContent = stepId === 'discovery' ? 'Fetch Profile' : 'Run Request';
-          if (stepId === 'negotiation') runBtn.querySelector('.pg-btn-text').textContent = 'Run Negotiation';
+        if (stepId === 'negotiation' && scenarioKey === 'partial-match' && display.usp) {
+          var caps = display.usp.capabilities || {};
+          delete caps['dev.usp.services.holds'];
+          display = { usp: { version: display.usp.version, capabilities: caps } };
         }
-      }, 300 + Math.floor(Math.random() * 400));
-    });
-  }
 
-  // Wire up all run buttons
-  ['discovery', 'negotiation', 'browse', 'availability', 'hold', 'book', 'payment', 'manage'].forEach(function (stepId) {
-    var btn = document.getElementById('pg-' + stepId + '-run');
-    if (btn) {
-      btn.addEventListener('click', function () { runStep(stepId); });
+        showJson(responseEl.id, display);
+        setStatus(stepId, status);
+
+        if (stepId === 'negotiation') {
+          loadScenario('business-profile', 'standard', function (biz) {
+            var bizCaps = capabilityNames(biz && biz.response ? biz.response : biz);
+            var negCaps = capabilityNames(display);
+            if (scenarioKey === 'partial-match') {
+              negCaps = bizCaps.filter(function (c) { return c !== 'dev.usp.services.holds'; });
+            } else if (scenarioKey === 'incompatible') {
+              negCaps = [];
+            }
+            renderNegotiationGrid(bizCaps, negCaps);
+          });
+        }
+      } else {
+        showJson(responseEl.id, { error: 'Scenario not found', scenario: scenarioKey });
+        setStatus(stepId, 404);
+      }
+
+      if (runBtn) {
+        runBtn.disabled = false;
+        var text = runBtn.querySelector('.pg-btn-text');
+        if (!text) return;
+        if (stepId === 'discovery') text.textContent = 'Fetch Profile';
+        else if (stepId === 'negotiation') text.textContent = 'Run Negotiation';
+        else text.textContent = 'Run Request';
+      }
+    }, 300 + Math.floor(Math.random() * 400));
+  });
+}
+
+function switchStep(stepId) {
+  currentStep = stepId;
+  document.querySelectorAll('.pg-step').forEach(function (s) {
+    var visible = s.getAttribute('data-step') === stepId;
+    s.classList.toggle('pg-step-visible', visible);
+    if (visible) {
+      s.classList.remove('pg-fade-in');
+      void s.offsetWidth;
+      s.classList.add('pg-fade-in');
     }
   });
-
-  // ── Manage step: update method/path on scenario change ───────────
-  var manageOps = {
-    view_booking:      { method: 'GET',   path: '/bookings/{booking_id}' },
-    update_booking:    { method: 'PATCH', path: '/bookings/{booking_id}' },
-    cancel_booking:    { method: 'POST',  path: '/bookings/{booking_id}/cancel' },
-    reschedule_booking:{ method: 'POST',  path: '/bookings/{booking_id}/reschedule' },
-    booking_confirmed: { method: 'POST',  path: '/webhooks (simulated)' },
-    booking_canceled:  { method: 'POST',  path: '/webhooks (simulated)' }
-  };
-
-  var manageSelect = document.getElementById('pg-manage-scenario');
-  if (manageSelect) {
-    manageSelect.addEventListener('change', function () {
-      var op = manageOps[this.value] || manageOps.view_booking;
-      var methodEl = document.getElementById('pg-manage-method');
-      var pathEl = document.getElementById('pg-manage-path');
-      if (methodEl) {
-        methodEl.textContent = op.method;
-        methodEl.className = 'pg-method-badge pg-method-' + op.method.toLowerCase();
-      }
-      if (pathEl) pathEl.textContent = op.path;
-    });
+  document.querySelectorAll('.pg-step-pill').forEach(function (p) {
+    p.classList.toggle('pg-step-pill-active', p.getAttribute('data-step') === stepId);
+  });
+  if (stepId === 'discovery' || stepId === 'negotiation') {
+    runStep(stepId);
+  } else if (stepState[stepId]) {
+    renderRequestPane(stepId, stepState[stepId].data, stepState[stepId].scenarioKey);
   }
+}
 
-  // ── Discovery description update ─────────────────────────────────
-  var discoveryDescs = {
-    standard: 'Supports core Catalog, Availability, and Bookings capabilities.',
-    full: 'All capabilities including Holds, Waitlist extension, and signing keys.',
-    minimal: 'Minimal appointment-only profile with no holds or extensions.'
-  };
-  var discoverySelect = document.getElementById('pg-discovery-scenario');
-  if (discoverySelect) {
-    discoverySelect.addEventListener('change', function () {
-      var desc = document.getElementById('pg-discovery-desc');
-      if (desc) desc.textContent = discoveryDescs[this.value] || '';
+document.querySelectorAll('.pg-step-pill').forEach(function (pill) {
+  pill.addEventListener('click', function () {
+    switchStep(this.getAttribute('data-step'));
+  });
+});
+
+document.querySelectorAll('.pg-btn-next').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    switchStep(this.getAttribute('data-next'));
+  });
+});
+document.querySelectorAll('.pg-btn-back').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    switchStep(this.getAttribute('data-prev'));
+  });
+});
+
+document.querySelectorAll('.pg-btn-copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var target = document.getElementById(this.getAttribute('data-target'));
+    if (!target) return;
+    navigator.clipboard.writeText(target.textContent || '').then(function () {
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
     });
-  }
+  });
+});
 
-  // ── Auto-load the first step ─────────────────────────────────────
-  runStep('discovery');
+document.querySelectorAll('#pg-mode-toggle .pg-toggle-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('#pg-mode-toggle .pg-toggle-btn').forEach(function (b) {
+      b.classList.remove('pg-toggle-active');
+    });
+    this.classList.add('pg-toggle-active');
+    currentMode = this.getAttribute('data-mode') || 'standalone';
+    updateDiscoveryPath();
+    if (currentStep === 'discovery' && stepState.discovery) {
+      renderRequestPane('discovery', stepState.discovery.data, stepState.discovery.scenarioKey);
+    } else if (currentStep === 'discovery') {
+      runStep('discovery');
+    }
+  });
+});
 
-})();
+document.querySelectorAll('#pg-transport-toggle .pg-toggle-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('#pg-transport-toggle .pg-toggle-btn').forEach(function (b) {
+      b.classList.remove('pg-toggle-active');
+    });
+    this.classList.add('pg-toggle-active');
+    currentTransport = this.getAttribute('data-transport') || 'rest';
+    refreshCurrentStepRequest();
+  });
+});
+
+var manageSelect = document.getElementById('pg-manage-scenario');
+if (manageSelect) {
+  manageSelect.addEventListener('change', function () {
+    var op = manageOps[this.value] || manageOps.view_booking;
+    var methodEl = document.getElementById('pg-manage-method');
+    var pathEl = document.getElementById('pg-manage-path');
+    if (methodEl) {
+      methodEl.textContent = op.method;
+      methodEl.className = 'pg-method-badge pg-method-' + op.method.toLowerCase();
+    }
+    if (pathEl) pathEl.textContent = op.path;
+    if (stepState.manage) {
+      stepState.manage.scenarioKey = this.value;
+      renderRequestPane('manage', stepState.manage.data, this.value);
+    }
+  });
+}
+
+var discoveryDescs = {
+  standard: 'Supports core Catalog, Availability, and Bookings capabilities.',
+  full: 'All capabilities including Holds, Waitlist extension, and signing keys.',
+  minimal: 'Minimal appointment-only profile with no holds or extensions.'
+};
+var discoverySelect = document.getElementById('pg-discovery-scenario');
+if (discoverySelect) {
+  discoverySelect.addEventListener('change', function () {
+    var desc = document.getElementById('pg-discovery-desc');
+    if (desc) desc.textContent = discoveryDescs[this.value] || '';
+  });
+}
+
+['discovery', 'negotiation', 'browse', 'availability', 'hold', 'book', 'payment', 'manage'].forEach(function (stepId) {
+  var btn = document.getElementById('pg-' + stepId + '-run');
+  if (btn) btn.addEventListener('click', function () { runStep(stepId); });
+});
+
+updateDiscoveryPath();
+runStep('discovery');

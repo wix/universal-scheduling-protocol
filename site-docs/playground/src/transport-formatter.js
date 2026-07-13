@@ -12,6 +12,7 @@
 
 const MCP_TOOL_MAP = {
   'GET /.well-known/usp':                    'usp_profile_get',
+  'GET /.well-known/ucp':                    'ucp_profile_get',
   'POST /services/list':                     'usp_catalog_list',
   'GET /services/{service_id}':              'usp_catalog_get',
   'POST /services/lookup':                   'usp_catalog_lookup',
@@ -38,6 +39,7 @@ const MCP_TOOL_MAP = {
 
 const A2A_TYPE_MAP = {
   'GET /.well-known/usp':                    'usp.profile.get',
+  'GET /.well-known/ucp':                    'ucp.profile.get',
   'POST /services/list':                     'usp.catalog.list',
   'POST /availability/query':                'usp.availability.query',
   'POST /availability/hold':                 'usp.availability.hold',

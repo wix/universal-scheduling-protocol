@@ -14,4 +14,16 @@ document.addEventListener("DOMContentLoaded", function () {
       if (target) target.classList.add("usp-tabs__panel--active");
     });
   });
+
+  var announceBanner = document.getElementById("usp-announce-banner");
+  var announceClose = document.getElementById("usp-announce-close");
+  if (announceBanner && announceClose) {
+    if (localStorage.getItem("usp-announce-dismissed") === "1") {
+      announceBanner.style.display = "none";
+    }
+    announceClose.addEventListener("click", function () {
+      announceBanner.style.display = "none";
+      localStorage.setItem("usp-announce-dismissed", "1");
+    });
+  }
 });

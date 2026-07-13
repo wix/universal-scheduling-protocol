@@ -5,16 +5,16 @@
    ========================================================================== */
 
 /* ---------- Font Import ---------- */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
 
 /* ---------- Playground Tokens ---------- */
 :root {
   /* Core palette */
-  --pg-primary: #0d9488;
-  --pg-primary-light: #14b8a6;
-  --pg-primary-lighter: #0d9488;
-  --pg-primary-dark: #0f766e;
-  --pg-primary-darkest: #115e59;
+  --pg-primary: #1a73e8;
+  --pg-primary-light: #4285f4;
+  --pg-primary-lighter: #1a73e8;
+  --pg-primary-dark: #1557b0;
+  --pg-primary-darkest: #0d47a1;
 
   /* Backgrounds — light theme, matches site */
   --pg-bg: transparent;
@@ -23,14 +23,14 @@
   --pg-bg-code: #f6f8fa;
 
   /* Text — dark on light */
-  --pg-text: #1a1a2e;
-  --pg-text-muted: #5c6370;
-  --pg-text-dim: #8b949e;
-  --pg-text-bright: #0d1117;
+  --pg-text: #202124;
+  --pg-text-muted: #5f6368;
+  --pg-text-dim: #80868b;
+  --pg-text-bright: #000;
 
   /* Borders */
-  --pg-border: #d1d5db;
-  --pg-border-light: #e5e7eb;
+  --pg-border: #dadce0;
+  --pg-border-light: #e8eaed;
   --pg-border-focus: var(--pg-primary);
 
   /* Semantic */
@@ -41,7 +41,7 @@
 
   /* Method colors */
   --pg-method-get: #16a34a;
-  --pg-method-post: #0d9488;
+  --pg-method-post: #1a73e8;
   --pg-method-patch: #d97706;
   --pg-method-delete: #dc2626;
 
@@ -55,7 +55,7 @@
   /* Shadows */
   --pg-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   --pg-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-  --pg-glow: 0 0 12px rgba(13, 148, 136, 0.15);
+  --pg-glow: 0 0 12px rgba(26, 115, 232, 0.15);
 
   /* Transitions */
   --pg-transition: 0.2s ease;
@@ -69,7 +69,7 @@
 .pg-playground {
   width: 100%;
   color: var(--pg-text);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
 }
 
@@ -105,7 +105,7 @@
 /* --- Pill toggle (mode selector) --- */
 .pg-mode-toggle {
   display: inline-flex;
-  background: rgba(255, 255, 255, 0.05);
+  background: #f8f9fa;
   border: 1px solid var(--pg-border);
   border-radius: var(--pg-radius-pill);
   padding: 3px;
@@ -452,7 +452,7 @@
 }
 
 .pg-pane-header__path {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.8rem;
   color: var(--pg-text-muted);
   white-space: nowrap;
@@ -476,7 +476,7 @@
   align-items: center;
   padding: 0.2rem 0.5rem;
   border-radius: var(--pg-radius-xs);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -510,7 +510,7 @@
   align-items: center;
   padding: 0.2rem 0.5rem;
   border-radius: var(--pg-radius-xs);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.7rem;
   font-weight: 700;
   animation: pg-badge-pulse 0.4s ease;
@@ -721,7 +721,7 @@
    ========================================================================== */
 
 .pg-timing {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.7rem;
   color: var(--pg-text-dim);
   display: inline-flex;
@@ -874,7 +874,7 @@
   border-radius: var(--pg-radius-pill);
   font-size: 0.75rem;
   font-weight: 600;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   transition: all var(--pg-transition);
 }
 
@@ -1171,7 +1171,7 @@
 }
 
 .pg-annotation__field {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   color: var(--pg-primary-lighter);
   font-weight: 600;
   white-space: nowrap;
@@ -1406,9 +1406,22 @@
   padding: 0;
 }
 
-/* Keep the primary sidebar visible; hide only the TOC sidebar */
+/* Hide TOC on playground; use full content width like UCP */
 .md-container:has(.pg-playground) .md-sidebar--secondary {
   display: none;
+}
+
+.md-container:has(.pg-playground) .md-sidebar--primary {
+  display: none;
+}
+
+.md-container:has(.pg-playground) .md-main__inner {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.md-container:has(.pg-playground) .md-content {
+  margin-left: 0;
+  max-width: 100%;
 }
 
 /* Let MkDocs grid handle the layout with sidebar */
@@ -1527,12 +1540,12 @@
 }
 
 .pg-toggle-active {
-  background: var(--pg-primary) !important;
+  background: #202124 !important;
   color: #fff !important;
 }
 
 .pg-toggle-active:hover {
-  background: var(--pg-primary-dark) !important;
+  background: #3c4043 !important;
 }
 
 /* Transport toggle as inline pill group */
@@ -1579,8 +1592,8 @@
 }
 
 .pg-step-pill-active {
-  background: var(--pg-primary) !important;
-  border-color: var(--pg-primary) !important;
+  background: #202124 !important;
+  border-color: #202124 !important;
   color: #fff !important;
 }
 
@@ -1610,6 +1623,30 @@
 
 .pg-step-visible {
   display: block;
+  animation: pg-fade-in 0.4s ease;
+}
+
+.pg-step-fade-in {
+  animation: pg-fade-in 0.4s ease;
+}
+
+/* Split layout panes inside pg-split */
+.pg-split > .pg-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .pg-split > .pg-panes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pg-negotiation-grid:not(.pg-hidden) {
+  display: grid;
+  max-width: var(--pg-max-width);
+  margin: 0 auto 1.5rem;
 }
 
 /* Split layout: config panel + code panel */
@@ -1687,7 +1724,7 @@
   margin: 0;
   padding: 1rem;
   overflow-x: auto;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.8rem;
   line-height: 1.6;
   background: transparent;
@@ -1711,7 +1748,7 @@
   border-radius: var(--pg-radius-xs);
   font-size: 0.7rem;
   font-weight: 700;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   letter-spacing: 0.5px;
   flex-shrink: 0;
 }
@@ -1722,7 +1759,7 @@
 .pg-method-delete { background: rgba(220, 38, 38, 0.1); color: var(--pg-error); }
 
 .pg-path {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   font-size: 0.8rem;
   color: var(--pg-text-muted);
   flex: 1;
@@ -1742,7 +1779,7 @@
   border-radius: var(--pg-radius-xs);
   font-size: 0.7rem;
   font-weight: 700;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Roboto Mono", monospace;
   margin-left: auto;
 }
 
@@ -1816,7 +1853,7 @@
 
 /* Syntax highlighting tokens */
 .pg-tok-key  { color: #5c6370; }
-.pg-tok-str  { color: #0d9488; }
+.pg-tok-str  { color: #1a73e8; }
 .pg-tok-num  { color: #d97706; }
 .pg-tok-bool { color: #16a34a; }
 .pg-tok-null { color: #dc2626; }

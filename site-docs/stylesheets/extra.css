@@ -1,74 +1,105 @@
 /* ==========================================================================
-   USP Website — Redesigned Styles
-   Aesthetic: Swiss Precision × Technical Authority
-   Typography-driven, light, confident.
+   USP Website — UCP-aligned visual system
+   Light-only, Google Sans + Roboto Mono, white header chrome
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Roboto+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
 
 /* ---------- Tokens ---------- */
 :root {
-  --usp-accent: #0d9488;
-  --usp-accent-light: #14b8a6;
-  --usp-accent-muted: rgba(13, 148, 136, 0.08);
-  --usp-accent-border: rgba(13, 148, 136, 0.2);
-  --usp-ink: #0a0a0a;
-  --usp-ink-secondary: #3a3a3a;
-  --usp-ink-muted: #6b7280;
-  --usp-ink-faint: #9ca3af;
-  --usp-surface: #fafafa;
-  --usp-surface-warm: #f5f3f0;
-  --usp-border: #e5e5e5;
-  --usp-border-light: #f0f0f0;
+  --usp-accent: #1a73e8;
+  --usp-accent-light: #4285f4;
+  --usp-accent-muted: rgba(26, 115, 232, 0.08);
+  --usp-accent-border: rgba(26, 115, 232, 0.2);
+  --usp-ink: #202124;
+  --usp-ink-secondary: #3c4043;
+  --usp-ink-muted: #5f6368;
+  --usp-ink-faint: #80868b;
+  --usp-surface: #f8f9fa;
+  --usp-surface-warm: #f1f3f4;
+  --usp-border: #dadce0;
+  --usp-border-light: #e8eaed;
   --usp-card-bg: #fff;
-  --usp-card-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  --usp-card-shadow-hover: 0 8px 24px rgba(0,0,0,0.08);
-  --usp-radius: 8px;
-  --usp-radius-sm: 6px;
-  --usp-font-display: 'Inter', -apple-system, sans-serif;
-  --usp-font-body: 'Inter', -apple-system, sans-serif;
-  --usp-font-mono: 'Roboto Mono', monospace;
+  --usp-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --usp-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --usp-radius: 16px;
+  --usp-radius-sm: 8px;
+  --usp-font-display: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --usp-font-body: "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --usp-font-mono: "Roboto Mono", monospace;
   --usp-max-width: 1100px;
   --usp-transition: 0.2s ease;
 }
 
-[data-md-color-scheme="slate"] {
-  --usp-ink: #e5e5e5;
-  --usp-ink-secondary: #d4d4d4;
-  --usp-ink-muted: #9ca3af;
-  --usp-ink-faint: #6b7280;
-  --usp-surface: #1a1a1a;
-  --usp-surface-warm: #1f1f1f;
-  --usp-border: #2a2a2a;
-  --usp-border-light: #222;
-  --usp-card-bg: #1e1e1e;
-  --usp-card-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  --usp-card-shadow-hover: 0 8px 24px rgba(0,0,0,0.3);
-}
-
 /* ---------- Theme Overrides ---------- */
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color: #0d9488;
-  --md-primary-fg-color--light: #14b8a6;
-  --md-primary-fg-color--dark: #0f766e;
-  --md-accent-fg-color: #0d9488;
-  --md-typeset-a-color: #0d9488;
+  --md-primary-fg-color: #fff;
+  --md-primary-fg-color--light: #f8f9fa;
+  --md-primary-fg-color--dark: #e8eaed;
+  --md-accent-fg-color: #1a73e8;
+  --md-typeset-a-color: #1a73e8;
 }
 
-[data-md-color-scheme="slate"] {
-  --md-primary-fg-color: #14b8a6;
-  --md-primary-fg-color--light: #2dd4bf;
-  --md-primary-fg-color--dark: #0d9488;
-  --md-accent-fg-color: #2dd4bf;
-  --md-typeset-a-color: #2dd4bf;
+/* ---------- Documentation headings ---------- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  color: #000;
 }
 
-/* ---------- Logo ---------- */
+/* ---------- External link icon ---------- */
+a[target="_blank"]::after {
+  content: "";
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-left: 0.2em;
+  vertical-align: middle;
+  background-color: currentcolor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 3v2h3.59l-9.83 9.83 1.41 1.41 9.83-9.83V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7z'/%3E%3C/svg%3E")
+    no-repeat center;
+}
+
+/* ---------- Header & base chrome ---------- */
+[class~="md-header"] {
+  background-color: #fff;
+  border-bottom: 0.05rem solid rgb(0 0 0 / 10%);
+  color: #202124;
+}
+
+[class~="md-header__title"] [class~="md-header__topic"] {
+  color: #202124;
+  font-weight: 450;
+}
+
+[class~="md-header__button"] {
+  color: #5f6368;
+}
+
+form[class~="md-search__form"] {
+  background-color: rgb(0 0 0 / 5%);
+  border-radius: 4px;
+}
+
+[class~="md-header__title"] [class~="md-header__topic"]:first-child {
+  opacity: 1 !important;
+  transform: none !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+[class~="md-header__title"] [class~="md-header__topic"]:nth-child(2) {
+  display: none !important;
+}
+
+/* ---------- Logo (no invert on white header) ---------- */
 .md-header__button.md-logo img,
 .md-header__button.md-logo svg {
   height: 2rem;
   width: auto;
-  filter: brightness(0) invert(1);
 }
 
 .md-nav__button.md-logo img,
@@ -82,8 +113,95 @@
   font-family: var(--usp-font-body);
 }
 
-.md-typeset code, .md-typeset pre {
+.md-typeset code,
+.md-typeset pre {
   font-family: var(--usp-font-mono);
+}
+
+/* ==========================================================================
+   Landing page wrapper
+   ========================================================================== */
+
+.landing-page p {
+  font-size: 0.8rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.landing-page h2 {
+  font-size: 2rem;
+  font-weight: 450;
+  color: #202124;
+  margin: 0 auto 36px 0;
+}
+
+.landing-page h3 {
+  font-size: 1rem;
+  margin: 0 0 16px;
+  font-weight: 450;
+}
+
+/* ---------- Announcement banner ---------- */
+.custom-announce-banner {
+  background-color: #f8f9fa;
+  color: #202124;
+  border-radius: 50px;
+  padding: 10px 16px 10px 24px;
+  margin: 0 auto 40px;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 5%);
+}
+
+.custom-banner-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.custom-banner-text {
+  font-family: var(--usp-font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #202124;
+}
+
+.banner-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+.banner-subtitle {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #5f6368;
+}
+
+.custom-banner-close {
+  background-color: #fff;
+  color: #202124;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 5%);
+  transition: background-color 0.2s ease;
+}
+
+.custom-banner-close:hover {
+  background-color: #e9ecef;
+}
+
+.custom-announce-banner.pg-hidden {
+  display: none;
 }
 
 /* ==========================================================================
@@ -91,36 +209,47 @@
    ========================================================================== */
 
 .usp-hero {
-  padding: 3.5rem 0 3rem;
+  padding: 3.5rem 0 2rem;
   border-bottom: 1px solid var(--usp-border);
   position: relative;
 }
 
 .usp-hero__layout {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .usp-hero__inner {
   flex: 1;
-  max-width: var(--usp-max-width);
+  max-width: 26.8rem;
 }
 
 .usp-hero__logo {
-  flex-shrink: 0;
+  flex: 0 0 250px;
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  max-width: 250px;
 }
 
 .usp-hero__logo img {
-  width: 220px;
+  width: 100%;
   height: auto;
-  opacity: 0.85;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 @media (max-width: 900px) {
   .usp-hero__layout {
     flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
+
   .usp-hero__logo {
     display: none;
   }
@@ -128,43 +257,43 @@
 
 .usp-hero__badge {
   display: inline-block;
-  padding: 0.3rem 0.8rem;
-  border-radius: 4px;
-  background: var(--usp-accent-muted);
-  color: var(--usp-accent);
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  background: var(--usp-surface);
+  color: var(--usp-ink-muted);
   font-family: var(--usp-font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--usp-accent-border);
+  margin-bottom: 1rem;
+  border: 1px solid var(--usp-border);
 }
 
 .usp-hero__title {
   font-family: var(--usp-font-display);
-  font-size: clamp(2.5rem, 5vw, 3.75rem);
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--usp-ink);
-  margin: 0 0 1rem;
-  letter-spacing: -0.03em;
-  max-width: 600px;
+  font-size: clamp(2.5rem, 5vw, 3rem);
+  font-weight: 450;
+  line-height: 1.12;
+  color: #202124;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
 }
 
 .usp-hero__tagline {
   font-family: var(--usp-font-display);
-  color: var(--usp-accent);
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
-  font-weight: 500;
+  color: #3c4043;
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-weight: 450;
+  line-height: 1.28;
   margin: 0 0 1rem;
 }
 
 .usp-hero__desc {
   color: var(--usp-ink-muted);
-  font-size: 1.05rem;
+  font-size: 1rem;
   max-width: 520px;
-  line-height: 1.6;
-  margin: 0 0 2rem;
+  line-height: 1.4;
+  margin: 0 0 1.5rem;
 }
 
 .usp-hero__actions {
@@ -173,43 +302,86 @@
   flex-wrap: wrap;
 }
 
-/* ---------- Buttons ---------- */
-.usp-btn {
+/* ---------- Pill buttons ---------- */
+.usp-btn,
+.promo-button,
+.learn-more-btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.65rem 1.5rem;
-  border-radius: var(--usp-radius-sm);
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
   font-family: var(--usp-font-body);
-  font-weight: 600;
-  font-size: 0.88rem;
+  font-weight: 500;
+  font-size: 0.8rem;
   text-decoration: none;
-  transition: all var(--usp-transition);
+  transition: background-color var(--usp-transition);
   cursor: pointer;
-  border: 1.5px solid transparent;
+  border: 1px solid #000;
   letter-spacing: -0.01em;
 }
 
 .usp-btn--primary {
-  background: var(--usp-ink);
+  background: #000;
   color: #fff;
-  border-color: var(--usp-ink);
+  border-color: #000;
 }
 
 .usp-btn--primary:hover {
-  background: var(--usp-ink-secondary);
-  border-color: var(--usp-ink-secondary);
+  background: #202124;
+  border-color: #202124;
   color: #fff;
 }
 
 .usp-btn--outline {
   background: transparent;
-  color: var(--usp-ink);
-  border-color: var(--usp-border);
+  color: #000;
+  border-color: #000;
 }
 
 .usp-btn--outline:hover {
-  border-color: var(--usp-ink);
-  color: var(--usp-ink);
+  background: #e9ecef;
+  color: #000;
+}
+
+:is(a.promo-button, a.learn-more-btn):is(:link, :visited) {
+  color: #000;
+}
+
+.promo-button:hover,
+.learn-more-btn:hover {
+  background-color: #e9ecef;
+  color: #000;
+}
+
+/* ---------- Promo cards ---------- */
+.promo-card-wrapper {
+  display: flex;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 60px auto;
+  flex-wrap: wrap;
+}
+
+.promo-card {
+  flex: 1;
+  min-width: 300px;
+  background-color: #f8f9fa;
+  border-radius: 24px;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.promo-card h3 {
+  color: #202124;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.promo-card p {
+  margin-bottom: 16px;
+  flex-grow: 1;
 }
 
 /* ==========================================================================
@@ -227,18 +399,6 @@
 
 .usp-section--surface {
   background: var(--usp-surface);
-  margin: 0 -1.2rem;
-  padding: 4rem 1.2rem;
-}
-
-.usp-section--dark {
-  background: var(--usp-ink);
-  margin: 0 -1.2rem;
-  padding: 4rem 1.2rem;
-}
-
-.usp-section--cta {
-  background: var(--usp-ink);
   margin: 0 -1.2rem;
   padding: 4rem 1.2rem;
 }
@@ -261,22 +421,14 @@
   margin: 0 0 0.5rem;
 }
 
-.usp-section__eyebrow--light {
-  color: var(--usp-accent-light);
-}
-
 .usp-section__title {
   font-family: var(--usp-font-display);
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 700;
-  color: var(--usp-ink);
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  font-weight: 450;
+  color: #202124;
   margin: 0 0 0.5rem;
   letter-spacing: -0.02em;
   line-height: 1.15;
-}
-
-.usp-section__title--light {
-  color: #fff;
 }
 
 .usp-section__subtitle {
@@ -287,12 +439,8 @@
   margin: 0 0 2.5rem;
 }
 
-.usp-section__subtitle--light {
-  color: #9ca3af;
-}
-
 /* ==========================================================================
-   Grid
+   Grid & Cards
    ========================================================================== */
 
 .usp-grid {
@@ -314,10 +462,6 @@
   .usp-grid--3,
   .usp-grid--2 { grid-template-columns: 1fr; }
 }
-
-/* ==========================================================================
-   Cards
-   ========================================================================== */
 
 .usp-card {
   background: var(--usp-card-bg);
@@ -358,7 +502,7 @@
 .usp-card__title {
   font-family: var(--usp-font-body);
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 0.4rem;
   color: var(--usp-ink);
   letter-spacing: -0.01em;
@@ -408,13 +552,9 @@
   color: var(--usp-accent);
   font-weight: 600;
   font-size: 0.85rem;
-  text-decoration: none;
+  text-decoration: underline;
   margin-top: 0.5rem;
   font-family: var(--usp-font-body);
-}
-
-.usp-card__link:hover {
-  text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -430,7 +570,7 @@
   display: block;
   font-family: var(--usp-font-display);
   font-size: 3.5rem;
-  font-weight: 700;
+  font-weight: 450;
   color: var(--usp-ink);
   line-height: 1;
   margin-bottom: 0.25rem;
@@ -452,19 +592,29 @@
 }
 
 /* ==========================================================================
-   Features
+   Features list (vertical, UCP-style)
    ========================================================================== */
 
-.usp-feature {
+.features-list {
+  max-width: 900px;
+  margin: 0 auto;
   display: flex;
-  gap: 1rem;
-  padding: 1.25rem;
-  border-radius: var(--usp-radius);
-  border: 1px solid var(--usp-border);
-  background: var(--usp-card-bg);
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
 }
 
-.usp-feature__icon {
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+}
+
+.feature-item-icon {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
@@ -476,22 +626,20 @@
   color: var(--usp-accent);
 }
 
-.usp-feature__title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0 0 0.3rem;
-  color: var(--usp-ink);
-  letter-spacing: -0.01em;
+.feature-item h3 {
+  margin: 0 0 8px;
+  font-weight: 450;
+  color: #202124;
 }
 
-.usp-feature__desc {
-  font-size: 0.88rem;
-  color: var(--usp-ink-muted);
-  line-height: 1.55;
+.feature-item p {
   margin: 0;
+  color: var(--usp-ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
-.usp-feature__desc code {
+.feature-item p code {
   background: var(--usp-accent-muted);
   color: var(--usp-accent);
   padding: 0.1em 0.3em;
@@ -526,7 +674,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--usp-ink);
+  background: #202124;
   color: #fff;
   font-family: var(--usp-font-mono);
   font-weight: 500;
@@ -539,7 +687,7 @@
 
 .usp-flow__title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 0.4rem;
   color: var(--usp-ink);
 }
@@ -576,46 +724,79 @@
 }
 
 /* ==========================================================================
-   Code Examples (Tabs)
+   Action carousel (See It in Action)
    ========================================================================== */
 
-.usp-tabs__nav {
-  display: flex;
-  gap: 0.35rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
+.action-carousel-section {
+  text-align: center;
+  max-width: 100%;
+  margin: 60px 0;
 }
 
-.usp-tabs__btn {
-  padding: 0.5rem 1.1rem;
-  border-radius: var(--usp-radius-sm);
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: #9ca3af;
-  font-family: var(--usp-font-body);
-  font-weight: 600;
-  font-size: 0.82rem;
+.action-carousel-section p {
+  max-width: 800px;
+  margin: 0 auto 36px;
+  text-align: center;
+}
+
+.carousel-tabs {
+  display: inline-flex;
+  background-color: #f8f9fa;
+  border-radius: 50px;
+  padding: 4px;
+  margin-bottom: 40px;
+}
+
+.usp-tabs__btn,
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5f6368;
   cursor: pointer;
-  transition: all var(--usp-transition);
+  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
-.usp-tabs__btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: #e5e5e5;
+.usp-tabs__btn:hover,
+.tab-btn:hover {
+  color: #202124;
 }
 
-.usp-tabs__btn--active {
-  background: var(--usp-accent);
+.usp-tabs__btn--active,
+.tab-btn.active {
+  background-color: #202124;
   color: #fff;
-  border-color: var(--usp-accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+}
+
+.usp-tabs__panels {
+  position: relative;
+  min-height: 280px;
 }
 
 .usp-tabs__panel {
   display: none;
+  animation: fade-in 0.4s ease;
 }
 
 .usp-tabs__panel--active {
   display: block;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .usp-code-split {
@@ -628,21 +809,23 @@
   .usp-code-split { grid-template-columns: 1fr; }
 }
 
-.usp-code-block {
-  border-radius: var(--usp-radius-sm);
+.usp-code-block,
+.code-block-placeholder {
+  border-radius: 12px;
   overflow: hidden;
-  background: #111;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: #f8f9fa;
+  border: 1px solid #dadce0;
+  min-width: 0;
 }
 
 .usp-code-block__header {
   padding: 0.5rem 0.85rem;
-  background: rgba(255,255,255,0.04);
-  color: var(--usp-accent-light);
+  background: transparent;
+  color: var(--usp-ink-muted);
   font-family: var(--usp-font-mono);
   font-size: 0.72rem;
   font-weight: 500;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid #dadce0;
   letter-spacing: 0.02em;
 }
 
@@ -652,11 +835,13 @@
   overflow-x: auto;
   font-size: 0.75rem;
   line-height: 1.5;
+  background: transparent;
 }
 
 .usp-code-block code {
-  color: #d4d4d4;
+  color: #202124;
   font-family: var(--usp-font-mono);
+  background: transparent;
 }
 
 /* ==========================================================================
@@ -672,59 +857,139 @@
 }
 
 /* ==========================================================================
-   CTA Cards
+   Get Started (light CTA)
    ========================================================================== */
 
-.usp-cta-card {
+.get-started-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.get-started-container-intro {
+  margin-bottom: 60px;
+}
+
+.get-started-container p {
+  margin-bottom: 16px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.get-started-container-steps {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.get-started-container-step {
+  flex: 1;
+  min-width: 250px;
+  max-width: 350px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 2rem;
-  border-radius: var(--usp-radius);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  align-items: center;
+  padding: 32px 24px;
+  background: #fff;
+  border: 1px solid var(--usp-border);
+  border-radius: 16px;
   text-decoration: none;
-  transition: all var(--usp-transition);
+  color: inherit;
+  transition: box-shadow var(--usp-transition), border-color var(--usp-transition);
 }
 
-.usp-cta-card:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.15);
+.get-started-container-step:hover {
+  box-shadow: var(--usp-card-shadow-hover);
+  border-color: var(--usp-accent-border);
 }
 
-.usp-cta-card__icon {
-  color: var(--usp-accent-light);
+.get-started-container-step-icon {
+  color: var(--usp-accent);
   margin-bottom: 0.75rem;
 }
 
-.usp-cta-card__title {
-  color: #fff;
+.get-started-container-step h3 {
+  color: #202124;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 0.4rem;
 }
 
-.usp-cta-card__desc {
-  color: #9ca3af;
+.get-started-container-step p {
+  color: var(--usp-ink-muted);
   font-size: 0.85rem;
   line-height: 1.5;
   margin: 0;
 }
 
+.get-started-container-repo-link {
+  text-align: center;
+  margin-top: 40px;
+}
+
 /* ==========================================================================
-   Home page layout — keep sidebar, constrain content
+   Footer wrapper
    ========================================================================== */
 
-.md-content:has(.usp-hero) {
+.footer-wrapper {
+  background: #f8f9fa;
+  padding: 60px 20px;
+  text-align: center;
+  border-top: 1px solid #e0e0e0;
+  margin: 0 -1.2rem;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  opacity: 0.9;
+}
+
+.footer-logo {
+  height: 28px;
+  width: auto;
+}
+
+.footer-text {
+  font-size: 1.2rem;
+  color: #5f6368;
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  font-family: var(--usp-font-body);
+}
+
+/* ==========================================================================
+   Home page layout
+   ========================================================================== */
+
+.md-content:has(.landing-page) {
   max-width: none;
 }
 
-.md-content:has(.usp-hero) .md-content__inner {
+.md-content:has(.landing-page) .md-content__inner {
   padding: 0 0.4rem;
 }
 
-.md-content .usp-section:first-child {
-  margin-top: 0;
+.md-container:has(.landing-page) .md-sidebar--secondary {
+  display: none;
 }
 
-.md-container:has(.usp-hero) .md-sidebar--secondary { display: none; }
+.md-container:has(.landing-page) .md-sidebar--primary {
+  display: none;
+}
+
+.md-container:has(.landing-page) .md-main__inner {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.md-container:has(.landing-page) .md-content {
+  margin-left: 0;
+  max-width: 100%;
+}

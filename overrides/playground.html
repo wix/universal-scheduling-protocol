@@ -11,11 +11,11 @@
   <meta property="og:description" content="{{ page.meta.get('description', 'Interactive USP scheduling flow simulator.') }}" />
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="{{ config.site_url }}{{ page.url }}" />
-  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.svg" />
   <meta name="twitter:card"       content="summary_large_image" />
   <meta name="twitter:title"      content="Playground | {{ config.site_name }}" />
   <meta name="twitter:description" content="{{ page.meta.get('description', 'Interactive USP scheduling flow simulator.') }}" />
-  <meta name="twitter:image"      content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta name="twitter:image"      content="{{ config.site_url }}assets/images/social-card.svg" />
   {% endif %}
   <link rel="stylesheet" href="{{ 'playground/styles/playground.css' | url }}">
 {% endblock %}
@@ -74,13 +74,23 @@
           <span class="pg-btn-text">Fetch Profile</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-get">GET</span>
-          <span class="pg-path">/.well-known/usp</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-discovery-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-get" id="pg-discovery-method">GET</span>
+            <span class="pg-path" id="pg-discovery-path">/.well-known/usp</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-discovery-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-discovery-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-discovery-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <span class="pg-status-badge pg-status-2xx" id="pg-discovery-status" style="display:none"></span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-discovery-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-discovery-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -96,6 +106,18 @@
     <h2>2. Capability Negotiation</h2>
     <p>The platform intersects its own capabilities with those declared by the business to determine the active set for this session.</p>
 
+    <div class="pg-negotiation-grid pg-hidden" id="pg-negotiation-grid">
+      <div class="pg-negotiation-grid__column">
+        <p class="pg-negotiation-grid__label">Business Capabilities</p>
+        <ul class="pg-capability-list" id="pg-negotiation-business"></ul>
+      </div>
+      <div class="pg-negotiation-grid__arrow">&#8644;</div>
+      <div class="pg-negotiation-grid__column">
+        <p class="pg-negotiation-grid__label">Negotiated Intersection</p>
+        <ul class="pg-capability-list" id="pg-negotiation-intersection"></ul>
+      </div>
+    </div>
+
     <div class="pg-split">
       <div class="pg-config-panel">
         <h3>Configuration</h3>
@@ -109,12 +131,22 @@
           <span class="pg-btn-text">Run Negotiation</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-label">Negotiated Capabilities</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-negotiation-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Platform Profile</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-negotiation-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-negotiation-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-negotiation-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Negotiated Result</span>
+            <span class="pg-status-badge pg-status-2xx" id="pg-negotiation-status" style="display:none"></span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-negotiation-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-negotiation-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -144,13 +176,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-post">POST</span>
-          <span class="pg-path">/services/list</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-browse-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-post">POST</span>
+            <span class="pg-path">/services/list</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-browse-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-browse-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-browse-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-browse-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-browse-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -181,13 +222,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-post">POST</span>
-          <span class="pg-path">/availability/query</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-availability-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-post">POST</span>
+            <span class="pg-path">/availability/query</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-availability-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-availability-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-availability-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-availability-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-availability-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -216,13 +266,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-post">POST</span>
-          <span class="pg-path">/availability/hold</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-hold-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-post">POST</span>
+            <span class="pg-path">/availability/hold</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-hold-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-hold-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-hold-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-hold-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-hold-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -253,13 +312,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-post">POST</span>
-          <span class="pg-path">/bookings</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-book-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-post">POST</span>
+            <span class="pg-path">/bookings</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-book-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-book-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-book-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-book-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-book-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -288,13 +356,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-post">POST</span>
-          <span class="pg-path">/bookings/{id}/confirm-payment</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-payment-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-post">POST</span>
+            <span class="pg-path">/bookings/{id}/confirm-payment</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-payment-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-payment-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-payment-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-payment-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-payment-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -326,13 +403,22 @@
           <span class="pg-btn-text">Run Request</span>
         </button>
       </div>
-      <div class="pg-code-panel">
-        <div class="pg-pane-header">
-          <span class="pg-method-badge pg-method-get" id="pg-manage-method">GET</span>
-          <span class="pg-path" id="pg-manage-path">/bookings/{booking_id}</span>
-          <button class="pg-btn pg-btn-copy" data-target="pg-manage-code">Copy</button>
+      <div class="pg-panes">
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-method-badge pg-method-get" id="pg-manage-method">GET</span>
+            <span class="pg-path" id="pg-manage-path">/bookings/{booking_id}</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-manage-request">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-manage-request"></code></pre>
         </div>
-        <pre class="pg-code"><code id="pg-manage-code"></code></pre>
+        <div class="pg-code-panel">
+          <div class="pg-pane-header">
+            <span class="pg-label">Response</span>
+            <button class="pg-btn pg-btn-copy" data-target="pg-manage-response">Copy</button>
+          </div>
+          <pre class="pg-code"><code id="pg-manage-response"></code></pre>
+        </div>
       </div>
     </div>
     <div class="pg-step-footer">
@@ -341,10 +427,18 @@
     </div>
   </section>
 
+  <div class="pg-callout pg-callout--info">
+    <span class="pg-callout__icon">&#9432;</span>
+    <div>
+      <strong>About this demo</strong>
+      <p style="margin:0.25rem 0 0">This playground runs entirely in your browser. It simulates USP request/response payloads from scenario fixtures and does not call live APIs. Use the mode and transport toggles to preview how the same flow appears across Standalone vs UCP-Native profiles and REST, MCP, A2A, or ESP bindings.</p>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
   {{ super() }}
-  <script src="{{ 'playground/src/playground-controller.js' | url }}"></script>
+  <script type="module" src="{{ 'playground/src/playground-controller.js' | url }}"></script>
 {% endblock %}

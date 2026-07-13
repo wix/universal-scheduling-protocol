@@ -13,7 +13,7 @@
   <meta property="og:title"       content="{% if page.title %}{{ page.title }} | {{ config.site_name }}{% else %}{{ config.site_name }}{% endif %}" />
   <meta property="og:description" content="{{ page.meta.get('description', config.site_description) }}" />
   <meta property="og:url"         content="{{ config.site_url }}{{ page.url }}" />
-  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta property="og:image"       content="{{ config.site_url }}assets/images/social-card.svg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:locale"      content="en_US" />
@@ -22,7 +22,7 @@
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="{% if page.title %}{{ page.title }} | {{ config.site_name }}{% else %}{{ config.site_name }}{% endif %}" />
   <meta name="twitter:description" content="{{ page.meta.get('description', config.site_description) }}" />
-  <meta name="twitter:image"       content="{{ config.site_url }}assets/images/social-card.png" />
+  <meta name="twitter:image"       content="{{ config.site_url }}assets/images/social-card.svg" />
 
   {# ── Additional SEO ── #}
   <meta name="author" content="USP Authors" />
@@ -68,7 +68,7 @@
         "@type": "Organization",
         "name": "USP Authors",
         "url": "{{ config.site_url }}",
-        "logo": "{{ config.site_url }}assets/images/logo.png"
+        "logo": "{{ config.site_url }}assets/usp-logo.svg"
       }
     ]
   }

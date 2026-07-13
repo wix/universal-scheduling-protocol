@@ -5,17 +5,29 @@
 {% endblock %}
 
 {% block content %}
+<div class="landing-page">
+
+  <!-- Announcement -->
+  <div class="custom-announce-banner" id="usp-announce-banner">
+    <div class="custom-banner-container">
+      <div class="custom-banner-text">
+        <div class="banner-title">Draft specification v2026-02-21</div>
+        <div class="banner-subtitle">Open standard for agentic scheduling across REST, MCP, A2A, and ESP</div>
+      </div>
+    </div>
+    <button class="custom-banner-close" id="usp-announce-close" aria-label="Dismiss announcement">&times;</button>
+  </div>
 
   <!-- Hero -->
   <section class="usp-hero">
     <div class="usp-hero__layout">
       <div class="usp-hero__inner">
-        <span class="usp-hero__badge">Open Standard &middot; Draft v2026-02-21</span>
+        <span class="usp-hero__badge">Open Standard</span>
         <h1 class="usp-hero__title">Universal Scheduling Protocol</h1>
         <p class="usp-hero__tagline">The open standard for agentic scheduling.</p>
         <p class="usp-hero__desc">
           Enable platforms and AI agents to discover, check availability of, and book
-          time-based services &mdash; without custom integrations.
+          time-based services without custom integrations.
         </p>
         <div class="usp-hero__actions">
           <a href="{{ 'getting-started/' | url }}" class="usp-btn usp-btn--primary">Get Started</a>
@@ -23,10 +35,24 @@
         </div>
       </div>
       <div class="usp-hero__logo">
-        <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo">
+        <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo" class="hero-logo-crisp">
       </div>
     </div>
   </section>
+
+  <!-- Promo cards -->
+  <div class="promo-card-wrapper">
+    <div class="promo-card">
+      <h3>Learn the Protocol</h3>
+      <p>Read the specification, core concepts, and deployment modes to understand how USP fits your stack.</p>
+      <a href="{{ 'specification/' | url }}" class="promo-button">Read the Spec</a>
+    </div>
+    <div class="promo-card">
+      <h3>Implement USP</h3>
+      <p>Start with OpenAPI and OpenRPC bindings, JSON Schemas, and the interactive playground.</p>
+      <a href="{{ 'playground/' | url }}" class="promo-button">Try the Playground</a>
+    </div>
+  </div>
 
   <!-- Problem -->
   <section class="usp-section usp-section--surface">
@@ -111,52 +137,51 @@
       <p class="usp-section__subtitle">
         Built from the ground up for the agentic commerce era.
       </p>
-      <div class="usp-grid usp-grid--2">
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
+      <div class="features-list">
+        <div class="feature-item">
+          <div class="feature-item-icon">
             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           </div>
           <div>
-            <h3 class="usp-feature__title">Interoperable</h3>
-            <p class="usp-feature__desc">
-              Two deployment modes &mdash;
-              UCP-Native for existing UCP platforms, Standalone for self-contained scheduling &mdash;
+            <h3>Interoperable</h3>
+            <p>
+              Two deployment modes (UCP-Native for existing UCP platforms, Standalone for self-contained scheduling)
               share the same domain core and transport bindings.
             </p>
           </div>
         </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
+        <div class="feature-item">
+          <div class="feature-item-icon">
             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.49 12.65 0L21 3v7.12z"/></svg>
           </div>
           <div>
-            <h3 class="usp-feature__title">Agent-First</h3>
-            <p class="usp-feature__desc">
+            <h3>Agent-First</h3>
+            <p>
               Every operation is designed for programmatic consumption. AI agents
               autonomously discover, evaluate, and book services with
               <code>continue_url</code> handoff when human input is needed.
             </p>
           </div>
         </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
+        <div class="feature-item">
+          <div class="feature-item-icon">
             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
           </div>
           <div>
-            <h3 class="usp-feature__title">Secure &amp; Private</h3>
-            <p class="usp-feature__desc">
+            <h3>Secure &amp; Private</h3>
+            <p>
               OAuth 2.0 identity linking, HTTP Message Signatures for webhooks,
               structured buyer consent, and TLS 1.3 transport.
             </p>
           </div>
         </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
+        <div class="feature-item">
+          <div class="feature-item-icon">
             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z"/></svg>
           </div>
           <div>
-            <h3 class="usp-feature__title">Open &amp; Extensible</h3>
-            <p class="usp-feature__desc">
+            <h3>Open &amp; Extensible</h3>
+            <p>
               Apache 2.0 licensed. Vendor extensions via reverse-domain namespaces
               (e.g., <code>com.wix.services.courses</code>). JSON Schema composition
               for custom capabilities.
@@ -205,18 +230,18 @@
   </section>
 
   <!-- Code Examples -->
-  <section class="usp-section usp-section--dark">
+  <section class="usp-section action-carousel-section">
     <div class="usp-container">
-      <p class="usp-section__eyebrow usp-section__eyebrow--light">API</p>
-      <h2 class="usp-section__title usp-section__title--light">See It in Action</h2>
-      <p class="usp-section__subtitle usp-section__subtitle--light">
+      <p class="usp-section__eyebrow">API</p>
+      <h2 class="usp-section__title">See It in Action</h2>
+      <p class="usp-section__subtitle" style="margin-left: auto; margin-right: auto;">
         Real API requests and responses from the USP specification.
       </p>
       <div class="usp-tabs">
-        <div class="usp-tabs__nav">
-          <button class="usp-tabs__btn usp-tabs__btn--active" data-tab="catalog">Service Catalog</button>
-          <button class="usp-tabs__btn" data-tab="availability">Availability</button>
-          <button class="usp-tabs__btn" data-tab="booking">Booking</button>
+        <div class="carousel-tabs usp-tabs__nav">
+          <button class="usp-tabs__btn usp-tabs__btn--active tab-btn" data-tab="catalog">Service Catalog</button>
+          <button class="usp-tabs__btn tab-btn" data-tab="availability">Availability</button>
+          <button class="usp-tabs__btn tab-btn" data-tab="booking">Booking</button>
         </div>
         <div class="usp-tabs__panels">
 
@@ -484,34 +509,49 @@ Content-Type: application/json
   </section>
 
   <!-- CTA -->
-  <section class="usp-section usp-section--cta">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow usp-section__eyebrow--light">Join Us</p>
-      <h2 class="usp-section__title usp-section__title--light">Get Involved</h2>
-      <div class="usp-grid usp-grid--3">
-        <a href="{{ 'specification/' | url }}" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
+  <section class="usp-section">
+    <div class="get-started-container">
+      <div class="get-started-container-intro">
+        <p class="usp-section__eyebrow">Join Us</p>
+        <h2 class="usp-section__title">Get Involved</h2>
+        <p>Explore the specification, schemas, and community resources to build with USP.</p>
+      </div>
+      <div class="get-started-container-steps">
+        <a href="{{ 'specification/' | url }}" class="get-started-container-step">
+          <div class="get-started-container-step-icon">
             <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
           </div>
-          <h3 class="usp-cta-card__title">Read the Specification</h3>
-          <p class="usp-cta-card__desc">Full protocol spec with schemas, examples, and implementation guide.</p>
+          <h3>Read the Specification</h3>
+          <p>Full protocol spec with schemas, examples, and implementation guide.</p>
         </a>
-        <a href="{{ config.repo_url }}/tree/master/schemas" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
-            <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+        <a href="{{ 'playground/' | url }}" class="get-started-container-step">
+          <div class="get-started-container-step-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
           </div>
-          <h3 class="usp-cta-card__title">Explore the Schemas</h3>
-          <p class="usp-cta-card__desc">OpenAPI, OpenRPC, and JSON Schema artifacts ready for integration.</p>
+          <h3>Try the Playground</h3>
+          <p>Walk through discovery, negotiation, and booking with interactive request/response panes.</p>
         </a>
-        <a href="{{ config.repo_url }}" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
+        <a href="{{ config.repo_url }}" class="get-started-container-step">
+          <div class="get-started-container-step-icon">
             <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6.1-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.2 2.8.1 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.3v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
           </div>
-          <h3 class="usp-cta-card__title">Contribute</h3>
-          <p class="usp-cta-card__desc">Join the community and help shape the standard on GitHub.</p>
+          <h3>Contribute</h3>
+          <p>Join the community and help shape the standard on GitHub.</p>
         </a>
+      </div>
+      <div class="get-started-container-repo-link">
+        <a href="{{ 'getting-started/' | url }}" class="promo-button">Getting Started Guide</a>
       </div>
     </div>
   </section>
 
+  <!-- Footer -->
+  <div class="footer-wrapper">
+    <div class="footer-content">
+      <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP" class="footer-logo">
+      <span class="footer-text">Universal Scheduling Protocol</span>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
