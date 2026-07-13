@@ -52,50 +52,7 @@ window.openSubTab = function (evtOrPaneId, paneId) {
   }
 };
 
-function openIndustryTab(industry) {
-  document.querySelectorAll(".industry-tab").forEach(function (btn) {
-    var active = btn.getAttribute("data-industry") === industry;
-    btn.classList.toggle("usp-tabs__btn--active", active);
-    btn.classList.toggle("active", active);
-  });
-  document.querySelectorAll(".industry-panel").forEach(function (panel) {
-    panel.classList.toggle("industry-panel--active", panel.getAttribute("data-industry-panel") === industry);
-  });
-}
-
 document.addEventListener("DOMContentLoaded", function () {
-  var industries = ["appointments", "group", "reservations", "rentals"];
-  var industryIndex = 0;
-  var industryAutoplay = null;
-
-  function startIndustryAutoplay() {
-    if (industryAutoplay) clearInterval(industryAutoplay);
-    industryAutoplay = setInterval(function () {
-      industryIndex = (industryIndex + 1) % industries.length;
-      openIndustryTab(industries[industryIndex]);
-    }, 3000);
-  }
-
-  document.querySelectorAll(".industry-tab").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      industryIndex = industries.indexOf(btn.getAttribute("data-industry"));
-      if (industryIndex < 0) industryIndex = 0;
-      openIndustryTab(btn.getAttribute("data-industry"));
-      if (industryAutoplay) clearInterval(industryAutoplay);
-    });
-  });
-
-  var partnersSection = document.querySelector(".partners-section");
-  if (partnersSection && document.querySelector(".industry-tabs")) {
-    startIndustryAutoplay();
-    partnersSection.addEventListener("mouseenter", function () {
-      if (industryAutoplay) clearInterval(industryAutoplay);
-    });
-    partnersSection.addEventListener("mouseleave", function () {
-      startIndustryAutoplay();
-    });
-  }
-
   var announceBanner = document.getElementById("usp-announce-banner");
   var announceClose = document.getElementById("usp-announce-close");
   if (announceBanner && announceClose) {
