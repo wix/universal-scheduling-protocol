@@ -1,5 +1,11 @@
 # Change Log
 
+## 13/07/26 at 22:34:17 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the homepage "Co-developed by industry leaders" partner tabs section from `home.html` and dropped the unused `#industry-tabs` CSS rules from `extra.css`, because that placeholder content is not ready to publish yet
+
+---
+
 ## 13/07/26 at 22:31:32 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Moved Overview and Specification navigation into the left sidebar only (matching UCP) by removing `navigation.tabs` and `navigation.tabs.sticky` from `mkdocs.yml`, and added defensive CSS in `extra.css` to hide the header tab bar and keep top-level nav items visible in the primary panel on all viewports
