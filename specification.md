@@ -3281,7 +3281,7 @@ registered businesses. This enables more granular discovery -- rather than
 finding businesses and then querying each one for services, the platform can
 directly search across all registered businesses' services.
 
-> **JSON Schema:** Request — [/$defs/ServiceSearchRequest](schemas/registry.json) · Response items — [/$defs/ServiceSearchResult](schemas/registry.json) · Pricing aligns with [/$defs/Pricing](schemas/catalog.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`POST /registry/search_services`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_search_services`)
+> **JSON Schema:** Request — [/$defs/ServiceSearchRequest](schemas/registry.json) · Response items — [/$defs/ServiceSearchResult](schemas/registry.json) · Pricing aligns with [/$defs/Pricing](schemas/catalog.json) · Availability hint aligns with [/$defs/AvailabilityHint](schemas/catalog.json) · **REST:** [openapi/usp-rest.json](openapi/usp-rest.json) (`POST /registry/search_services`) · **MCP:** [openrpc/usp-mcp.json](openrpc/usp-mcp.json) (`usp_registry_search_services`)
 
 Request:
 
@@ -3375,7 +3375,12 @@ Response:
         }
       },
       "timezone": "America/New_York",
-      "last_indexed_at": "2026-03-14T08:00:00Z"
+      "last_indexed_at": "2026-03-14T08:00:00Z",
+      "availability_hint": {
+        "summary": "Good availability this week, especially Tuesday and Wednesday afternoons.",
+        "generated_at": "2026-03-14T07:00:00Z",
+        "next_available_date": "2026-03-15"
+      }
     },
     {
       "service_id": "svc_massage_90",
@@ -3417,7 +3422,7 @@ Response:
 The `query` field performs a full-text search across service names, descriptions,
 and categories.
 
-Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness.
+Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 
 ### 6.4 Get Registration - `GET /registry/businesses/{id}`
 
