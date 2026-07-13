@@ -1,5 +1,43 @@
 # Change Log
 
+## 13/07/26 at 17:30:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Wired the playground transport toggle to `transport-formatter.js` via ES module `playground-controller.js`, so REST/MCP/A2A/ESP switches re-render the request pane using the same formatting path as the full `playground.js` engine (matching UCP's integrated playground script pattern)
+- Load playground controller as `type="module"` in `overrides/playground.html` and cache per-step scenario state so transport and mode changes refresh requests without re-fetching
+- Added `/.well-known/ucp` tool mappings in `transport-formatter.js` for UCP-Native mode discovery
+
+---
+
+## 13/07/26 at 17:10:15 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed broken cross-doc link in `site-docs/deployment-modes/ucp-native.md` (pointed at repo-root `specification.md` outside `site-docs`) to the on-page `#paid-bookings-extension-schema` anchor so `mkdocs build --strict` passes after the UCP parity site work
+
+---
+
+## 13/07/26 at 17:09:20 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Hid the primary docs sidebar on the homepage and playground so landing and demo pages use full-width layout like ucp.dev, instead of squeezing content beside the nav column
+- Swapped the get-started CTA middle card to "Try the Playground" (matching UCP's Experiment card) so the bottom-of-page funnel highlights the interactive demo
+
+---
+
+## 13/07/26 at 17:08:44 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned USP docs site global chrome with ucp.dev: white Material header, Google Sans/Roboto Mono fonts, indigo accent palette (removed teal custom theme and dark-mode toggle), plus `navigation.tracking`, `content.code.select`, `content.tooltips`, and cookie consent `scope: /`
+- Ported UCP landing-page patterns into `extra.css` and `home.html`: pill buttons, promo cards, light action-carousel code tabs with fade-in, vertical features list, light get-started CTA, announcement banner, and footer wrapper
+- Upgraded playground UX: request/response split panes, functional mode/transport toggles, step fade animation, auto-run on discovery/negotiation enter, side-by-side negotiation capability grid, and "About this demo" callout; aligned `playground.css` tokens to UCP indigo/ink/surface colors
+- Fixed broken social/OG image references to use existing `social-card.svg` and `usp-logo.svg` instead of missing PNG assets
+
+---
+## 13/07/26 at 17:08:42 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Realigned the USP docs site visual system with [ucp.dev](https://ucp.dev/): white Material header, Google Sans typography, indigo accent palette, pill CTAs, light carousel tabs, and vertical principles layout so the sibling protocol sites read as one ecosystem
+- Refreshed homepage markup (`overrides/home.html`) with announcement banner, Learn/Implement promo cards, light "See It in Action" section, get-started CTA, and custom footer wrapper matching UCP landing-page patterns
+- Upgraded playground to UCP-style split request/response panes, negotiation capability grid, step fade transitions, functional mode toggle (USP vs UCP profile paths), and "About this demo" callout; rewrote `playground-controller.js` to match the new panel IDs
+- Updated `mkdocs.yml` (Google Sans, white/indigo palette, `navigation.tracking`, consent `scope: /`) and fixed broken social/OG image references in `overrides/main.html` and `overrides/playground.html`
+
+---
+
 ## 13/07/26 at 16:03:04 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added `package.json` with `python3 -m mkdocs build` so Vercel treats the project as a static MkDocs site instead of a Python serverless app (Vercel CLI 55+ errors on missing Python entrypoints when only `requirements.txt` is present)
