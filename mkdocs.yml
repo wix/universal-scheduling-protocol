@@ -19,6 +19,12 @@ theme:
     - scheme: default
       primary: white
       accent: indigo
+    - scheme: slate
+      primary: black
+      accent: indigo
+    - scheme: slate
+      primary: black
+      accent: indigo
   logo: assets/usp-logo.svg
   icon:
     repo: fontawesome/brands/github

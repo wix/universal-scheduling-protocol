@@ -18,9 +18,10 @@
 
   /* Backgrounds — light theme, matches site */
   --pg-bg: transparent;
-  --pg-bg-elevated: #f8f9fa;
-  --pg-bg-surface: #f1f3f5;
-  --pg-bg-code: #f6f8fa;
+  --pg-bg-0: #f4faf2;
+  --pg-bg-elevated: #e9f3e5;
+  --pg-bg-surface: #ddecd8;
+  --pg-bg-code: #e9f3e5;
 
   /* Text — dark on light */
   --pg-text: #202124;
@@ -105,7 +106,7 @@
 /* --- Pill toggle (mode selector) --- */
 .pg-mode-toggle {
   display: inline-flex;
-  background: #f8f9fa;
+  background: var(--pg-bg-elevated);
   border: 1px solid var(--pg-border);
   border-radius: var(--pg-radius-pill);
   padding: 3px;
@@ -1457,7 +1458,7 @@
 
 @media print {
   .pg-playground {
-    background: #fff;
+    background: var(--pg-bg-0);
     color: #000;
   }
 
@@ -1664,7 +1665,7 @@
 }
 
 .pg-config-panel {
-  background: #fff;
+  background: var(--pg-bg-0);
   border: 1px solid var(--pg-border);
   border-radius: var(--pg-radius);
   padding: 1.5rem;
@@ -1689,7 +1690,7 @@
   padding: 0.5rem 0.75rem;
   border-radius: var(--pg-radius-xs);
   border: 1px solid var(--pg-border);
-  background: #fff;
+  background: var(--pg-bg-0);
   color: var(--pg-text);
   font-size: 0.85rem;
   font-family: inherit;
@@ -1816,7 +1817,7 @@
 }
 
 .pg-btn-copy {
-  background: #fff;
+  background: var(--pg-bg-0);
   color: var(--pg-text-muted);
   border: 1px solid var(--pg-border);
   padding: 0.2rem 0.6rem;

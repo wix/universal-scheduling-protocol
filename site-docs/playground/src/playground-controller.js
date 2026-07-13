@@ -98,18 +98,59 @@ var stepFiles = {
 
 var negotiationKeys = {
   'full-match': 'standard',
-  'partial-match': 'standard',
+  'partial-match': 'full',
   'incompatible': 'standard'
 };
 
 var manageOps = {
-  view_booking: { method: 'GET', path: '/bookings/{booking_id}' },
-  update_booking: { method: 'PATCH', path: '/bookings/{booking_id}' },
-  cancel_booking: { method: 'POST', path: '/bookings/{booking_id}/cancel' },
-  reschedule_booking: { method: 'POST', path: '/bookings/{booking_id}/reschedule' },
+  view_booking: { method: 'GET', path: '/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e' },
+  update_booking: { method: 'PATCH', path: '/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e' },
+  cancel_booking: { method: 'POST', path: '/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e/cancel' },
+  reschedule_booking: { method: 'POST', path: '/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e/reschedule' },
   booking_confirmed: { method: 'POST', path: '/webhooks (simulated)' },
   booking_canceled: { method: 'POST', path: '/webhooks (simulated)' }
 };
+
+function businessProfileKey(scenarioKey, negotiationScenario) {
+  if (negotiationScenario === 'partial-match') return 'full';
+  if (scenarioKey === 'full') return 'full';
+  if (scenarioKey === 'minimal') return 'minimal';
+  return 'standard';
+}
+
+function intersectProfiles(businessBody, platformBody, options) {
+  options = options || {};
+  var result = JSON.parse(JSON.stringify(platformBody));
+  var bizCaps = (businessBody.usp && businessBody.usp.capabilities) || {};
+  var platCaps = (platformBody.usp && platformBody.usp.capabilities) || {};
+  var negotiated = {};
+  Object.keys(platCaps).forEach(function (key) {
+    if (bizCaps[key]) {
+      negotiated[key] = JSON.parse(JSON.stringify(platCaps[key]));
+    }
+  });
+  if (options.stripHolds && negotiated['dev.usp.services.availability']) {
+    negotiated['dev.usp.services.availability'].forEach(function (entry) {
+      delete entry.holds;
+    });
+  }
+  result.usp.capabilities = negotiated;
+  return result;
+}
+
+function updatePaneHeaders(stepId, config) {
+  var methodEl = document.getElementById('pg-' + stepId + '-method');
+  var pathEl = document.getElementById('pg-' + stepId + '-path');
+  if (!methodEl || !pathEl) return;
+  var method = config.method || 'GET';
+  methodEl.textContent = method;
+  methodEl.className = 'pg-method-badge pg-method-' + method.toLowerCase();
+  var path = config.path || '/';
+  if (config.query && typeof config.query === 'object' && Object.keys(config.query).length > 0) {
+    path += '?' + new URLSearchParams(config.query).toString();
+  }
+  pathEl.textContent = path;
+}
 
 function capabilityNames(profile) {
   var caps = profile && profile.usp && profile.usp.capabilities;
@@ -142,7 +183,6 @@ function updateDiscoveryPath() {
 function requestBodyFromScenario(data) {
   if (!data || !data.request) return null;
   if (data.request.body) return data.request.body;
-  if (data.request.query) return data.request.query;
   return null;
 }
 
@@ -154,11 +194,18 @@ function stepConfigFromScenario(data, stepId, scenarioKey) {
   if (stepId === 'negotiation') {
     return { method: 'POST', path: '/capability-negotiation' };
   }
-  if (stepId === 'manage') {
-    return manageOps[scenarioKey] || manageOps.view_booking;
+  if (stepId === 'manage' && scenarioKey && scenarioKey.indexOf('booking_') === 0) {
+    return manageOps[scenarioKey] || manageOps.booking_confirmed;
   }
   if (data && data.request) {
-    return { method: data.request.method, path: data.request.path };
+    return {
+      method: data.request.method,
+      path: data.request.path,
+      query: data.request.query
+    };
+  }
+  if (stepId === 'manage') {
+    return manageOps[scenarioKey] || manageOps.view_booking;
   }
   return { method: 'GET', path: '/' };
 }
@@ -180,13 +227,7 @@ function renderRequestPane(stepId, data, scenarioKey) {
 
   var formatted = formatForTransport(config, body, currentTransport);
   showFormattedRequest(requestEl.id, formatted);
-
-  if (stepId === 'discovery') {
-    var methodEl = document.getElementById('pg-discovery-method');
-    var pathEl = document.getElementById('pg-discovery-path');
-    if (methodEl) methodEl.textContent = config.method;
-    if (pathEl) pathEl.textContent = config.path;
-  }
+  updatePaneHeaders(stepId, config);
 }
 
 function refreshCurrentStepRequest() {
@@ -227,40 +268,51 @@ function runStep(stepId) {
 
         var display;
         var status = 200;
-        if (stepId === 'negotiation' && scenarioKey === 'incompatible') {
-          status = 409;
-          display = { error: 'No overlapping capabilities between platform and business profiles' };
+        if (stepId === 'negotiation') {
+          var discoveryKey = stepState.discovery ? stepState.discovery.scenarioKey : 'standard';
+          var bizKey = businessProfileKey(discoveryKey, scenarioKey);
+
+          if (scenarioKey === 'incompatible') {
+            status = 409;
+            display = { error: 'No overlapping capabilities between platform and business profiles' };
+            showJson(responseEl.id, display);
+            setStatus(stepId, status);
+            loadScenario('business-profile', bizKey, function (biz) {
+              var bizBody = biz && biz.response ? biz.response : biz;
+              renderNegotiationGrid(capabilityNames(bizBody), []);
+            });
+          } else {
+            loadScenario('business-profile', bizKey, function (bizData) {
+              var bizBody = bizData && bizData.response ? bizData.response : bizData;
+              var platBody = negotiationProfilePayload(data);
+              display = intersectProfiles(
+                bizBody,
+                platBody,
+                scenarioKey === 'partial-match' ? { stripHolds: true } : {}
+              );
+              showJson(responseEl.id, display);
+              setStatus(stepId, 200);
+              renderNegotiationGrid(capabilityNames(bizBody), capabilityNames(display));
+            });
+          }
         } else if (data.response && data.response.body) {
           display = data.response.body;
           status = data.response.status || 200;
+          showJson(responseEl.id, display);
+          setStatus(stepId, status);
         } else if (data.response) {
           display = data.response;
+          status = data.response.status || 200;
+          showJson(responseEl.id, display);
+          setStatus(stepId, status);
         } else if (data.payload) {
           display = data.payload;
+          showJson(responseEl.id, display);
+          setStatus(stepId, status);
         } else {
           display = data;
-        }
-
-        if (stepId === 'negotiation' && scenarioKey === 'partial-match' && display.usp) {
-          var caps = display.usp.capabilities || {};
-          delete caps['dev.usp.services.holds'];
-          display = { usp: { version: display.usp.version, capabilities: caps } };
-        }
-
-        showJson(responseEl.id, display);
-        setStatus(stepId, status);
-
-        if (stepId === 'negotiation') {
-          loadScenario('business-profile', 'standard', function (biz) {
-            var bizCaps = capabilityNames(biz && biz.response ? biz.response : biz);
-            var negCaps = capabilityNames(display);
-            if (scenarioKey === 'partial-match') {
-              negCaps = bizCaps.filter(function (c) { return c !== 'dev.usp.services.holds'; });
-            } else if (scenarioKey === 'incompatible') {
-              negCaps = [];
-            }
-            renderNegotiationGrid(bizCaps, negCaps);
-          });
+          showJson(responseEl.id, display);
+          setStatus(stepId, status);
         }
       } else {
         showJson(responseEl.id, { error: 'Scenario not found', scenario: scenarioKey });
@@ -383,6 +435,7 @@ if (discoverySelect) {
   discoverySelect.addEventListener('change', function () {
     var desc = document.getElementById('pg-discovery-desc');
     if (desc) desc.textContent = discoveryDescs[this.value] || '';
+    runStep('discovery');
   });
 }
 

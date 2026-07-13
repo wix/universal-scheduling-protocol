@@ -1,5 +1,34 @@
 # Change Log
 
+## 13/07/26 at 22:04:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Swapped the site surface palette to a green-tinted background scale (`--usp-bg-0` through `--usp-bg-4`) in `extra.css`, wired header, promo cards, sections, code blocks, partner carousel, and footer to those tokens, and kept normal body/landing text black via `--md-typeset-color` and `.landing-page { color: #000 }`
+- Aligned playground panel/code backgrounds in `playground.css` to the same greenish elevated surfaces so the demo page matches the docs chrome
+
+---
+
+- Fixed playground bugs from verification: dynamic request pane headers on all steps, GET query strings in REST formatting, capability negotiation intersection with holds stripped on partial match, discovery refresh on scenario change, and accurate error labels (429 hold limit, 402 payment failed)
+- Removed misleading schema-validation claim from playground intro; added `GET /services` MCP mapping and carousel mode/sub-panel opacity grid CSS for homepage tabs
+
+---
+
+## 13/07/26 at 20:06:42 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Completed full ucp.dev homepage parity in `overrides/home.html`: banner icon, hero-wrapper without in-hero CTAs, Learn/Implement promo cards, co-developed industry tabs, flexibility principles, deployment-mode action carousel, two-column deployment promo, lifecycle ecosystem roles, endorsed partner marquee, and Get started today (removed stats, verticals, how-it-works, transport cards, and custom footer)
+- Moved tab logic to `site-docs/javascripts/extra.js` as global `openTab`/`openSubTab` with industry-tab 3s autoplay; kept announce-banner dismiss and removed the legacy `usp-tabs` data-tab handler
+- Ported UCP landing CSS into `site-docs/stylesheets/extra.css` (partner-carousel/chips, pane layout, opacity-grid carousel, lifecycle/two-column-promo blocks, get-started step chrome fix, 960px hero breakpoint) and added slate dark-mode palette to `mkdocs.yml`
+
+---
+
+## 13/07/26 at 20:04:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Restructured homepage "See It in Action" to match ucp.dev: deployment-mode tabs (Standalone / UCP-Native), sub-tabs (Catalog / Availability / Booking), pane-text + pane-visuals layout, opacity/visibility grid panels, and scoped `openTab()` / `openSubTab()` handlers so panel height stays stable with fade-in transitions
+- Replaced partners placeholder with UCP-style industry vertical tabs (Appointments / Group / Reservations / Rentals) using text chips, plus an infinite-scroll ecosystem marquee with scheduling-relevant names; industry tabs autoplay every 3s and pause on hover or click
+- Fixed homepage CTA parity: hero GitHub opens in a new tab; Get Involved cards use `<div>` wrappers with title-only links; Playground and Contribute open in new tabs
+- Restored primary docs sidebar on the landing page (matching ucp.dev), added carousel responsive stacking at 1200px and 960px, and aligned hero stack breakpoint to 960px
+
+---
+
 ## 13/07/26 at 17:30:57 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Wired the playground transport toggle to `transport-formatter.js` via ES module `playground-controller.js`, so REST/MCP/A2A/ESP switches re-render the request pane using the same formatting path as the full `playground.js` engine (matching UCP's integrated playground script pattern)
