@@ -1,5 +1,11 @@
 # Change Log
 
+## 13/07/26 at 22:19:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed homepage Catalog / Availability / Booking sub-tabs (and Standalone / UCP-Native main tabs) not switching by aligning `openTab` and `openSubTab` in `extra.js` with the `onclick` + element-id markup in `home.html`, which toggles `.active` on `.tab-pane` and `.sub-tab-pane` siblings
+
+---
+
 ## 13/07/26 at 22:10:35 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed playground response panes showing corrupted numeric placeholder output instead of real scenario JSON by reusing `highlightJson` from `code-editor.js` in `playground-controller.js`, which uses non-numeric placeholder tokens that survive the number-highlighting pass

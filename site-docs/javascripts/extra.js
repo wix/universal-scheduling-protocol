@@ -1,25 +1,55 @@
-window.openTab = function (mode) {
-  document.querySelectorAll("[data-mode-tab]").forEach(function (btn) {
-    var active = btn.getAttribute("data-mode-tab") === mode;
-    btn.classList.toggle("usp-tabs__btn--active", active);
-    btn.classList.toggle("active", active);
-  });
-  document.querySelectorAll("[data-mode-panel]").forEach(function (panel) {
-    panel.classList.toggle("carousel-mode-panel--active", panel.getAttribute("data-mode-panel") === mode);
-  });
+window.openTab = function (evtOrPaneId, paneId) {
+  var targetId = paneId || evtOrPaneId;
+  if (!targetId || typeof targetId !== "string") return;
+
+  var pane = document.getElementById(targetId);
+  if (!pane) return;
+
+  var btn = null;
+  if (evtOrPaneId && typeof evtOrPaneId === "object") {
+    btn = evtOrPaneId.currentTarget || (evtOrPaneId.target && evtOrPaneId.target.closest(".tab-btn"));
+  }
+
+  var tabGroup = btn ? btn.closest(".carousel-tabs") : null;
+  if (tabGroup) {
+    tabGroup.querySelectorAll(".tab-btn").forEach(function (b) {
+      b.classList.toggle("active", b === btn);
+    });
+  }
+
+  var parent = pane.parentElement;
+  if (parent) {
+    parent.querySelectorAll(":scope > .tab-pane").forEach(function (p) {
+      p.classList.toggle("active", p.id === targetId);
+    });
+  }
 };
 
-window.openSubTab = function (mode, sub) {
-  var modePanel = document.querySelector('[data-mode-panel="' + mode + '"]');
-  if (!modePanel) return;
-  modePanel.querySelectorAll("[data-sub-tab]").forEach(function (btn) {
-    var active = btn.getAttribute("data-sub-tab") === sub;
-    btn.classList.toggle("usp-tabs__btn--active", active);
-    btn.classList.toggle("active", active);
-  });
-  modePanel.querySelectorAll("[data-sub-panel]").forEach(function (panel) {
-    panel.classList.toggle("carousel-sub-panel--active", panel.getAttribute("data-sub-panel") === sub);
-  });
+window.openSubTab = function (evtOrPaneId, paneId) {
+  var targetId = paneId || evtOrPaneId;
+  if (!targetId || typeof targetId !== "string") return;
+
+  var pane = document.getElementById(targetId);
+  if (!pane) return;
+
+  var btn = null;
+  if (evtOrPaneId && typeof evtOrPaneId === "object") {
+    btn = evtOrPaneId.currentTarget || (evtOrPaneId.target && evtOrPaneId.target.closest(".sub-tab-btn"));
+  }
+
+  var tabGroup = btn ? btn.closest(".sub-action-tabs") : null;
+  if (tabGroup) {
+    tabGroup.querySelectorAll(".sub-tab-btn").forEach(function (b) {
+      b.classList.toggle("active", b === btn);
+    });
+  }
+
+  var content = pane.closest(".sub-tab-content");
+  if (content) {
+    content.querySelectorAll(":scope > .sub-tab-pane").forEach(function (p) {
+      p.classList.toggle("active", p.id === targetId);
+    });
+  }
 };
 
 function openIndustryTab(industry) {
