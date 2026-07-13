@@ -261,7 +261,7 @@
     "ServiceSearchResult": {
       "type": "object",
       "title": "ServiceSearchResult",
-      "description": "A single service hit from POST /registry/search_services. pricing aligns with the catalog Pricing model (Section 3.8).",
+      "description": "A single service hit from POST /registry/search_services. pricing aligns with the catalog Pricing model (Section 3.8). availability_hint aligns with the catalog AvailabilityHint type (Section 3.6) when indexed from the business catalog.",
       "required": [
         "service_id",
         "service_name",
@@ -286,6 +286,10 @@
           "type": "string",
           "format": "date-time",
           "description": "When the registry last indexed this service metadata from the business catalog. Optional but RECOMMENDED."
+        },
+        "availability_hint": {
+          "$ref": "catalog.json#/$defs/AvailabilityHint",
+          "description": "Approximate availability summary from the business catalog, when present at index time. Non-authoritative; platforms MUST NOT treat as a substitute for live availability queries (Section 3.6)."
         }
       }
     }
