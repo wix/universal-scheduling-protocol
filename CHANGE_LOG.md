@@ -1,5 +1,148 @@
 # Change Log
 
+## 15/07/26 at 13:07:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed the UCP-Native "See it in action" checkout code panel being clipped on the homepage by removing the rigid `min-width` on `.pane-visuals`, allowing flex children to shrink with `min-width: 0`, and adding container queries so the pane and code blocks stack when the content column (including beside the docs sidebar) is too narrow for side-by-side layout
+
+---
+
+## 13/07/26 at 23:39:10 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed missing right margin on playground screens by adding symmetric horizontal padding and a centered max-width on `.pg-playground`, setting `min-width: 0` on split/grid panes to prevent overflow, and consolidating responsive padding so nested sections no longer double up horizontal inset
+
+---
+
+## 13/07/26 at 23:36:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made UCP-Native the default deployment mode in the homepage "See it in action" carousel by listing it first in the tab bar and marking its pane active on load, so visitors see the primary integration path before Standalone
+
+---
+
+## 13/07/26 at 23:35:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the homepage "Endorsed across the ecosystem" partner marquee from `home.html`, deleted all partner-carousel/chip CSS from `extra.css`, and dropped unused industry-tab autoplay logic from `extra.js`, so the site no longer displays placeholder partner, sponsor, or endorser affiliations
+
+---
+
+## 13/07/26 at 23:06:49 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Changed `repo_name` in `mkdocs.yml` to "USP on GitHub" so the header source link matches the UCP site label instead of showing a truncated repository slug
+
+---
+
+## 13/07/26 at 22:34:17 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the homepage "Co-developed by industry leaders" partner tabs section from `home.html` and dropped the unused `#industry-tabs` CSS rules from `extra.css`, because that placeholder content is not ready to publish yet
+
+---
+
+## 13/07/26 at 22:31:32 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Moved Overview and Specification navigation into the left sidebar only (matching UCP) by removing `navigation.tabs` and `navigation.tabs.sticky` from `mkdocs.yml`, and added defensive CSS in `extra.css` to hide the header tab bar and keep top-level nav items visible in the primary panel on all viewports
+
+---
+
+## 13/07/26 at 22:29:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Reverted the site from green-tinted page backgrounds to white and neutral gray surfaces (`#fff`, `#f8f9fa`, `#f1f3f4`) in `extra.css`, restored teal accent colors (`#0d9488`) for links, badges, and active tabs, and added a subtle hero radial glow matching the earlier site
+- Aligned playground panel and code backgrounds in `playground.css` to the same neutral palette and teal primary tokens
+
+---
+
+## 13/07/26 at 22:19:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed homepage Catalog / Availability / Booking sub-tabs (and Standalone / UCP-Native main tabs) not switching by aligning `openTab` and `openSubTab` in `extra.js` with the `onclick` + element-id markup in `home.html`, which toggles `.active` on `.tab-pane` and `.sub-tab-pane` siblings
+
+---
+
+## 13/07/26 at 22:10:35 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed playground response panes showing corrupted numeric placeholder output instead of real scenario JSON by reusing `highlightJson` from `code-editor.js` in `playground-controller.js`, which uses non-numeric placeholder tokens that survive the number-highlighting pass
+
+---
+
+## 13/07/26 at 22:04:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Swapped the site surface palette to a green-tinted background scale (`--usp-bg-0` through `--usp-bg-4`) in `extra.css`, wired header, promo cards, sections, code blocks, partner carousel, and footer to those tokens, and kept normal body/landing text black via `--md-typeset-color` and `.landing-page { color: #000 }`
+- Aligned playground panel/code backgrounds in `playground.css` to the same greenish elevated surfaces so the demo page matches the docs chrome
+
+---
+
+- Fixed playground bugs from verification: dynamic request pane headers on all steps, GET query strings in REST formatting, capability negotiation intersection with holds stripped on partial match, discovery refresh on scenario change, and accurate error labels (429 hold limit, 402 payment failed)
+- Removed misleading schema-validation claim from playground intro; added `GET /services` MCP mapping and carousel mode/sub-panel opacity grid CSS for homepage tabs
+
+---
+
+## 13/07/26 at 20:06:42 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Completed full ucp.dev homepage parity in `overrides/home.html`: banner icon, hero-wrapper without in-hero CTAs, Learn/Implement promo cards, co-developed industry tabs, flexibility principles, deployment-mode action carousel, two-column deployment promo, lifecycle ecosystem roles, endorsed partner marquee, and Get started today (removed stats, verticals, how-it-works, transport cards, and custom footer)
+- Moved tab logic to `site-docs/javascripts/extra.js` as global `openTab`/`openSubTab` with industry-tab 3s autoplay; kept announce-banner dismiss and removed the legacy `usp-tabs` data-tab handler
+- Ported UCP landing CSS into `site-docs/stylesheets/extra.css` (partner-carousel/chips, pane layout, opacity-grid carousel, lifecycle/two-column-promo blocks, get-started step chrome fix, 960px hero breakpoint) and added slate dark-mode palette to `mkdocs.yml`
+
+---
+
+## 13/07/26 at 20:04:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Restructured homepage "See It in Action" to match ucp.dev: deployment-mode tabs (Standalone / UCP-Native), sub-tabs (Catalog / Availability / Booking), pane-text + pane-visuals layout, opacity/visibility grid panels, and scoped `openTab()` / `openSubTab()` handlers so panel height stays stable with fade-in transitions
+- Replaced partners placeholder with UCP-style industry vertical tabs (Appointments / Group / Reservations / Rentals) using text chips, plus an infinite-scroll ecosystem marquee with scheduling-relevant names; industry tabs autoplay every 3s and pause on hover or click
+- Fixed homepage CTA parity: hero GitHub opens in a new tab; Get Involved cards use `<div>` wrappers with title-only links; Playground and Contribute open in new tabs
+- Restored primary docs sidebar on the landing page (matching ucp.dev), added carousel responsive stacking at 1200px and 960px, and aligned hero stack breakpoint to 960px
+
+---
+
+## 13/07/26 at 17:30:57 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Wired the playground transport toggle to `transport-formatter.js` via ES module `playground-controller.js`, so REST/MCP/A2A/ESP switches re-render the request pane using the same formatting path as the full `playground.js` engine (matching UCP's integrated playground script pattern)
+- Load playground controller as `type="module"` in `overrides/playground.html` and cache per-step scenario state so transport and mode changes refresh requests without re-fetching
+- Added `/.well-known/ucp` tool mappings in `transport-formatter.js` for UCP-Native mode discovery
+
+---
+
+## 13/07/26 at 17:10:15 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed broken cross-doc link in `site-docs/deployment-modes/ucp-native.md` (pointed at repo-root `specification.md` outside `site-docs`) to the on-page `#paid-bookings-extension-schema` anchor so `mkdocs build --strict` passes after the UCP parity site work
+
+---
+
+## 13/07/26 at 17:09:20 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Hid the primary docs sidebar on the homepage and playground so landing and demo pages use full-width layout like ucp.dev, instead of squeezing content beside the nav column
+- Swapped the get-started CTA middle card to "Try the Playground" (matching UCP's Experiment card) so the bottom-of-page funnel highlights the interactive demo
+
+---
+
+## 13/07/26 at 17:08:44 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned USP docs site global chrome with ucp.dev: white Material header, Google Sans/Roboto Mono fonts, indigo accent palette (removed teal custom theme and dark-mode toggle), plus `navigation.tracking`, `content.code.select`, `content.tooltips`, and cookie consent `scope: /`
+- Ported UCP landing-page patterns into `extra.css` and `home.html`: pill buttons, promo cards, light action-carousel code tabs with fade-in, vertical features list, light get-started CTA, announcement banner, and footer wrapper
+- Upgraded playground UX: request/response split panes, functional mode/transport toggles, step fade animation, auto-run on discovery/negotiation enter, side-by-side negotiation capability grid, and "About this demo" callout; aligned `playground.css` tokens to UCP indigo/ink/surface colors
+- Fixed broken social/OG image references to use existing `social-card.svg` and `usp-logo.svg` instead of missing PNG assets
+
+---
+## 13/07/26 at 17:08:42 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Realigned the USP docs site visual system with [ucp.dev](https://ucp.dev/): white Material header, Google Sans typography, indigo accent palette, pill CTAs, light carousel tabs, and vertical principles layout so the sibling protocol sites read as one ecosystem
+- Refreshed homepage markup (`overrides/home.html`) with announcement banner, Learn/Implement promo cards, light "See It in Action" section, get-started CTA, and custom footer wrapper matching UCP landing-page patterns
+- Upgraded playground to UCP-style split request/response panes, negotiation capability grid, step fade transitions, functional mode toggle (USP vs UCP profile paths), and "About this demo" callout; rewrote `playground-controller.js` to match the new panel IDs
+- Updated `mkdocs.yml` (Google Sans, white/indigo palette, `navigation.tracking`, consent `scope: /`) and fixed broken social/OG image references in `overrides/main.html` and `overrides/playground.html`
+
+---
+
+## 13/07/26 at 16:03:04 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `package.json` with `python3 -m mkdocs build` so Vercel treats the project as a static MkDocs site instead of a Python serverless app (Vercel CLI 55+ errors on missing Python entrypoints when only `requirements.txt` is present)
+- Added `vercel.json` with `outputDirectory: site`, `/spec` rewrites, `/github` redirect, and cache/security headers aligned with `render.yaml` so Vercel deployment matches the existing Render static-site behavior
+
+---
+
+## 13/07/26 at 14:52:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added optional `availability_hint` to `ServiceSearchResult` in `schemas/registry.json` (by `$ref` to catalog `AvailabilityHint`), so registry service search can pass through the catalog's approximate availability signal and agents can reason about near-term availability without an extra catalog fetch per hit
+- Updated `specification.md` §6.3 and `site-docs/specification/discovery-registry.md` with response examples and normative guidance: registries SHOULD pass through the hint when present at index time; platforms MUST NOT treat it as authoritative or as a hard availability filter
+- Aligned `plans/usp-registry-design-plan.md` §1.4, §1.10, and §2.3 with the wire-model change (replacing the prior index-only, not-returned decision from PR #57 review)
+
+---
+
 ## 03/07/26 at 13:08:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Refined `docs/dtc_charter_nomination.md` to increase GC approval odds: removed leftover assistant-conversation text from the submission body (e.g. "If you want, I can save this as a markdown file..."), which would have been embarrassing if filed as-is, and clearly fenced the internal submission notes behind a delete-before-filing marker

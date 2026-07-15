@@ -6,44 +6,40 @@ site_author: USP Authors
 docs_dir: site-docs
 
 repo_url: https://github.com/wix-private/universal-scheduling-protocol-spec
-repo_name: universal-scheduling-protocol
+repo_name: USP on GitHub
 
 theme:
   name: material
   custom_dir: overrides
   language: en
   font:
-    text: Inter
+    text: Google Sans
     code: Roboto Mono
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+    - scheme: default
+      primary: white
+      accent: indigo
+    - scheme: slate
+      primary: black
+      accent: indigo
+    - scheme: slate
+      primary: black
+      accent: indigo
   logo: assets/usp-logo.svg
   icon:
     repo: fontawesome/brands/github
   features:
-    - navigation.tabs
-    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.top
     - navigation.indexes
     - navigation.footer
+    - navigation.tracking
     - content.code.copy
     - content.code.annotate
+    - content.code.select
     - content.tabs.link
+    - content.tooltips
     - toc.follow
     - search.suggest
     - search.highlight
@@ -131,6 +127,7 @@ extra:
     provider: google
     property: G-XXXXXXXXXX
   consent:
+    scope: /
     title: Cookie consent
     description: >-
       We use cookies to recognize your repeated visits and preferences, as well

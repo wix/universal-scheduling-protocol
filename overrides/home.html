@@ -5,223 +5,195 @@
 {% endblock %}
 
 {% block content %}
+<div class="landing-page">
+
+  <!-- Announcement -->
+  <div class="custom-announce-banner" id="usp-announce-banner">
+    <div class="custom-banner-container">
+      <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo" class="custom-banner-icon">
+      <div class="custom-banner-text">
+        <div class="banner-title">Draft specification v2026-02-21</div>
+        <div class="banner-subtitle">Open standard for agentic scheduling across REST, MCP, A2A, and ESP</div>
+      </div>
+    </div>
+    <button class="custom-banner-close" id="usp-announce-close" aria-label="Dismiss announcement">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 1L1 13M1 1L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 
   <!-- Hero -->
-  <section class="usp-hero">
-    <div class="usp-hero__layout">
-      <div class="usp-hero__inner">
-        <span class="usp-hero__badge">Open Standard &middot; Draft v2026-02-21</span>
-        <h1 class="usp-hero__title">Universal Scheduling Protocol</h1>
-        <p class="usp-hero__tagline">The open standard for agentic scheduling.</p>
-        <p class="usp-hero__desc">
-          Enable platforms and AI agents to discover, check availability of, and book
-          time-based services &mdash; without custom integrations.
+  <div class="hero-wrapper">
+    <div class="hero-content">
+      <h1>Universal Scheduling<br>Protocol</h1>
+      <p class="hero-subheading">The open standard for agentic scheduling.</p>
+      <p class="hero-description">
+        Enable platforms and AI agents to discover, check availability of, and book
+        time-based services without custom integrations.
+      </p>
+    </div>
+    <div class="hero-image">
+      <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo" class="hero-logo-crisp">
+    </div>
+  </div>
+
+  <!-- Promo cards -->
+  <div class="promo-card-wrapper">
+    <div class="promo-card">
+      <h3>Learn</h3>
+      <p>Read the specification, core concepts, and deployment modes to understand how USP fits your stack.</p>
+      <a href="{{ 'getting-started/' | url }}" class="promo-button">Get Started</a>
+    </div>
+    <div class="promo-card">
+      <h3>Implement</h3>
+      <p>Start with OpenAPI and OpenRPC bindings, JSON Schemas, and the interactive playground.</p>
+      <a href="{{ config.repo_url }}" class="promo-button" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+
+  <!-- Principles -->
+  <div class="flexibility-section">
+    <h2>Built for flexibility, security, and scale</h2>
+    <p>
+      Agentic scheduling requires interoperability. USP is built on industry standards — REST, MCP, A2A,
+      and ESP transports — with UCP-Native and Standalone deployment modes so different systems can work
+      together without custom integration.
+    </p>
+  </div>
+
+  <div class="features-list">
+    <div class="feature-item">
+      <div class="feature-item-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <div>
+        <h3>Interoperable</h3>
+        <p>
+          Two deployment modes (UCP-Native for existing UCP platforms, Standalone for self-contained scheduling)
+          share the same domain core and transport bindings.
         </p>
-        <div class="usp-hero__actions">
-          <a href="{{ 'getting-started/' | url }}" class="usp-btn usp-btn--primary">Get Started</a>
-          <a href="{{ config.repo_url }}" class="usp-btn usp-btn--outline">View on GitHub</a>
-        </div>
-      </div>
-      <div class="usp-hero__logo">
-        <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo">
       </div>
     </div>
-  </section>
-
-  <!-- Problem -->
-  <section class="usp-section usp-section--surface">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">The Problem</p>
-      <h2 class="usp-section__title">Why USP?</h2>
-      <p class="usp-section__subtitle">
-        Existing scheduling standards &mdash; iCalendar, CalDAV, schema.org/Service &mdash;
-        are fragmented, lack native payment integration, and were never designed for
-        autonomous AI agents.
-      </p>
-      <div class="usp-grid usp-grid--3">
-        <div class="usp-stat">
-          <span class="usp-stat__number">4</span>
-          <span class="usp-stat__label">Transport bindings</span>
-          <span class="usp-stat__detail">REST, MCP, A2A, ESP</span>
-        </div>
-        <div class="usp-stat">
-          <span class="usp-stat__number">2</span>
-          <span class="usp-stat__label">Deployment modes</span>
-          <span class="usp-stat__detail">UCP-Native &amp; Standalone</span>
-        </div>
-        <div class="usp-stat">
-          <span class="usp-stat__number">4</span>
-          <span class="usp-stat__label">Service verticals</span>
-          <span class="usp-stat__detail">Appointment, Group, Reservation, Rental</span>
-        </div>
+    <div class="feature-item">
+      <div class="feature-item-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.49 12.65 0L21 3v7.12z"/></svg>
+      </div>
+      <div>
+        <h3>Agent-First</h3>
+        <p>
+          Every operation is designed for programmatic consumption. AI agents
+          autonomously discover, evaluate, and book services with
+          <code>continue_url</code> handoff when human input is needed.
+        </p>
       </div>
     </div>
-  </section>
-
-  <!-- Service Verticals -->
-  <section class="usp-section">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Verticals</p>
-      <h2 class="usp-section__title">Built for Every Service Type</h2>
-      <p class="usp-section__subtitle">
-        Four core service verticals, with an extensible model for custom types.
-      </p>
-      <div class="usp-grid usp-grid--4">
-        <div class="usp-card">
-          <div class="usp-card__icon">
-            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          </div>
-          <h3 class="usp-card__title">Appointments</h3>
-          <p class="usp-card__desc">1:1 sessions between client and provider</p>
-          <p class="usp-card__examples">Salon, dental, consulting, therapy</p>
-        </div>
-        <div class="usp-card">
-          <div class="usp-card__icon">
-            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-          </div>
-          <h3 class="usp-card__title">Group Sessions</h3>
-          <p class="usp-card__desc">Shared sessions with limited capacity</p>
-          <p class="usp-card__examples">Yoga, workshops, cooking classes</p>
-        </div>
-        <div class="usp-card">
-          <div class="usp-card__icon">
-            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-          </div>
-          <h3 class="usp-card__title">Reservations</h3>
-          <p class="usp-card__desc">Hold on a shared resource for a time window</p>
-          <p class="usp-card__examples">Restaurant table, conference room, venue</p>
-        </div>
-        <div class="usp-card">
-          <div class="usp-card__icon">
-            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-          </div>
-          <h3 class="usp-card__title">Rentals</h3>
-          <p class="usp-card__desc">Temporary use of equipment or space</p>
-          <p class="usp-card__examples">Car rental, studio space, equipment hire</p>
-        </div>
+    <div class="feature-item">
+      <div class="feature-item-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+      <div>
+        <h3>Secure &amp; Private</h3>
+        <p>
+          OAuth 2.0 identity linking, HTTP Message Signatures for webhooks,
+          structured buyer consent, and TLS 1.3 transport.
+        </p>
       </div>
     </div>
-  </section>
+    <div class="feature-item">
+      <div class="feature-item-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z"/></svg>
+      </div>
+      <div>
+        <h3>Open &amp; Extensible</h3>
+        <p>
+          Apache 2.0 licensed. Vendor extensions via reverse-domain namespaces
+          (e.g., <code>com.wix.services.courses</code>). JSON Schema composition
+          for custom capabilities.
+        </p>
+      </div>
+    </div>
+  </div>
 
-  <!-- Core Features -->
-  <section class="usp-section usp-section--surface">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Principles</p>
-      <h2 class="usp-section__title">Design Principles</h2>
-      <p class="usp-section__subtitle">
-        Built from the ground up for the agentic commerce era.
-      </p>
-      <div class="usp-grid usp-grid--2">
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-          </div>
-          <div>
-            <h3 class="usp-feature__title">Interoperable</h3>
-            <p class="usp-feature__desc">
-              Two deployment modes &mdash;
-              UCP-Native for existing UCP platforms, Standalone for self-contained scheduling &mdash;
-              share the same domain core and transport bindings.
-            </p>
-          </div>
+  <!-- See it in action -->
+  <section class="action-carousel-section">
+    <h2>See it in action</h2>
+    <p>
+      USP is designed to facilitate the entire scheduling lifecycle, from discovery and availability
+      to booking and post-confirmation management. The protocol supports catalog browsing, slot queries,
+      holds, booking creation, and payment coordination across deployment modes.
+    </p>
+
+    <div class="carousel-tabs main-action-tabs">
+      <button class="tab-btn active" onclick="openTab(event, 'action-tab-ucp-native')">UCP-Native</button>
+      <button class="tab-btn" onclick="openTab(event, 'action-tab-standalone')">Standalone</button>
+    </div>
+
+    <div class="carousel-content">
+      <div id="action-tab-ucp-native" class="tab-pane active">
+        <div class="pane-text">
+          <h3>Discovery &amp; Checkout</h3>
+          <p>
+            In UCP-Native mode, scheduling capabilities register in <code>/.well-known/ucp</code>.
+            Paid bookings use UCP atomic checkout so agents discover services and complete payment in one flow.
+          </p>
+          <a href="{{ 'deployment-modes/ucp-native/' | url }}" class="learn-more-btn">Learn more</a>
         </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.49 12.65 0L21 3v7.12z"/></svg>
+        <div class="pane-visuals">
+          <div class="usp-code-block">
+            <div class="usp-code-block__header">UCP Profile &mdash; Scheduling Capability</div>
+<pre><code>GET /.well-known/ucp HTTP/1.1
+Host: salon.example.com
+
+{
+  "ucp": { "version": "2026-01-11" },
+  "capabilities": {
+    "dev.usp.services.catalog": [{
+      "version": "2026-02-21",
+      "spec": "https://usp.dev/specification/",
+      "schema": "https://usp.dev/schemas/catalog.json"
+    }],
+    "dev.usp.services.paid_bookings": [{
+      "version": "2026-02-21"
+    }]
+  }
+}</code></pre>
           </div>
-          <div>
-            <h3 class="usp-feature__title">Agent-First</h3>
-            <p class="usp-feature__desc">
-              Every operation is designed for programmatic consumption. AI agents
-              autonomously discover, evaluate, and book services with
-              <code>continue_url</code> handoff when human input is needed.
-            </p>
-          </div>
-        </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          </div>
-          <div>
-            <h3 class="usp-feature__title">Secure &amp; Private</h3>
-            <p class="usp-feature__desc">
-              OAuth 2.0 identity linking, HTTP Message Signatures for webhooks,
-              structured buyer consent, and TLS 1.3 transport.
-            </p>
-          </div>
-        </div>
-        <div class="usp-feature">
-          <div class="usp-feature__icon">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z"/></svg>
-          </div>
-          <div>
-            <h3 class="usp-feature__title">Open &amp; Extensible</h3>
-            <p class="usp-feature__desc">
-              Apache 2.0 licensed. Vendor extensions via reverse-domain namespaces
-              (e.g., <code>com.wix.services.courses</code>). JSON Schema composition
-              for custom capabilities.
-            </p>
+          <div class="usp-code-block">
+            <div class="usp-code-block__header">Checkout &mdash; Atomic Booking + Payment</div>
+<pre><code>POST /checkout-sessions HTTP/1.1
+Host: platform.example.com
+Idempotency-Key: idem_abc123
+
+{
+  "line_items": [{
+    "item": { "id": "svc_haircut_001" },
+    "quantity": 1,
+    "booking": {
+      "slot_id": "slot_20260315_0900",
+      "service_id": "svc_haircut_001"
+    }
+  }],
+  "buyer": { "email": "alice@example.com" }
+}</code></pre>
           </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- How It Works -->
-  <section class="usp-section">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Workflow</p>
-      <h2 class="usp-section__title">How It Works</h2>
-      <p class="usp-section__subtitle">
-        Three capabilities power the complete scheduling journey.
-      </p>
-      <div class="usp-flow">
-        <div class="usp-flow__step">
-          <div class="usp-flow__number">1</div>
-          <h3 class="usp-flow__title">Discover</h3>
-          <p class="usp-flow__desc">Browse the service catalog &mdash; types, pricing, policies, resources, and locations.</p>
-          <code class="usp-flow__endpoint">POST /services/list</code>
+      <div id="action-tab-standalone" class="tab-pane standalone-tab-pane">
+        <div class="sub-action-tabs">
+          <button class="sub-tab-btn active" onclick="openSubTab(event, 'sub-tab-catalog')">Catalog</button>
+          <button class="sub-tab-btn" onclick="openSubTab(event, 'sub-tab-availability')">Availability</button>
+          <button class="sub-tab-btn" onclick="openSubTab(event, 'sub-tab-booking')">Booking</button>
         </div>
-        <div class="usp-flow__arrow">
-          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-        </div>
-        <div class="usp-flow__step">
-          <div class="usp-flow__number">2</div>
-          <h3 class="usp-flow__title">Check Availability</h3>
-          <p class="usp-flow__desc">Query time slots, hold a slot to prevent double-booking during checkout.</p>
-          <code class="usp-flow__endpoint">POST /availability/query</code>
-        </div>
-        <div class="usp-flow__arrow">
-          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-        </div>
-        <div class="usp-flow__step">
-          <div class="usp-flow__number">3</div>
-          <h3 class="usp-flow__title">Book</h3>
-          <p class="usp-flow__desc">Create the booking, manage the lifecycle &mdash; confirm, reschedule, cancel.</p>
-          <code class="usp-flow__endpoint">POST /bookings</code>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Code Examples -->
-  <section class="usp-section usp-section--dark">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow usp-section__eyebrow--light">API</p>
-      <h2 class="usp-section__title usp-section__title--light">See It in Action</h2>
-      <p class="usp-section__subtitle usp-section__subtitle--light">
-        Real API requests and responses from the USP specification.
-      </p>
-      <div class="usp-tabs">
-        <div class="usp-tabs__nav">
-          <button class="usp-tabs__btn usp-tabs__btn--active" data-tab="catalog">Service Catalog</button>
-          <button class="usp-tabs__btn" data-tab="availability">Availability</button>
-          <button class="usp-tabs__btn" data-tab="booking">Booking</button>
-        </div>
-        <div class="usp-tabs__panels">
-
-          <div class="usp-tabs__panel usp-tabs__panel--active" data-panel="catalog">
-            <div class="usp-code-split">
+        <div class="sub-tab-content">
+          <div id="sub-tab-catalog" class="sub-tab-pane active">
+            <div class="pane-text">
+              <h3>Service Catalog</h3>
+              <p>Browse services, pricing, policies, resources, and locations through a unified catalog API designed for agents and platforms.</p>
+              <a href="{{ 'specification/service-catalog/' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
               <div class="usp-code-block">
                 <div class="usp-code-block__header">Request &mdash; List Services</div>
 <pre><code>POST /services/list HTTP/1.1
@@ -266,8 +238,13 @@ Content-Type: application/json
             </div>
           </div>
 
-          <div class="usp-tabs__panel" data-panel="availability">
-            <div class="usp-code-split">
+          <div id="sub-tab-availability" class="sub-tab-pane">
+            <div class="pane-text">
+              <h3>Availability</h3>
+              <p>Query open time slots, hold a slot during checkout, and release holds when buyers abandon the flow.</p>
+              <a href="{{ 'specification/availability/' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
               <div class="usp-code-block">
                 <div class="usp-code-block__header">Request &mdash; Query Availability</div>
 <pre><code>POST /availability/query HTTP/1.1
@@ -307,8 +284,13 @@ Content-Type: application/json
             </div>
           </div>
 
-          <div class="usp-tabs__panel" data-panel="booking">
-            <div class="usp-code-split">
+          <div id="sub-tab-booking" class="sub-tab-pane">
+            <div class="pane-text">
+              <h3>Booking</h3>
+              <p>Create confirmed bookings, manage lifecycle transitions, and coordinate payment when required.</p>
+              <a href="{{ 'specification/booking/' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
               <div class="usp-code-block">
                 <div class="usp-code-block__header">Request &mdash; Create Booking</div>
 <pre><code>POST /bookings HTTP/1.1
@@ -348,170 +330,140 @@ Content-Type: application/json
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Deployment Modes -->
-  <section class="usp-section">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Architecture</p>
-      <h2 class="usp-section__title">Two Deployment Modes, One Protocol</h2>
-      <p class="usp-section__subtitle">
-        Choose the mode that fits your infrastructure. Both share the same scheduling core.
+  <!-- Deployment modes -->
+  <div class="two-column-promo">
+    <div class="two-column-promo-item">
+      <div class="two-column-promo-item-icon-wrapper">
+        <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <h3>UCP-Native Mode</h3>
+      <p>
+        For platforms that already support UCP. Scheduling registers in <code>/.well-known/ucp</code>
+        with atomic checkout for paid bookings and inherited UCP infrastructure.
       </p>
-      <div class="usp-grid usp-grid--2">
-        <div class="usp-card usp-card--featured">
-          <h3 class="usp-card__title">UCP-Native Mode</h3>
-          <p class="usp-card__desc">
-            For platforms that already support the
-            <a href="https://ucp.dev">Universal Commerce Protocol</a>.
-            Scheduling capabilities register directly in <code>/.well-known/ucp</code>.
-          </p>
-          <ul class="usp-card__list">
-            <li>Atomic checkout (booking + payment in one call)</li>
-            <li>Inherits UCP infrastructure (auth, errors, webhooks)</li>
-            <li>Single profile at <code>/.well-known/ucp</code></li>
-          </ul>
-          <a href="{{ 'deployment-modes/ucp-native/' | url }}" class="usp-card__link">Learn more &rarr;</a>
-        </div>
-        <div class="usp-card usp-card--featured">
-          <h3 class="usp-card__title">Standalone Mode</h3>
-          <p class="usp-card__desc">
-            Self-contained scheduling protocol.
-            Businesses publish <code>/.well-known/usp</code>. Payment uses a generic
-            <code>payment_context</code> that works with any checkout system.
-          </p>
-          <ul class="usp-card__list">
-            <li>Works with any payment system</li>
-            <li>ACP extension available for structured checkout</li>
-            <li>IETF-native infrastructure (OAuth 2.0, RFC 9457)</li>
-          </ul>
-          <a href="{{ 'deployment-modes/standalone/' | url }}" class="usp-card__link">Learn more &rarr;</a>
-        </div>
-      </div>
+      <a href="{{ 'deployment-modes/ucp-native/' | url }}" class="promo-button">Get Started</a>
     </div>
-  </section>
-
-  <!-- Transport Bindings -->
-  <section class="usp-section usp-section--surface">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Transports</p>
-      <h2 class="usp-section__title">Transport Bindings</h2>
-      <p class="usp-section__subtitle">
-        USP is transport-agnostic. Implement using the binding that fits your architecture.
+    <div class="two-column-promo-item">
+      <div class="two-column-promo-item-icon-wrapper">
+        <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <h3>Standalone Mode</h3>
+      <p>
+        Self-contained scheduling at <code>/.well-known/usp</code> with generic payment context
+        that works with any checkout system and IETF-native infrastructure.
       </p>
-      <div class="usp-grid usp-grid--4">
-        <a href="{{ 'transport/rest/' | url }}" class="usp-card usp-card--compact">
-          <h3 class="usp-card__title">REST</h3>
-          <p class="usp-card__desc">HTTP/OpenAPI 3.x with idempotency keys. The primary transport.</p>
-        </a>
-        <a href="{{ 'transport/mcp/' | url }}" class="usp-card usp-card--compact">
-          <h3 class="usp-card__title">MCP</h3>
-          <p class="usp-card__desc">JSON-RPC for AI agent tool use via the Model Context Protocol.</p>
-        </a>
-        <a href="{{ 'transport/a2a/' | url }}" class="usp-card usp-card--compact">
-          <h3 class="usp-card__title">A2A</h3>
-          <p class="usp-card__desc">Agent-to-Agent protocol for autonomous multi-agent interactions.</p>
-        </a>
-        <a href="{{ 'transport/esp/' | url }}" class="usp-card usp-card--compact">
-          <h3 class="usp-card__title">ESP</h3>
-          <p class="usp-card__desc">Embedded Scheduling Protocol for in-app booking UIs via iframe.</p>
-        </a>
-      </div>
+      <a href="{{ 'deployment-modes/standalone/' | url }}" class="promo-button">See how it works</a>
     </div>
-  </section>
+  </div>
 
   <!-- Ecosystem -->
-  <section class="usp-section">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow">Ecosystem</p>
-      <h2 class="usp-section__title">Built for the Ecosystem</h2>
-      <div class="usp-grid usp-grid--2">
-        <div class="usp-card">
-          <h3 class="usp-card__title">For Developers</h3>
-          <p class="usp-card__desc">
-            Build scheduling into any platform with a standardized API. OpenAPI and
-            OpenRPC specs, JSON Schemas, and transport bindings &mdash; everything you
-            need to implement USP.
-          </p>
-          <a href="{{ 'specification/' | url }}" class="usp-card__link">Read the Specification &rarr;</a>
+  <div class="lifecycle-container">
+    <h2>Designed for the entire scheduling ecosystem</h2>
+
+    <div class="lifecycle-container-row">
+      <div class="lifecycle-container-item">
+        <div class="lifecycle-container-item-img-wrapper">
+          <svg viewBox="0 0 24 24" width="64" height="64" class="lifecycle-container-item-img" aria-hidden="true"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
         </div>
-        <div class="usp-card">
-          <h3 class="usp-card__title">For Businesses</h3>
-          <p class="usp-card__desc">
-            Retain control of your schedule, resources, and customer relationships.
-            USP keeps you as the Merchant of Record &mdash; platforms discover and book, you
-            control the experience.
-          </p>
-          <a href="{{ 'getting-started/' | url }}" class="usp-card__link">Get Started &rarr;</a>
+        <h3>For Developers</h3>
+        <p>
+          Build scheduling into any platform with OpenAPI, OpenRPC specs, JSON Schemas,
+          and transport bindings — everything you need to implement USP.
+        </p>
+        <a href="{{ 'specification/' | url }}" class="lifecycle-container-item-link">View the technical spec</a>
+      </div>
+      <div class="lifecycle-container-item">
+        <div class="lifecycle-container-item-img-wrapper">
+          <svg viewBox="0 0 24 24" width="64" height="64" class="lifecycle-container-item-img" aria-hidden="true"><path fill="currentColor" d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
         </div>
-        <div class="usp-card">
-          <h3 class="usp-card__title">For AI Platforms</h3>
-          <p class="usp-card__desc">
-            Enable agents to autonomously discover and book services.
-            MCP and A2A bindings, availability hints for reasoning, and
-            <code>continue_url</code> for human-in-the-loop handoff.
-          </p>
-          <a href="{{ 'transport/' | url }}" class="usp-card__link">View Transport Bindings &rarr;</a>
-        </div>
-        <div class="usp-card">
-          <h3 class="usp-card__title">For Payment Providers</h3>
-          <p class="usp-card__desc">
-            Integrate through UCP atomic checkout or standalone payment context.
-            USP handles scheduling; your checkout system handles payment.
-          </p>
-          <a href="{{ 'deployment-modes/' | url }}" class="usp-card__link">See Payment Architecture &rarr;</a>
-        </div>
+        <h3>For Businesses</h3>
+        <p>
+          Retain control of your schedule, resources, and customer relationships.
+          USP keeps you as the Merchant of Record while agents discover and book.
+        </p>
+        <a href="{{ 'getting-started/' | url }}" class="lifecycle-container-item-link">Get started with USP</a>
       </div>
     </div>
-  </section>
 
-  <!-- Partners Placeholder -->
-  <section class="usp-section usp-section--surface">
-    <div class="usp-container usp-container--center">
-      <h2 class="usp-section__title">Co-Developed by Industry Leaders</h2>
-      <p class="usp-section__subtitle" style="margin-left: auto; margin-right: auto;">
-        USP is an open, community-driven protocol built to become the standard
-        for agentic scheduling across industries.
+    <div class="lifecycle-container-row">
+      <div class="lifecycle-container-item">
+        <div class="lifecycle-container-item-img-wrapper">
+          <svg viewBox="0 0 24 24" width="64" height="64" class="lifecycle-container-item-img" aria-hidden="true"><path fill="currentColor" d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.49 12.65 0L21 3v7.12z"/></svg>
+        </div>
+        <h3>For AI Platforms</h3>
+        <p>
+          Enable agents to autonomously discover and book services with MCP and A2A bindings,
+          availability hints for reasoning, and <code>continue_url</code> for human handoff.
+        </p>
+        <a href="{{ 'transport/' | url }}" class="lifecycle-container-item-link">View transport bindings</a>
+      </div>
+      <div class="lifecycle-container-item">
+        <div class="lifecycle-container-item-img-wrapper">
+          <svg viewBox="0 0 24 24" width="64" height="64" class="lifecycle-container-item-img" aria-hidden="true"><path fill="currentColor" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        </div>
+        <h3>For Payment Providers</h3>
+        <p>
+          Integrate through UCP atomic checkout or standalone payment context.
+          USP handles scheduling; your checkout system handles payment.
+        </p>
+        <a href="{{ 'deployment-modes/' | url }}" class="lifecycle-container-item-link">See payment architecture</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Get started -->
+  <div class="get-started-container">
+    <div class="get-started-container-intro">
+      <h2>Get started today</h2>
+      <p>
+        USP is an open standard designed to let AI agents, apps, businesses, and payment providers
+        schedule time-based services without custom, one-off integrations for every connection.
+        We actively seek your feedback and contributions to help build the future of agentic scheduling.
       </p>
-      <div class="usp-partners-placeholder">
-        <p>Partner logos coming soon</p>
+      <p>
+        The complete technical specification, documentation, schemas, and reference artifacts are
+        hosted in our public GitHub repository.
+      </p>
+    </div>
+
+    <div class="get-started-container-steps">
+      <div class="get-started-container-step">
+        <div class="get-started-container-step-icon-wrapper">
+          <svg viewBox="0 0 24 24" width="48" height="48" class="get-started-container-step-icon" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        </div>
+        <h3><a href="{{ 'getting-started/' | url }}">Download</a></h3>
+        <p>Read the getting started guide and machine-readable artifacts</p>
+      </div>
+      <div class="get-started-container-step">
+        <div class="get-started-container-step-icon-wrapper">
+          <svg viewBox="0 0 24 24" width="48" height="48" class="get-started-container-step-icon" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+        </div>
+        <h3><a href="{{ 'playground/' | url }}" target="_blank" rel="noopener">Experiment</a></h3>
+        <p>Walk through discovery, negotiation, and booking in the interactive playground</p>
+      </div>
+      <div class="get-started-container-step">
+        <div class="get-started-container-step-icon-wrapper">
+          <svg viewBox="0 0 24 24" width="48" height="48" class="get-started-container-step-icon" aria-hidden="true"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6.1-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.2 2.8.1 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.3v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
+        </div>
+        <h3><a href="{{ config.repo_url }}" target="_blank" rel="noopener">Contribute</a></h3>
+        <p>Join the community and help shape the standard on GitHub</p>
       </div>
     </div>
-  </section>
 
-  <!-- CTA -->
-  <section class="usp-section usp-section--cta">
-    <div class="usp-container">
-      <p class="usp-section__eyebrow usp-section__eyebrow--light">Join Us</p>
-      <h2 class="usp-section__title usp-section__title--light">Get Involved</h2>
-      <div class="usp-grid usp-grid--3">
-        <a href="{{ 'specification/' | url }}" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
-            <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
-          </div>
-          <h3 class="usp-cta-card__title">Read the Specification</h3>
-          <p class="usp-cta-card__desc">Full protocol spec with schemas, examples, and implementation guide.</p>
-        </a>
-        <a href="{{ config.repo_url }}/tree/master/schemas" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
-            <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-          </div>
-          <h3 class="usp-cta-card__title">Explore the Schemas</h3>
-          <p class="usp-cta-card__desc">OpenAPI, OpenRPC, and JSON Schema artifacts ready for integration.</p>
-        </a>
-        <a href="{{ config.repo_url }}" class="usp-cta-card">
-          <div class="usp-cta-card__icon">
-            <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6.1-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.2 2.8.1 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.3v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
-          </div>
-          <h3 class="usp-cta-card__title">Contribute</h3>
-          <p class="usp-cta-card__desc">Join the community and help shape the standard on GitHub.</p>
-        </a>
-      </div>
+    <div class="get-started-container-repo-link">
+      <a href="{{ config.repo_url }}" target="_blank" rel="noopener" class="promo-button">
+        <svg height="24" width="24" viewBox="0 0 16 16" version="1.1" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        Visit the GitHub repository
+      </a>
     </div>
-  </section>
+  </div>
 
+</div>
 {% endblock %}
