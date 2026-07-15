@@ -1,5 +1,11 @@
 # Change Log
 
+## 15/07/26 at 13:07:36 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed the UCP-Native "See it in action" checkout code panel being clipped on the homepage by removing the rigid `min-width` on `.pane-visuals`, allowing flex children to shrink with `min-width: 0`, and adding container queries so the pane and code blocks stack when the content column (including beside the docs sidebar) is too narrow for side-by-side layout
+
+---
+
 ## 13/07/26 at 23:39:10 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed missing right margin on playground screens by adding symmetric horizontal padding and a centered max-width on `.pg-playground`, setting `min-width: 0` on split/grid panes to prevent overflow, and consolidating responsive padding so nested sections no longer double up horizontal inset
