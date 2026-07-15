@@ -153,6 +153,24 @@
 
 ---
 
+## 13/07/26 at 14:52:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added optional `availability_hint` to `ServiceSearchResult` in `schemas/registry.json` (by `$ref` to catalog `AvailabilityHint`), so registry service search can pass through the catalog's approximate availability signal and agents can reason about near-term availability without an extra catalog fetch per hit
+- Updated `specification.md` §6.3 and `site-docs/specification/discovery-registry.md` with response examples and normative guidance: registries SHOULD pass through the hint when present at index time; platforms MUST NOT treat it as authoritative or as a hard availability filter
+- Aligned `plans/usp-registry-design-plan.md` §1.4, §1.10, and §2.3 with the wire-model change (replacing the prior index-only, not-returned decision from PR #57 review)
+
+---
+
+## 03/07/26 at 13:08:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Refined `docs/dtc_charter_nomination.md` to increase GC approval odds: removed leftover assistant-conversation text from the submission body (e.g. "If you want, I can save this as a markdown file..."), which would have been embarrassing if filed as-is, and clearly fenced the internal submission notes behind a delete-before-filing marker
+- Replaced the spec link pointing to the inaccessible private repo (`wix-private/universal-scheduling-protocol-spec`) with the public `kobym707/universal-scheduling-protocol` remote, since GC reviewers cannot evaluate evidence they cannot open
+- Added a "Domain Scope" subsection delimiting the four core verticals against the adjacent Lodging (#543) and Food Ordering (#518) DTCs, to preempt GC scope-overlap objections
+- Reframed the "Reference implementation" paragraph as a "starting-point contribution" with explicit DTC authority over final namespaces and schemas, to counter the perception of a pre-baked single-vendor (Wix/USP) protocol being rubber-stamped rather than chartered
+- Filled the Platforms (Google, Stripe Link, Microsoft Copilot) and Businesses (Wix, Square, Mindbody+ClassPass, Fresha) placeholders with ranked candidates marked "to be confirmed", plus a rationale section with alternates, because the charter requires 3+ committed organizations before filing
+
+---
+
 ## 01/07/26 at 16:07:29 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Expanded `plans/USP+UCP_implementation_plan.md` [#89](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89) section with full detail from [issue comment #4761877725](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/89#issuecomment-4761877725): checkout `payment_handlers` must expose Stripe SPT prerequisites (`network_id`), server-side HTTP 402 / `mpp decode` resolution during checkout creation, checkout-over-profile authority, acceptance criteria, and cross-links to [#64](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/64) and [#99](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/99) - so the implementation plan matches the GitHub issue guidance for UCP-native SPT acquisition
