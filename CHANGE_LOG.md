@@ -1,5 +1,13 @@
 # Change Log
 
+## 17/07/26 at 17:16:27 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Improved mobile layout for the MkDocs site by adding overflow clipping, responsive padding, and stacked layouts for the landing page announcement banner, feature cards, promo sections, and carousel tabs in `extra.css`, so narrow viewports (320px-768px) no longer trigger horizontal scroll from negative margins or fixed `min-width` values
+- Added responsive table and image rules for documentation pages so wide tables and figures scroll or scale within the content column on small screens
+- Enhanced playground mobile styles in `playground.css` with stacked header toggles, 44px touch targets, wrapping transport buttons, two-column step pills, and full-width step footers so the interactive demo remains usable on phones
+
+---
+
 ## 15/07/26 at 13:07:36 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed the UCP-Native "See it in action" checkout code panel being clipped on the homepage by removing the rigid `min-width` on `.pane-visuals`, allowing flex children to shrink with `min-width: 0`, and adding container queries so the pane and code blocks stack when the content column (including beside the docs sidebar) is too narrow for side-by-side layout
