@@ -1,6 +1,11 @@
 # Change Log
 
-## 17/07/26 at 17:16:27 by [Ran Yahalom](mailto:ranya@wix.com)
+## 17/07/26 at 21:17:51 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed Standalone carousel sub-tabs (Catalog / Availability / Booking) clipping paragraph and code snippet text on the left on mobile by constraining `.sub-tab-content` width, stacking `.sub-tab-pane` vertically with `align-items: stretch`, and removing rigid `min-width` on pane children so code blocks stay within the viewport
+- Replaced `(width <= Npx)` media query syntax with `(max-width: Npx)` for broader mobile browser support and aligned carousel pane alignment from `center` to `stretch` on narrow screens to prevent horizontally centered overflow from being clipped
+
+---
 
 - Improved mobile layout for the MkDocs site by adding overflow clipping, responsive padding, and stacked layouts for the landing page announcement banner, feature cards, promo sections, and carousel tabs in `extra.css`, so narrow viewports (320px-768px) no longer trigger horizontal scroll from negative margins or fixed `min-width` values
 - Added responsive table and image rules for documentation pages so wide tables and figures scroll or scale within the content column on small screens
