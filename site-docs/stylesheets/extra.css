@@ -916,6 +916,15 @@ p.hero-description {
 
 .tab-pane.standalone-tab-pane {
   gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.sub-tab-content {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .tab-pane,
@@ -1116,46 +1125,96 @@ p.hero-description {
   .carousel-content > .tab-pane.active,
   .sub-tab-pane.active {
     flex-direction: column !important;
-    align-items: center;
+    align-items: stretch !important;
     gap: 40px;
+  }
+
+  .sub-tab-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .carousel-content > .tab-pane.active {
+    align-items: stretch;
   }
 
   .pane-text {
     text-align: center;
     max-width: 800px;
+    min-width: 0;
+    width: 100%;
+    align-self: center;
   }
 
   .pane-visuals {
     width: 100%;
     justify-content: center;
+    min-width: 0;
+    align-items: stretch;
   }
 }
 
 @container carousel (max-width: 680px) {
+  .carousel-content > .tab-pane.active {
+    align-items: stretch;
+  }
+
+  .sub-tab-pane.active {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  .pane-text {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
   .pane-visuals {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
   }
 
   .pane-visuals .usp-code-block {
     flex-basis: 100%;
     width: 100%;
+    max-width: 100%;
   }
 }
 
-@media (width <= 1200px) {
+@media (max-width: 1200px) {
   .pane-layout,
   .tab-pane,
   .sub-tab-pane,
   #action-tab-ucp-native.active {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 40px;
+  }
+
+  .carousel-content > .tab-pane.active {
+    align-items: stretch;
+  }
+
+  .sub-tab-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sub-tab-pane.active {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
   }
 
   .pane-text {
     text-align: center;
     max-width: 800px;
+    min-width: 0;
+    width: 100%;
+    align-self: center;
   }
 
   .pane-visuals {
@@ -1169,10 +1228,11 @@ p.hero-description {
   .pane-visuals .usp-code-block {
     flex-basis: 100%;
     width: 100%;
+    max-width: 100%;
   }
 }
 
-@media (width <= 960px) {
+@media (max-width: 960px) {
   .hero-wrapper {
     flex-direction: column;
     text-align: center;
@@ -1205,20 +1265,32 @@ p.hero-description {
   .sub-tab-pane,
   #action-tab-ucp-native.active {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 40px;
+  }
+
+  .sub-tab-pane.active {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 
   .pane-text {
     text-align: center;
     max-width: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .pane-visuals {
     flex-direction: column;
     width: 100%;
     min-width: 0;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .pane-visuals .usp-code-block {
+    width: 100%;
+    max-width: 100%;
   }
 
   .carousel-tabs {
@@ -1538,6 +1610,57 @@ p.hero-description {
     margin: 40px 0;
   }
 
+  .carousel-content > .tab-pane.active {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .standalone-tab-pane.active {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sub-tab-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sub-tab-pane.active {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+    min-width: 0;
+    gap: 24px;
+  }
+
+  .pane-text {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pane-text p {
+    text-align: center;
+  }
+
+  .pane-visuals {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+  }
+
+  .pane-visuals .usp-code-block {
+    width: 100%;
+    max-width: 100%;
+    flex-basis: auto;
+  }
+
+  .usp-code-block pre {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .carousel-tabs {
     width: 100%;
     border-radius: 16px;
@@ -1546,6 +1669,8 @@ p.hero-description {
   .sub-action-tabs {
     gap: 12px;
     margin-bottom: 40px;
+    width: 100%;
+    justify-content: center;
   }
 
   .get-started-container {
