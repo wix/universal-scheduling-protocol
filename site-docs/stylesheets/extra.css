@@ -144,6 +144,8 @@ form[class~="md-search__form"] {
 .landing-page {
   color: #000;
   background: #fff;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .landing-page p {
@@ -1408,4 +1410,204 @@ p.hero-description {
 
 .md-container:has(.landing-page) .md-sidebar--secondary {
   display: none;
+}
+
+/* ==========================================================================
+   Documentation — responsive tables, images, code
+   ========================================================================== */
+
+.md-typeset .md-typeset__table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ==========================================================================
+   Mobile — landing page and docs (<=768px)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .md-content:has(.landing-page) .md-content__inner {
+    padding: 0 1rem;
+    overflow-x: clip;
+  }
+
+  .usp-section--surface,
+  .footer-wrapper {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .custom-announce-banner {
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 16px;
+    padding: 16px 52px 16px 16px;
+    margin-bottom: 24px;
+  }
+
+  .custom-banner-container {
+    align-items: flex-start;
+  }
+
+  .custom-banner-text {
+    font-size: 0.85rem;
+  }
+
+  .custom-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .landing-page h2 {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    margin-bottom: 24px;
+  }
+
+  .hero-wrapper {
+    padding: 2rem 0 1.5rem;
+  }
+
+  .hero-image {
+    width: min(60%, 200px);
+    margin-bottom: 24px;
+  }
+
+  .promo-card-wrapper {
+    margin: 40px auto;
+    gap: 16px;
+  }
+
+  .promo-card,
+  .two-column-promo-item,
+  .lifecycle-container-item {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .feature-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .features-list {
+    padding-bottom: 48px;
+    gap: 16px;
+  }
+
+  .flexibility-section {
+    margin: 48px 0 40px;
+  }
+
+  .two-column-promo {
+    padding-top: 40px;
+    margin-bottom: 40px;
+    gap: 16px;
+  }
+
+  .two-column-promo-item {
+    padding: 24px;
+  }
+
+  .lifecycle-container {
+    padding: 48px 0;
+  }
+
+  .lifecycle-container h2 {
+    margin-bottom: 40px;
+  }
+
+  .lifecycle-container-row {
+    gap: 16px;
+  }
+
+  .action-carousel-section {
+    margin: 40px 0;
+  }
+
+  .carousel-tabs {
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .sub-action-tabs {
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .get-started-container {
+    padding: 40px 0;
+  }
+
+  .get-started-container-intro {
+    margin-bottom: 40px;
+  }
+
+  .get-started-container-steps {
+    gap: 24px;
+  }
+
+  .usp-btn,
+  .promo-button,
+  .learn-more-btn,
+  .tab-btn,
+  .sub-tab-btn {
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .md-typeset h1 {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+  }
+
+  .md-typeset table {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .md-content:has(.landing-page) .md-content__inner {
+    padding: 0 0.75rem;
+  }
+
+  .usp-section--surface,
+  .footer-wrapper {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .tab-btn {
+    flex: 1 1 calc(50% - 4px);
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .sub-tab-btn {
+    padding: 10px 2px;
+    font-size: 0.82rem;
+  }
+
+  .usp-stat__number {
+    font-size: 2.5rem;
+  }
+
+  .footer-text {
+    font-size: 1rem;
+  }
 }
