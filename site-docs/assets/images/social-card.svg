@@ -161,6 +161,6 @@
   <!-- Bottom accent line -->
   <rect x="0" y="620" width="1200" height="10" fill="url(#accent)"/>
 
-  <!-- usp.dev watermark -->
-  <text x="1100" y="600" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="rgba(255,255,255,0.25)">usp.dev</text>
+  <!-- usp.live watermark -->
+  <text x="1100" y="600" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="rgba(255,255,255,0.25)">usp.live</text>
 </svg>
