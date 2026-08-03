@@ -10,31 +10,31 @@ License: Apache 2.0
 
 ## Documentation
 
-- [Specification Overview](https://usp.dev/specification/): Protocol overview, conventions, terminology, and reading guide
-- [Service Catalog](https://usp.dev/specification/service-catalog/): Service discovery — types, pricing, policies, resources, duration, and catalog feed
-- [Availability](https://usp.dev/specification/availability/): Time slot queries (slot and day granularity), holds, and caching strategy
-- [Booking Lifecycle](https://usp.dev/specification/booking/): Create, confirm, cancel, reschedule bookings with webhook notifications
-- [Discovery Registry](https://usp.dev/specification/discovery-registry/): Optional centralized business and service discovery
-- [Core Concepts](https://usp.dev/core-concepts/): Roles (Platform, Business, CP, PSP), architecture, constructs, namespaces
-- [Getting Started](https://usp.dev/getting-started/): Implementation guide with deployment mode selection and step-by-step stages
+- [Specification Overview](https://usp.live/specification/): Protocol overview, conventions, terminology, and reading guide
+- [Service Catalog](https://usp.live/specification/service-catalog/): Service discovery — types, pricing, policies, resources, duration, and catalog feed
+- [Availability](https://usp.live/specification/availability/): Time slot queries (slot and day granularity), holds, and caching strategy
+- [Booking Lifecycle](https://usp.live/specification/booking/): Create, confirm, cancel, reschedule bookings with webhook notifications
+- [Discovery Registry](https://usp.live/specification/discovery-registry/): Optional centralized business and service discovery
+- [Core Concepts](https://usp.live/core-concepts/): Roles (Platform, Business, CP, PSP), architecture, constructs, namespaces
+- [Getting Started](https://usp.live/getting-started/): Implementation guide with deployment mode selection and step-by-step stages
 
 ## Deployment Modes
 
-- [UCP-Native Mode](https://usp.dev/deployment-modes/ucp-native/): For platforms supporting UCP — atomic checkout, inherited infrastructure
-- [Standalone Mode](https://usp.dev/deployment-modes/standalone/): Self-contained — /.well-known/usp, generic payment_context, ACP extension
+- [UCP-Native Mode](https://usp.live/deployment-modes/ucp-native/): For platforms supporting UCP — atomic checkout, inherited infrastructure
+- [Standalone Mode](https://usp.live/deployment-modes/standalone/): Self-contained — /.well-known/usp, generic payment_context, ACP extension
 
 ## Transport Bindings
 
-- [REST](https://usp.dev/transport/rest/): HTTP/OpenAPI 3.x with idempotency — primary transport
-- [MCP](https://usp.dev/transport/mcp/): JSON-RPC for AI agent tool use via Model Context Protocol
-- [A2A](https://usp.dev/transport/a2a/): Agent-to-Agent protocol for autonomous multi-agent interactions
-- [ESP](https://usp.dev/transport/esp/): Embedded Scheduling Protocol for in-app booking UIs via iframe
+- [REST](https://usp.live/transport/rest/): HTTP/OpenAPI 3.x with idempotency — primary transport
+- [MCP](https://usp.live/transport/mcp/): JSON-RPC for AI agent tool use via Model Context Protocol
+- [A2A](https://usp.live/transport/a2a/): Agent-to-Agent protocol for autonomous multi-agent interactions
+- [ESP](https://usp.live/transport/esp/): Embedded Scheduling Protocol for in-app booking UIs via iframe
 
 ## Additional
 
-- [Security](https://usp.dev/security/): TLS, webhook signatures (RFC 9421), OAuth 2.0, hold abuse prevention
-- [Extensions](https://usp.dev/extensions/): Waitlist extension and vendor-defined capabilities
-- [Roadmap](https://usp.dev/roadmap/): Current status, planned verticals, contribution guidelines
+- [Security](https://usp.live/security/): TLS, webhook signatures (RFC 9421), OAuth 2.0, hold abuse prevention
+- [Extensions](https://usp.live/extensions/): Waitlist extension and vendor-defined capabilities
+- [Roadmap](https://usp.live/roadmap/): Current status, planned verticals, contribution guidelines
 
 ## Machine-Readable Artifacts
 

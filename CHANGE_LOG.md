@@ -1,5 +1,22 @@
 # Change Log
 
+## 03/08/26 at 20:41:07 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Updated website domain references from `usp.dev` to `usp.live` in `mkdocs.yml`, `llms.txt`, `llms-full.txt`, `robots.txt`, `humans.txt`, and social-card assets so canonical/SEO/LLM URLs match the live site deployment
+- Added missing `favicon` in `mkdocs.yml` so browser tabs show the USP logo instead of the default MkDocs icon
+- Fixed MkDocs-strict broken internal anchors that used four dashes (`----`) instead of the collapsed single-dash slugs in availability, booking, and discovery-registry docs
+- Left protocol namespace URLs (`https://usp.dev/schemas/...`, etc.) unchanged because those are spec identifiers, not website links
+- Skipped the PR #152 responsive CSS chunk because later mobile styles on this branch already cover that need
+
+---
+
+## 03/08/26 at 20:22:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added an interactive Cursor Canvas for the USP open-issues status analysis so reviewers can scan headline KPIs, prioritize evidence-backed close candidates, compare backlog themes, and filter or sort the full supplied issue inventory
+- Confirmed the detailed inventory matches the supplied headline count and documented evidence limitations so the analysis remains transparent about its verification scope
+
+---
+
 ## 17/07/26 at 21:17:51 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed Standalone carousel sub-tabs (Catalog / Availability / Booking) clipping paragraph and code snippet text on the left on mobile by constraining `.sub-tab-content` width, stacking `.sub-tab-pane` vertically with `align-items: stretch`, and removing rigid `min-width` on pane children so code blocks stay within the viewport
