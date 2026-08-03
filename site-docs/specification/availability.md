@@ -334,4 +334,4 @@ graph TD
 ```
 
 !!! tip "When Holds Are Not Supported"
-    When holds are not supported, the flow skips directly from slot selection to [booking creation](booking.md#create-booking----post-bookings). The platform should handle the possibility of the slot being taken between query and booking.
+    When holds are not supported, the flow skips directly from slot selection to [booking creation](booking.md#create-booking-post-bookings). The platform should handle the possibility of the slot being taken between query and booking.

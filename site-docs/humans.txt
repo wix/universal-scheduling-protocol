@@ -1,6 +1,6 @@
 /* TEAM */
 Name: USP Authors
-Site: https://usp.dev
+Site: https://usp.live
 From: Worldwide
 
 /* THANKS */

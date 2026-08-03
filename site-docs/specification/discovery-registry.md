@@ -288,7 +288,7 @@ Search the registry for specific **services** offered by registered businesses. 
     ```
 
 !!! tip "Indexing Strategy"
-    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions----post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter.
+    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter.
 
 ---
 
@@ -300,7 +300,7 @@ Returns the full registration record for a previously registered business.
 |-----------|------|----------|-------------|
 | `id` | string | path | Registration identifier (`reg_*`). |
 
-The response body matches the `registration` object from [Business Registration](#business-registration----post-registrybusinesses), wrapped in the standard `usp` envelope. If no registration exists for `id`, the registry **MUST** return `404 Not Found` with Problem Details.
+The response body matches the `registration` object from [Business Registration](#business-registration-post-registrybusinesses), wrapped in the standard `usp` envelope. If no registration exists for `id`, the registry **MUST** return `404 Not Found` with Problem Details.
 
 ---
 

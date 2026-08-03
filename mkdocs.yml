@@ -1,5 +1,5 @@
 site_name: Universal Scheduling Protocol
-site_url: https://usp.dev
+site_url: https://usp.live
 site_description: The open standard for agentic scheduling. Discover, check availability, and book time-based services.
 site_author: USP Authors
 
@@ -26,6 +26,7 @@ theme:
       primary: black
       accent: indigo
   logo: assets/usp-logo.svg
+  favicon: assets/usp-logo.svg
   icon:
     repo: fontawesome/brands/github
   features:

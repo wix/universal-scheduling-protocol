@@ -100,7 +100,7 @@ When a `pending` or `requires_action` booking reaches its `expires_at` deadline:
 
 ### Create Booking -- `POST /bookings`
 
-Creates a new booking for a service at a specific time slot. Resource selection is encoded in the `slot_id` -- the platform selects resources by choosing the appropriate slot at [availability query](availability.md#query-availability----post-availabilityquery) time.
+Creates a new booking for a service at a specific time slot. Resource selection is encoded in the `slot_id` -- the platform selects resources by choosing the appropriate slot at [availability query](availability.md#query-availability-post-availabilityquery) time.
 
 **Request Fields:**
 
@@ -108,7 +108,7 @@ Creates a new booking for a service at a specific time slot. Resource selection 
 |-------|------|----------|-------------|
 | `service_id` | string | **Yes** | The service to book. |
 | `slot_id` | string | **Yes** | The selected time slot. |
-| `hold_id` | string | No | Hold ID from a prior [hold operation](availability.md#hold-slot----post-availabilityholds). |
+| `hold_id` | string | No | Hold ID from a prior [hold operation](availability.md#hold-slot-post-availabilityholds). |
 | `buyer` | object | **Yes** | Buyer contact information. |
 | `recipient` | object | No | The person receiving the service, when different from the buyer. |
 | `party_size` | integer | No | Number of participants. Default: 1. |
