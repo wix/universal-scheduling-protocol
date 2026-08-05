@@ -1,5 +1,78 @@
 # Change Log
 
+## 05/08/26 at 20:04:20 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added per-track GitHub assignees to `plans/V2_PRODUCTION_PLAN.md` §2 (Components and tracks) so newly created v2 issues are assigned consistently: `yahalomran` owns A, C, and S; `maoryeh` owns B, D, E, and F
+
+---
+
+## 05/08/26 at 18:51:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added §1a "Identity, authentication, and authorization clarifications" to `plans/V2_PRODUCTION_PLAN.md` so the plan records the Link-token piggyback verdict (not viable), AS-backed definition, why unauthenticated privileged UCP/USP APIs are dangerous vs public catalog/availability, that email match is CRM-only (not identity linking / not V2-X1), that booking get/cancel/PII authorization is a launch requirement with multiple mechanisms, that UCP identity linking remains optional, and that `specification.md` §10.2.4 now requires PKCE S256 plus RFC 9207 `iss`
+- Added plan-local **V2-X6** (Authorize booking get/cancel and any response carrying buyer PII), tightened V2-X1 to privileged ops plus platform attribution (not browse-identity), elevated #134 into the launch-blocking authz story, and refreshed #9 / #102 / #118 / #119 / launch gates / schedule / open decisions / labelling so identity linking (#119) stays deferred while booking authorization does not
+
+---
+
+## 05/08/26 at 15:31:04 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added PKCE requirements to `specification.md` §10.2.4 Identity Linking (new "Authorization Code Protection" paragraph plus `code_challenge`/`code_verifier` in linking flow steps 1 and 3), because USP's identity linking omitted PKCE entirely while UCP `dev.ucp.common.identity_linking` makes RFC 7636 with `S256` a MUST on both the platform and the business side, leaving USP-only deployments exposed to authorization code interception
+- Added an "Issuer Identification" paragraph to §10.2.4 requiring businesses to return the RFC 9207 `iss` response parameter and platforms to validate it against the discovered issuer, for parity with the UCP Mix-Up Attack defense that the existing RFC 8414 exact issuer comparison alone does not provide
+- Added normative reference entries for RFC 7617, RFC 7636, RFC 8414, and RFC 9207 to §14.1, fixing the defect where §10.2.4 cited RFC 8414 and RFC 7617 without listing them in §14 and covering the two newly cited RFCs
+- Added the corresponding link definitions (including section-anchored `[RFC 8414 §3.3]` and `[RFC 6749 §10.12]`, which were previously cited but undefined) to both link-definition blocks at the end of `specification.md`, so the citations render as links instead of literal bracketed text
+
+---
+
+## 05/08/26 at 10:12:47 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `plans/V2_PRODUCTION_PLAN.md`, a 2-week plan to take the existing UCP-Native end-to-end demo to a production MVP, because the v1 plan only covered the demo and there was no single document stating what is strictly required before real buyers and real money are involved
+- Classified all 55 open GitHub issues into v2 (25) and v>2 (30) with a per-issue production-implication justification, so that scope decisions are traceable rather than re-argued, and recorded the mandated segment constraints (Wix businesses with a connected Stripe account; buyers with a Stripe Link wallet; Base44 Superagent or any harness with the Link USP SKILL)
+- Derived 34 new mandatory issues (`V2-*`) from reading the USP and UCP normative requirements against all four codebases (`linkusp-cli`, `usp-registry`, `usp-impl`, `acp-checkout`), because the largest production gaps had no issue at all: no inbound authentication on any USP/UCP surface, no idempotency on `complete_checkout` or on agent retries, no compensation when a charge succeeds but the booking does not, no registry Update/Delete or Stripe-eligibility admission gate, and zero custom metrics in any component
+- Documented the launch-blocking subset and the recommendation to cut merchant population rather than security or money-correctness work if the schedule slips, since 59 issues across 6 tracks in 10 days does not fit without a named tail
+
+---
+
+## 04/08/26 at 20:34:03 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Updated USP-open-issues-status canvas note for #127 to record that acceptance criteria are now explicit (11 checkboxes) and that primary implementation remains yahalomran/linkusp-cli while the Link-hosted calendar.link.com path is still backlog
+
+---
+
+## 04/08/26 at 16:36:30 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added GitHub issue #156 (Migrate protocol namespace authority from usp.dev to usp.live) as STILL_OPEN Spec proposals in USP-open-issues-status so the inventory reflects the new open namespace-migration work
+- Placed #156 in a new DISTINCT "Namespace authority migration" cluster in USP-issue-overlap (not website SEO or registry design) and bumped live open-count KPIs from 56 to 57 after verifying search is:issue is:open
+
+---
+
+## 04/08/26 at 16:23:38 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Marked GitHub issue #131 (USP onboarding extensions) CLOSED in USP-open-issues-status and USP-issue-overlap canvases after confirming state=closed and state_reason=not_planned, so canvas inventory matches the user's closure
+- Decremented live open-issue KPIs from 57 to 56 (verified via user-wix-github search is:issue is:open) and removed #131 from open LinkUSP cluster ranges while refreshing closed-inventory counts and backlog themes
+
+---
+
+## 04/08/26 at 08:30:54 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fully refreshed USP-open-issues-status and USP-issue-overlap canvases against live GitHub (57 open issues) so inventories, KPIs, consolidations (#56→#58, #50→#47, #14→#9), and #155 STILL_OPEN match current reality after recent closures
+- Confirmed PR #152 closed without merge and emptied close-candidates while keeping remaining epic recommendations as pending (not marked done)
+
+---
+
+## 04/08/26 at 08:21:13 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Closed GitHub issues #56, #50, and #14 in wix-private/universal-scheduling-protocol-spec as high-confidence consolidations into canonical #58, #47, and #9 to remove duplicate backlog without losing acceptance criteria
+- Posted fold-in comments on #58 (signing_key ownership-proof sub-question), #47 (poll 200+error / empty-query / stuck PAYMENT_PENDING ACs), and #9 (keep vs remove Authorization header) so remaining work stays on the canonical issues
+- Updated USP-issue-overlap and USP-open-issues-status canvases to mark those consolidations DONE and the three issues CLOSED for reviewer visibility
+
+---
+
+## 04/08/26 at 08:02:28 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added a focused Cursor Canvas for USP open-issue overlap analysis so reviewers can prioritize redundant closes, merge groups, and epic structures across all currently open issues without modifying GitHub
+- Documented high-confidence consolidations (#56→#58, #50→#47, #14→#9) plus epic recommendations for webhook E2E, LinkUSP production, and registry clusters to reduce backlog noise while preserving owner/repo boundaries
+
+---
+
 ## 03/08/26 at 20:41:07 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Updated website domain references from `usp.dev` to `usp.live` in `mkdocs.yml`, `llms.txt`, `llms-full.txt`, `robots.txt`, `humans.txt`, and social-card assets so canonical/SEO/LLM URLs match the live site deployment
