@@ -31,6 +31,7 @@ merchants. No new USP capability is added.
 - [5. Two-week schedule](#5-two-week-schedule)
 - [6. Launch gates and honest risk assessment](#6-launch-gates-and-honest-risk-assessment)
 - [7. Labelling actions](#7-labelling-actions)
+- [Appendix A - V2-* → GitHub issue mapping](#appendix-a---v2--github-issue-mapping)
 
 ---
 
@@ -292,8 +293,9 @@ doing them.
 ## 4. Step 2 - missing mandatory issues to create
 
 35 issues. Each one is a gap found by reading the two specs against the four codebases; each states
-what breaks in production without it. IDs are plan-local (`V2-*`) until the GitHub issues exist
-(do not create them until this plan is approved).
+what breaks in production without it. Plan-local IDs (`V2-*`) map to GitHub issues in
+[Appendix A](#appendix-a---v2--github-issue-mapping) (created 2026-08-05 in
+`wix-private/universal-scheduling-protocol-spec`).
 
 ### 4.1 Cross-cutting
 
@@ -460,7 +462,52 @@ defers V2-B7, V2-B6 and V2-B3 without deferring a single item that protects a bu
 | Add `v2` | 9, 40, 42, 47, 54, 59, 75, 86, 108, 114, 118, 123, 124, 125, 126, 128, 132, 134, 136, 141, 143, 144, 149, 155, 156 |
 | Add `v>2` | 17, 26, 44, 46, 49, 51, 52, 55, 58, 68, 91, 92, 93, 94, 102, 103, 106, 111, 112, 115, 116, 119, 120, 121, 122, 127, 133, 135, 139, 147 |
 | Add `requires-approval` | 9, 40, 44, 94, 102, 114, 118, 119, 120, 121, 122, 125, 126, 127, 128, 134, 141, 144, 147, 156 |
-| Create + label `v2` (after plan approval) | the 35 `V2-*` issues in [section 4](#4-step-2---missing-mandatory-issues-to-create), including **V2-X6** (Authorize booking get/cancel and PII) |
+| Create + label `v2` (done 2026-08-05) | the 35 `V2-*` issues in [section 4](#4-step-2---missing-mandatory-issues-to-create) / [Appendix A](#appendix-a---v2--github-issue-mapping), including **V2-X6** (#162) |
 
-Existing `v1` / `v>1` labels are preserved; v2 labels are additive. Do not create the `V2-*`
-GitHub issues or relabel open issues until this plan is approved.
+Existing `v1` / `v>1` labels are preserved; v2 labels are additive. Labelling and `V2-*` issue
+creation for this plan were applied 2026-08-05.
+
+---
+
+## Appendix A - V2-* → GitHub issue mapping
+
+Repo: [`wix-private/universal-scheduling-protocol-spec`](https://github.com/wix-private/universal-scheduling-protocol-spec).
+All 35 issues labeled `v2` and assigned per §2 (`yahalomran`: A/C/S; `maoryeh`: B/D/E/F and cross-track where mapped).
+
+| Plan ID | GitHub | Assignee |
+|---|---|---|
+| V2-X1 | [#157](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/157) | maoryeh |
+| V2-X2 | [#158](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/158) | yahalomran |
+| V2-X3 | [#159](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/159) | yahalomran |
+| V2-X4 | [#160](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/160) | yahalomran |
+| V2-X5 | [#161](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/161) | yahalomran |
+| V2-X6 | [#162](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/162) | maoryeh |
+| V2-A1 | [#163](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/163) | yahalomran |
+| V2-A2 | [#164](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/164) | yahalomran |
+| V2-A3 | [#165](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/165) | yahalomran |
+| V2-A4 | [#166](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/166) | yahalomran |
+| V2-A5 | [#167](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/167) | yahalomran |
+| V2-B1 | [#168](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/168) | maoryeh |
+| V2-B2 | [#169](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/169) | maoryeh |
+| V2-B3 | [#170](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/170) | maoryeh |
+| V2-B4 | [#171](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/171) | maoryeh |
+| V2-B5 | [#172](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/172) | maoryeh |
+| V2-B6 | [#173](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/173) | maoryeh |
+| V2-B7 | [#174](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/174) | maoryeh |
+| V2-B8 | [#175](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/175) | maoryeh |
+| V2-B9 | [#176](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/176) | maoryeh |
+| V2-D1 | [#177](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/177) | maoryeh |
+| V2-D2 | [#178](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/178) | maoryeh |
+| V2-D3 | [#179](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/179) | maoryeh |
+| V2-D4 | [#180](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/180) | maoryeh |
+| V2-D5 | [#181](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/181) | maoryeh |
+| V2-D6 | [#182](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/182) | maoryeh |
+| V2-E1 | [#183](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/183) | maoryeh |
+| V2-E2 | [#184](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/184) | maoryeh |
+| V2-E3 | [#185](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/185) | maoryeh |
+| V2-E4 | [#186](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/186) | maoryeh |
+| V2-E5 | [#187](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/187) | maoryeh |
+| V2-E6 | [#188](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/188) | maoryeh |
+| V2-C1 | [#189](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/189) | yahalomran |
+| V2-C2 | [#190](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/190) | yahalomran |
+| V2-C3 | [#191](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/191) | maoryeh |
