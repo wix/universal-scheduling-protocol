@@ -1,5 +1,13 @@
 # Change Log
 
+## 05/08/26 at 20:43:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Created all 35 plan-local V2-* GitHub issues (#157-#191) in `wix-private/universal-scheduling-protocol-spec` from `plans/V2_PRODUCTION_PLAN.md` §4 so production readiness work is tracked with full ACs, §1a clarifications, assignees, and `v2` labels
+- Applied §7 labelling on existing open issues (`v2`, `v>2`, `requires-approval` additive with existing `v1`/`v>1`) and posted §1a/§3 clarification comments on key judgement inclusions and exclusions so implementers see scoped-down authz and deferral rationale on the issues themselves
+- Updated `plans/V2_PRODUCTION_PLAN.md` status to approved/issues-created and added Appendix A (V2-* → GitHub # mapping) so the plan is the durable index after issue creation
+
+---
+
 ## 05/08/26 at 20:04:20 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added per-track GitHub assignees to `plans/V2_PRODUCTION_PLAN.md` §2 (Components and tracks) so newly created v2 issues are assigned consistently: `yahalomran` owns A, C, and S; `maoryeh` owns B, D, E, and F
