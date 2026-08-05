@@ -6694,16 +6694,32 @@ per [RFC 8414 §3.3].
 during the authorization step for buyers who do not have an existing account.
 The authorization endpoint **MUST** support both login and registration.
 
+**Authorization Code Protection:** Platforms **MUST** implement Proof Key for
+Code Exchange (PKCE) [RFC 7636] using the `S256` code challenge method to
+prevent authorization code interception attacks. Businesses **MUST** enforce
+PKCE validation at the token endpoint for all authorization code exchanges and
+**MUST** reject an exchange whose `code_verifier` is missing or does not match
+the `code_challenge` from the authorization request.
+
+**Issuer Identification:** Businesses **MUST** return the `iss` response
+parameter in the authorization response per [RFC 9207], matching the `issuer`
+value published in their authorization server metadata. Platforms **MUST**
+validate the returned `iss` against the discovered issuer and **MUST** abort the
+linking process on mismatch, to prevent Mix-Up Attacks.
+
 **Linking Flow:**
 
 1. **Authorization Request:** Platform redirects the buyer to the business's
-   authorization endpoint with `scope=usp:booking usp:history`. Platforms
+   authorization endpoint with `scope=usp:booking usp:history`,
+   `code_challenge`, and `code_challenge_method=S256`. Platforms
    **SHOULD** include a unique, unguessable `state` parameter to prevent
    Cross-Site Request Forgery (CSRF) per [RFC 6749 §10.12].
 2. **Buyer Consent:** The buyer authenticates at the business and grants the
    requested scopes.
-3. **Token Exchange:** The business returns an authorization code. The platform
-   exchanges it for an `access_token` and `refresh_token`. Platforms **MUST**
+3. **Token Exchange:** The business returns an authorization code together with
+   the `iss` response parameter. The platform exchanges the code for an
+   `access_token` and `refresh_token`, including the `code_verifier` that
+   corresponds to the `code_challenge` sent in step 1. Platforms **MUST**
    authenticate to the token endpoint using `client_id` and `client_secret` via
    HTTP Basic Authentication [RFC 7617].
 4. **Authenticated Requests:** The platform includes the `access_token` in
@@ -7319,9 +7335,18 @@ registration of:
   2013. https://www.rfc-editor.org/rfc/rfc7009
 - **[RFC 7517]** Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI
   10.17487/RFC7517, May 2015. https://www.rfc-editor.org/rfc/rfc7517
+- **[RFC 7617]** Reschke, J., "The 'Basic' HTTP Authentication Scheme", RFC
+  7617, DOI 10.17487/RFC7617, September
+  2015. https://www.rfc-editor.org/rfc/rfc7617
+- **[RFC 7636]** Sakimura, N., Ed., Bradley, J., and N. Agarwal, "Proof Key for
+  Code Exchange by OAuth Public Clients", RFC 7636, DOI 10.17487/RFC7636,
+  September 2015. https://www.rfc-editor.org/rfc/rfc7636
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key
   Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May
   2017. https://www.rfc-editor.org/rfc/rfc8174
+- **[RFC 8414]** Jones, M., Sakimura, N., and J. Bradley, "OAuth 2.0
+  Authorization Server Metadata", RFC 8414, DOI 10.17487/RFC8414, June
+  2018. https://www.rfc-editor.org/rfc/rfc8414
 - **[RFC 8446]** Rescorla, E., "The Transport Layer Security (TLS) Protocol
   Version 1.3", RFC 8446, DOI 10.17487/RFC8446, August
   2018. https://www.rfc-editor.org/rfc/rfc8446
@@ -7334,6 +7359,9 @@ registration of:
 - **[RFC 9110]** Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke, Ed., "
   HTTP Semantics", STD 97, RFC 9110, DOI 10.17487/RFC9110, June
   2022. https://www.rfc-editor.org/rfc/rfc9110
+- **[RFC 9207]** Meyer zu Selhausen, K. and D. Fett, "OAuth 2.0 Authorization
+  Server Issuer Identification", RFC 9207, DOI 10.17487/RFC9207, March
+  2022. https://www.rfc-editor.org/rfc/rfc9207
 - **[RFC 9421]** Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP Message
   Signatures", RFC 9421, DOI 10.17487/RFC9421, February
   2024. https://www.rfc-editor.org/rfc/rfc9421
@@ -7445,13 +7473,23 @@ version of USP when:
 
 [RFC 6749]: https://www.rfc-editor.org/rfc/rfc6749
 
+[RFC 6749 §10.12]: https://www.rfc-editor.org/rfc/rfc6749#section-10.12
+
 [RFC 6750]: https://www.rfc-editor.org/rfc/rfc6750
 
 [RFC 7009]: https://www.rfc-editor.org/rfc/rfc7009
 
 [RFC 7517]: https://www.rfc-editor.org/rfc/rfc7517
 
+[RFC 7617]: https://www.rfc-editor.org/rfc/rfc7617
+
+[RFC 7636]: https://www.rfc-editor.org/rfc/rfc7636
+
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174
+
+[RFC 8414]: https://www.rfc-editor.org/rfc/rfc8414
+
+[RFC 8414 §3.3]: https://www.rfc-editor.org/rfc/rfc8414#section-3.3
 
 [RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446
 
@@ -7460,6 +7498,8 @@ version of USP when:
 [RFC 8941]: https://www.rfc-editor.org/rfc/rfc8941
 
 [RFC 9110]: https://www.rfc-editor.org/rfc/rfc9110
+
+[RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
 
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
 
@@ -7481,13 +7521,23 @@ version of USP when:
 
 [RFC 6749]: https://www.rfc-editor.org/rfc/rfc6749
 
+[RFC 6749 §10.12]: https://www.rfc-editor.org/rfc/rfc6749#section-10.12
+
 [RFC 6750]: https://www.rfc-editor.org/rfc/rfc6750
 
 [RFC 7009]: https://www.rfc-editor.org/rfc/rfc7009
 
 [RFC 7517]: https://www.rfc-editor.org/rfc/rfc7517
 
+[RFC 7617]: https://www.rfc-editor.org/rfc/rfc7617
+
+[RFC 7636]: https://www.rfc-editor.org/rfc/rfc7636
+
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174
+
+[RFC 8414]: https://www.rfc-editor.org/rfc/rfc8414
+
+[RFC 8414 §3.3]: https://www.rfc-editor.org/rfc/rfc8414#section-3.3
 
 [RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446
 
@@ -7496,6 +7546,8 @@ version of USP when:
 [RFC 8941]: https://www.rfc-editor.org/rfc/rfc8941
 
 [RFC 9110]: https://www.rfc-editor.org/rfc/rfc9110
+
+[RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
 
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
 
