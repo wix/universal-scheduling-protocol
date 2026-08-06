@@ -90,6 +90,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [6.1 Business Registration](#61-business-registration---post-registrybusinesses)
     - [6.2 Business Search](#62-business-search---post-registrysearch_business)
     - [6.3 Service Search](#63-service-search---post-registrysearch_services)
+    - [6.3.1 Filter Matching Semantics](#631-filter-matching-semantics)
     - [6.4 Get Registration](#64-get-registration---get-registrybusinessesid)
     - [6.5 Update Registration](#65-update-registration---put-registrybusinessesid)
     - [6.6 Delete Registration](#66-delete-registration---delete-registrybusinessesid)
@@ -317,6 +318,7 @@ reverse-domain notation (e.g., `com.wix.services.courses`).
 | `group`       | A group session with limited capacity. Multiple buyers book into the same time slot, each occupying one or more spots up to a maximum capacity. | Yoga class, workshop, group fitness, cooking class        |
 | `reservation` | A hold on a shared resource for a time window. The buyer reserves a specific resource (e.g., a table, a room) for a party of a given size.      | Restaurant table, conference room, venue, court booking   |
 | `rental`      | Temporary exclusive use of equipment or space for a duration. The buyer takes possession of the resource for the rental period.                 | Car rental, studio space, equipment hire, vacation rental |
+| `field_service` | A service performed at a location the buyer specifies (home, office, or other premises) rather than at the business's own location. Uses `channel.type: at_buyer_location` and `delivery_address` ([Section 5.2](#52-booking-schema)). Scheduling **SHOULD** account for travel time and service area. | Plumbing, cleaning, pest control, home repair, mobile equipment repair |
 
 #### 1.3.2 Custom Verticals
 
@@ -1001,7 +1003,8 @@ properties:
 | `pricing.currency`                      | `schema:offers.priceCurrency`                  | Direct mapping (ISO 4217).                                                                            |
 | `pricing.model`                         | `schema:offers.priceSpecification`             | Use `UnitPriceSpecification` for `hourly`/`per_person`; `CompoundPriceSpecification` for `variable`.  |
 | `channel.type: virtual`                 | `schema:availableChannel.serviceType`          | Set to `OnlineOnly`. Include `schema:offers.availableDeliveryMethod` as `DeliveryModeDirectDownload`. |
-| `channel.type: in_person`               | `schema:availableChannel.serviceLocation`      | Map to `schema:Place` with address.                                                                   |
+| `channel.type: at_business_location`    | `schema:availableChannel.serviceLocation`      | Map to `schema:Place` with address.                                                                   |
+| `channel.type: at_buyer_location`       | `schema:areaServed`                            | Map `channel.service_area`, if present, to `schema:areaServed`. Do not publish the buyer's `delivery_address` as structured data — it is per-booking buyer data, not a business location.                                        |
 | `locations[]`                           | `schema:areaServed` / `schema:serviceLocation` | Map each location to a `schema:Place`.                                                                |
 | `availability_hint.next_available_date` | `schema:availabilityStarts`                    | Approximate; use with `schema:Offer`.                                                                 |
 | `media[].url` (type=image)              | `schema:image`                                 | Direct mapping. Filter to `type: "image"` entries.                                                    |
@@ -1028,7 +1031,7 @@ requirements.
 | `provider`          | Provider                     | No       | Inline business metadata for display without a separate profile fetch. See [Section 3.3.3](#333-provider-schema). Aligns with UCP's seller object.                                                                                                                                                                                        |
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
 | `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
-| `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
+| `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`, `field_service`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
 | `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules) below.                                                                                                                                         |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
@@ -1095,10 +1098,13 @@ Normative rules:
 
 | `channel.type` | Description                                                                                                                  | Additional Fields                                                                                                                    |
 |----------------|------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `in_person`    | Service is delivered at a physical location. The buyer must attend in person.                                                | `instructions`: optional arrival instructions.                                                                                       |
+| `at_business_location` | Service is delivered at the business's physical location. The buyer travels there.                                   | `instructions`: optional arrival instructions.                                                                                       |
+| `at_buyer_location`    | Service is delivered at a location the buyer specifies. The business travels there. The `POST /bookings` request **MUST** include `delivery_address` ([Section 5.3.1](#531-create-booking---post-bookings)), echoed back on the `Booking` object ([Section 5.2](#52-booking-schema)). | `instructions`: optional access or preparation instructions. `service_area`: optional free-text description of the geographic area served. |
 | `virtual`      | Service is delivered remotely via video/audio call.                                                                          | `virtual_provider`: platform name (e.g., "Zoom", "Google Meet"). `instructions`: join instructions or a link provided after booking. |
 | `phone`        | Service is delivered via phone call.                                                                                         | `instructions`: optional call-in details.                                                                                            |
-| `hybrid`       | Service can be delivered either in person or virtually, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`. The booking request **SHOULD** include the buyer's channel preference.                           |
+| `hybrid`       | Service can be delivered via more than one of the above channels, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`, `service_area`. The booking request **SHOULD** include the buyer's channel preference.            |
+
+> **Note:** `at_business_location` was named `in_person` prior to [#40](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/40); implementations **MUST** treat `in_person` as an unrecognized/removed value once this rename is adopted, not as a synonym.
 
 #### 3.3.1 Media Schema
 
@@ -1637,7 +1643,7 @@ Response:
         "currency": "USD"
       },
       "channel": {
-        "type": "in_person"
+        "type": "at_business_location"
       },
       "resources": [
         {
@@ -1824,7 +1830,7 @@ Response:
       "currency": "USD"
     },
     "channel": {
-      "type": "in_person"
+      "type": "at_business_location"
     },
     "policies": {
       "cancellation": {
@@ -2438,7 +2444,8 @@ at a specific time.
 | `recipient`         | Buyer           | No          | `{first_name, last_name, email, phone_number}` - the person receiving the service, when different from the buyer (e.g., a parent booking for a child, an assistant booking for their employer, or a gift booking). When absent, the buyer is the recipient. Same schema as `buyer`; not all fields are required — `first_name` and `last_name` **SHOULD** be provided at minimum.                                                                                                                                                                         |
 | `party_size`        | integer         | **Yes**     | Total number of attendees. For `appointment` types, this is typically `1`. For `group` and `reservation` types, this reflects the number of spots booked.                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `resources`         | Array\[object\] | No          | `{id, type, name}` - the specific resources assigned to this booking (e.g., which stylist, which room).                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `location`          | object          | No          | `{id, name}` - the specific location for this booking.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `location`          | object          | No          | `{id, name}` - the business's location for this booking. Present when `channel.type` is `at_business_location` or `hybrid`. For `at_buyer_location`, see `delivery_address` instead.                                                                                                                                                                                                                                                                                                                                                                    |
+| `delivery_address`  | DeliveryAddress | Conditional | The buyer's service delivery address, echoed from the create-booking request. **MUST** be present when the service's `channel.type` is `at_buyer_location`. **MAY** be present for other channels. See [Section 3.3](#33-service-schema) for channel types.                                                                                                                                                                                                                                                                                            |
 | `status`            | string          | **Yes**     | Current booking status. See [Section 5.1](#51-booking-status-lifecycle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `confirmation_mode` | string          | **Yes**     | `auto` or `manual`. Reflects the service's confirmation policy at booking time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
@@ -2477,6 +2484,9 @@ platform **SHOULD** hold the slot before creating the booking to prevent race
 conditions. When holds are not supported, the platform proceeds directly from
 slot query to booking creation. When the person receiving the service is
 different from the buyer, the platform **SHOULD** include a `recipient` object.
+When the service's `channel.type` is `at_buyer_location`, the platform **MUST**
+include `delivery_address`; the business **MUST** reject the request with
+`validation_error` ([Section 9.4](#94-error-code-mapping)) if it is missing.
 
 | Field                         | Type    | Required | Description                                                                                                                                                                                                                                 |
 |-------------------------------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -2486,6 +2496,7 @@ different from the buyer, the platform **SHOULD** include a `recipient` object.
 | `buyer`                       | object  | **Yes**  | Buyer contact information.                                                                                                                                                                                                                  |
 | `recipient`                   | object  | No       | The person receiving the service, when different from the buyer.                                                                                                                                                                            |
 | `party_size`                  | integer | No       | Number of participants. Default: 1.                                                                                                                                                                                                         |
+| `delivery_address`            | DeliveryAddress | Conditional | The buyer's service delivery address. **MUST** be present when the service's `channel.type` is `at_buyer_location` ([Section 3.3](#33-service-schema)). Echoed back on the `Booking` object.                                     |
 | `notes`                       | string  | No       | Free-text notes for the business.                                                                                                                                                                                                           |
 | `post_payment_return_request` | object  | No       | The platform's return instruction for when `checkout_systems: redirect` is in use. The platform **SHOULD** always include this field when using the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation. If present, the business **MUST** redirect the buyer's browser (via GET) to the specified URL — with the specified query parameters appended — after payment completes **or** after the buyer cancels or abandons payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return). |
 
@@ -2548,6 +2559,33 @@ Request (booking on behalf of another person):
   },
   "party_size": 1,
   "notes": "He is 7 years old"
+}
+```
+
+Request (`field_service`, `channel.type: at_buyer_location`):
+
+```json
+{
+  "service_id": "svc_hvac_repair_001",
+  "slot_id": "slot_20260316_0900",
+  "hold_id": "hold_def321",
+  "buyer": {
+    "first_name": "Alice",
+    "last_name": "Williams",
+    "email": "alice@example.com",
+    "phone_number": "+12125551234"
+  },
+  "party_size": 1,
+  "delivery_address": {
+    "line1": "123 Main St",
+    "line2": "Suite 4",
+    "city": "Brooklyn",
+    "region": "NY",
+    "postal_code": "11201",
+    "country": "US",
+    "coordinates": { "lat": 40.6782, "lng": -73.9442 }
+  },
+  "notes": "Buzzer is broken, please call on arrival"
 }
 ```
 
@@ -2710,15 +2748,17 @@ above.
 
 > **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
-Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are
-mutable after creation. Fields omitted from the request body are left unchanged
-(partial update semantics). Returns the full updated booking object.
+Updates mutable fields on a booking. Only `buyer`, `recipient`, `delivery_address`,
+and `notes` are mutable after creation. Fields omitted from the request body are
+left unchanged (partial update semantics). Returns the full updated booking
+object.
 
-| Field       | Type   | Required | Description                                                    |
-|-------------|--------|----------|----------------------------------------------------------------|
-| `buyer`     | object | No       | Updated buyer contact information (`first_name`, `last_name`, `email`, `phone_number`). |
-| `recipient` | object | No       | Updated recipient information, when different from the buyer.  |
-| `notes`     | string | No       | Updated buyer-provided special requests or notes.              |
+| Field              | Type            | Required | Description                                                    |
+|--------------------|-----------------|----------|-----------------------------------------------------------------|
+| `buyer`            | object          | No       | Updated buyer contact information (`first_name`, `last_name`, `email`, `phone_number`). |
+| `recipient`        | object          | No       | Updated recipient information, when different from the buyer.  |
+| `delivery_address` | DeliveryAddress | No       | Updated service delivery address. Only meaningful when the service's `channel.type` is `at_buyer_location`. |
+| `notes`            | string          | No       | Updated buyer-provided special requests or notes.              |
 
 Response: the full updated `booking` object with `updated_at` reflecting the modification time.
 
@@ -3167,7 +3207,7 @@ Request:
 | `description`     | string          | No          | Brief human-readable description of the business (e.g., for discovery cards and search snippets).                                                              |
 | `verticals`       | Array\[string\] | **Yes**     | Service verticals offered by the business (e.g., `appointment`, `group`).                                                                                      |
 | `categories`      | Array\[string\] | **Yes**     | Business categories for search and filtering.                                                                                                                  |
-| `location`        | object          | Conditional | Physical location with `address` (string) and `coordinates` (`{lat, lng}`). **REQUIRED** when the business offers any `in_person` or `hybrid` channel services. **MAY** be omitted for businesses offering only `virtual` or `phone` services. |
+| `location`        | object          | Conditional | Physical location with `address` (string) and `coordinates` (`{lat, lng}`). **REQUIRED** when the business offers any `at_business_location` or `hybrid` channel services. **MAY** be omitted for businesses offering only `at_buyer_location`, `virtual`, or `phone` services. |
 | `timezone`        | string          | **Yes**     | IANA timezone identifier (e.g., `America/New_York`).                                                                                                           |
 
 Registries indexing virtual-only businesses (no `location`) **MUST** exclude them from location-filtered search results and **SHOULD** return them only when no geographic filter is applied.
@@ -3259,9 +3299,9 @@ Request:
 
 | Field             | Type            | Required | Description                                                                 |
 |-------------------|-----------------|----------|-----------------------------------------------------------------------------|
-| `location`        | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (number).    |
-| `verticals`       | Array\[string\] | No       | Filter by service verticals.                                                |
-| `categories`      | Array\[string\] | No       | Filter by business categories.                                              |
+| `location`        | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `verticals`       | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`      | Array\[string\] | No       | Filter by business categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`           | string          | No       | Free-text search across business names and categories.                      |
 | `deployment_mode` | string          | No       | Filter by `standalone` or `ucp_native`. When omitted, returns both modes. |
 | `context`         | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See below. |
@@ -3272,11 +3312,13 @@ Request:
 | Field      | Type   | Description                                                                 |
 |------------|--------|-----------------------------------------------------------------------------|
 | `locale`   | string | BCP 47 language tag (e.g., `en-US`). Influences result ranking and display. |
-| `currency` | string | ISO 4217 currency code (e.g., `USD`). Influences price display where relevant. |
+| `currency` | string | ISO 4217 currency code (e.g., `USD`). Display/ranking hint; may supply the resolved match currency when `price_range.currency` is omitted on service search ([Section 6.3.1](#631-filter-matching-semantics)). |
 
 The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
 
 Search operations that match no results **MUST** return HTTP 200 with an empty `businesses[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
+
+Filter matching for `location`, `verticals`, and `categories` follows [Section 6.3.1](#631-filter-matching-semantics).
 
 Response:
 
@@ -3381,11 +3423,13 @@ Request:
   "price_range": {
     "min": 5000,
     "max": 20000,
-    "currency": "USD"
+    "currency": "USD",
+    "match": "overlap"
   },
   "duration_range": {
     "min_minutes": 30,
-    "max_minutes": 90
+    "max_minutes": 90,
+    "match": "overlap"
   },
   "context": {
     "locale": "en-US",
@@ -3400,18 +3444,20 @@ Request:
 
 | Field            | Type            | Required | Description                                                                   |
 |------------------|-----------------|----------|-------------------------------------------------------------------------------|
-| `location`       | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km`.               |
-| `verticals`      | Array\[string\] | No       | Filter by service verticals.                                                  |
-| `categories`     | Array\[string\] | No       | Filter by service categories.                                                 |
+| `location`       | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `verticals`      | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`     | Array\[string\] | No       | Filter by service categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
-| `price_range`    | object          | No       | Price filter: `{min, max, currency}` (amounts in minor currency units).       |
-| `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes}`.                                  |
+| `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
+| `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `context`        | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See [Section 6.2](#62-business-search---post-registrysearch_business). |
 | `pagination`     | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                     |
 
 The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
 
 Search operations that match no results **MUST** return HTTP 200 with an empty `services[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
+
+Filter matching semantics for all registry search filters are defined in [Section 6.3.1](#631-filter-matching-semantics).
 
 Response:
 
@@ -3506,6 +3552,51 @@ service's primary `categories[]` entry. Pick order: primary `name`, else primary
 catalog category object.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
+
+### 6.3.1 Filter Matching Semantics
+
+Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section so federated registries return the same inclusion set for identical filters. Canonical schema descriptions (including worked examples) live in [`schemas/registry.json`](schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
+
+**Composition**
+
+- Distinct filter fields combine with **AND**.
+- `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
+- Zero matches **MUST** return HTTP 200 with an empty result array (never an error for "no hits"). Requests with no real search filter **MUST** return `validation_error` ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 6.3](#63-service-search---post-registrysearch_services)).
+
+**Geographic (`location`)**
+
+- `radius_km` is kilometers.
+- Businesses or services with no coordinates (virtual/phone only) **MUST** be excluded when any location filter is present, and **SHOULD** appear only when no geographic filter is applied. This rule applies to search as well as registration indexing ([Section 6.1](#61-business-registration---post-registrybusinesses)).
+
+**Range filters (`price_range`, `duration_range`)**
+
+Optional `match` compares service interval **S** to filter interval **F**:
+
+| `match` | Predicate | Default |
+|---------|-----------|---------|
+| `overlap` | S ∩ F ≠ ∅ | **Yes** (when `match` omitted) |
+| `contained` | S ⊆ F | |
+| `contains` | S ⊇ F | |
+| `equals` | S = F | |
+
+Omitted bounds on F are unbounded on that side. Point intervals (min = max) are valid.
+
+Worked duration example: service offered **30–90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+
+Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }` (minor units) → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+
+**Building S (duration)**
+
+- Fixed duration → `[d, d]` minutes.
+- Range duration → `[min, max]` minutes (ISO 8601 durations converted to minutes for comparison).
+- `duration.undetermined: true` (or no indexable duration) → no duration interval; any `duration_range` filter **MUST** exclude the service; with no duration filter the service **MAY** appear.
+
+**Building S (price) and currency**
+
+- Matching is **within-currency only**. Registries **MUST NOT** convert via FX.
+- Resolved match currency: `price_range.currency` if present; else `context.currency` if present; else registries **MUST** reject with `validation_error` (omitting both is ambiguous). When both are present and differ, `price_range.currency` is authoritative for matching; `context.currency` remains a display/ranking hint.
+- `pricing.model: free` → treat as amount **0** (degenerate `[0, 0]` in the service currency). Free services match filters that include 0 under the selected `match` mode, and are excluded when `min > 0` under `overlap`/`contained`/`equals` as the intervals dictate.
+- Fixed amount → `[amount, amount]`. Variable / hourly / per_person with published `price_range` → that interval. Services with no indexable price interval **MUST** be excluded when a `price_range` filter is present.
 
 ### 6.4 Get Registration - `GET /registry/businesses/{id}`
 
@@ -7533,8 +7624,9 @@ operations, as described in [Section 1.3.2](#132-custom-verticals).
 | `event`        | A ticketed one-time event with complex capacity models (tiers, seating maps, general admission).                              | Concerts, conferences, theater, sporting events                  | Ticket tiers, seating maps, general admission vs. reserved seating |
 | `course`       | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion.         | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression            |
 | `healthcare`   | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms.         | Doctor visits, telehealth, lab work, dental procedures           | Insurance, referrals, HIPAA compliance, intake workflows           |
-| `home_service` | An on-location service performed at the buyer's premises. Scheduling must account for travel time and service area.           | Plumbing, cleaning, pest control, home repair, moving            | Travel time, service area boundaries, on-site assessment           |
 | `tour`         | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours    | Route/location, equipment, weather dependencies                    |
+
+> `home_service` was promoted to the core `field_service` vertical ([Section 1.3.1](#131-core-verticals)); see [#40](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/40).
 
 ### A.2 Promotion Criteria
 

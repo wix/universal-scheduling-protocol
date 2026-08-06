@@ -1,5 +1,23 @@
 # Change Log
 
+## 06/08/26 at 20:55:50 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Resolved issue #40 by adding a first-class buyer service delivery address: `DeliveryAddress` in `schemas/booking.json`, referenced (not duplicated) from `POST /bookings`, `PUT /bookings/{booking_id}`, and echoed on the `Booking` object, so field-service bookings no longer have to smuggle an unparseable address into free-text `notes`
+- Renamed `channel.type: in_person` to `at_business_location` and added `at_buyer_location` (plus optional `service_area`) in `schemas/catalog.json`, because `in_person` was defined as "the buyer must attend in person" which is semantically inverted for any service where the provider travels to the buyer; names were chosen against external precedent (Square Appointments' `BUSINESS_LOCATION`/`CUSTOMER_LOCATION` enum, schema.org `serviceLocation`/`areaServed`) rather than invented in isolation, and reuse USP's own **Business**/**Buyer** glossary terms
+- Promoted the Appendix A candidate vertical from `home_service` to a core vertical named `field_service`, because `home_service` reads as residential-only even though the same scheduling shape (buyer names a delivery address, provider travels there) applies to offices and other buyer-specified premises; `field_service` matches existing field-service-management industry terminology (Skedulo, Salesforce, ServiceTitan)
+- Updated all affected bindings and mirrors for consistency: `openapi/usp-rest.json` and `openrpc/usp-mcp.json` (thin `$ref`s only, no duplicated shapes per repo convention), `specification.md` (§1.3.1, Appendix A, §3.3 channel types and schema.org mapping table, §5.2 Booking schema, §5.3.1/§5.3.3 booking operations and examples), site-docs mirrors (`specification/index.md`, `specification/service-catalog.md`, `specification/discovery-registry.md`, `deployment-modes/ucp-native.md`, `roadmap.md`), and playground fixtures (`playground/scenarios/services.json`, `site-docs/playground/scenarios/services.json`)
+- Wrote design doc `docs/superpowers/specs/2026-08-06-service-delivery-address-and-channel-naming-design.md` and implementation plan `docs/superpowers/plans/2026-08-06-service-delivery-address-and-channel-naming.md` documenting the naming research and file impact
+- Reassigned GitHub issue #40 to `@maoryeh` (owner of the USP registry and Wix business USP adapter tracks) with a comment detailing the breaking enum rename and new fields, since the Vespa registry indexing and `usp-impl` business adapter both need matching updates that are out of scope for this spec-only change
+
+---
+
+## 06/08/26 at 19:46:43 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Resolved issue #59 by adding normative registry filter-matching semantics (§6.3.1) so federated registries share the same yes/no inclusion contract: four `match` modes (`overlap` default, `contained`, `contains`, `equals`) on `price_range` / `duration_range`, within-currency matching with currency required when ambiguous, free-as-0, undetermined duration exclusion, geo km + virtual exclusion, and OR-within-field for multi-value filters
+- Extended `schemas/registry.json` with `RangeMatchMode` and agent-facing worked examples in filter `$defs`, retargeted OpenAPI search request bodies to thin `$ref`s of `BusinessSearchRequest` / `ServiceSearchRequest` to avoid drifting inline duplicates, and mirrored the rules in site-docs plus the registry design plan
+
+---
+
 ## 06/08/26 at 19:06:07 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed the singular `category` field from the catalog `Service` schema because the dual-field precedence rule in issue #54 caused implementer confusion about which representation was authoritative

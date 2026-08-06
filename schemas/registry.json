@@ -7,7 +7,7 @@
     "RegistryLocation": {
       "type": "object",
       "title": "RegistryLocation",
-      "description": "Physical location for registry registration and search. Omitted for virtual-only businesses when no in_person or hybrid services are offered.",
+      "description": "Physical location for registry registration and search. Omitted for virtual-only businesses when no at_business_location or hybrid services are offered.",
       "properties": {
         "address": {
           "type": "string",
@@ -26,7 +26,7 @@
     "RegistrySearchLocation": {
       "type": "object",
       "title": "RegistrySearchLocation",
-      "description": "Geographic filter for registry search: center point and radius.",
+      "description": "Geographic filter for registry search: center point and radius in kilometers. Businesses or services with no coordinates (virtual/phone only) MUST be excluded when this filter is present; they SHOULD appear only when no geographic filter is applied.",
       "properties": {
         "coordinates": {
           "type": "object",
@@ -39,7 +39,7 @@
         "radius_km": {
           "type": "number",
           "minimum": 0,
-          "description": "Search radius in kilometers."
+          "description": "Search radius in kilometers (km). Distance is measured from coordinates."
         }
       }
     },
@@ -54,27 +54,53 @@
         },
         "currency": {
           "type": "string",
-          "description": "ISO 4217 currency code (e.g., USD). Influences price display currency in results."
+          "description": "ISO 4217 currency code (e.g., USD). Display/ranking hint. When price_range is present without price_range.currency, this value is the resolved match currency. Registries MUST NOT convert prices via FX."
         }
       }
+    },
+    "RangeMatchMode": {
+      "type": "string",
+      "title": "RangeMatchMode",
+      "description": "How a service interval S is compared to a filter interval F. Default when omitted: overlap. Modes: overlap = S intersects F (S ∩ F ≠ ∅); contained = S is wholly inside F (S ⊆ F); contains = S wholly covers F (S ⊇ F); equals = S and F are identical (S = F). Example duration: service offered 30–90 min, filter {min_minutes:60, max_minutes:60}: overlap=yes (60 is in 30–90), contained=no (30–90 is not ⊆ {60}), contains=yes (30–90 ⊇ {60}), equals=no. Example price: service $50–$150, filter {min:8000, max:10000} minor units: overlap=yes, contained=no, contains=yes, equals=no.",
+      "enum": ["overlap", "contained", "contains", "equals"],
+      "default": "overlap"
     },
     "PriceRangeFilter": {
       "type": "object",
       "title": "PriceRangeFilter",
-      "description": "Filter services by price range (minor currency units).",
+      "description": "Filter services by price interval (minor currency units). Matching is within-currency only (no FX). Resolved match currency: price_range.currency if present, else context.currency; if neither is set, registries MUST reject with validation_error. pricing.model free is treated as amount 0. Build service interval S from fixed amount [a,a], published price_range, or [0,0] for free; exclude services with no indexable price interval when this filter is present. Compare S to filter F using match (default overlap). Example: service $50–$150 vs filter min=8000 max=10000: overlap and contains match; contained and equals do not.",
       "properties": {
-        "min": { "type": "integer", "description": "Minimum price in minor currency units." },
-        "max": { "type": "integer", "description": "Maximum price in minor currency units." },
-        "currency": { "type": "string", "description": "ISO 4217 currency code for min/max." }
+        "min": { "type": "integer", "description": "Inclusive lower bound of F in minor currency units. Omitted = unbounded below." },
+        "max": { "type": "integer", "description": "Inclusive upper bound of F in minor currency units. Omitted = unbounded above." },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 code for min/max. REQUIRED when context.currency is absent (omitting both is ambiguous). When both are present and differ, price_range.currency is authoritative for matching."
+        },
+        "match": {
+          "$ref": "#/$defs/RangeMatchMode",
+          "description": "Interval comparison mode. Default overlap. See RangeMatchMode for overlap/contained/contains/equals semantics and worked examples."
+        }
       }
     },
     "DurationRangeFilter": {
       "type": "object",
       "title": "DurationRangeFilter",
-      "description": "Filter services by duration in minutes.",
+      "description": "Filter services by duration interval in minutes. Build service interval S from fixed duration [d,d] or range [min,max] (ISO 8601 converted to minutes). Services with duration.undetermined true (or no indexable duration) MUST be excluded when this filter is present; they MAY appear when no duration filter is set. Compare S to filter F using match (default overlap). Example: service 30–90 min vs filter min_minutes=60 max_minutes=60: overlap=yes, contained=no, contains=yes, equals=no.",
       "properties": {
-        "min_minutes": { "type": "integer", "minimum": 0 },
-        "max_minutes": { "type": "integer", "minimum": 0 }
+        "min_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive lower bound of F in minutes. Omitted = unbounded below."
+        },
+        "max_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive upper bound of F in minutes. Omitted = unbounded above."
+        },
+        "match": {
+          "$ref": "#/$defs/RangeMatchMode",
+          "description": "Interval comparison mode. Default overlap. See RangeMatchMode for overlap/contained/contains/equals semantics and worked examples."
+        }
       }
     },
     "RegistrationRequest": {
@@ -113,7 +139,7 @@
         },
         "location": {
           "$ref": "#/$defs/RegistryLocation",
-          "description": "Physical location. REQUIRED when the business offers in_person or hybrid channel services; MAY be omitted for virtual-only or phone-only businesses."
+          "description": "Physical location. REQUIRED when the business offers at_business_location or hybrid channel services; MAY be omitted for virtual-only or phone-only businesses."
         },
         "timezone": {
           "type": "string",
@@ -181,16 +207,18 @@
     "BusinessSearchRequest": {
       "type": "object",
       "title": "BusinessSearchRequest",
-      "description": "Request body for POST /registry/search_business. At least one search filter MUST be present (not only pagination and/or context).",
+      "description": "Request body for POST /registry/search_business. At least one search filter MUST be present (not only pagination and/or context). Distinct filter fields combine with AND. See specification Section 6 filter matching semantics.",
       "properties": {
         "location": { "$ref": "#/$defs/RegistrySearchLocation" },
         "verticals": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "OR within field: match if the business offers any listed vertical."
         },
         "categories": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "OR within field: match if the business has any listed category."
         },
         "query": {
           "type": "string",
@@ -215,16 +243,18 @@
     "ServiceSearchRequest": {
       "type": "object",
       "title": "ServiceSearchRequest",
-      "description": "Request body for POST /registry/search_services. At least one search filter MUST be present (not only pagination and/or context).",
+      "description": "Request body for POST /registry/search_services. At least one search filter MUST be present (not only pagination and/or context). Distinct filter fields combine with AND. See specification Section 6 filter matching semantics.",
       "properties": {
         "location": { "$ref": "#/$defs/RegistrySearchLocation" },
         "verticals": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "OR within field: match if the service vertical is any listed value."
         },
         "categories": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "OR within field: match if any listed category ID matches the catalog primary categories[].id, and MAY match any entry id."
         },
         "query": {
           "type": "string",

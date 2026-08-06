@@ -40,7 +40,7 @@
         },
         "type": {
           "type": "string",
-          "description": "The service vertical. MUST be one of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses)."
+          "description": "The service vertical. MUST be one of the core verticals (appointment, group, reservation, rental, field_service) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses)."
         },
         "categories": {
           "type": "array",
@@ -443,11 +443,12 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["in_person", "virtual", "phone", "hybrid"],
-          "description": "Channel type."
+          "enum": ["at_business_location", "at_buyer_location", "virtual", "phone", "hybrid"],
+          "description": "Channel type. at_business_location: buyer travels to the business. at_buyer_location: business travels to the buyer (see Booking.delivery_address)."
         },
         "virtual_provider": { "type": "string", "description": "Platform name for virtual/hybrid (e.g., Zoom, Google Meet)." },
-        "instructions": { "type": "string", "description": "Arrival, join, or call-in instructions." }
+        "instructions": { "type": "string", "description": "Arrival, join, or call-in instructions." },
+        "service_area": { "type": "string", "description": "Optional free-text description of the geographic area served. Applicable when type is at_buyer_location." }
       }
     },
     "ServicePolicies": {

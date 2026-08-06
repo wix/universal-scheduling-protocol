@@ -94,7 +94,7 @@ flowchart LR
 
 ## Service Verticals
 
-USP defines four core service verticals. The `type` field on a service **MUST** be set to one of these values, or to a vendor-defined vertical using reverse-domain notation (e.g., `com.wix.services.courses`).
+USP defines five core service verticals. The `type` field on a service **MUST** be set to one of these values, or to a vendor-defined vertical using reverse-domain notation (e.g., `com.wix.services.courses`).
 
 | Vertical | Description | Examples |
 |----------|-------------|----------|
@@ -102,6 +102,7 @@ USP defines four core service verticals. The `type` field on a service **MUST** 
 | `group` | A group session with limited capacity. Multiple buyers book into the same time slot. | Yoga class, workshop, group fitness, cooking class |
 | `reservation` | A hold on a shared resource for a time window. | Restaurant table, conference room, venue, court booking |
 | `rental` | Temporary exclusive use of equipment or space for a duration. | Car rental, studio space, equipment hire, vacation rental |
+| `field_service` | A service performed at a location the buyer specifies (home, office, or other premises) rather than at the business's own location. | Plumbing, cleaning, pest control, home repair, mobile equipment repair |
 
 !!! tip "Custom Verticals"
     Vendors **MAY** define custom verticals using their reverse-domain namespace: `com.{vendor}.services.{vertical_name}`. Custom verticals **MUST** publish a specification and schema. Platforms encountering an unrecognized vertical **SHOULD** fall back to treating the service as an `appointment` type.
