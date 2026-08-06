@@ -1,5 +1,14 @@
 # Change Log
 
+## 06/08/26 at 18:38:43 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Clarified overloaded "discovery" terminology in `specification.md` §1.2 (and mirrored site-docs) by adding normative definitions for **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding**, plus a Mermaid lifecycle diagram, so implementors no longer infer meaning only from section context (issue #42)
+- Stated explicitly in §6 / discovery-registry docs that registry registration is a directory listing, not platform-business onboarding or credential exchange, to keep registry search SLAs and vault/DCR flows distinct (issue #42)
+- Qualified ambiguous `checkout_systems` prose and schema description to reference profile discovery or platform onboarding with a cross-link to §1.2, and scoped §9.1.3 / REST Discovery to profile discovery only (issue #42)
+- Relabeled end-to-end sequence-diagram notes from generic "Service Discovery" to "Catalog & Availability/Booking" (and related platform/role wording) so diagram labels match the three-phase terminology without renaming `dev.usp.discovery.registry` or RFC 8414 metadata discovery (issue #42)
+
+---
+
 ## 05/08/26 at 20:43:08 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Created all 35 plan-local V2-* GitHub issues (#157-#191) in `wix-private/universal-scheduling-protocol-spec` from `plans/V2_PRODUCTION_PLAN.md` §4 so production readiness work is tracked with full ACs, §1a clarifications, assignees, and `v2` labels

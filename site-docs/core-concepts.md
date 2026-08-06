@@ -19,10 +19,10 @@ USP defines interactions between four participants:
 ### Platform (Application / Agent)
 
 The consumer-facing surface acting on behalf of the user. Platforms orchestrate
-the full journey: discovering services, presenting availability, and
-facilitating booking and payment.
+the full journey: catalog discovery, profile discovery, presenting availability,
+and facilitating booking and payment.
 
-- **Responsibilities:** Discovering business capabilities via `/.well-known/usp`
+- **Responsibilities:** Profile discovery via `/.well-known/usp`
   or `/.well-known/ucp`, querying availability, creating bookings, processing
   payment through whichever checkout system is available.
 - **Examples:** AI scheduling assistants, super apps, search engines,

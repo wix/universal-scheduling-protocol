@@ -25,7 +25,7 @@ capabilities register directly in the UCP profile and paid bookings use atomic
 checkout; and **Standalone Mode** for platforms that want a self-contained
 scheduling protocol with generic payment handoff. Both modes share the same
 domain core (service catalog, availability, booking lifecycle) and the same
-transport bindings. The mode determines only how discovery, payment, and
+transport bindings. The mode determines only how profile discovery, payment, and
 infrastructure are handled.
 
 ## Status of This Memo
@@ -180,11 +180,11 @@ sessions, reservations, and rentals across any commerce-enabled vertical.
 ([RFC 5545]) and CalDAV Scheduling ([RFC 6638]) handle calendar data
 sharing within organizations. [OpenActive](https://openactive.io/open-booking-api/EditorsDraft/1.0CR3/) covers activity bookings for physical
 sports. [schema.org/Service](https://schema.org/Service) models services for search engine indexing. None of them
-provide a complete, interoperable path from service discovery through booking
+provide a complete, interoperable path from catalog discovery through booking
 and payment that works *across* organizations and commerce protocols. The gaps
 are consistent:
 
-- **Discovery**: no standard way for a platform to ask what services a business offers, what their pricing and policies are, and when they are roughly available for scheduling.
+- **Catalog discovery**: no standard way for a platform to ask what services a business offers, what their pricing and policies are, and when they are roughly available for scheduling.
 - **Real-time availability**: no standard slot query API that returns specific bookable windows with assigned resources, capacity state, and hold support.
 - **Booking lifecycle**: no unified create/confirm/reschedule/cancel model with webhooks and idempotency guarantees that works across platforms.
 - **Payment coordination**: no flexible handoff model that works whether payment is free, redirect-based, or handled by an atomic commerce protocol.
@@ -238,9 +238,9 @@ resumes programmatically.
 **Protocol structure.** USP defines the scheduling domain, service catalog,
 availability, holds, and bookings, as the shared domain core (Sections 1-5),
 applicable to both deployment modes. The mode sections (Section 7 UCP-Native, Section 8
-Standalone) cover discovery, payment, and infrastructure specific to each path.
-An optional Discovery Registry (Section 6) solves the cold-start problem of finding
-USP-enabled businesses. Transport, security, errors, and idempotency are covered
+Standalone) cover profile discovery, payment, and infrastructure specific to each path.
+An optional Discovery Registry (Section 6) supports catalog discovery for the cold-start
+problem of finding USP-enabled businesses. Transport, security, errors, and idempotency are covered
 in Sections 9-10, referencing IETF standards directly. Extensions (Section 11) add
 vertical-specific capabilities such as waitlist management and buyer calendar
 integration.
@@ -269,17 +269,39 @@ The following terms are used throughout this document:
 | **BusyBlock**       | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                                                                        |
 | **Buyer**           | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). The buyer is the primary contact for booking management, payment, and notifications. When no separate `recipient` is specified, the buyer is also the person receiving the service.                                               |
 | **BuyerFreeBusy**   | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                      |
-| **Capability**      | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
-| **Action**          | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
-| **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
+| **Capability**         | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
+| **Catalog Discovery**  | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Section 6](#6-discovery-registry-optional)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
+| **Action**             | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
+| **Checkout System**    | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
 | **Extension**       | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability.                                                                                                                                                                                                                       |
 | **Hold**            | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry.                                                                                                                                                                                                    |
 | **Payment Context** | A universal handoff object containing amount, currency, line items, and metadata - everything a checkout system needs to process payment. In Standalone Mode, the `PaymentContext` is nested inside a payment action in the booking's `actions` array. See [Section 8.5.2](#852-payment-context).                                                                |
-| **Platform**        | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from discovery through booking and payment.                                                                                                                                                                                              |
-| **Recipient**       | The person receiving the service, when different from the buyer. Represented by an optional `recipient` object on the booking with the same identity fields as `buyer`. When absent, the buyer is the recipient.                                                                                                                                                 |
+| **Platform**             | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from catalog discovery through booking and payment.                                                                                                                                                                                         |
+| **Platform Onboarding**  | The out-of-band process of establishing a lasting integration between a platform and a business, typically once per platform-business pair. It may include OAuth client registration (DCR), checkout-path selection, and PSP credential storage. USP does not define the onboarding procedure. The `checkout_systems` field ([Section 8.2.1](#821-business-profile-fields)) supports compatibility assessment during profile discovery or platform onboarding; it is not consulted per transaction. |
+| **Profile Discovery**    | The process by which a platform learns how to call a known business: fetching `/.well-known/usp` ([Section 8.2](#82-business-profile-well-knownusp)) or `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)), resolving endpoints, and intersecting capabilities. [Section 9.1.3](#913-discovery) covers REST endpoint discovery via the business profile. |
+| **Recipient**            | The person receiving the service, when different from the buyer. Represented by an optional `recipient` object on the booking with the same identity fields as `buyer`. When absent, the buyer is the recipient.                                                                                                                                                 |
 | **Service**         | A time-based offering provided by a business (e.g., a haircut, yoga class, restaurant table, car rental). Each service has a type, duration, pricing, and policies.                                                                                                                                                                                              |
 | **Slot**            | A specific, bookable time window for a service. Slots are computed dynamically from the business's schedule, resources, and existing bookings. Also referred to as "time slot."                                                                                                                                                                                  |
 | **Vertical**        | A classification of service type that determines the scheduling semantics (e.g., `appointment`, `group`, `reservation`, `rental`). See [Section 1.3](#13-service-verticals).                                                                                                                                                                                     |
+
+The three phases **Catalog Discovery**, **Profile Discovery**, and **Platform
+Onboarding** disambiguate activities that unqualified "discovery" can otherwise
+conflate. Implementors **MUST NOT** treat registry catalog search as platform
+onboarding, or profile fetch as credential exchange. The capability identifier
+`dev.usp.discovery.registry` and the section title Discovery Registry
+([Section 6](#6-discovery-registry-optional)) are retained for wire stability.
+OAuth Authorization Server Metadata Discovery
+([Section 10.2.4](#1024-identity-linking)) retains the [RFC 8414] name.
+
+Typical lifecycle (catalog discovery is optional when the business is already
+known; platform onboarding is skipped when a relationship already exists):
+
+```mermaid
+flowchart LR
+  A["Catalog discovery"] --> B["Profile discovery"]
+  B --> C["Platform onboarding<br/>(out-of-band)"]
+  C --> D["Booking"]
+```
 
 ### 1.3 Service Verticals
 
@@ -491,10 +513,10 @@ USP defines interactions between four participants:
 #### 2.1.1 Platform (Application / Agent)
 
 The consumer-facing surface acting on behalf of the user. Platforms orchestrate
-the full journey: discovering services, presenting availability, and
-facilitating booking and payment.
+the full journey: catalog discovery, profile discovery, presenting availability,
+and facilitating booking and payment.
 
-- **Responsibilities:** Discovering business capabilities via `/.well-known/usp`,
+- **Responsibilities:** Profile discovery via `/.well-known/usp`,
   querying availability, creating bookings, processing payment through whichever
   checkout system is available.
 - **Examples:** AI scheduling assistants, super apps, search engines,
@@ -644,11 +666,11 @@ graph TD
 support UCP register USP scheduling capabilities directly in their
 `/.well-known/ucp` profile. Paid bookings use UCP's atomic checkout -
 `complete_checkout` finalizes both payment and booking in a single operation.
-Infrastructure (discovery, negotiation, security, error handling) is inherited
+Infrastructure (profile discovery, negotiation, security, error handling) is inherited
 from UCP.
 
 **Standalone Mode** ([Section 8](#8-standalone-mode)): Platforms that do not use
-UCP discover businesses via `/.well-known/usp` and use USP's own infrastructure.
+UCP perform profile discovery via `/.well-known/usp` and use USP's own infrastructure.
 For paid bookings, the business returns a booking with a payment action
 containing a `payment_context` object that any checkout system can process. The
 platform calls `confirm-payment` after payment succeeds.
@@ -3039,16 +3061,30 @@ They use the standard booking webhook payload (`BookingEvent`) defined in
 
 **Capability:** `dev.usp.discovery.registry` (optional extension)
 
-The USP discovery model assumes platforms already know a business's domain and
-can fetch its profile (`/.well-known/usp` in Standalone Mode or
-`/.well-known/ucp` in UCP-Native Mode). This section defines an optional
-registry mechanism for the **cold-start problem**: how does a platform discover
-USP-enabled businesses?
+This section defines **catalog discovery** via an optional registry: how a
+platform finds USP-enabled businesses and services when it does not already
+know a business's domain. **Profile discovery** (fetching `/.well-known/usp` or
+`/.well-known/ucp` for a known business) is defined in
+[Section 8.2](#82-business-profile-well-knownusp) and
+[Section 7.2](#72-profile-registration-in-well-knownucp). See
+[Section 1.2](#12-terminology) for normative definitions of catalog discovery,
+profile discovery, and platform onboarding.
 
-A USP registry is a centralized or federated directory that maintains a
+Once a business is known, platforms fetch its profile (`/.well-known/usp` in
+Standalone Mode or `/.well-known/ucp` in UCP-Native Mode). This section defines
+an optional registry mechanism for the **cold-start problem**: how does a
+platform discover USP-enabled businesses when it does not yet have a domain?
+
+A USP registry is a centralized or federated **directory** that maintains a
 searchable list of USP-enabled businesses, regardless of their deployment mode.
 Registries enable platforms to discover businesses by location, vertical,
 category, or keyword.
+
+**Registry operations are not platform onboarding.** Registering a business in
+a discovery registry is a **directory listing** (publication of search metadata
+and a `profile_url`). It is **not** credential exchange, OAuth/DCR, checkout-path
+binding, or any other platform-business relationship setup. Those activities are
+**platform onboarding** ([Section 1.2](#12-terminology)) and occur out-of-band.
 
 ### 6.1 Business Registration - `POST /registry/businesses`
 
@@ -3469,14 +3505,14 @@ that registered businesses still serve a valid profile at their declared
 This section defines the deployment mode for platforms that already support
 the [Universal Commerce Protocol (UCP)][UCP]. In UCP-Native Mode, USP scheduling
 capabilities register directly in the UCP profile, giving agents a single
-discovery endpoint for everything. Paid bookings use UCP's atomic checkout.
+profile-discovery endpoint for everything. Paid bookings use UCP's atomic checkout.
 
 ### 7.1 Overview and When to Use
 
 Use UCP-Native Mode when:
 
 - Your platform already supports UCP for commerce
-- You want single-endpoint discovery via `/.well-known/ucp`
+- You want single-endpoint profile discovery via `/.well-known/ucp`
 - You want atomic payment-plus-booking confirmation (no two-phase
   `confirm-payment`)
 - You want to inherit UCP's infrastructure (negotiation, versioning, error
@@ -3485,11 +3521,11 @@ Use UCP-Native Mode when:
 In this mode, there is no `/.well-known/usp` profile. All capabilities -
 shopping, services, scheduling - are registered in the UCP profile. The
 scheduling domain ([Sections 3-5](#3-service-catalog)) works identically; only
-the discovery and payment paths differ from Standalone Mode.
+the profile discovery and payment paths differ from Standalone Mode.
 
 Paid checkout uses UCP `payment_handlers` on the same profile and on checkout
 responses, per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture)
-(not the Standalone `checkout_systems` discovery field in [Section 8.2](#82-business-profile-well-knownusp)).
+(not the Standalone `checkout_systems` field used at profile discovery in [Section 8.2](#82-business-profile-well-knownusp)).
 
 ### 7.2 Profile Registration in /.well-known/ucp
 
@@ -4063,7 +4099,7 @@ confirmation mode) without any checkout involvement.
 The subsections below use the same structure as [Section 8.6](#86-end-to-end-flows)
 (Standalone Mode): preamble with preconditions, sequence diagram, then request and
 response JSON for each protocol step. UCP-Native Mode differs from Standalone Mode
-only in discovery and payment: scheduling operations ([Sections 3–5](#3-service-catalog))
+only in profile discovery and payment: scheduling operations ([Sections 3-5](#3-service-catalog))
 are identical. USP REST and MCP bindings are in [`openapi/usp-rest.json`](openapi/usp-rest.json)
 and [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json); UCP checkout operations follow
 the [UCP shopping API](https://ucp.dev/latest/specification/checkout-rest/).
@@ -4179,7 +4215,7 @@ sequenceDiagram
     participant PSP as Payment Service Provider
 
     rect rgb(230, 245, 255)
-    Note over P,PSP: USP — Service Discovery & Availability
+    Note over P,PSP: USP - Catalog & Availability
     P->>B: 1. List Services
     B-->>P: Service Catalog
     P->>B: 2. Query Availability (service_id, date range)
@@ -4355,10 +4391,11 @@ and 10.2).
 > `$defs/business_schema`)
 
 Businesses publish their USP profile at `/.well-known/usp`. This document is
-the single source of truth for endpoint discovery, capability negotiation, and
-webhook verification key distribution. Platforms fetch this document to
-determine which transports, capabilities, and checkout systems the business
-supports before initiating any scheduling interactions.
+the single source of truth for **profile discovery** (endpoint and capability
+resolution), capability negotiation, and webhook verification key distribution.
+Platforms fetch this document to determine which transports, capabilities, and
+checkout systems the business supports before initiating any scheduling
+interactions.
 
 ```json
 {
@@ -4477,7 +4514,8 @@ use the vendor's own reverse-domain prefix (e.g., `com.example.services.loyalty`
 
 The `checkout_systems` field is an **OPTIONAL** array that declares which
 checkout systems the business has integrated for paid bookings. Platforms use
-this field during discovery or onboarding to determine compatibility - it is not
+this field during **profile discovery** or **platform onboarding**
+([Section 1.2](#12-terminology)) to determine compatibility - it is not
 consulted per-transaction.
 
 | Value      | Description                                                                                                                       |
@@ -4486,12 +4524,12 @@ consulted per-transaction.
 | `redirect` | Business provides a `continue_url` on the payment action for buyer-facing payment. See [Section 8.5.5](#855-redirect-flow-and-post-payment-return) and [Section 8.6.3](#863-redirect-payment-flow-paid-service). |
 | `embedded` | Business supports platform-processed payment via `confirm-payment`. See [Section 8.5.4](#854-embedded-and-generic-payment-flow) and [Section 8.6.2](#862-embedded-payment-flow-paid-service). |
 
-> **Design note (UCP-Native vs Standalone payment discovery):** In **Standalone
-> Mode**, USP uses a flat `checkout_systems` array for **discovery-time**
+> **Design note (UCP-Native vs Standalone payment advertisement):** In **Standalone
+> Mode**, USP uses a flat `checkout_systems` array for **profile-discovery-time**
 > compatibility only (which checkout paths the business supports). Per-transaction
 > amounts, line items, and metadata are in [`PaymentContext`](#852-payment-context)
 > on the payment action; detailed PSP configuration is often agreed out of band.
-> In **UCP-Native Mode**, payment discovery and execution follow UCP
+> In **UCP-Native Mode**, payment handler advertisement and execution follow UCP
 > `payment_handlers` on the profile and on checkout responses (reverse-domain
 > keys, handler arrays, `available_instruments`), per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture)
 > and [Section 7.4](#74-paid-bookings-extension-schema). Businesses that need to
@@ -4503,8 +4541,9 @@ A business offering only free or pay-at-service services **MAY** omit
 
 > **Note:** USP does not define how a platform-business relationship is
 > established. The `checkout_systems` field and `/.well-known/usp` profile provide
-> the information needed for compatibility assessment, but the actual onboarding
-> process occurs out-of-band.
+> the information needed for compatibility assessment during profile discovery,
+> but **platform onboarding** ([Section 1.2](#12-terminology)) - OAuth, DCR,
+> credential storage, and related integration - occurs out-of-band.
 
 #### 8.2.2 Profile Hosting Requirements
 
@@ -5170,7 +5209,7 @@ sequenceDiagram
     participant PSP as Payment Service Provider
 
     rect rgb(230, 245, 255)
-    Note over P,PSP: USP — Service Discovery & Booking
+    Note over P,PSP: USP - Catalog & Booking
     P->>B: 1. List Services
     B-->>P: Service Catalog
     P->>B: 2. Query Availability (service_id, date range)
@@ -5344,8 +5383,8 @@ sequenceDiagram
     participant PSP as Payment Service Provider
 
     rect rgb(230, 245, 255)
-    Note over P,PSP: USP — Service Discovery & Booking
-    P->>B: 1-4. Discover, query, hold (if supported), create booking
+    Note over P,PSP: USP - Catalog & Booking
+    P->>B: 1-4. List services, query, hold (if supported), create booking
     B-->>P: Booking (status: requires_action, actions: [payment])
     end
 
@@ -5657,6 +5696,11 @@ use the same cursor-based model described here.
 
 #### 9.1.3 Discovery
 
+This subsection specifies **profile discovery** for the REST binding: how
+platforms learn a business's REST endpoints via the business profile. It does
+**not** cover catalog discovery ([Section 6](#6-discovery-registry-optional)) or
+platform onboarding ([Section 1.2](#12-terminology)).
+
 Platforms discover a business's REST endpoints through the business profile published at `/.well-known/usp` ([Section 8.2](#82-business-profile-well-knownusp)). The profile's `usp.services` array lists supported USP operations with their base URLs and transport type. Platforms **MUST** filter for entries where `transport` is `"rest"` to locate REST endpoints.
 
 On each request, the platform identifies itself by sending the `USP-Agent` header with Dictionary Structured Field syntax ([RFC 8941]), carrying the platform's profile URI:
@@ -5665,7 +5709,7 @@ On each request, the platform identifies itself by sending the `USP-Agent` heade
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 ```
 
-The business resolves the platform profile to perform capability negotiation ([Section 8.3](#83-capability-negotiation)). For UCP-Native deployments, discovery is inherited from `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)).
+The business resolves the platform profile to perform capability negotiation ([Section 8.3](#83-capability-negotiation)). For UCP-Native deployments, profile discovery is inherited from `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)).
 
 > **Schema reference:** Business profile — [`schemas/profile.json#/$defs/BusinessProfile`](schemas/profile.json). Platform profile — [`schemas/profile.json#/$defs/PlatformProfile`](schemas/profile.json). Service binding — [`schemas/usp.json#/$defs/ServiceBinding`](schemas/usp.json).
 
