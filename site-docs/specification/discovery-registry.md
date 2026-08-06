@@ -7,9 +7,13 @@ description: USP optional discovery registry for cold-start business discovery, 
 
 **Capability:** `dev.usp.discovery.registry` (optional extension)
 
-The USP discovery model assumes platforms already know a business's domain and can fetch its profile (`/.well-known/usp` in Standalone Mode or `/.well-known/ucp` in UCP-Native Mode). This section defines an optional registry mechanism for the **cold-start problem**: how does a platform discover USP-enabled businesses?
+This section defines **catalog discovery** via an optional registry: how a platform finds USP-enabled businesses and services when it does not already know a business's domain. **Profile discovery** (fetching `/.well-known/usp` or `/.well-known/ucp` for a known business) is defined in the Standalone and UCP-Native deployment mode pages. See [Specification Overview - Terminology](index.md#terminology) for normative definitions of catalog discovery, profile discovery, and platform onboarding.
 
-A USP registry is a centralized or federated directory that maintains a searchable list of USP-enabled businesses, regardless of their deployment mode. Registries enable platforms to discover businesses by location, vertical, category, or keyword.
+Once a business is known, platforms fetch its profile (`/.well-known/usp` in Standalone Mode or `/.well-known/ucp` in UCP-Native Mode). This section defines an optional registry mechanism for the **cold-start problem**: how does a platform discover USP-enabled businesses when it does not yet have a domain?
+
+A USP registry is a centralized or federated **directory** that maintains a searchable list of USP-enabled businesses, regardless of their deployment mode. Registries enable platforms to discover businesses by location, vertical, category, or keyword.
+
+**Registry operations are not platform onboarding.** Registering a business in a discovery registry is a **directory listing** (publication of search metadata and a `profile_url`). It is **not** credential exchange, OAuth/DCR, checkout-path binding, or any other platform-business relationship setup. Those activities are **platform onboarding** and occur out-of-band.
 
 !!! note "Independence"
     Registries are **independent** from USP-enabled businesses and from deployment mode. Multiple registries **MAY** coexist (federated model). A business **MAY** register with multiple registries.

@@ -24,7 +24,7 @@ In this mode, the business publishes a `/.well-known/usp` profile and implements
 
 ## Business Profile (`/.well-known/usp`)
 
-Businesses publish their USP profile at `/.well-known/usp`. This document is the **single source of truth** for endpoint discovery, capability negotiation, and webhook verification key distribution. Platforms fetch this document to determine which transports, capabilities, and checkout systems the business supports before initiating any scheduling interactions.
+Businesses publish their USP profile at `/.well-known/usp`. This document is the **single source of truth** for **profile discovery** (endpoint and capability resolution), capability negotiation, and webhook verification key distribution. Platforms fetch this document to determine which transports, capabilities, and checkout systems the business supports before initiating any scheduling interactions.
 
 ### Full Profile Example
 
@@ -133,7 +133,7 @@ Each **ServiceBinding** entry:
 
 ### Checkout Systems
 
-The `checkout_systems` field declares which checkout paths the business supports for paid bookings:
+The `checkout_systems` field declares which checkout paths the business supports for paid bookings. Platforms use this field during **profile discovery** or **platform onboarding** to determine compatibility - it is not consulted per-transaction. See [Specification Overview - Terminology](../specification/index.md#terminology).
 
 | Value      | Description                                                                              |
 |------------|------------------------------------------------------------------------------------------|
@@ -144,6 +144,10 @@ The `checkout_systems` field declares which checkout paths the business supports
 !!! info "Free services"
 
     A business offering only free or pay-at-service services **MAY** omit `checkout_systems` entirely.
+
+!!! note "Platform onboarding is out-of-band"
+
+    USP does not define how a platform-business relationship is established. The `checkout_systems` field and `/.well-known/usp` profile provide the information needed for compatibility assessment during profile discovery, but **platform onboarding** (OAuth, DCR, credential storage, and related integration) occurs out-of-band.
 
 ---
 
@@ -385,8 +389,8 @@ sequenceDiagram
     participant PSP as Payment Service Provider
 
     rect rgb(230, 245, 255)
-    Note over P,PSP: USP — Service Discovery & Booking
-    P->>B: 1-4. Discover, query, hold (if supported), create booking
+    Note over P,PSP: USP - Catalog & Booking
+    P->>B: 1-4. List services, query, hold (if supported), create booking
     B-->>P: Booking (status: requires_action, actions: [payment])
     end
 
@@ -511,7 +515,7 @@ sequenceDiagram
     participant PSP as Payment Service Provider
 
     rect rgb(230, 245, 255)
-    Note over P,PSP: USP — Service Discovery & Booking
+    Note over P,PSP: USP - Catalog & Booking
     P->>B: 1. List Services
     B-->>P: Service Catalog
     P->>B: 2. Query Availability (service_id, date range)
