@@ -40,28 +40,12 @@
         },
         "type": {
           "type": "string",
-          "description": "The service vertical. MUST be one of the core verticals (appointment, group, reservation, rental) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses)."
-        },
-        "category": {
-          "type": "object",
-          "description": "Business-defined classification for organizing services (e.g., \"Beauty > Hair\").",
-          "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "parent_id": { "type": "string" }
-          }
+          "description": "The service vertical. MUST be one of the core verticals (appointment, group, reservation, rental, field_service) or a vendor-defined vertical using reverse-domain notation (e.g., com.wix.services.courses)."
         },
         "categories": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["value"],
-            "properties": {
-              "value": { "type": "string", "description": "Category value or path (e.g., 'beauty > hair', '596')." },
-              "taxonomy": { "type": "string", "description": "Source taxonomy. Well-known values: google_product_category, merchant." }
-            }
-          },
-          "description": "Multi-taxonomy category entries. Aligns with UCP categories. If both category and categories are present, categories is authoritative."
+          "items": { "$ref": "#/$defs/ServiceCategory" },
+          "description": "Multi-taxonomy category labels for the service. The simple single-category case is a one-element array with taxonomy merchant. Exactly one entry is primary (see ServiceCategory). The primary entry is the source for display, localization, and registry projection."
         },
         "duration": {
           "$ref": "#/$defs/Duration",
@@ -160,6 +144,56 @@
           "description": "Per-locale overrides for human-readable text fields. The top-level fields (name, description, etc.) serve as the default/fallback locale."
         }
       }
+    },
+    "ServiceCategory": {
+      "type": "object",
+      "title": "ServiceCategory",
+      "description": "A category label from a taxonomy system. taxonomy is required. Each entry MUST carry at least one of id, name, or value. External (non-merchant) taxonomies MUST carry value. Exactly one entry in categories is primary: if exactly one has primary true, that is the primary; else if no entry sets primary and exactly one has taxonomy merchant, that entry is the primary; else the first entry in array order is the primary. Never more than one primary true.",
+      "required": ["taxonomy"],
+      "properties": {
+        "taxonomy": {
+          "type": "string",
+          "description": "Labeling system this entry belongs to. Well-known values include merchant (the merchant's own taxonomy) and external systems such as google_business_profile, google_product_category. Open extensible string, not a closed enum."
+        },
+        "id": {
+          "type": "string",
+          "description": "Stable identifier within that taxonomy. Primarily used on the merchant entry. Catalog category_id and categories filters match against id values."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable display label in the default locale. Primarily on the merchant or primary entry. localized.category_name overrides the primary entry's name."
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "Identifier of the parent category within the same taxonomy, enabling hierarchy (e.g., Wellness to Massage)."
+        },
+        "value": {
+          "type": "string",
+          "description": "Taxonomy-native identifier, path, or code (e.g., beauty > hair > haircut, job_type_id:hair_styling). Optional on merchant entries; REQUIRED for external (non-merchant) taxonomies."
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "When true, marks this entry as the single canonical primary category. At most one entry MAY set primary to true."
+        }
+      },
+      "anyOf": [
+        { "required": ["id"] },
+        { "required": ["name"] },
+        { "required": ["value"] }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "taxonomy": { "not": { "const": "merchant" } }
+            },
+            "required": ["taxonomy"]
+          },
+          "then": {
+            "required": ["value"]
+          }
+        }
+      ]
     },
     "Duration": {
       "type": "object",
@@ -409,11 +443,12 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["in_person", "virtual", "phone", "hybrid"],
-          "description": "Channel type."
+          "enum": ["at_business_location", "at_buyer_location", "virtual", "phone", "hybrid"],
+          "description": "Channel type. at_business_location: buyer travels to the business. at_buyer_location: business travels to the buyer (see Booking.delivery_address)."
         },
         "virtual_provider": { "type": "string", "description": "Platform name for virtual/hybrid (e.g., Zoom, Google Meet)." },
-        "instructions": { "type": "string", "description": "Arrival, join, or call-in instructions." }
+        "instructions": { "type": "string", "description": "Arrival, join, or call-in instructions." },
+        "service_area": { "type": "string", "description": "Optional free-text description of the geographic area served. Applicable when type is at_buyer_location." }
       }
     },
     "ServicePolicies": {
@@ -489,7 +524,7 @@
         },
         "category_name": {
           "type": "object",
-          "description": "Per-locale overrides for the category name.",
+          "description": "Per-locale overrides for the primary categories[] entry's name.",
           "additionalProperties": { "type": "string" }
         },
         "channel_instructions": {

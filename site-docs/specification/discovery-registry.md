@@ -7,9 +7,13 @@ description: USP optional discovery registry for cold-start business discovery, 
 
 **Capability:** `dev.usp.discovery.registry` (optional extension)
 
-The USP discovery model assumes platforms already know a business's domain and can fetch its profile (`/.well-known/usp` in Standalone Mode or `/.well-known/ucp` in UCP-Native Mode). This section defines an optional registry mechanism for the **cold-start problem**: how does a platform discover USP-enabled businesses?
+This section defines **catalog discovery** via an optional registry: how a platform finds USP-enabled businesses and services when it does not already know a business's domain. **Profile discovery** (fetching `/.well-known/usp` or `/.well-known/ucp` for a known business) is defined in the Standalone and UCP-Native deployment mode pages. See [Specification Overview - Terminology](index.md#terminology) for normative definitions of catalog discovery, profile discovery, and platform onboarding.
 
-A USP registry is a centralized or federated directory that maintains a searchable list of USP-enabled businesses, regardless of their deployment mode. Registries enable platforms to discover businesses by location, vertical, category, or keyword.
+Once a business is known, platforms fetch its profile (`/.well-known/usp` in Standalone Mode or `/.well-known/ucp` in UCP-Native Mode). This section defines an optional registry mechanism for the **cold-start problem**: how does a platform discover USP-enabled businesses when it does not yet have a domain?
+
+A USP registry is a centralized or federated **directory** that maintains a searchable list of USP-enabled businesses, regardless of their deployment mode. Registries enable platforms to discover businesses by location, vertical, category, or keyword.
+
+**Registry operations are not platform onboarding.** Registering a business in a discovery registry is a **directory listing** (publication of search metadata and a `profile_url`). It is **not** credential exchange, OAuth/DCR, checkout-path binding, or any other platform-business relationship setup. Those activities are **platform onboarding** and occur out-of-band.
 
 !!! note "Independence"
     Registries are **independent** from USP-enabled businesses and from deployment mode. Multiple registries **MAY** coexist (federated model). A business **MAY** register with multiple registries.
@@ -30,7 +34,7 @@ Registers a business in the discovery registry.
 | `description` | string | No | Brief description for discovery cards and search snippets. |
 | `verticals` | Array[string] | **Yes** | Service verticals offered (e.g., `appointment`, `group`). |
 | `categories` | Array[string] | **Yes** | Business categories for search and filtering. |
-| `location` | object | Conditional | `{address, coordinates: {lat, lng}}`. **REQUIRED** for businesses offering `in_person` or `hybrid` services. **MAY** be omitted for virtual-only businesses. |
+| `location` | object | Conditional | `{address, coordinates: {lat, lng}}`. **REQUIRED** for businesses offering `at_business_location` or `hybrid` services. **MAY** be omitted for virtual-only businesses. |
 | `timezone` | string | **Yes** | IANA timezone identifier (e.g., `America/New_York`). |
 
 !!! warning "Profile Validation"
@@ -98,9 +102,9 @@ Search for USP-enabled businesses by location, vertical, category, or keyword.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `location` | object | No | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km`. |
-| `verticals` | Array[string] | No | Filter by service verticals. |
-| `categories` | Array[string] | No | Filter by business categories. |
+| `location` | object | No | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Filter Matching Semantics](#filter-matching-semantics). |
+| `verticals` | Array[string] | No | Filter by service verticals (OR within field). |
+| `categories` | Array[string] | No | Filter by business categories (OR within field). |
 | `query` | string | No | Free-text search across business names and categories. |
 | `deployment_mode` | string | No | Filter by `standalone` or `ucp_native`. |
 | `context` | object | No | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). |
@@ -109,7 +113,7 @@ Search for USP-enabled businesses by location, vertical, category, or keyword.
 !!! warning "At Least One Filter Required"
     The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). A request containing only `pagination` and/or `context` is invalid and **MUST** be rejected with `validation_error`.
 
-Search operations matching no results **MUST** return HTTP 200 with an empty `businesses[]` array (not an error).
+Search operations matching no results **MUST** return HTTP 200 with an empty `businesses[]` array (not an error). Filter matching follows [Filter Matching Semantics](#filter-matching-semantics).
 
 === "Request"
 
@@ -188,12 +192,12 @@ Search the registry for specific **services** offered by registered businesses. 
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `location` | object | No | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km`. |
-| `verticals` | Array[string] | No | Filter by service verticals. |
-| `categories` | Array[string] | No | Filter by service categories. |
+| `location` | object | No | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Filter Matching Semantics](#filter-matching-semantics). |
+| `verticals` | Array[string] | No | Filter by service verticals (OR within field). |
+| `categories` | Array[string] | No | Filter by service categories (IDs matched against catalog service `categories[].id`; OR within field). |
 | `query` | string | No | Free-text search across service names, descriptions, and categories. |
-| `price_range` | object | No | `{min, max, currency}` -- amounts in minor currency units. |
-| `duration_range` | object | No | `{min_minutes, max_minutes}`. |
+| `price_range` | object | No | `{min, max, currency, match?}` -- amounts in minor currency units. See [Filter Matching Semantics](#filter-matching-semantics). |
+| `duration_range` | object | No | `{min_minutes, max_minutes, match?}`. See [Filter Matching Semantics](#filter-matching-semantics). |
 | `context` | object | No | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). |
 | `pagination` | object | No | Cursor-based pagination. |
 
@@ -211,8 +215,8 @@ Search the registry for specific **services** offered by registered businesses. 
       "verticals": ["appointment"],
       "categories": ["wellness"],
       "query": "deep tissue massage",
-      "price_range": { "min": 5000, "max": 20000, "currency": "USD" },
-      "duration_range": { "min_minutes": 30, "max_minutes": 90 },
+      "price_range": { "min": 5000, "max": 20000, "currency": "USD", "match": "overlap" },
+      "duration_range": { "min_minutes": 30, "max_minutes": 90, "match": "overlap" },
       "context": { "locale": "en-US", "currency": "USD" },
       "pagination": { "limit": 20, "cursor": null }
     }
@@ -288,7 +292,53 @@ Search the registry for specific **services** offered by registered businesses. 
     ```
 
 !!! tip "Indexing Strategy"
-    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter.
+    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter. `ServiceSearchResult.category` is a flat string projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`).
+
+---
+
+## Filter Matching Semantics
+
+Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section. Canonical schema descriptions (with worked examples) live in [`schemas/registry.json`](../../schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
+
+**Composition**
+
+- Distinct filter fields combine with **AND**.
+- `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
+- Zero matches **MUST** return HTTP 200 with an empty result array. Requests with no real search filter **MUST** return `validation_error`.
+
+**Geographic (`location`)**
+
+- `radius_km` is kilometers.
+- Businesses or services with no coordinates (virtual/phone only) **MUST** be excluded when any location filter is present, and **SHOULD** appear only when no geographic filter is applied (search as well as registration).
+
+**Range filters (`price_range`, `duration_range`)**
+
+Optional `match` compares service interval **S** to filter interval **F**:
+
+| `match` | Predicate | Default |
+|---------|-----------|---------|
+| `overlap` | S ∩ F ≠ ∅ | **Yes** (when `match` omitted) |
+| `contained` | S ⊆ F | |
+| `contains` | S ⊇ F | |
+| `equals` | S = F | |
+
+Omitted bounds on F are unbounded on that side. Point intervals (min = max) are valid.
+
+Worked duration example: service offered **30–90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+
+Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }` (minor units) → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+
+**Building S (duration)**
+
+- Fixed duration → `[d, d]` minutes.
+- Range duration → `[min, max]` minutes.
+- `duration.undetermined: true` (or no indexable duration) → excluded by any `duration_range` filter; **MAY** appear when no duration filter is set.
+
+**Building S (price) and currency**
+
+- Matching is **within-currency only** (no FX).
+- Resolved match currency: `price_range.currency` if present; else `context.currency`; else `validation_error`. When both differ, `price_range.currency` wins for matching.
+- `pricing.model: free` → amount **0**. Fixed amount → `[amount, amount]`. Published variable `price_range` → that interval. No indexable price → exclude when a price filter is present.
 
 ---
 

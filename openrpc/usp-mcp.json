@@ -70,14 +70,14 @@
                             },
                             "category_id": {
                                 "type": "string",
-                                "description": "Single category ID. Shorthand for categories with one value. If both provided, categories takes precedence."
+                                "description": "Single category ID. Shorthand for categories with one value. If both provided, categories takes precedence. Matches the primary categories[] entry's id, and MAY match any entry's id."
                             },
                             "categories": {
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 },
-                                "description": "Category IDs to filter by (OR logic)."
+                                "description": "Category IDs to filter by (OR logic). Match rule: primary entry id, and MAY match any entry's id."
                             },
                             "location_id": {
                                 "type": "string",
@@ -1266,6 +1266,14 @@
                     "schema": {
                         "type": "string"
                     }
+                },
+                {
+                    "name": "delivery_address",
+                    "required": false,
+                    "schema": {
+                        "$ref": "#/components/schemas/DeliveryAddress"
+                    },
+                    "description": "The buyer's service delivery address. REQUIRED when the service's channel.type is at_buyer_location. Echoed back on the Booking object."
                 },
                 {
                     "name": "notes",
@@ -3493,6 +3501,9 @@
             },
             "BuyerConsent": {
                 "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+            },
+            "DeliveryAddress": {
+                "$ref": "../schemas/booking.json#/$defs/DeliveryAddress"
             },
             "Booking": {
                 "$ref": "../schemas/booking.json#/$defs/Booking"

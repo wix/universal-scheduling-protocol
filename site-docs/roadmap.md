@@ -62,7 +62,6 @@ standardization as either core verticals or standard extensions:
 | **Government** | Permit appointments, public services | Multi-step workflows, document requirements |
 | **Events & Ticketing** | Concert tickets, sporting events | Dynamic pricing, seat selection, transfer/resale |
 | **Professional Services** | Legal, financial, tax consultations | Conflict-of-interest checks, document exchange |
-| **Home Services** | Plumbing, cleaning, repair | Travel time, service areas, multi-technician jobs |
 | **Wellness & Spa** | Multi-service packages, spa days | Service sequencing, room/equipment dependencies |
 
 ### Protocol Enhancements
