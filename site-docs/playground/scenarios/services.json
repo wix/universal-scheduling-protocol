@@ -81,7 +81,7 @@
               }
             ],
             "channel": {
-              "type": "in_person",
+              "type": "at_business_location",
               "instructions": "Please arrive 10 minutes early to check in and change. Lockers and robes are provided."
             },
             "policies": {
@@ -200,7 +200,7 @@
               }
             ],
             "channel": {
-              "type": "in_person",
+              "type": "at_business_location",
               "instructions": "Arrive 15 minutes before class to set up your mat. Wear comfortable clothing."
             },
             "capacity": {
@@ -329,7 +329,7 @@
               }
             ],
             "channel": {
-              "type": "in_person",
+              "type": "at_business_location",
               "instructions": "Please arrive 15 minutes early. Robes, slippers, and refreshments are provided in the suite."
             },
             "capacity": {
@@ -480,7 +480,7 @@
               }
             ],
             "channel": {
-              "type": "in_person",
+              "type": "at_business_location",
               "instructions": "Meet at the waterfront dock behind the main building. Wear clothes that can get wet. A brief safety orientation is included."
             },
             "policies": {
@@ -600,7 +600,7 @@
               "currency": "USD"
             },
             "channel": {
-              "type": "in_person"
+              "type": "at_business_location"
             },
             "policies": {
               "cancellation": {
@@ -685,7 +685,7 @@
               "currency": "USD"
             },
             "channel": {
-              "type": "in_person"
+              "type": "at_business_location"
             },
             "policies": {
               "cancellation": {
@@ -811,7 +811,7 @@
             "currency": "USD"
           },
           "channel": {
-            "type": "in_person",
+            "type": "at_business_location",
             "instructions": "Please arrive 10 minutes early."
           },
           "policies": {

@@ -191,14 +191,15 @@ exposed ingest API; the subscription is the handshake. Do **not** invert this in
 ## 1.8 Search & filter semantics
 
 Filters are **hard constraints** (a yes/no contract clients reason about); `query` drives relevance ranking
-(a registry's own choice). For cross-registry consistency the *match semantics* should be defined by the spec
-(today they aren't — raised as **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)**). The semantics this design assumes:
+(a registry's own choice). Match semantics are normative in [USP §6.3.1](../specification.md#631-filter-matching-semantics)
+(**[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — resolved). This design assumes:
 
 - `location.radius_km` — kilometers; businesses with no coordinates (virtual/phone) are **excluded** from any
 location filter, returned only when no geo filter is set.
-- `price_range` — **within-currency only, no FX**; `context.currency` is display-only ([D8](#appendix-decision-log)).
-- `duration_range` — interval **overlap** (a range service matches if its offered interval overlaps the filter);
-duration-less services are excluded from duration filters but shown when none is set ([D6](#appendix-decision-log)).
+- `price_range` / `duration_range` — optional `match`: `overlap` (default), `contained`, `contains`, `equals`
+comparing service interval S to filter F. Within-currency only, no FX; currency required when omitting it
+would be ambiguous (`price_range.currency` else `context.currency` else `validation_error`). Free pricing
+treated as 0; undetermined duration excluded from any duration filter ([D6](#appendix-decision-log), [D8](#appendix-decision-log)).
 - `verticals[]` / `categories[]` — OR within a field (match any).
 - **Availability is deliberately NOT a filter.** `ServiceSearchRequest` has no time-window field, and the
 projected `availability_hint` is approximate + time-decaying — using it to exclude results would false-negative
@@ -240,7 +241,7 @@ Dogfooding output — building the registry against the spec revealed these prot
 - **[#55](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/55)** — registry **discovery / federation** is undefined: how do clients find registries; one canonical vs many? (Relates to [USP §6.7](../specification.md#67-registry-governance).) Includes the **marketplace/aggregator relay** case — a SaaS platform registers once and the registry fans out / merges its hosted catalog rather than indexing each provider.
 - **[#56](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/56)** — should registration **require** a published `signing_key`? (See [§1.5](#15-registration-ownership-proof-the-handshake), [O15](#open-need-a-call-later).)
 - **[#58](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/58)** — registration is **not authenticated**: [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) mandates reachability but not ownership proof. (See [§1.5](#15-registration-ownership-proof-the-handshake), [§1.6](#16-read-access-posture), [D17](#appendix-decision-log), [D18](#appendix-decision-log).)
-- **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — registry search **filter-matching semantics** are unspecified (range/currency/geo/free). (See [§1.8](#18-search-filter-semantics).)
+- **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — **Resolved:** registry search filter-matching semantics pinned in [USP §6.3.1](../specification.md#631-filter-matching-semantics) (four `match` modes with `overlap` default, within-currency / free / undetermined / geo / OR-within-field). Downstream Vespa query builder still needs to implement the modes (see issue comment). (See [§1.8](#18-search--filter-semantics).)
 - **[#106](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/106)** — registry **trust & anti-abuse**: ownership ≠ legitimacy (CA-style verification?) and Sybil / registry-pollution prevention. Hardening layer above the index; not Phase 1.
 
 Note: the registry **indexes and searches against** the catalog's `availability_hint` ([USP §3.6](../specification.md#36-availability-hint)) as a ranking/recall signal and **SHOULD pass it through** on `ServiceSearchResult` when present at index time.

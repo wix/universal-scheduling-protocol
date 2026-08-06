@@ -1268,6 +1268,14 @@
                     }
                 },
                 {
+                    "name": "delivery_address",
+                    "required": false,
+                    "schema": {
+                        "$ref": "#/components/schemas/DeliveryAddress"
+                    },
+                    "description": "The buyer's service delivery address. REQUIRED when the service's channel.type is at_buyer_location. Echoed back on the Booking object."
+                },
+                {
                     "name": "notes",
                     "required": false,
                     "schema": {
@@ -3493,6 +3501,9 @@
             },
             "BuyerConsent": {
                 "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+            },
+            "DeliveryAddress": {
+                "$ref": "../schemas/booking.json#/$defs/DeliveryAddress"
             },
             "Booking": {
                 "$ref": "../schemas/booking.json#/$defs/Booking"
