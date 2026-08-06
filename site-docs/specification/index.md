@@ -25,7 +25,7 @@ idempotency, webhook verification).
     checkout; and **Standalone Mode** for platforms that want a self-contained
     scheduling protocol with generic payment handoff. Both modes share the same
     domain core and the same transport bindings. The mode determines only how
-    discovery, payment, and infrastructure are handled.
+    profile discovery, payment, and infrastructure are handled.
 
 ---
 
@@ -63,12 +63,15 @@ keywords only carry their special meaning when they appear in all capitals.
 | **Business** | The entity offering time-based services. The business owns the schedule, resources, and booking policies. For payment purposes, the business is the Merchant of Record. |
 | **Buyer** | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). When no separate `recipient` is specified, the buyer is also the person receiving the service. |
 | **Capability** | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL. |
+| **Catalog Discovery** | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Discovery Registry](discovery-registry.md)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
 | **Action** | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. |
 | **Extension** | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability. |
 | **Hold** | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry. |
-| **Payment Context** | A universal handoff object containing amount, currency, line items, and metadata -- everything a checkout system needs to process payment. |
-| **Platform** | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from discovery through booking and payment. |
+| **Payment Context** | A universal handoff object containing amount, currency, line items, and metadata - everything a checkout system needs to process payment. |
+| **Platform** | The consumer-facing application or AI agent acting on behalf of the buyer. Platforms orchestrate the scheduling journey from catalog discovery through booking and payment. |
+| **Platform Onboarding** | The out-of-band process of establishing a lasting integration between a platform and a business, typically once per platform-business pair. It may include OAuth client registration (DCR), checkout-path selection, and PSP credential storage. USP does not define the onboarding procedure. The `checkout_systems` field supports compatibility assessment during profile discovery or platform onboarding; it is not consulted per transaction. |
+| **Profile Discovery** | The process by which a platform learns how to call a known business: fetching `/.well-known/usp` or `/.well-known/ucp`, resolving endpoints, and intersecting capabilities. REST endpoint discovery via the business profile is covered under the REST binding Discovery subsection. |
 | **Recipient** | The person receiving the service, when different from the buyer. Represented by an optional `recipient` object on the booking with the same identity fields as `buyer`. |
 | **Service** | A time-based offering provided by a business (e.g., a haircut, yoga class, restaurant table, car rental). Each service has a type, duration, pricing, and policies. |
 | **Slot** | A specific, bookable time window for a service. Slots are computed dynamically from the business's schedule, resources, and existing bookings. |
@@ -76,11 +79,22 @@ keywords only carry their special meaning when they appear in all capitals.
 | **BusyBlock** | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. |
 | **BuyerFreeBusy** | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. |
 
+The three phases **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding** disambiguate activities that unqualified "discovery" can otherwise conflate. Implementors **MUST NOT** treat registry catalog search as platform onboarding, or profile fetch as credential exchange. The capability identifier `dev.usp.discovery.registry` and the Discovery Registry section title are retained for wire stability. OAuth Authorization Server Metadata Discovery retains the RFC 8414 name.
+
+Typical lifecycle (catalog discovery is optional when the business is already known; platform onboarding is skipped when a relationship already exists):
+
+```mermaid
+flowchart LR
+  A["Catalog discovery"] --> B["Profile discovery"]
+  B --> C["Platform onboarding<br/>(out-of-band)"]
+  C --> D["Booking"]
+```
+
 ---
 
 ## Service Verticals
 
-USP defines four core service verticals. The `type` field on a service **MUST** be set to one of these values, or to a vendor-defined vertical using reverse-domain notation (e.g., `com.wix.services.courses`).
+USP defines five core service verticals. The `type` field on a service **MUST** be set to one of these values, or to a vendor-defined vertical using reverse-domain notation (e.g., `com.wix.services.courses`).
 
 | Vertical | Description | Examples |
 |----------|-------------|----------|
@@ -88,6 +102,7 @@ USP defines four core service verticals. The `type` field on a service **MUST** 
 | `group` | A group session with limited capacity. Multiple buyers book into the same time slot. | Yoga class, workshop, group fitness, cooking class |
 | `reservation` | A hold on a shared resource for a time window. | Restaurant table, conference room, venue, court booking |
 | `rental` | Temporary exclusive use of equipment or space for a duration. | Car rental, studio space, equipment hire, vacation rental |
+| `field_service` | A service performed at a location the buyer specifies (home, office, or other premises) rather than at the business's own location. | Plumbing, cleaning, pest control, home repair, mobile equipment repair |
 
 !!! tip "Custom Verticals"
     Vendors **MAY** define custom verticals using their reverse-domain namespace: `com.{vendor}.services.{vertical_name}`. Custom verticals **MUST** publish a specification and schema. Platforms encountering an unrecognized vertical **SHOULD** fall back to treating the service as an `appointment` type.

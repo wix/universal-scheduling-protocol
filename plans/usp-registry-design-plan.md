@@ -121,7 +121,7 @@ Fixed by `[schemas/registry.json](../schemas/registry.json)`. A registry stores 
 `status` {active|inactive}, `created_at`. Source = the **registration body** (`[RegistrationRequest](../schemas/registry.json#/$defs/RegistrationRequest)`).
 - `[ServiceSearchResult](../schemas/registry.json#/$defs/ServiceSearchResult)` (service): `service_id`, `service_name`, `business{id,profile_url,deployment_mode,name}`,
 `category`, `duration_minutes?`, `pricing` (full catalog `[Pricing](../schemas/catalog.json#/$defs/Pricing)`, by `$ref`), `location?`, `timezone`,
-`last_indexed_at?`, `availability_hint?` (catalog `[AvailabilityHint](../schemas/catalog.json#/$defs/AvailabilityHint)`, by `$ref`, when present at index time). Source = the business's **catalog feed**, reduced to this thin shape. The catalog's `availability_hint` is also *indexed and searched against* as a ranking/recall signal ([Part 2 §2.3](#23-two-vespa-doc-types)).
+`last_indexed_at?`, `availability_hint?` (catalog `[AvailabilityHint](../schemas/catalog.json#/$defs/AvailabilityHint)`, by `$ref`, when present at index time). Source = the business's **catalog feed**, reduced to this thin shape. The flat `category` string is projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`). The catalog's `availability_hint` is also *indexed and searched against* as a ranking/recall signal ([Part 2 §2.3](#23-two-vespa-doc-types)).
 
 The service shape is a deliberate **thin snapshot** — name/category/price/duration/location/availability hint, enough to *match*
 and *rank*. Everything needed to *transact* (policies, capacity, resources, live availability, current price)
@@ -191,14 +191,15 @@ exposed ingest API; the subscription is the handshake. Do **not** invert this in
 ## 1.8 Search & filter semantics
 
 Filters are **hard constraints** (a yes/no contract clients reason about); `query` drives relevance ranking
-(a registry's own choice). For cross-registry consistency the *match semantics* should be defined by the spec
-(today they aren't — raised as **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)**). The semantics this design assumes:
+(a registry's own choice). Match semantics are normative in [USP §6.3.1](../specification.md#631-filter-matching-semantics)
+(**[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — resolved). This design assumes:
 
 - `location.radius_km` — kilometers; businesses with no coordinates (virtual/phone) are **excluded** from any
 location filter, returned only when no geo filter is set.
-- `price_range` — **within-currency only, no FX**; `context.currency` is display-only ([D8](#appendix-decision-log)).
-- `duration_range` — interval **overlap** (a range service matches if its offered interval overlaps the filter);
-duration-less services are excluded from duration filters but shown when none is set ([D6](#appendix-decision-log)).
+- `price_range` / `duration_range` — optional `match`: `overlap` (default), `contained`, `contains`, `equals`
+comparing service interval S to filter F. Within-currency only, no FX; currency required when omitting it
+would be ambiguous (`price_range.currency` else `context.currency` else `validation_error`). Free pricing
+treated as 0; undetermined duration excluded from any duration filter ([D6](#appendix-decision-log), [D8](#appendix-decision-log)).
 - `verticals[]` / `categories[]` — OR within a field (match any).
 - **Availability is deliberately NOT a filter.** `ServiceSearchRequest` has no time-window field, and the
 projected `availability_hint` is approximate + time-decaying — using it to exclude results would false-negative
@@ -236,11 +237,11 @@ Post-discovery booking uses [USP §4 Availability](../specification.md#4-availab
 
 Dogfooding output — building the registry against the spec revealed these protocol-level questions/gaps:
 
-- **[#54](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/54)** — multi-taxonomy `categories[]` on catalog `[Service](../schemas/catalog.json#/$defs/Service)`: needed, or is one flat category enough? (See [§2.4](#24-projection-rules-catalog-service-servicesd), [D9](#appendix-decision-log), [O7](#open-need-a-call-later).)
+- **[#54](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/54)** - **Resolved:** singular catalog `category` removed; enriched multi-taxonomy `categories[]` (`[ServiceCategory](../schemas/catalog.json#/$defs/ServiceCategory)`) is canonical, with an explicit primary rule. Registry `ServiceSearchResult.category` stays a flat string projected from the primary entry (see [§1.4](#14-wire-data-model)).
 - **[#55](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/55)** — registry **discovery / federation** is undefined: how do clients find registries; one canonical vs many? (Relates to [USP §6.7](../specification.md#67-registry-governance).) Includes the **marketplace/aggregator relay** case — a SaaS platform registers once and the registry fans out / merges its hosted catalog rather than indexing each provider.
 - **[#56](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/56)** — should registration **require** a published `signing_key`? (See [§1.5](#15-registration-ownership-proof-the-handshake), [O15](#open-need-a-call-later).)
 - **[#58](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/58)** — registration is **not authenticated**: [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) mandates reachability but not ownership proof. (See [§1.5](#15-registration-ownership-proof-the-handshake), [§1.6](#16-read-access-posture), [D17](#appendix-decision-log), [D18](#appendix-decision-log).)
-- **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — registry search **filter-matching semantics** are unspecified (range/currency/geo/free). (See [§1.8](#18-search-filter-semantics).)
+- **[#59](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/59)** — **Resolved:** registry search filter-matching semantics pinned in [USP §6.3.1](../specification.md#631-filter-matching-semantics) (four `match` modes with `overlap` default, within-currency / free / undetermined / geo / OR-within-field). Downstream Vespa query builder still needs to implement the modes (see issue comment). (See [§1.8](#18-search--filter-semantics).)
 - **[#106](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/106)** — registry **trust & anti-abuse**: ownership ≠ legitimacy (CA-style verification?) and Sybil / registry-pollution prevention. Hardening layer above the index; not Phase 1.
 
 Note: the registry **indexes and searches against** the catalog's `availability_hint` ([USP §3.6](../specification.md#36-availability-hint)) as a ranking/recall signal and **SHOULD pass it through** on `ServiceSearchResult` when present at index time.

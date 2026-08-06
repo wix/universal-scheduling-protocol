@@ -90,6 +90,9 @@
       "BuyerConsent": {
         "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
       },
+      "DeliveryAddress": {
+        "$ref": "../schemas/booking.json#/$defs/DeliveryAddress"
+      },
       "Booking": {
         "$ref": "../schemas/booking.json#/$defs/Booking"
       },
@@ -140,6 +143,12 @@
       },
       "RegistryEntry": {
         "$ref": "../schemas/registry.json#/$defs/RegistryEntry"
+      },
+      "BusinessSearchRequest": {
+        "$ref": "../schemas/registry.json#/$defs/BusinessSearchRequest"
+      },
+      "ServiceSearchRequest": {
+        "$ref": "../schemas/registry.json#/$defs/ServiceSearchRequest"
       },
       "ServiceSearchResult": {
         "$ref": "../schemas/registry.json#/$defs/ServiceSearchResult"
@@ -406,14 +415,14 @@
                       },
                       "category_id": {
                         "type": "string",
-                        "description": "Single category ID to filter by. Shorthand for categories with one value. If both category_id and categories are provided, categories takes precedence."
+                        "description": "Single category ID to filter by. Shorthand for categories with one value. If both category_id and categories are provided, categories takes precedence. Matches the primary categories[] entry's id, and MAY match any entry's id."
                       },
                       "categories": {
                         "type": "array",
                         "items": {
                           "type": "string"
                         },
-                        "description": "Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP catalog_search filters."
+                        "description": "Category IDs to filter by (OR logic - matches services in any listed category). Aligns with UCP catalog_search filters. Match rule: primary entry id, and MAY match any entry's id."
                       },
                       "location_id": {
                         "type": "string",
@@ -1776,6 +1785,14 @@
                     "type": "string",
                     "description": "Preferred resource (e.g. specific staff member)."
                   },
+                  "delivery_address": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/DeliveryAddress"
+                      }
+                    ],
+                    "description": "The buyer's service delivery address. REQUIRED when the service's channel.type is at_buyer_location. Echoed back on the Booking object."
+                  },
                   "notes": {
                     "type": "string",
                     "description": "Buyer-provided special requests or notes."
@@ -3059,7 +3076,7 @@
                   },
                   "location": {
                     "type": "object",
-                    "description": "Physical location. Required when the business offers in_person or hybrid services.",
+                    "description": "Physical location. Required when the business offers at_business_location or hybrid services.",
                     "properties": {
                       "address": {
                         "type": "string"
@@ -3156,66 +3173,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "description": "At least one of: location, verticals, categories, query, deployment_mode must be present (not only pagination and/or context).",
-                "properties": {
-                  "location": {
-                    "type": "object",
-                    "properties": {
-                      "coordinates": {
-                        "type": "object",
-                        "required": [
-                          "lat",
-                          "lng"
-                        ],
-                        "properties": {
-                          "lat": {
-                            "type": "number"
-                          },
-                          "lng": {
-                            "type": "number"
-                          }
-                        }
-                      },
-                      "radius_km": {
-                        "type": "number",
-                        "description": "Search radius in kilometers."
-                      }
-                    }
-                  },
-                  "verticals": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Filter by service verticals."
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Filter by service categories."
-                  },
-                  "query": {
-                    "type": "string",
-                    "description": "Free-text search query."
-                  },
-                  "deployment_mode": {
-                    "type": "string",
-                    "enum": [
-                      "standalone",
-                      "ucp_native"
-                    ],
-                    "description": "Filter by deployment mode. When omitted, returns both."
-                  },
-                  "context": {
-                    "$ref": "#/components/schemas/RegistryContext"
-                  },
-                  "pagination": {
-                    "$ref": "#/components/schemas/PaginationRequest"
-                  }
-                }
+                "$ref": "#/components/schemas/BusinessSearchRequest"
               }
             }
           }
@@ -3294,88 +3252,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "description": "At least one of: location, verticals, categories, query, price_range, duration_range must be present (not only pagination and/or context).",
-                "properties": {
-                  "location": {
-                    "type": "object",
-                    "properties": {
-                      "coordinates": {
-                        "type": "object",
-                        "required": [
-                          "lat",
-                          "lng"
-                        ],
-                        "properties": {
-                          "lat": {
-                            "type": "number"
-                          },
-                          "lng": {
-                            "type": "number"
-                          }
-                        }
-                      },
-                      "radius_km": {
-                        "type": "number",
-                        "description": "Search radius in kilometers."
-                      }
-                    }
-                  },
-                  "verticals": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Filter by service verticals."
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Filter by service categories."
-                  },
-                  "query": {
-                    "type": "string",
-                    "description": "Free-text search query."
-                  },
-                  "price_range": {
-                    "type": "object",
-                    "description": "Filter by price range.",
-                    "properties": {
-                      "min": {
-                        "type": "number",
-                        "description": "Minimum price in minor currency units."
-                      },
-                      "max": {
-                        "type": "number",
-                        "description": "Maximum price in minor currency units."
-                      },
-                      "currency": {
-                        "type": "string",
-                        "description": "ISO 4217 currency code."
-                      }
-                    }
-                  },
-                  "duration_range": {
-                    "type": "object",
-                    "description": "Filter by duration range.",
-                    "properties": {
-                      "min_minutes": {
-                        "type": "integer"
-                      },
-                      "max_minutes": {
-                        "type": "integer"
-                      }
-                    }
-                  },
-                  "context": {
-                    "$ref": "#/components/schemas/RegistryContext"
-                  },
-                  "pagination": {
-                    "$ref": "#/components/schemas/PaginationRequest"
-                  }
-                }
+                "$ref": "#/components/schemas/ServiceSearchRequest"
               }
             }
           }

@@ -113,7 +113,8 @@ When exposing service catalog data as schema.org structured data:
 | `pricing.amount` | `schema:offers.price` | Convert from minor units to decimal (e.g., `7500` -> `75.00`) |
 | `pricing.currency` | `schema:offers.priceCurrency` | Direct mapping (ISO 4217) |
 | `channel.type: virtual` | `schema:availableChannel.serviceType` | Set to `OnlineOnly` |
-| `channel.type: in_person` | `schema:availableChannel.serviceLocation` | Map to `schema:Place` with address |
+| `channel.type: at_business_location` | `schema:availableChannel.serviceLocation` | Map to `schema:Place` with address |
+| `channel.type: at_buyer_location` | `schema:areaServed` | Map `channel.service_area`, if present. Do not publish the buyer's `delivery_address` |
 | `locations[]` | `schema:areaServed` / `schema:serviceLocation` | Map each location to a `schema:Place` |
 | `availability_hint.next_available_date` | `schema:availabilityStarts` | Approximate; use with `schema:Offer` |
 | `media[].url` (type=image) | `schema:image` | Direct mapping. Filter to `type: "image"` entries |
@@ -134,9 +135,8 @@ The service object represents a bookable offering from a business. Each service 
 | `provider` | Provider | No | Inline business metadata for display without a separate profile fetch. |
 | `name` | string | **Yes** | Human-readable display name (e.g., "Women's Haircut & Style"). |
 | `description` | string \| Description | No | Plain string or structured `Description` object with multiple format variants. |
-| `type` | string | **Yes** | Service vertical: `appointment`, `group`, `reservation`, `rental`, or vendor-defined. |
-| `category` | object | No | `{id, name, parent_id}` -- business's canonical classification. |
-| `categories` | Array[object] | No | Array of `{value, taxonomy}` category entries supporting multiple taxonomy systems. |
+| `type` | string | **Yes** | Service vertical: `appointment`, `group`, `reservation`, `rental`, `field_service`, or vendor-defined. |
+| `categories` | Array[ServiceCategory] | No | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. Simple case: one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules). |
 | `duration` | Duration | **Yes** | Duration configuration. See [Duration](#duration) below. |
 | `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Pricing](#pricing) below. |
 | `locations` | Array[Location] | No | Physical or virtual locations where the service is offered. |
@@ -153,16 +153,42 @@ The service object represents a bookable offering from a business. Each service 
 | `metadata` | object | No | Business-defined custom data. Platforms **SHOULD** pass through opaquely. |
 | `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. |
 | `links` | Array[Link] | No | Typed links to policy and information pages specific to this service. |
-| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. |
+| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. `category_name` overrides the primary `categories[]` entry's `name`. |
+
+### Category rules
+
+> **JSON Schema:** [/$defs/ServiceCategory](../../schemas/catalog.json)
+
+Each `categories[]` entry carries required `taxonomy` and at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`. Exactly one entry is primary: if exactly one has `primary: true`, that is the primary; else if no entry sets `primary` and exactly one has `taxonomy: "merchant"`, that entry is the primary; else the first entry is the primary. Never more than one `primary: true`. The primary entry is the source for display, localization, and registry projection of `ServiceSearchResult.category` (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`).
+
+Catalog filters (`category_id` / `categories`) match the primary entry's `id` and **MAY** match any entry's `id`. Filter parameters remain flat ID strings.
+
+```json
+"categories": [
+  {
+    "taxonomy": "merchant",
+    "id": "cat_haircut",
+    "name": "Haircut",
+    "parent_id": "cat_hair",
+    "value": "beauty > hair > haircut",
+    "primary": true
+  },
+  {
+    "taxonomy": "google_business_profile",
+    "value": "job_type_id:hair_styling"
+  }
+]
+```
 
 ### Channel Types
 
 | `channel.type` | Description | Additional Fields |
 |----------------|-------------|-------------------|
-| `in_person` | Service is delivered at a physical location. | `instructions`: optional arrival instructions |
+| `at_business_location` | Service is delivered at the business's physical location. The buyer travels there. | `instructions`: optional arrival instructions |
+| `at_buyer_location` | Service is delivered at a location the buyer specifies. The business travels there; the booking requires `delivery_address`. | `instructions`, `service_area`: optional description of the area served |
 | `virtual` | Service is delivered remotely via video/audio call. | `virtual_provider`: platform name (e.g., "Zoom"). `instructions`: join instructions |
 | `phone` | Service is delivered via phone call. | `instructions`: optional call-in details |
-| `hybrid` | Delivered either in person or virtually, at the buyer's choice. | `virtual_provider`, `instructions` |
+| `hybrid` | Delivered via more than one of the above channels, at the buyer's choice. | `virtual_provider`, `instructions`, `service_area` |
 
 ### Description Schema
 
@@ -381,8 +407,8 @@ Returns a filtered, paginated list of services from the business catalog. Design
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | string | Service vertical (e.g., `appointment`, `group`). |
-| `category_id` | string | Single category ID to filter by. |
-| `categories` | Array[string] | Category IDs to filter by (OR logic). |
+| `category_id` | string | Single category ID to filter by. Matches the primary `categories[]` entry's `id`, and **MAY** match any entry's `id`. |
+| `categories` | Array[string] | Category IDs to filter by (OR logic). Same match rule as `category_id`. |
 | `location_id` | string | Location ID for multi-location businesses. |
 | `price` | object | `{min, max}` in minor currency units. |
 
@@ -454,7 +480,7 @@ All specified filters combine with AND logic. Within `categories`, values combin
           "type": "appointment",
           "duration": { "fixed": "PT60M", "buffer_after": "PT15M" },
           "pricing": { "model": "fixed", "amount": 7500, "currency": "USD" },
-          "channel": { "type": "in_person" },
+          "channel": { "type": "at_business_location" },
           "resources": [
             {
               "type": "staff",
@@ -520,7 +546,7 @@ Returns the full service object for a single service.
         "description": "A full haircut and styling session with one of our experienced stylists. Includes consultation, shampoo, cut, and blow-dry.",
         "duration": { "fixed": "PT60M", "buffer_after": "PT15M" },
         "pricing": { "model": "fixed", "amount": 7500, "currency": "USD" },
-        "channel": { "type": "in_person" },
+        "channel": { "type": "at_business_location" },
         "policies": {
           "cancellation": { "allowed": true, "free_cancellation_until": "PT24H", "late_cancellation_fee": 2500 },
           "rescheduling": { "allowed": true, "free_reschedule_until": "PT24H", "max_reschedules": 2 },

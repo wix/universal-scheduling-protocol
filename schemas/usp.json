@@ -193,7 +193,7 @@
             "type": "string",
             "enum": ["acp", "redirect", "embedded"]
           },
-          "description": "OPTIONAL. Declares which checkout systems the business has integrated for paid bookings. Platforms use this field during onboarding to determine payment compatibility — it is not consulted per-transaction. Omit for businesses with only free or pay-at-service services."
+          "description": "OPTIONAL. Declares which checkout systems the business has integrated for paid bookings. Platforms use this field during profile discovery or platform onboarding to determine payment compatibility - it is not consulted per-transaction. Omit for businesses with only free or pay-at-service services."
         },
         "business": {
           "$ref": "#/$defs/BusinessInfo",

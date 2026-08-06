@@ -77,7 +77,11 @@
               "type": "string"
             }
           },
-          "description": "The specific location for this booking."
+          "description": "The business's location for this booking. Present when channel.type is at_business_location or hybrid. For at_buyer_location, see delivery_address instead."
+        },
+        "delivery_address": {
+          "$ref": "#/$defs/DeliveryAddress",
+          "description": "The buyer's service delivery address, echoed back from the create-booking request. MUST be present when the service's channel.type is at_buyer_location. MAY be present for other channels (e.g. a hybrid service where the buyer chose the mobile option)."
         },
         "status": {
           "type": "string",
@@ -206,6 +210,52 @@
         "consent": {
           "$ref": "#/$defs/BuyerConsent",
           "description": "Optional buyer consent signals. Nested inside the buyer object per UCP convention."
+        }
+      }
+    },
+    "DeliveryAddress": {
+      "type": "object",
+      "title": "DeliveryAddress",
+      "description": "The buyer's service delivery address, used when the business travels to the buyer (channel.type: at_buyer_location). REQUIRED on POST /bookings when the booked service's channel.type is at_buyer_location; echoed back on the Booking object.",
+      "required": [
+        "line1",
+        "city",
+        "country"
+      ],
+      "properties": {
+        "line1": {
+          "type": "string",
+          "description": "Primary street address line."
+        },
+        "line2": {
+          "type": "string",
+          "description": "Secondary address line (apartment, suite, unit, floor)."
+        },
+        "city": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string",
+          "description": "State, province, or region."
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "description": "ISO 3166-1 alpha-2 country code."
+        },
+        "coordinates": {
+          "type": "object",
+          "description": "Optional geocoded coordinates for dispatch and routing.",
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lng": {
+              "type": "number"
+            }
+          }
         }
       }
     },

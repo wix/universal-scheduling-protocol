@@ -155,6 +155,8 @@ sequenceDiagram
 
 ## Discovery
 
+This subsection specifies **profile discovery** for the REST binding: how platforms learn a business's REST endpoints via the business profile. It does **not** cover catalog discovery (Discovery Registry) or platform onboarding.
+
 Platforms discover a business's REST endpoints through the business profile published at `/.well-known/usp`. The profile's `usp.services` array lists supported USP operations with their base URLs and transport type. Platforms MUST filter for entries where `transport` is `"rest"` to locate REST endpoints.
 
 On each request, the platform identifies itself by sending the `USP-Agent` header:
@@ -163,7 +165,7 @@ On each request, the platform identifies itself by sending the `USP-Agent` heade
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 ```
 
-The business resolves the platform profile to perform capability negotiation. For UCP-Native deployments, discovery is inherited from `/.well-known/ucp`.
+The business resolves the platform profile to perform capability negotiation. For UCP-Native deployments, profile discovery is inherited from `/.well-known/ucp`.
 
 ```mermaid
 sequenceDiagram
