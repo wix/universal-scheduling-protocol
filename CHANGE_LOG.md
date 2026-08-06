@@ -1,5 +1,14 @@
 # Change Log
 
+## 06/08/26 at 19:06:07 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed the singular `category` field from the catalog `Service` schema because the dual-field precedence rule in issue #54 caused implementer confusion about which representation was authoritative
+- Replaced the thin `{value, taxonomy}` categories entries with an enriched `ServiceCategory` $def (`taxonomy`, optional `id`/`name`/`parent_id`/`value`/`primary`) so one `categories[]` array covers merchant hierarchy, display/localization, and multi-taxonomy labeling (e.g. merchant path plus Google Business Profile)
+- Documented normative primary selection, localization (`localized.category_name` overrides primary `name`), catalog filter match rules (primary `id`, MAY match any `id`), and registry projection pick order for the flat `ServiceSearchResult.category` string so producers and registries share one rule
+- Updated `specification.md`, site-docs (service catalog, discovery registry), OpenAPI/OpenRPC filter descriptions, playground fixtures (including a multi-taxonomy salon haircut scenario), and plan notes (`V2_PRODUCTION_PLAN.md`, `usp-registry-design-plan.md`) to match the single-field model without duplicating schema bodies into bindings
+
+---
+
 ## 06/08/26 at 18:38:43 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Clarified overloaded "discovery" terminology in `specification.md` §1.2 (and mirrored site-docs) by adding normative definitions for **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding**, plus a Mermaid lifecycle diagram, so implementors no longer infer meaning only from section context (issue #42)

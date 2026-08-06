@@ -274,7 +274,10 @@
         "service_id": { "type": "string" },
         "service_name": { "type": "string" },
         "business": { "$ref": "#/$defs/RegistryBusinessRef" },
-        "category": { "type": "string" },
+        "category": {
+          "type": "string",
+          "description": "Flat category string projected from the catalog service's primary categories[] entry. Pick order: primary name, else primary value, else primary id, else the first entry's value, else the service type."
+        },
         "duration_minutes": { "type": "integer", "minimum": 0 },
         "pricing": {
           "$ref": "catalog.json#/$defs/Pricing",

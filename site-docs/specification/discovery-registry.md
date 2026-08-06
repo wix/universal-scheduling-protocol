@@ -194,7 +194,7 @@ Search the registry for specific **services** offered by registered businesses. 
 |-------|------|----------|-------------|
 | `location` | object | No | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km`. |
 | `verticals` | Array[string] | No | Filter by service verticals. |
-| `categories` | Array[string] | No | Filter by service categories. |
+| `categories` | Array[string] | No | Filter by service categories (IDs matched against catalog service `categories[].id`). |
 | `query` | string | No | Free-text search across service names, descriptions, and categories. |
 | `price_range` | object | No | `{min, max, currency}` -- amounts in minor currency units. |
 | `duration_range` | object | No | `{min_minutes, max_minutes}`. |
@@ -292,7 +292,7 @@ Search the registry for specific **services** offered by registered businesses. 
     ```
 
 !!! tip "Indexing Strategy"
-    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter.
+    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter. `ServiceSearchResult.category` is a flat string projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`).
 
 ---
 

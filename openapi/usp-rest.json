@@ -406,14 +406,14 @@
                       },
                       "category_id": {
                         "type": "string",
-                        "description": "Single category ID to filter by. Shorthand for categories with one value. If both category_id and categories are provided, categories takes precedence."
+                        "description": "Single category ID to filter by. Shorthand for categories with one value. If both category_id and categories are provided, categories takes precedence. Matches the primary categories[] entry's id, and MAY match any entry's id."
                       },
                       "categories": {
                         "type": "array",
                         "items": {
                           "type": "string"
                         },
-                        "description": "Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP catalog_search filters."
+                        "description": "Category IDs to filter by (OR logic - matches services in any listed category). Aligns with UCP catalog_search filters. Match rule: primary entry id, and MAY match any entry's id."
                       },
                       "location_id": {
                         "type": "string",
