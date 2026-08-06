@@ -70,14 +70,14 @@
                             },
                             "category_id": {
                                 "type": "string",
-                                "description": "Single category ID. Shorthand for categories with one value. If both provided, categories takes precedence."
+                                "description": "Single category ID. Shorthand for categories with one value. If both provided, categories takes precedence. Matches the primary categories[] entry's id, and MAY match any entry's id."
                             },
                             "categories": {
                                 "type": "array",
                                 "items": {
                                     "type": "string"
                                 },
-                                "description": "Category IDs to filter by (OR logic)."
+                                "description": "Category IDs to filter by (OR logic). Match rule: primary entry id, and MAY match any entry's id."
                             },
                             "location_id": {
                                 "type": "string",

@@ -1029,8 +1029,7 @@ requirements.
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
 | `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
 | `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
-| `category`          | object                       | No       | `{id, name, parent_id}` - business's canonical classification for the service (e.g., "Beauty > Hair"). The `parent_id` enables hierarchical categorization.                                                                                                                                                                                |
-| `categories`        | Array\[object\]              | No       | Array of `{value, taxonomy}` category entries. Supports multiple taxonomy systems (e.g., `{"value": "beauty > hair", "taxonomy": "merchant"}`, `{"value": "596", "taxonomy": "google_product_category"}`). Aligns with UCP categories. If both `category` and `categories` are present, `categories` is the authoritative set.             |
+| `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules) below.                                                                                                                                         |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
 | `locations`         | Array\[Location\]            | No       | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`.                                                                                                                                                                                                                          |
@@ -1049,6 +1048,48 @@ requirements.
 | `availability_hint` | AvailabilityHint             | No       | Approximate availability summary for agent-assisted discovery. See [Section 3.6](#36-availability-hint).                                                                                                                                                                                                                                   |
 | `links`             | Array\[Link\]                | No       | Typed links to policy and information pages specific to this service (e.g., cancellation policy page, waiver form). Each entry: `{type, url, title}`. Platforms **SHOULD** surface these during the booking flow — before the buyer confirms — so terms are visible at decision time. Well-known `type` values: `cancellation_policy`, `rescheduling_policy`, `terms_of_service`, `privacy_policy`, `waiver`, `faq`. Complements `provider.links[]` which carries business-level policies. |
 | `localized`         | LocalizedFields              | No       | Per-locale overrides for human-readable text fields. Keys are IETF BCP 47 language tags (e.g., `es`, `fr`, `zh-Hant`). The top-level fields (`name`, `description`, etc.) serve as the default/fallback locale. See [Section 3.5](#35-localization).                                                                                       |
+
+**Category rules:**
+
+> **JSON Schema:** [/$defs/ServiceCategory](schemas/catalog.json)
+
+Each `categories[]` entry:
+
+| Field       | Type    | Required | Description |
+|-------------|---------|----------|-------------|
+| `taxonomy`  | string  | **Yes**  | Labeling system this entry belongs to. Well-known values include `merchant` (the merchant's own taxonomy) and external systems such as `google_business_profile`, `google_product_category`. Open extensible string, not a closed enum. |
+| `id`        | string  | No       | Stable identifier within that taxonomy. Primarily used on the merchant entry. Catalog filters match against `id` values. |
+| `name`      | string  | No       | Human-readable display label in the default locale. Primarily on the merchant or primary entry. |
+| `parent_id` | string  | No       | Identifier of the parent category within the same taxonomy, enabling hierarchy (e.g., Wellness to Massage). |
+| `value`     | string  | Conditional | Taxonomy-native identifier, path, or code (e.g., `beauty > hair > haircut`, `job_type_id:hair_styling`). Optional on `merchant` entries; **REQUIRED** for external (non-`merchant`) taxonomies. |
+| `primary`   | boolean | No       | When `true`, marks this entry as the single canonical primary category. At most one entry **MAY** set `primary` to `true`. |
+
+Normative rules:
+
+1. An entry **MUST** carry at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`.
+2. Exactly one entry is canonical (primary). If exactly one entry has `primary: true`, that is the primary. If no entry sets `primary`, and exactly one entry has `taxonomy: "merchant"`, that entry is the primary. If neither disambiguates, the first entry in array order is the primary. Never more than one `primary: true`.
+3. The primary entry is the source for display, localization (`localized.category_name` overrides the primary entry's `name`), and registry projection of `ServiceSearchResult.category`.
+4. Catalog filters (`category_id`, and `categories` filter parameters that carry IDs) **MUST** match against the primary entry's `id`, and **MAY** match any entry's `id`. Filter parameters remain flat ID strings.
+5. Registry projection: `ServiceSearchResult.category` (flat string) is derived from the primary entry with pick order: primary `name`, else primary `value`, else primary `id`, else the first entry's `value`, else the service `type`.
+
+**Example (multi-taxonomy):**
+
+```json
+"categories": [
+  {
+    "taxonomy": "merchant",
+    "id": "cat_haircut",
+    "name": "Haircut",
+    "parent_id": "cat_hair",
+    "value": "beauty > hair > haircut",
+    "primary": true
+  },
+  {
+    "taxonomy": "google_business_profile",
+    "value": "job_type_id:hair_styling"
+  }
+]
+```
 
 **Channel types:**
 
@@ -1193,7 +1234,7 @@ cached, and passed between systems:
 
 The optional `localized` field provides per-locale overrides for human-readable
 text fields on a service. The top-level fields (`name`, `description`,
-`category.name`, `channel.instructions`) serve as the default/fallback locale.
+primary `categories[].name`, `channel.instructions`) serve as the default/fallback locale.
 The `localized` field uses IETF BCP 47 language tags as keys.
 
 This design allows platforms to cache a single service object containing all
@@ -1203,12 +1244,12 @@ audiences.
 
 **Localizable fields:**
 
-| `localized` key        | Overrides                      |
-|------------------------|--------------------------------|
-| `name`                 | `service.name`                 |
-| `description`          | `service.description`          |
-| `category_name`        | `service.category.name`        |
-| `channel_instructions` | `service.channel.instructions` |
+| `localized` key        | Overrides                              |
+|------------------------|----------------------------------------|
+| `name`                 | `service.name`                         |
+| `description`          | `service.description`                  |
+| `category_name`        | primary `service.categories[].name`    |
+| `channel_instructions` | `service.channel.instructions`         |
 
 **Example:**
 
@@ -1491,8 +1532,8 @@ return results as if it were omitted (they **MUST NOT** return an error).
 | Field         | Type            | Description                                                                                                                                          |
 |---------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `type`        | string          | Service vertical to filter by (e.g., `appointment`, `group`, `reservation`).                                                                        |
-| `category_id` | string          | Single category ID to filter by. Shorthand for `categories: ["<value>"]`. If both `category_id` and `categories` are provided, `categories` takes precedence. |
-| `categories`  | Array\[string\] | Category IDs to filter by (OR logic — matches services in any listed category). Aligns with UCP's `catalog_search` filters.                         |
+| `category_id` | string          | Single category ID to filter by. Shorthand for `categories: ["<value>"]`. If both `category_id` and `categories` are provided, `categories` takes precedence. Matches the primary `categories[]` entry's `id`, and **MAY** match any entry's `id`. |
+| `categories`  | Array\[string\] | Category IDs to filter by (OR logic - matches services in any listed category). Aligns with UCP's `catalog_search` filters. Match rule: primary entry `id`, and **MAY** match any entry's `id`. |
 | `location_id` | string          | Location ID to filter by (for multi-location businesses).                                                                                            |
 | `price`       | object          | Price range filter. Contains optional `min` and `max` fields in minor currency units. Currency is determined by `context.currency` or the business's default currency. |
 
@@ -3457,6 +3498,12 @@ Response:
 
 The `query` field performs a full-text search across service names, descriptions,
 and categories.
+
+`ServiceSearchResult.category` is a flat string projected from the catalog
+service's primary `categories[]` entry. Pick order: primary `name`, else primary
+`value`, else primary `id`, else the first entry's `value`, else the service
+`type`. The registry wire model keeps this flat string; it does not expand the
+catalog category object.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 

@@ -135,8 +135,7 @@ The service object represents a bookable offering from a business. Each service 
 | `name` | string | **Yes** | Human-readable display name (e.g., "Women's Haircut & Style"). |
 | `description` | string \| Description | No | Plain string or structured `Description` object with multiple format variants. |
 | `type` | string | **Yes** | Service vertical: `appointment`, `group`, `reservation`, `rental`, or vendor-defined. |
-| `category` | object | No | `{id, name, parent_id}` -- business's canonical classification. |
-| `categories` | Array[object] | No | Array of `{value, taxonomy}` category entries supporting multiple taxonomy systems. |
+| `categories` | Array[ServiceCategory] | No | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. Simple case: one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules). |
 | `duration` | Duration | **Yes** | Duration configuration. See [Duration](#duration) below. |
 | `pricing` | Pricing | **Yes** | Pricing model and amounts. See [Pricing](#pricing) below. |
 | `locations` | Array[Location] | No | Physical or virtual locations where the service is offered. |
@@ -153,7 +152,32 @@ The service object represents a bookable offering from a business. Each service 
 | `metadata` | object | No | Business-defined custom data. Platforms **SHOULD** pass through opaquely. |
 | `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. |
 | `links` | Array[Link] | No | Typed links to policy and information pages specific to this service. |
-| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. |
+| `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. `category_name` overrides the primary `categories[]` entry's `name`. |
+
+### Category rules
+
+> **JSON Schema:** [/$defs/ServiceCategory](../../schemas/catalog.json)
+
+Each `categories[]` entry carries required `taxonomy` and at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`. Exactly one entry is primary: if exactly one has `primary: true`, that is the primary; else if no entry sets `primary` and exactly one has `taxonomy: "merchant"`, that entry is the primary; else the first entry is the primary. Never more than one `primary: true`. The primary entry is the source for display, localization, and registry projection of `ServiceSearchResult.category` (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`).
+
+Catalog filters (`category_id` / `categories`) match the primary entry's `id` and **MAY** match any entry's `id`. Filter parameters remain flat ID strings.
+
+```json
+"categories": [
+  {
+    "taxonomy": "merchant",
+    "id": "cat_haircut",
+    "name": "Haircut",
+    "parent_id": "cat_hair",
+    "value": "beauty > hair > haircut",
+    "primary": true
+  },
+  {
+    "taxonomy": "google_business_profile",
+    "value": "job_type_id:hair_styling"
+  }
+]
+```
 
 ### Channel Types
 
@@ -381,8 +405,8 @@ Returns a filtered, paginated list of services from the business catalog. Design
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | string | Service vertical (e.g., `appointment`, `group`). |
-| `category_id` | string | Single category ID to filter by. |
-| `categories` | Array[string] | Category IDs to filter by (OR logic). |
+| `category_id` | string | Single category ID to filter by. Matches the primary `categories[]` entry's `id`, and **MAY** match any entry's `id`. |
+| `categories` | Array[string] | Category IDs to filter by (OR logic). Same match rule as `category_id`. |
 | `location_id` | string | Location ID for multi-location businesses. |
 | `price` | object | `{min, max}` in minor currency units. |
 

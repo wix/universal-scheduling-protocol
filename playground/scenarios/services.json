@@ -14,7 +14,11 @@
         "usp": {
           "version": "2026-02-21",
           "capabilities": {
-            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+            "dev.usp.services.catalog": [
+              {
+                "version": "2026-02-21"
+              }
+            ]
           }
         },
         "services": [
@@ -31,10 +35,13 @@
               "markdown": "A classic full-body **Swedish massage** using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils."
             },
             "type": "appointment",
-            "category": {
-              "id": "cat_massage",
-              "name": "Massage Therapy"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_massage",
+                "name": "Massage Therapy"
+              }
+            ],
             "duration": {
               "fixed": "PT60M",
               "buffer_before": "PT5M",
@@ -130,7 +137,13 @@
             "status": "active",
             "handle": "swedish-massage",
             "url": "https://www.downtownwellnessspa.com/services/swedish-massage",
-            "tags": ["massage", "relaxation", "swedish", "full-body", "aromatherapy"],
+            "tags": [
+              "massage",
+              "relaxation",
+              "swedish",
+              "full-body",
+              "aromatherapy"
+            ],
             "availability_hint": {
               "summary": "Available this week with morning and afternoon slots on most days.",
               "generated_at": "2026-03-14T08:00:00-05:00",
@@ -150,10 +163,13 @@
               "markdown": "Start your day with an energizing 75-minute **vinyasa flow** class. Suitable for all levels. Mats and props provided."
             },
             "type": "group",
-            "category": {
-              "id": "cat_fitness",
-              "name": "Fitness & Yoga"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_fitness",
+                "name": "Fitness & Yoga"
+              }
+            ],
             "duration": {
               "fixed": "PT75M"
             },
@@ -236,7 +252,13 @@
             "status": "active",
             "handle": "morning-yoga",
             "url": "https://www.downtownwellnessspa.com/services/morning-yoga",
-            "tags": ["yoga", "fitness", "morning", "vinyasa", "group-class"],
+            "tags": [
+              "yoga",
+              "fitness",
+              "morning",
+              "vinyasa",
+              "group-class"
+            ],
             "availability_hint": {
               "summary": "Classes held daily at 7:00 AM and 9:00 AM. Spots fill quickly on weekends.",
               "generated_at": "2026-03-14T08:00:00-05:00",
@@ -256,10 +278,13 @@
               "markdown": "A luxurious 2-hour **private spa suite** experience including a hot tub soak, steam room access, and a personalized treatment menu. Ideal for couples and special occasions."
             },
             "type": "reservation",
-            "category": {
-              "id": "cat_spa_suites",
-              "name": "Spa Suites"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_spa_suites",
+                "name": "Spa Suites"
+              }
+            ],
             "duration": {
               "fixed": "PT120M",
               "buffer_before": "PT15M",
@@ -373,7 +398,13 @@
             "status": "active",
             "handle": "spa-suite-experience",
             "url": "https://www.downtownwellnessspa.com/services/spa-suite-experience",
-            "tags": ["spa-suite", "luxury", "couples", "private", "hot-tub"],
+            "tags": [
+              "spa-suite",
+              "luxury",
+              "couples",
+              "private",
+              "hot-tub"
+            ],
             "availability_hint": {
               "summary": "Limited weekend availability. Weekday suites available with 48-hour advance booking.",
               "generated_at": "2026-03-14T08:00:00-05:00",
@@ -393,10 +424,13 @@
               "markdown": "Explore the Hudson River waterfront with our single-person **kayak rentals**. Includes life jacket, paddle, and basic instruction. Rentals available in 1-hour increments."
             },
             "type": "rental",
-            "category": {
-              "id": "cat_outdoor",
-              "name": "Outdoor Activities"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_outdoor",
+                "name": "Outdoor Activities"
+              }
+            ],
             "duration": {
               "range": {
                 "min": "PT60M",
@@ -422,11 +456,26 @@
                 "name": "Kayak",
                 "selectable": false,
                 "options": [
-                  { "id": "kayak_001", "name": "Kayak #1" },
-                  { "id": "kayak_002", "name": "Kayak #2" },
-                  { "id": "kayak_003", "name": "Kayak #3" },
-                  { "id": "kayak_004", "name": "Kayak #4" },
-                  { "id": "kayak_005", "name": "Kayak #5" }
+                  {
+                    "id": "kayak_001",
+                    "name": "Kayak #1"
+                  },
+                  {
+                    "id": "kayak_002",
+                    "name": "Kayak #2"
+                  },
+                  {
+                    "id": "kayak_003",
+                    "name": "Kayak #3"
+                  },
+                  {
+                    "id": "kayak_004",
+                    "name": "Kayak #4"
+                  },
+                  {
+                    "id": "kayak_005",
+                    "name": "Kayak #5"
+                  }
                 ]
               }
             ],
@@ -478,7 +527,13 @@
             "status": "active",
             "handle": "kayak-rental",
             "url": "https://www.downtownwellnessspa.com/services/kayak-rental",
-            "tags": ["kayak", "rental", "outdoor", "waterfront", "adventure"],
+            "tags": [
+              "kayak",
+              "rental",
+              "outdoor",
+              "waterfront",
+              "adventure"
+            ],
             "availability_hint": {
               "summary": "Weather permitting. All 5 kayaks available most weekday mornings.",
               "generated_at": "2026-03-14T08:00:00-05:00",
@@ -500,7 +555,7 @@
       "path": "/services",
       "query": {
         "business_id": "biz_downtown_spa",
-        "category": "cat_massage"
+        "category_id": "cat_massage"
       }
     },
     "response": {
@@ -509,7 +564,11 @@
         "usp": {
           "version": "2026-02-21",
           "capabilities": {
-            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+            "dev.usp.services.catalog": [
+              {
+                "version": "2026-02-21"
+              }
+            ]
           }
         },
         "services": [
@@ -523,10 +582,13 @@
             "name": "Swedish Massage",
             "description": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
             "type": "appointment",
-            "category": {
-              "id": "cat_massage",
-              "name": "Massage Therapy"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_massage",
+                "name": "Massage Therapy"
+              }
+            ],
             "duration": {
               "fixed": "PT60M",
               "buffer_before": "PT5M",
@@ -541,9 +603,21 @@
               "type": "in_person"
             },
             "policies": {
-              "cancellation": { "allowed": true, "free_cancellation_until": "PT24H" },
-              "rescheduling": { "allowed": true, "free_reschedule_until": "PT24H", "max_reschedules": 2, "fee": 0 },
-              "booking_window": { "min_advance": "PT2H", "max_advance": "P60D", "slot_interval": "PT30M" },
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT24H"
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT24H",
+                "max_reschedules": 2,
+                "fee": 0
+              },
+              "booking_window": {
+                "min_advance": "PT2H",
+                "max_advance": "P60D",
+                "slot_interval": "PT30M"
+              },
               "confirmation_mode": "auto",
               "requires_payment": true,
               "payment_timing": "at_booking"
@@ -575,7 +649,11 @@
         "usp": {
           "version": "2026-02-21",
           "capabilities": {
-            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+            "dev.usp.services.catalog": [
+              {
+                "version": "2026-02-21"
+              }
+            ]
           }
         },
         "services": [
@@ -589,10 +667,13 @@
             "name": "Swedish Massage",
             "description": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
             "type": "appointment",
-            "category": {
-              "id": "cat_massage",
-              "name": "Massage Therapy"
-            },
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_massage",
+                "name": "Massage Therapy"
+              }
+            ],
             "duration": {
               "fixed": "PT60M",
               "buffer_before": "PT5M",
@@ -607,9 +688,21 @@
               "type": "in_person"
             },
             "policies": {
-              "cancellation": { "allowed": true, "free_cancellation_until": "PT24H" },
-              "rescheduling": { "allowed": true, "free_reschedule_until": "PT24H", "max_reschedules": 2, "fee": 0 },
-              "booking_window": { "min_advance": "PT2H", "max_advance": "P60D", "slot_interval": "PT30M" },
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT24H"
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT24H",
+                "max_reschedules": 2,
+                "fee": 0
+              },
+              "booking_window": {
+                "min_advance": "PT2H",
+                "max_advance": "P60D",
+                "slot_interval": "PT30M"
+              },
               "confirmation_mode": "auto",
               "requires_payment": true,
               "payment_timing": "at_booking"
@@ -647,13 +740,100 @@
         "usp": {
           "version": "2026-02-21",
           "capabilities": {
-            "dev.usp.services.catalog": [{ "version": "2026-02-21" }]
+            "dev.usp.services.catalog": [
+              {
+                "version": "2026-02-21"
+              }
+            ]
           }
         },
         "services": [],
         "pagination": {
           "cursor": null,
           "has_more": false
+        }
+      }
+    }
+  },
+  "multi_taxonomy_categories": {
+    "description": "Salon haircut service labeled in both the merchant taxonomy and Google Business Profile (issue #54 multi-taxonomy categories)",
+    "request": {
+      "method": "GET",
+      "path": "/services/svc_haircut_001",
+      "query": {
+        "business_id": "biz_glamour_salon_nyc"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-02-21",
+          "capabilities": {
+            "dev.usp.services.catalog": [
+              {
+                "version": "2026-02-21"
+              }
+            ]
+          }
+        },
+        "service": {
+          "id": "svc_haircut_001",
+          "business_id": "biz_glamour_salon_nyc",
+          "provider": {
+            "name": "Glamour Salon NYC",
+            "url": "https://glamoursalon.nyc"
+          },
+          "name": "Women's Haircut & Style",
+          "description": "A full haircut and styling session with one of our experienced stylists.",
+          "type": "appointment",
+          "categories": [
+            {
+              "taxonomy": "merchant",
+              "id": "cat_haircut",
+              "name": "Haircut",
+              "parent_id": "cat_hair",
+              "value": "beauty > hair > haircut",
+              "primary": true
+            },
+            {
+              "taxonomy": "google_business_profile",
+              "value": "job_type_id:hair_styling"
+            }
+          ],
+          "duration": {
+            "fixed": "PT60M",
+            "buffer_after": "PT15M"
+          },
+          "pricing": {
+            "model": "fixed",
+            "amount": 7500,
+            "currency": "USD"
+          },
+          "channel": {
+            "type": "in_person",
+            "instructions": "Please arrive 10 minutes early."
+          },
+          "policies": {
+            "cancellation": {
+              "allowed": true,
+              "free_cancellation_until": "PT24H",
+              "late_cancellation_fee": 2500
+            },
+            "rescheduling": {
+              "allowed": true,
+              "free_reschedule_until": "PT24H",
+              "max_reschedules": 2
+            },
+            "confirmation_mode": "auto",
+            "requires_payment": true,
+            "payment_timing": "at_booking",
+            "booking_window": {
+              "min_advance": "PT2H",
+              "max_advance": "P60D",
+              "slot_interval": "PT30M"
+            }
+          }
         }
       }
     }
