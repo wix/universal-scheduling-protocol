@@ -67,6 +67,46 @@
           "minItems": 1,
           "items": { "$ref": "#/$defs/SigningKey" },
           "description": "CONDITIONAL. Public keys for verifying webhook signatures. MUST be present when the business sends signed webhook payloads. Multiple keys MUST be supported to enable zero-downtime key rotation. The business SHOULD publish a new key before switching to it, and SHOULD retain the old key for at least 24 hours after rotation."
+        },
+        "authorization": {
+          "$ref": "#/$defs/AuthorizationPolicy",
+          "description": "CONDITIONAL. Declares how this business authenticates platforms for privileged operations. MUST be present when any capability under usp.capabilities includes a create/update/cancel/reschedule booking operation, an inventory hold operation, a waitlist operation, or any operation whose response can carry buyer personal data. See specification.md Section 10.1.6."
+        }
+      },
+      "additionalProperties": false
+    },
+    "AuthorizationMechanism": {
+      "type": "string",
+      "title": "AuthorizationMechanism",
+      "description": "A platform-authentication mechanism accepted for privileged USP operations per specification.md Section 10.1.6. Shared by both the REST and MCP bindings: REST expresses these as OpenAPI securitySchemes; MCP expresses the same set via transport-level HTTP credentials when MCP runs over HTTP, and/or via `_meta.usp.authorization` when the credential must ride inside the tool call (stdio, or a booking-scoped capability credential).",
+      "enum": [
+        "http_message_signature",
+        "booking_scoped_credential",
+        "oauth2_bearer",
+        "api_key",
+        "mtls"
+      ]
+    },
+    "AuthorizationPolicy": {
+      "type": "object",
+      "title": "AuthorizationPolicy",
+      "description": "Declares how a business authenticates platforms for privileged USP operations, per specification.md Section 10.1.6 (Platform Authentication for Privileged Operations). Public operations (catalog, availability, profile discovery) are never gated by this policy. This is deliberately a business-declared, versioned policy rather than a single protocol-mandated mechanism: it lets a business accept HTTP Message Signatures (permissionless, suited to personal single-user agents) and/or booking-scoped capability credentials alongside pre-established mechanisms (OAuth, API key, mTLS) suited to known host platforms, and lets that mix evolve without a specification change.",
+      "required": ["privileged_operations_require_authentication", "accepted_mechanisms"],
+      "properties": {
+        "privileged_operations_require_authentication": {
+          "type": "boolean",
+          "description": "Whether the business rejects unauthenticated requests to privileged operations (booking mutations, inventory holds, waitlist operations, payment-adjacent completion, registry writes, and any response carrying buyer personal data). Businesses handling real bookings or buyer data SHOULD set this to true; USP does not default it to true on the business's behalf because free/demo/sandbox deployments MAY legitimately run without it."
+        },
+        "accepted_mechanisms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/AuthorizationMechanism" },
+          "description": "Mechanisms this business accepts for authenticating privileged-operation requests, in no particular preference order. http_message_signature (RFC 9421, keyed off the calling platform's profile signing_keys) requires no pre-established credential and is RECOMMENDED as a default so that a single-consumer personal agent can authenticate solely by publishing a profile. booking_scoped_credential authorizes get/update/cancel/reschedule/PII-bearing operations on one specific booking or waitlist entry, independent of platform identity (issuance mechanism tracked separately; see specification.md Section 10.1.6). oauth2_bearer, api_key, and mtls require pre-established credentials and suit known, pre-vetted host platforms."
+        },
+        "token_endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "OPTIONAL. OAuth 2.0 token endpoint for platforms using the oauth2_bearer mechanism's client_credentials grant. Only meaningful when accepted_mechanisms includes oauth2_bearer. For the buyer-scoped authorization_code flow (identity linking), platforms MUST instead discover endpoints via RFC 8414 as described in specification.md Section 10.2.4, regardless of this field."
         }
       },
       "additionalProperties": false
@@ -90,7 +130,7 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/SigningKey" },
-          "description": "CONDITIONAL. Public keys for verifying HTTP Message Signatures (RFC 9421) on platform REST requests. SHOULD be present when the platform signs state-modifying requests. Multiple keys MUST be supported for zero-downtime key rotation. See §9.1.4."
+          "description": "CONDITIONAL. Public keys for verifying HTTP Message Signatures (RFC 9421) on platform requests. SHOULD be present when the platform signs privileged REST requests or privileged MCP-over-HTTP requests. Multiple keys MUST be supported for zero-downtime key rotation. See §9.1.4 and §10.1.6."
         }
       },
       "additionalProperties": false

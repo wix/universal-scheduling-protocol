@@ -3836,7 +3836,7 @@ not redefine these concerns:
 | Identity Linking       | UCP identity linking               | UCP Identity              |
 | Buyer Consent          | UCP consent mechanism              | UCP Consent               |
 | Transport Security     | UCP TLS requirements               | UCP Security              |
-| Authentication         | UCP OAuth 2.0 support              | UCP Auth                  |
+| Authentication (transport mechanics) | UCP OAuth 2.0 / signature support | UCP Auth |
 | Rate Limiting          | UCP rate limiting framework        | UCP Rate Limiting         |
 
 > **Reading guidance:** In UCP-Native Mode, read Sections 9.1-9.5 and 10.1 for
@@ -3844,6 +3844,14 @@ not redefine these concerns:
 > **Skip [Sections 9.6](#96-transport-infrastructure-for-standalone-mode)
 > and [10.2](#102-security-infrastructure-for-standalone-mode)** — these are
 > infrastructure requirements for Standalone Mode that UCP already provides.
+>
+> **Do not skip [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).**
+> UCP inherits transport mechanics (how a token or signature is carried), but
+> USP's requirement that privileged operations **MUST** be authenticated is a
+> USP-level floor layered on top of UCP, not something UCP-Native Mode
+> supplies on its own; UCP's own posture on platform authentication is
+> optional (`SHOULD`). Section 10.1.6 applies to UCP-Native checkout and
+> booking-extension operations exactly as it does to Standalone Mode.
 
 ### 7.4 Paid Bookings Extension Schema
 
@@ -5853,11 +5861,11 @@ The business resolves the platform profile to perform capability negotiation ([S
 
 #### 9.1.4 Request Signing
 
-State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, registry) **SHOULD** be signed using HTTP Message Signatures [RFC 9421] to ensure integrity and authenticity. Request signing uses the same infrastructure as webhook signing ([Section 10.1.1](#1011-webhook-security)).
+State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, registry) **SHOULD** be signed using HTTP Message Signatures [RFC 9421] to ensure integrity and authenticity. Signing is the **RECOMMENDED** way to satisfy the privileged-operation authentication requirement of [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) when the platform has no pre-established credential with the business: it requires no prior credential exchange, so it scales unchanged from a single well-known platform to a large population of distinct personal-agent instances. Request signing uses the same infrastructure as webhook signing ([Section 10.1.1](#1011-webhook-security)).
 
 **Signed components:** The signature **MUST** cover at minimum: `content-digest`, `content-type`, `@method`, `@target-uri`, and `@created`. The `usp-agent` and `idempotency-key` headers **SHOULD** also be included when present.
 
-**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that enforce request verification **MUST** advertise this requirement in their business profile.
+**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
 
 **Example:**
 
@@ -5874,7 +5882,7 @@ Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
 {"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
 ```
 
-> **MCP note:** For the MCP binding, request integrity is ensured by the underlying MCP transport layer (stdio pipe or HTTP-SSE with TLS). The `_meta.usp.profile` field identifies the platform and enables capability negotiation without transport-level signing.
+> **MCP note:** The MCP binding is subject to the same Section 10.1.6 privileged-operation floor as REST. When MCP runs over HTTP, platforms **SHOULD** satisfy that floor with the same HTTP-layer mechanisms as REST (RFC 9421 `Signature` / `Signature-Input`, `Authorization: Bearer`, or mTLS) keyed off `_meta.usp.profile` (the MCP equivalent of `USP-Agent`). When the credential must ride inside the tool call (stdio MCP, or a `booking_scoped_credential`), carry it in `_meta.usp.authorization` per [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.schemas.McpAuthorization`. Transport integrity of the MCP session itself (stdio pipe or HTTP-SSE with TLS) remains necessary but is **not** a substitute for Section 10.1.6 platform authentication on privileged methods.
 
 #### 9.1.5 REST Binding Conformance
 
@@ -5942,9 +5950,19 @@ Each USP REST operation maps to a JSON-RPC method:
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI.
 
-> **Schema reference:** The MCP binding schema is defined in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json).
+Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
+
+- **Public methods** (`x-usp-access: public` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)): catalog, availability query, and registry search/get. Authentication is optional.
+- **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, feed subscribe, registry register, waitlist list. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same five mechanisms documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
+- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, waitlist entry, or registry registration. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it.
+
+When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
+
+For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment, and other methods that declare `idempotency_key` on `_meta.usp`), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
+
+> **Schema reference:** The MCP binding schema is defined in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json). Shared authorization policy and mechanism enums live in [`schemas/profile.json`](schemas/profile.json) (`$defs/AuthorizationPolicy`, `$defs/AuthorizationMechanism`) and **MUST NOT** be re-defined inline in either binding.
 
 **Complete JSON-RPC request example:**
 
@@ -6152,13 +6170,16 @@ A conforming MCP binding implementation **MUST:**
 2. Wrap results in the `structuredContent` / `content` dual-envelope pattern.
 3. Return business outcome errors in `result.structuredContent.messages[]`, not as JSON-RPC `error`.
 4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](#94-error-code-mapping)).
-5. Include `_meta.usp.profile` in Standalone Mode for capability negotiation.
-6. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
+6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
+7. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
 
 A conforming MCP binding implementation **SHOULD:**
 
 1. Include `_meta.usp.idempotency_key` on state-modifying operations.
 2. Provide a human-readable text summary in `result.content[]`.
+3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
+4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
 
@@ -6815,6 +6836,94 @@ consent for categories not explicitly granted.
 - Buyer personal data **MUST** be tokenized or encrypted when stored by
   platforms beyond the immediate transaction scope.
 
+#### 10.1.6 Platform Authentication for Privileged Operations
+
+USP separates operations into two trust tiers, independent of deployment mode:
+
+- **Public operations** (catalog browsing, availability queries, and profile
+  discovery at `/.well-known/usp` or `/.well-known/ucp`) **MAY** remain
+  unauthenticated. These responses carry no buyer data and mutate no state, so
+  forcing authentication here blocks browse-only integrations for no security
+  benefit.
+- **Privileged operations** (creating, updating, confirming, cancelling, or
+  rescheduling a booking; creating or releasing an inventory hold; any
+  payment-adjacent completion; joining, reading, or acting on a waitlist entry;
+  registering or modifying a feed subscription; registry writes that mutate
+  the discovery index; and any response that includes buyer personal data)
+  **MUST** be authenticated. A resource identifier (booking ID, site ID, hold
+  ID, registry entry ID) is not a credential; treating it as one lets anyone
+  who can guess or observe an identifier act on it.
+
+**This split, and the MUST on privileged operations, is a deliberate USP
+requirement layered on top of [UCP]'s own posture.** Every other UCP-inherited
+concern in [Section 7.3](#73-inherited-infrastructure) still carries over
+unchanged. [UCP]'s HTTP/REST binding treats platform authentication as
+optional (`SHOULD`) and defers to business policy, which is sufficient when
+the calling population is a small, enumerable set of well-known platforms
+(large AI assistants and shopping surfaces) that can be vetted out-of-band
+before onboarding. USP's scheduling domain additionally has to support
+**personal, single-user agents**: one distinct agent instance per consumer,
+with no realistic pre-onboarding step and no brand-level accountability behind
+it, where unauthenticated booking mutations, holds, and PII exposure carry
+materially higher risk against a materially larger and less enumerable
+population of callers. USP hardens this one point rather than inheriting
+UCP's optional posture for it; this applies equally in UCP-Native Mode (see
+[Section 7.3](#73-inherited-infrastructure)).
+
+**Identity binding (MUST, mechanism-independent):** Regardless of which
+authentication mechanism is used, every request to a privileged operation
+**MUST** carry a `USP-Agent` (or `UCP-Agent`, in UCP-Native Mode) header
+resolving to a profile that is fetchable per
+[Section 8.2.2](#822-profile-hosting-requirements) (HTTPS, no redirects,
+cached by URI, minimum 60-second TTL floor). When a credential is presented,
+the business **MUST** confirm the authenticated principal is authorized to act
+on behalf of the profile identified in the agent header, and **MUST** reject
+requests where the two conflict.
+
+**Accepted mechanisms:** A business **MUST** accept at least one of the
+following for privileged operations, and **MUST** publish which one(s) it
+requires via the `authorization` object in its business profile (see
+[`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`):
+
+| Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
+|--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `signing_keys` already published in the platform profile ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
+| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
+| OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
+| API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
+| Mutual TLS (mTLS)                                 | Pre-established | High-security environments requiring certificate-based authentication. |
+
+A business **SHOULD NOT** rely on a pre-established mechanism (OAuth, API key,
+mTLS) as its *only* accepted option once it intends to serve platforms it has
+not individually vetted, since doing so reintroduces the pre-onboarding
+bottleneck this section exists to avoid for personal agents. HTTP Message
+Signatures or a booking-scoped credential **SHOULD** be offered alongside any
+pre-established mechanism for that reason.
+
+> **Why not simply require OAuth Bearer everywhere, or simply follow UCP's
+> optional guidance?** Mandating only a pre-established mechanism assumes a
+> small, enumerable set of platform identities: true for large AI assistants,
+> false for "bring your own agent" deployments where each consumer runs their
+> own agent instance and pre-registering every instance does not scale.
+> Leaving authentication fully optional, as UCP's baseline does, would leave
+> privileged scheduling mutations and buyer PII open to anyone who can observe
+> an identifier. The mechanism menu above, anchored by the mechanism-agnostic
+> identity-binding MUST, is the minimal floor that covers both the
+> few-large-platforms population and the many-personal-agents population
+> without naming a single mechanism as the only lawful one.
+>
+> Because the requirement is expressed as a business-declared, versioned
+> `authorization` policy rather than as spec prose naming one mandatory
+> mechanism, it composes with however [UCP]'s own posture evolves: [UCP]
+> already permits businesses to "enforce additional rules based on
+> established trust, observed behavior, or operational requirements" beyond
+> its optional baseline, and already recognizes HTTP Message Signatures as its
+> own permissionless mechanism. If UCP later formalizes a similar
+> permissionless-first or scoped-credential pattern at the protocol level,
+> USP's `authorization` object can adopt it directly without a spec rewrite;
+> if it does not, USP's floor stands on its own without contradicting current
+> UCP guidance.
+
 ### 10.2 Security Infrastructure for Standalone Mode
 
 > *This subsection is not relevant for UCP-Native deployments. UCP-Native
@@ -6842,19 +6951,36 @@ Recommended limits:
 
 #### 10.2.3 Authentication and Authorization
 
-USP endpoints **MUST** support OAuth 2.0 [RFC 6749] Bearer tokens [RFC 6750] for
-platform-to-business authentication. Implementations **SHOULD** support
-DPoP [RFC 9449] for proof-of-possession where additional security is required.
+The mechanism-agnostic requirement (privileged operations **MUST** be
+authenticated, public operations **MAY** remain anonymous, and every request
+**MUST** bind to a fetchable platform profile) is defined once, for both
+deployment modes, in
+[Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
+This subsection covers Standalone-Mode-specific mechanics for the
+pre-established mechanisms in that section's mechanism table; it does not
+re-narrow that table to OAuth alone.
 
-Businesses and platforms **SHOULD** use one of the following authentication
-mechanisms:
+For platforms using a pre-established mechanism in Standalone Mode:
 
-- **OAuth 2.0 Bearer tokens:** For platform-to-business authentication. Tokens
-  are transmitted via the `Authorization: Bearer <token>` header.
-- **API keys:** For simpler integrations. Keys **SHOULD** be rotated
-  periodically and transmitted via the `Authorization: Bearer <key>` header.
-- **Mutual TLS (mTLS):** For high-security environments requiring
+- **OAuth 2.0 Bearer tokens [RFC 6749]/[RFC 6750]:** the **RECOMMENDED**
+  pre-established mechanism. Businesses implementing it **MUST** support the
+  `client_credentials` grant for platform-to-business (non-buyer-scoped)
+  authentication, and **SHOULD** support DPoP [RFC 9449] for proof-of-possession
+  where additional security is required. Tokens are transmitted via the
+  `Authorization: Bearer <token>` header.
+- **API keys:** for simpler integrations with a small number of known
+  platforms. Keys **SHOULD** be rotated periodically and are transmitted via
+  the `Authorization: Bearer <key>` header.
+- **Mutual TLS (mTLS):** for high-security environments requiring
   certificate-based authentication.
+
+Businesses **MUST NOT** treat this list as the only accepted mechanisms for
+privileged operations; see
+[Section 10.1.6](#1016-platform-authentication-for-privileged-operations) for
+HTTP Message Signatures and booking-scoped credentials, neither of which
+requires pre-establishing a relationship with every calling platform, and both
+of which **SHOULD** be offered alongside whichever pre-established mechanism
+above a business chooses.
 
 #### 10.2.4 Identity Linking
 
