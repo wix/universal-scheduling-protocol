@@ -1,5 +1,34 @@
 # Change Log
 
+## 09/08/26 at 18:09:19 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned `openrpc/usp-mcp.json` with the AC-S auth model already in `openapi/usp-rest.json`, so transport-agnostic privileged-vs-public access and the five authorization mechanisms are shared rather than REST-only: extracted `$defs/AuthorizationMechanism` in `schemas/profile.json` (referenced by `AuthorizationPolicy`), annotated OpenAPI `securitySchemes` with `x-usp-mechanism`, and added matching `components.x-usp-securitySchemes` plus `McpAuthorization` / `McpUspMeta*` schemas and per-method `x-usp-access` (`public` / `privileged_platform` / `privileged_scoped`) in the MCP binding
+- Made privileged MCP methods require `_meta` with `_meta.usp.profile` (identity binding equivalent to `USP-Agent`) and optional `_meta.usp.authorization` for credentials that must ride inside the tool call (stdio or booking-scoped), while MCP-over-HTTP continues to prefer HTTP-layer Authorization / RFC 9421 Signature / mTLS
+- Updated `specification.md` §9.1.4 MCP note, §9.2.2 request format, and §9.2.4 MCP conformance, plus `site-docs/security.md`, so both bindings are explicitly subject to §10.1.6 and point at the shared `AuthorizationPolicy` / `AuthorizationMechanism` definitions instead of duplicating mechanism enums
+
+---
+
+## 09/08/26 at 18:00:52 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Updated [issue #9](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/9) so AC-L matches the locked AC-S resolution: `linkusp-cli` must negotiate auth from the business profile `authorization.accepted_mechanisms` (prefer RFC 9421 signatures, then OAuth Bearer / API key / mTLS, and booking-scoped credentials for get/cancel when available), not hardcode Bearer-only; marked AC-S checkboxes complete and left AC-L open for CLI/SKILL implementation
+
+---
+
+## 09/08/26 at 17:55:43 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Implemented the AC-S resolution of issue #9 (Finalize HTTP/REST transport binding authentication): added `specification.md` §10.1.6 "Platform Authentication for Privileged Operations" as a new mode-agnostic requirement (public catalog/availability/profile stay optionally anonymous; booking/hold/waitlist/payment-adjacent/PII-bearing/registry-write operations **MUST** be authenticated by at least one of HTTP Message Signatures, a booking-scoped capability credential, OAuth 2.0 Bearer, an API key, or mTLS), replacing the old blanket "USP endpoints MUST support OAuth 2.0 Bearer tokens" text in §10.2.3 that named a single mandatory mechanism
+- Motivation: UCP's own HTTP/REST binding treats platform authentication as optional (`SHOULD`) because its ecosystem today is dominated by a small, enumerable set of well-known large AI platforms that can be vetted out-of-band; USP's scheduling domain additionally has to support personal, single-user "bring your own agent" deployments (one distinct agent instance per consumer, no realistic pre-onboarding step, no brand-level accountability) where unauthenticated privileged mutations and PII exposure are materially riskier against a materially larger population, so USP hardens this one point rather than inheriting UCP's optional posture for it, while leaving every other UCP-inherited concern unchanged
+- Made the requirement mechanism-agnostic and business-declared (rather than naming one mandatory mechanism) specifically so it stays compatible if UCP's own posture evolves toward permissionless/scoped-credential patterns, and so it does not force every personal agent instance through a pre-registration bottleneck that does not scale to "bring your own agent" populations
+- Added `$defs/AuthorizationPolicy` to `schemas/profile.json` (referenced, not duplicated, from `BusinessProfile.authorization`) so a business can declare `privileged_operations_require_authentication` and its `accepted_mechanisms` (`http_message_signature`, `booking_scoped_credential`, `oauth2_bearer`, `api_key`, `mtls`) as versioned profile data instead of spec prose
+- Reserved `booking_scoped_credential` as an accepted mechanism name answering "does this caller hold the credential for this specific booking," independent of platform identity; deferred its issuance/validation mechanics to issue #134 (which feeds the broader plan item V2-X6 / issue #162) rather than designing it here
+- Updated `openapi/usp-rest.json`: added `components.securitySchemes` (`HttpMessageSignature`, `BookingScopedCredential`, `OAuth2Bearer`, `ApiKey`, `MutualTLS`) and set per-operation `security` (empty for public catalog/availability/profile/registry-search paths; the four platform-level mechanisms for create-type privileged paths; all five, including the booking/waitlist-scoped credential, for get/update/cancel/reschedule/confirm paths on an existing booking, waitlist entry, hold, feed subscription, or registry registration)
+- Updated `specification.md` §7.3 (UCP-Native inherited-infrastructure table and reading guidance) to clarify that §10.1.6 is an additive USP floor that applies in UCP-Native Mode too, not something UCP-Native inherits automatically; updated §9.1.4 to cross-reference §10.1.6 as the recommended way to satisfy the privileged-operation requirement without a pre-established credential; rewrote §10.2.3 to defer to §10.1.6 for the mechanism-agnostic MUST and keep only Standalone-Mode-specific OAuth/DPoP mechanics
+- Mirrored the decision in `site-docs/security.md`: added a "Platform Authentication for Privileged Operations" subsection under the shared USP Security Requirements (with a rationale callout), reframed the former Standalone-only "Authentication and Authorization" section as "Pre-established Authentication Mechanics", and updated the Security Checklist table so OAuth 2.0 is listed as one available mechanism rather than the sole required/inherited one
+- Posted an "AC-S resolution" comment on [issue #9](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/9) documenting the full rationale (BYOA-vs-large-platform mental model, the booking-scoped credential answer to "does this caller hold the token for this booking," the intentional UCP-alignment strategy, and why the declared-policy design minimizes future rework if UCP's posture changes), so the AC-S1/AC-S2 decision trail is preserved on the issue itself
+- Scope note: this change covers AC-S (spec + bindings + docs) only, per the user's request; AC-L (`linkusp-cli` sending the chosen headers/credentials) and server-side enforcement on `usp-impl`/`usp-registry`/`acp-checkout` remain tracked in issues #118 and #157 respectively and were not touched here
+
+---
+
 ## 06/08/26 at 20:55:50 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Resolved issue #40 by adding a first-class buyer service delivery address: `DeliveryAddress` in `schemas/booking.json`, referenced (not duplicated) from `POST /bookings`, `PUT /bookings/{booking_id}`, and echoed on the `Booking` object, so field-service bookings no longer have to smuggle an unparseable address into free-text `notes`
@@ -8,20 +37,6 @@
 - Updated all affected bindings and mirrors for consistency: `openapi/usp-rest.json` and `openrpc/usp-mcp.json` (thin `$ref`s only, no duplicated shapes per repo convention), `specification.md` (§1.3.1, Appendix A, §3.3 channel types and schema.org mapping table, §5.2 Booking schema, §5.3.1/§5.3.3 booking operations and examples), site-docs mirrors (`specification/index.md`, `specification/service-catalog.md`, `specification/discovery-registry.md`, `deployment-modes/ucp-native.md`, `roadmap.md`), and playground fixtures (`playground/scenarios/services.json`, `site-docs/playground/scenarios/services.json`)
 - Wrote design doc `docs/superpowers/specs/2026-08-06-service-delivery-address-and-channel-naming-design.md` and implementation plan `docs/superpowers/plans/2026-08-06-service-delivery-address-and-channel-naming.md` documenting the naming research and file impact
 - Reassigned GitHub issue #40 to `@maoryeh` (owner of the USP registry and Wix business USP adapter tracks) with a comment detailing the breaking enum rename and new fields, since the Vespa registry indexing and `usp-impl` business adapter both need matching updates that are out of scope for this spec-only change
-
----
-
-## 05/08/26 at 20:43:08 by [Ran Yahalom](mailto:ranya@wix.com)
-
-- Created all 35 plan-local V2-* GitHub issues (#157-#191) in `wix-private/universal-scheduling-protocol-spec` from `plans/V2_PRODUCTION_PLAN.md` §4 so production readiness work is tracked with full ACs, §1a clarifications, assignees, and `v2` labels
-- Applied §7 labelling on existing open issues (`v2`, `v>2`, `requires-approval` additive with existing `v1`/`v>1`) and posted §1a/§3 clarification comments on key judgement inclusions and exclusions so implementers see scoped-down authz and deferral rationale on the issues themselves
-- Updated `plans/V2_PRODUCTION_PLAN.md` status to approved/issues-created and added Appendix A (V2-* → GitHub # mapping) so the plan is the durable index after issue creation
-
----
-
-## 05/08/26 at 20:04:20 by [Ran Yahalom](mailto:ranya@wix.com)
-
-- Added per-track GitHub assignees to `plans/V2_PRODUCTION_PLAN.md` §2 (Components and tracks) so newly created v2 issues are assigned consistently: `yahalomran` owns A, C, and S; `maoryeh` owns B, D, E, and F
 
 ---
 
@@ -41,19 +56,33 @@
 
 ---
 
-## 05/08/26 at 18:51:05 by [Ran Yahalom](mailto:ranya@wix.com)
-
-- Added §1a "Identity, authentication, and authorization clarifications" to `plans/V2_PRODUCTION_PLAN.md` so the plan records the Link-token piggyback verdict (not viable), AS-backed definition, why unauthenticated privileged UCP/USP APIs are dangerous vs public catalog/availability, that email match is CRM-only (not identity linking / not V2-X1), that booking get/cancel/PII authorization is a launch requirement with multiple mechanisms, that UCP identity linking remains optional, and that `specification.md` §10.2.4 now requires PKCE S256 plus RFC 9207 `iss`
-- Added plan-local **V2-X6** (Authorize booking get/cancel and any response carrying buyer PII), tightened V2-X1 to privileged ops plus platform attribution (not browse-identity), elevated #134 into the launch-blocking authz story, and refreshed #9 / #102 / #118 / #119 / launch gates / schedule / open decisions / labelling so identity linking (#119) stays deferred while booking authorization does not
-
----
-
 ## 06/08/26 at 18:38:43 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Clarified overloaded "discovery" terminology in `specification.md` §1.2 (and mirrored site-docs) by adding normative definitions for **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding**, plus a Mermaid lifecycle diagram, so implementors no longer infer meaning only from section context (issue #42)
 - Stated explicitly in §6 / discovery-registry docs that registry registration is a directory listing, not platform-business onboarding or credential exchange, to keep registry search SLAs and vault/DCR flows distinct (issue #42)
 - Qualified ambiguous `checkout_systems` prose and schema description to reference profile discovery or platform onboarding with a cross-link to §1.2, and scoped §9.1.3 / REST Discovery to profile discovery only (issue #42)
 - Relabeled end-to-end sequence-diagram notes from generic "Service Discovery" to "Catalog & Availability/Booking" (and related platform/role wording) so diagram labels match the three-phase terminology without renaming `dev.usp.discovery.registry` or RFC 8414 metadata discovery (issue #42)
+
+---
+
+## 05/08/26 at 20:43:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Created all 35 plan-local V2-* GitHub issues (#157-#191) in `wix-private/universal-scheduling-protocol-spec` from `plans/V2_PRODUCTION_PLAN.md` §4 so production readiness work is tracked with full ACs, §1a clarifications, assignees, and `v2` labels
+- Applied §7 labelling on existing open issues (`v2`, `v>2`, `requires-approval` additive with existing `v1`/`v>1`) and posted §1a/§3 clarification comments on key judgement inclusions and exclusions so implementers see scoped-down authz and deferral rationale on the issues themselves
+- Updated `plans/V2_PRODUCTION_PLAN.md` status to approved/issues-created and added Appendix A (V2-* → GitHub # mapping) so the plan is the durable index after issue creation
+
+---
+
+## 05/08/26 at 20:04:20 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added per-track GitHub assignees to `plans/V2_PRODUCTION_PLAN.md` §2 (Components and tracks) so newly created v2 issues are assigned consistently: `yahalomran` owns A, C, and S; `maoryeh` owns B, D, E, and F
+
+---
+
+## 05/08/26 at 18:51:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added §1a "Identity, authentication, and authorization clarifications" to `plans/V2_PRODUCTION_PLAN.md` so the plan records the Link-token piggyback verdict (not viable), AS-backed definition, why unauthenticated privileged UCP/USP APIs are dangerous vs public catalog/availability, that email match is CRM-only (not identity linking / not V2-X1), that booking get/cancel/PII authorization is a launch requirement with multiple mechanisms, that UCP identity linking remains optional, and that `specification.md` §10.2.4 now requires PKCE S256 plus RFC 9207 `iss`
+- Added plan-local **V2-X6** (Authorize booking get/cancel and any response carrying buyer PII), tightened V2-X1 to privileged ops plus platform attribution (not browse-identity), elevated #134 into the launch-blocking authz story, and refreshed #9 / #102 / #118 / #119 / launch gates / schedule / open decisions / labelling so identity linking (#119) stays deferred while booking authorization does not
 
 ---
 

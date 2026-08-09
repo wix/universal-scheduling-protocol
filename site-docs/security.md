@@ -57,6 +57,50 @@ payment confirmation) **SHOULD** use an idempotency key:
   (per [draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/))
 - **MCP:** `_meta.usp.idempotency_key` field
 
+### Platform Authentication for Privileged Operations
+
+This requirement applies in **both** deployment modes: it is not inherited
+from UCP in UCP-Native Mode. See specification.md
+[Section 10.1.6](../specification.md#1016-platform-authentication-for-privileged-operations)
+for the full normative text and rationale.
+
+- **Public operations** (catalog, availability, profile discovery) **MAY**
+  remain unauthenticated.
+- **Privileged operations** (booking create/update/confirm/cancel/reschedule,
+  holds, waitlist actions, payment-adjacent completion, registry writes, and
+  any response carrying buyer personal data) **MUST** be authenticated.
+- Every request to a privileged operation **MUST** carry a `USP-Agent` (or
+  `UCP-Agent`) header on REST, or `_meta.usp.profile` on MCP, that resolves to
+  a profile fetchable over HTTPS with no redirects, cached by URI.
+- A business **MUST** accept at least one of: HTTP Message Signatures
+  (RFC 9421, **recommended default**, permissionless, works the same for one
+  platform or a million distinct personal-agent instances), a booking-scoped
+  capability credential (authorizes get/cancel/PII operations on one booking
+  regardless of platform identity), OAuth 2.0 Bearer, an API key, or mTLS. A
+  business **SHOULD NOT** accept only a pre-established mechanism (OAuth, API
+  key, mTLS) once it intends to serve platforms it has not individually
+  vetted.
+- Businesses declare which mechanisms they require in the `authorization`
+  object of their business profile
+  ([`schemas/profile.json`](../schemas/profile.json) `$defs/AuthorizationPolicy`
+  / `$defs/AuthorizationMechanism`). The same mechanism set is expressed in
+  [`openapi/usp-rest.json`](../openapi/usp-rest.json) `components.securitySchemes`
+  and [`openrpc/usp-mcp.json`](../openrpc/usp-mcp.json)
+  `components.x-usp-securitySchemes`; MCP may present credentials on the HTTP
+  layer (when MCP is over HTTP) or via `_meta.usp.authorization`.
+
+!!! info "Why this diverges from UCP's optional-auth guidance"
+
+    UCP treats platform authentication as `SHOULD`, which fits a world of a
+    few well-known platforms that can be vetted out-of-band. USP's scheduling
+    domain also has to serve personal, single-user "bring your own agent"
+    deployments, where there is no realistic pre-onboarding step and no
+    brand-level accountability. USP hardens this one point (privileged
+    operations MUST be authenticated) while keeping every other UCP-inherited
+    concern unchanged, and expresses the requirement as a declared business
+    policy (not a single mandated mechanism) so it stays compatible if UCP's
+    own posture evolves.
+
 ---
 
 ## Standalone Mode Security Infrastructure
@@ -64,21 +108,30 @@ payment confirmation) **SHOULD** use an idempotency key:
 !!! note "UCP-Native Mode"
 
     If you're using UCP-Native Mode, skip this section — UCP provides
-    the security infrastructure (auth, rate limiting, CORS).
+    the security transport plumbing (rate limiting, CORS). Platform
+    authentication for privileged operations above still applies.
 
 Standalone Mode implementations **MUST** additionally provide:
 
-### Authentication and Authorization
+### Pre-established Authentication Mechanics
 
+The mechanism-agnostic requirement lives in
+[Platform Authentication for Privileged Operations](#platform-authentication-for-privileged-operations)
+above. For platforms using a pre-established mechanism in Standalone Mode,
 USP uses [OAuth 2.0 (RFC 6749)](https://www.rfc-editor.org/rfc/rfc6749) with
-[DPoP (RFC 9449)](https://www.rfc-editor.org/rfc/rfc9449) for authorization:
+[DPoP (RFC 9449)](https://www.rfc-editor.org/rfc/rfc9449):
 
 - **Platform-to-business:** OAuth 2.0 client credentials flow for
-  machine-to-machine API access.
+  machine-to-machine API access, the **recommended** pre-established
+  mechanism.
 - **Identity linking:** OAuth 2.0 authorization code flow for linking
   buyer accounts across platforms and businesses.
 - **Token binding:** DPoP tokens **SHOULD** be used to bind access
   tokens to the client's key pair, preventing token theft.
+
+This list is not exclusive: HTTP Message Signatures and booking-scoped
+credentials remain available (and recommended alongside any of the above) for
+platforms without a pre-established relationship.
 
 ### Rate Limiting
 
@@ -118,7 +171,10 @@ USP is designed to minimize PCI-DSS scope for implementations:
 | Webhook signatures | Required | Required | RFC 9421 |
 | Idempotency keys | Recommended | Recommended | draft-ietf-httpapi-idempotency-key-header |
 | Hold abuse prevention | Recommended | Recommended | USP spec |
-| OAuth 2.0 | Inherited | Required | RFC 6749 |
+| Privileged-op authentication (some accepted mechanism) | Required | Required | USP spec §10.1.6 |
+| HTTP Message Signatures (recommended default mechanism) | Available | Available | RFC 9421 |
+| Booking-scoped capability credential | Available (#134, #162) | Available (#134, #162) | USP spec §10.1.6 |
+| OAuth 2.0 (one accepted mechanism) | Available | Available | RFC 6749 |
 | DPoP token binding | Inherited | Recommended | RFC 9449 |
 | Rate limiting | Inherited | Recommended | draft-ietf-httpapi-ratelimit-headers |
 | CORS | Inherited | Required | Fetch Standard |

@@ -380,6 +380,39 @@
           }
         }
       }
+    },
+    "securitySchemes": {
+      "HttpMessageSignature": {
+        "type": "http",
+        "scheme": "signature",
+        "description": "RFC 9421 HTTP Message Signatures, keyed off the signing_keys published in the platform profile referenced by the USP-Agent/UCP-Agent header. RECOMMENDED default mechanism: requires no pre-established credential, so a personal single-user agent can authenticate solely by publishing a profile. See specification.md Section 9.1.4 and Section 10.1.6. Note: 'signature' is not an IANA-registered HTTP auth scheme; this entry documents USP's use of RFC 9421 rather than asserting WWW-Authenticate scheme registration. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "x-usp-mechanism": "http_message_signature"
+      },
+      "BookingScopedCredential": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Booking-scoped or waitlist-entry-scoped capability credential issued at creation, authorizing get/update/cancel/reschedule/PII-bearing operations on that single resource independent of platform identity. Detailed issuance and validation mechanics are tracked separately (issue #134; feeds plan item V2-X6 / issue #162). See specification.md Section 10.1.6. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "x-usp-mechanism": "booking_scoped_credential"
+      },
+      "OAuth2Bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OAuth 2.0 Bearer token (RFC 6749 client_credentials grant for platform-to-business auth, or RFC 6750 for token transmission). Pre-established host-platform credential. See specification.md Section 10.1.6 and Section 10.2.3. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "x-usp-mechanism": "oauth2_bearer"
+      },
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Pre-shared API key transmitted as 'Authorization: Bearer <key>'. Pre-established host-platform credential suited to simple integrations. See specification.md Section 10.1.6 and Section 10.2.3. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "x-usp-mechanism": "api_key"
+      },
+      "MutualTLS": {
+        "type": "mutualTLS",
+        "description": "Client-certificate authentication for high-security environments. Pre-established host-platform credential. See specification.md Section 10.1.6 and Section 10.2.3. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "x-usp-mechanism": "mtls"
+      }
     }
   },
   "paths": {
@@ -569,7 +602,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/services/{service_id}": {
@@ -649,7 +683,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/services/lookup": {
@@ -802,7 +837,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/services/feed": {
@@ -964,7 +1000,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/services/feed/subscriptions": {
@@ -1069,7 +1106,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/services/feed/subscriptions/{subscription_id}": {
@@ -1142,7 +1193,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -1208,7 +1276,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/services/feed/subscriptions/{subscription_id}/pause": {
@@ -1287,7 +1372,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/services/feed/subscriptions/{subscription_id}/resume": {
@@ -1366,7 +1468,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/availability/query": {
@@ -1545,7 +1664,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/availability/holds": {
@@ -1646,7 +1766,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/availability/holds/{hold_id}": {
@@ -1726,7 +1860,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/bookings": {
@@ -1869,7 +2020,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/bookings/{booking_id}": {
@@ -1942,7 +2107,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -2045,7 +2227,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/bookings/{booking_id}/confirm": {
@@ -2124,7 +2323,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/bookings/{booking_id}/cancel": {
@@ -2224,7 +2440,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/bookings/{booking_id}/reschedule": {
@@ -2332,7 +2565,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/bookings/{booking_id}/confirm-payment": {
@@ -2471,7 +2721,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/waitlist": {
@@ -2585,7 +2852,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/waitlist/list": {
@@ -2612,7 +2893,14 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"],
+                    "enum": [
+                      "waiting",
+                      "offered",
+                      "accepted",
+                      "expired",
+                      "declined",
+                      "removed"
+                    ],
                     "description": "Filter by waitlist status."
                   },
                   "pagination": {
@@ -2697,7 +2985,21 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/waitlist/{entry_id}": {
@@ -2770,7 +3072,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -2836,7 +3155,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/waitlist/{entry_id}/accept": {
@@ -2930,7 +3266,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/waitlist/{entry_id}/decline": {
@@ -3006,7 +3359,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/registry/businesses": {
@@ -3154,7 +3524,21 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/registry/search_business": {
@@ -3233,7 +3617,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/registry/search_services": {
@@ -3312,7 +3697,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     },
     "/registry/businesses/{id}": {
@@ -3383,7 +3769,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       },
       "put": {
         "tags": [
@@ -3520,7 +3907,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -3547,7 +3951,24 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          },
+          {
+            "BookingScopedCredential": []
+          }
+        ]
       }
     },
     "/.well-known/usp": {
@@ -3639,7 +4060,8 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
-        }
+        },
+        "security": []
       }
     }
   },
