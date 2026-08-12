@@ -230,7 +230,7 @@ Content-Type: application/json
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 Content-Digest: sha-256=:RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=:
-Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
+Signature-Input: sig1=("@method" "@authority" "@path" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
 Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
 
 {"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}

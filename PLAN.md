@@ -51,7 +51,7 @@ primary publisher MUST.
 | U2 | Spec publisher/verifier alignment (§8.2.1, §9.1.4, §10.1.1 + related prose/examples) | specification.md | rg -n 'MUST publish signing material in .keys\|MUST publish signing material in a top-level .keys' specification.md && rg -n 'signing_keys' specification.md \| head -40 | done |
 | U3 | Schema: keys canonical, signing_keys transition | schemas/profile.json | python3 -c 'import json; json.load(open("schemas/profile.json"))' && rg -n '"keys"|signing_keys' schemas/profile.json | done |
 | U4 | Site-docs (and openapi text if needed) publisher wording | site-docs/security.md, site-docs/transport/rest.md, site-docs/deployment-modes/standalone.md | rg -n 'signing_keys|`keys`' site-docs/security.md site-docs/transport/rest.md site-docs/deployment-modes/standalone.md | done |
-| U5 | Grep consistency check, CHANGE_LOG, final commit | CHANGE_LOG.md | rg -n 'MUST include a top-level .signing_keys' specification.md schemas/ site-docs/ \|\| true; test -z "$(rg -n 'MUST include a top-level .signing_keys' specification.md schemas/ site-docs/ \|\| true)" | pending |
+| U5 | Grep consistency check, CHANGE_LOG, final commit | CHANGE_LOG.md | rg -n 'MUST include a top-level .signing_keys' specification.md schemas/ site-docs/ \|\| true; test -z "$(rg -n 'MUST include a top-level .signing_keys' specification.md schemas/ site-docs/ \|\| true)" | done |
 
 ## Revisions
 
@@ -59,3 +59,6 @@ primary publisher MUST.
 - Filled Goal, Non-goals, Must-preserve, File actions, and Work units from
   conformance recommendation (keys canonical publish; signing_keys transition;
   verifiers keys-first).
+
+### 2026-08-12 - finish U4/U5
+- Completed site-docs/OpenAPI publisher wording; fixed residual AC-S signing contradictions (`@created`, digest_mismatch 400) while finishing consistency unit.
