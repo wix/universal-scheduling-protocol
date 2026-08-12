@@ -3030,8 +3030,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
 provides a push-based complement to the pull-based service catalog
 feed ([Section 3.1](#31-service-catalog-feed)). Catalog webhooks ride on the
-same webhook infrastructure (RFC 9421 signing, `signing_keys`, verification
-flow) defined in [Section 10.1.1](#1011-webhook-security).
+same webhook infrastructure (RFC 9421 signing, `keys` / transition
+`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event               | Trigger                                                                         |
 |---------------------|---------------------------------------------------------------------------------|
@@ -4599,6 +4599,17 @@ interactions.
       "currency": "USD"
     }
   },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -4620,7 +4631,8 @@ The business profile document has the following top-level fields:
 | Field          | Type              | Required    | Description                                                                                                                 |
 |----------------|-------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------|
 | `usp`          | object            | **Yes**     | The USP metadata object. Contains version, services, capabilities, checkout systems, business identity, and backward-compatibility declarations. |
-| `signing_keys` | Array[SigningKey] | Conditional | Public keys for webhook signature verification. **MUST** be present when the business sends signed webhooks. See [Section 10.1.1](#1011-webhook-security). |
+| `keys`         | Array[SigningKey] | Conditional | [UCP]-canonical public keys for webhook signature verification (top-level JWK Set [RFC 7517]). **MUST** be present when the business sends signed webhooks. Dual-publish with identical `signing_keys` is **RECOMMENDED** during transition. See [Section 10.1.1](#1011-webhook-security). |
+| `signing_keys` | Array[SigningKey] | No          | Transition alias for `keys`. **MAY** be published while consumers still read `signing_keys`. When both are present they **MUST** list the same keys; verifiers resolve against `keys` first. See [Section 10.1.1](#1011-webhook-security). |
 
 The `usp` object fields:
 
@@ -5865,7 +5877,7 @@ State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, r
 
 **Signed components:** The signature **MUST** cover at minimum: `content-digest`, `content-type`, `@method`, `@target-uri`, and `@created`. The `usp-agent` and `idempotency-key` headers **SHOULD** also be included when present.
 
-**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
+**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
 
 **Example:**
 
@@ -6667,7 +6679,8 @@ uses HTTP Message Signatures [RFC 9421] for webhook verification.
 - **Content digest:** The request **MUST** include a `Content-Digest`
   header [RFC 9530] computed over the webhook body.
 - **Key ID:** The `Signature-Input` **MUST** include a `keyid` parameter that
-  matches a key in the business profile's `signing_keys` array.
+  matches a key in the business profile's `keys` array (or, during transition,
+  its `signing_keys` fallback; see resolution rule below).
 
 **Intermediary Warning:** Proxies, API gateways, and other intermediaries
 **MUST NOT** re-serialize JSON bodies, as this would invalidate the signature.
@@ -6676,8 +6689,16 @@ verification.
 
 **Signing Keys in Business Profile:**
 
-The business profile **MUST** include a top-level `signing_keys` array
-containing one or more public keys in JWK format [RFC 7517]. See
+When the business sends signed webhooks, the business profile **MUST** publish
+signing material in a top-level `keys` array containing one or more public keys
+in JWK format [RFC 7517] (UCP-canonical, so the profile document is also a
+valid JWK Set). The profile **MAY** also publish a top-level `signing_keys`
+array during transition; dual-publishing identical `keys` and `signing_keys` is
+**RECOMMENDED** so USP publishers satisfy both UCP main/draft verifiers and
+legacy readers. When both arrays are present they **MUST** list the same keys.
+Verifiers **MUST** resolve a `keyid` against `keys` when it is present and fall
+back to `signing_keys` otherwise. This publisher and verifier rule applies to
+platform profiles ([Section 8.2.3](#823-platform-profile)) identically. See
 [Section 8.2.1](#821-business-profile-fields) for the full business profile
 structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
 hosting requirements.
@@ -6687,6 +6708,17 @@ hosting requirements.
 ```json
 {
   "usp": { "..." : "..." },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -6722,14 +6754,16 @@ for at least **7 days** after rotation. Businesses **SHOULD** rotate keys every
 
 **Key Compromise Response:**
 
-1. Immediately remove the compromised key from the business profile.
-2. Add a new key with a different `kid`.
+1. Immediately remove the compromised key from `keys` and from `signing_keys`
+   when that transition alias is also published.
+2. Add a new key with a different `kid` (to both arrays when dual-publishing).
 3. Reject all signatures made with the compromised key.
 
 **Verification:** Platforms **MUST** verify webhook signatures before processing
 events by parsing `Signature` and `Signature-Input` headers per [RFC 9421],
-looking up the `keyid` in the business profile's `signing_keys`, verifying the
-signature, and verifying the `Content-Digest` matches the body.
+looking up the `keyid` in the business profile's `keys` array first (falling
+back to `signing_keys` when `keys` is absent), verifying the signature, and
+verifying the `Content-Digest` matches the body.
 
 **Signature Verification Error Codes:**
 
@@ -6887,7 +6921,7 @@ requires via the `authorization` object in its business profile (see
 
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `signing_keys` already published in the platform profile ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
+| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
 | Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
@@ -7188,7 +7222,7 @@ cancellation fee for the original booking.
 
 Businesses **SHOULD** notify platforms of waitlist state changes via webhooks.
 Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
-`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
+`keys` / transition `signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event                       | Trigger                                                    |
 |-----------------------------|------------------------------------------------------------|
