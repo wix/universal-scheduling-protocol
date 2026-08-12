@@ -47,7 +47,7 @@ primary publisher MUST.
 
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
-| U1 | Complete and commit PLAN.md | PLAN.md | test -f PLAN.md && grep -q 'Work units' PLAN.md | in-progress |
+| U1 | Complete and commit PLAN.md | PLAN.md | test -f PLAN.md && grep -q 'Work units' PLAN.md | done |
 | U2 | Spec publisher/verifier alignment (§8.2.1, §9.1.4, §10.1.1 + related prose/examples) | specification.md | rg -n 'MUST publish signing material in .keys' specification.md && rg -n 'signing_keys' specification.md \| head -40 | pending |
 | U3 | Schema: keys canonical, signing_keys transition | schemas/profile.json | python3 -c 'import json; json.load(open("schemas/profile.json"))' && rg -n '"keys"|signing_keys' schemas/profile.json | pending |
 | U4 | Site-docs (and openapi text if needed) publisher wording | site-docs/security.md, site-docs/transport/rest.md, site-docs/deployment-modes/standalone.md | rg -n 'signing_keys|`keys`' site-docs/security.md site-docs/transport/rest.md site-docs/deployment-modes/standalone.md | pending |
