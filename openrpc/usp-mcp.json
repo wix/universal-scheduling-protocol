@@ -3,7 +3,7 @@
     "info": {
         "title": "Universal Scheduling Protocol (USP) MCP API",
         "version": "2026-02-09",
-        "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. MCP clients invoke USP operations via the standard MCP tools/call method, with params.name set to the method name defined here and params.arguments containing the operation parameters. Each method maps to a corresponding REST operation. Responses use the structuredContent/content dual-envelope pattern. Privileged vs public operation access follows specification.md Section 10.1.6 and mirrors openapi/usp-rest.json: public catalog/availability/registry-search methods MAY be anonymous; privileged methods (x-usp-access=privileged_platform|privileged_scoped) MUST authenticate with a mechanism declared in the business profile AuthorizationPolicy and MUST bind to _meta.usp.profile. See components.x-usp-securitySchemes for the MCP expression of the same five mechanisms.",
+        "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. MCP clients invoke USP operations via the standard MCP tools/call method, with params.name set to the method name defined here and params.arguments containing the operation parameters. Each method maps to a corresponding REST operation. Responses use the structuredContent/content dual-envelope pattern. Privileged vs public operation access follows specification.md Section 10.1.6 and mirrors openapi/usp-rest.json: public catalog/availability/registry-search methods MAY be anonymous; privileged methods (x-usp-access=privileged_platform|privileged_scoped) MUST authenticate with a mechanism declared in the business's AuthorizationPolicy (published top-level in a Standalone /.well-known/usp profile, or as config.authorization on the dev.usp.services binding in a UCP-Native /.well-known/ucp profile) and MUST bind to _meta.usp.profile. See components.x-usp-securitySchemes for the MCP expression of the documented mechanisms; that identifier set is open for forward compatibility with UCP, and unrecognized identifiers are ignored rather than treated as accepted.",
         "contact": {
             "url": "https://usp.dev"
         },
@@ -3246,7 +3246,7 @@
             "McpAuthorization": {
                 "type": "object",
                 "title": "McpAuthorization",
-                "description": "MCP-carried authentication for privileged operations per specification.md Section 10.1.6. When MCP runs over HTTP, prefer presenting oauth2_bearer / api_key on the HTTP Authorization header, http_message_signature via RFC 9421 Signature headers, and mtls via the TLS client certificate; in those cases omit this object or set mechanism to match the transport credential. Use this object when the credential must ride inside the tool call (stdio MCP, or a booking_scoped_credential that is not an HTTP Authorization header). MUST NOT carry a Link wallet token. Mechanism values are the same AuthorizationMechanism enum used by AuthorizationPolicy and by openapi/usp-rest.json securitySchemes.",
+                "description": "MCP-carried authentication for privileged operations per specification.md Section 10.1.6. When MCP runs over HTTP, prefer presenting oauth2_bearer / api_key on the HTTP Authorization header, http_message_signature via RFC 9421 Signature headers, and mtls via the TLS client certificate; in those cases omit this object or set mechanism to match the transport credential. Use this object when the credential must ride inside the tool call (stdio MCP, or a booking_scoped_credential that is not an HTTP Authorization header). MUST NOT carry a Link wallet token. Mechanism values come from the same open AuthorizationMechanism identifier set used by AuthorizationPolicy and by openapi/usp-rest.json securitySchemes; a business that receives an identifier it does not recognize MUST reject the call as unauthenticated rather than treat the unknown mechanism as accepted.",
                 "required": [
                     "mechanism"
                 ],
@@ -3393,6 +3393,7 @@
                                 "signature_invalid",
                                 "key_not_found",
                                 "digest_mismatch",
+                                "algorithm_unsupported",
                                 "signature_expired",
                                 "rate_limited",
                                 "version_unsupported",
@@ -3411,7 +3412,7 @@
         "x-usp-securitySchemes": {
             "HttpMessageSignature": {
                 "mechanism": "http_message_signature",
-                "description": "RFC 9421 HTTP Message Signatures. On MCP-over-HTTP, present Signature / Signature-Input on the HTTP request; keys resolve from the platform profile referenced by _meta.usp.profile. RECOMMENDED default. Same mechanism as openapi/usp-rest.json components.securitySchemes.HttpMessageSignature."
+                "description": "RFC 9421 HTTP Message Signatures. On MCP-over-HTTP, present Signature / Signature-Input on the HTTP request; keys resolve from the keys (or legacy signing_keys) array of the platform profile referenced by _meta.usp.profile. Covered components and parameters are identical to the REST binding (UCP's set: @method, @authority, @path, plus @query / agent header / idempotency-key / content-digest / content-type when present; 'created' OPTIONAL; replay protection via the signed idempotency key). RECOMMENDED default. Same mechanism as openapi/usp-rest.json components.securitySchemes.HttpMessageSignature."
             },
             "BookingScopedCredential": {
                 "mechanism": "booking_scoped_credential",

@@ -7,8 +7,8 @@
     "ServiceBinding": {
       "type": "object",
       "title": "ServiceBinding",
-      "description": "A transport-specific binding for a USP service endpoint. Each entry in a services registry value array is a ServiceBinding.",
-      "required": ["version", "transport"],
+      "description": "A transport-specific binding for a USP service endpoint. Each entry in a services registry value array is a ServiceBinding. Field requirements match the UCP service definition so that the same binding object is conformant when published inside /.well-known/ucp in UCP-Native Mode: version, transport, and spec are always required; schema is required for rest, mcp, and embedded; endpoint is required for rest, mcp, and a2a. The spec and schema origins MUST match the namespace authority of the service key (https://usp.dev/... for dev.usp.* keys).",
+      "required": ["version", "transport", "spec"],
       "properties": {
         "version": {
           "type": "string",
@@ -23,19 +23,55 @@
         "endpoint": {
           "type": "string",
           "format": "uri",
-          "description": "Base URL or connection URI for the endpoint. REQUIRED for rest, mcp, and a2a transports."
+          "description": "Base URL or connection URI for the endpoint. REQUIRED for rest, mcp, and a2a transports (for a2a it is the Agent Card URL). Omitted for embedded."
         },
         "spec": {
           "type": "string",
           "format": "uri",
-          "description": "URL to the human-readable specification document for this service. RECOMMENDED."
+          "description": "URL to the human-readable specification document for this service. REQUIRED. The origin MUST match the namespace authority of the service key."
         },
         "schema": {
           "type": "string",
           "format": "uri",
-          "description": "URL to the machine-readable schema (OpenAPI for rest, OpenRPC for mcp). RECOMMENDED."
+          "description": "URL to the machine-readable schema (OpenAPI for rest, OpenRPC for mcp and embedded). REQUIRED for rest, mcp, and embedded transports; not applicable to a2a, whose endpoint is an Agent Card. The origin MUST match the namespace authority of the service key."
+        },
+        "id": {
+          "type": "string",
+          "description": "OPTIONAL. Unique identifier for this binding instance, used to disambiguate when multiple instances of the same service exist. Mirrors the UCP service definition field of the same name."
+        },
+        "config": {
+          "type": "object",
+          "title": "ServiceBindingConfig",
+          "description": "OPTIONAL. Binding-specific configuration, following the UCP service/capability convention of carrying entity-specific settings under config rather than as sibling members. Structure is defined by this service's schema.",
+          "properties": {
+            "authorization": {
+              "$ref": "profile.json#/$defs/AuthorizationPolicy",
+              "description": "CONDITIONAL. Authentication policy governing privileged operations at this endpoint, per specification.md Section 10.1.6. This is where UCP-Native deployments publish the policy: under config on the dev.usp.services binding inside /.well-known/ucp. USP declares only under its own dev.usp.* namespace authority and MUST NOT add top-level members to a UCP profile document; config is the slot UCP defines for entity-specific settings. REQUIRED in UCP-Native Mode when the endpoint exposes privileged operations. Standalone Mode profiles MAY use it to override the profile-level policy per endpoint; the top-level BusinessProfile.authorization remains canonical there."
+            }
+          },
+          "additionalProperties": true
+        },
+        "authorization": {
+          "not": {},
+          "description": "PROHIBITED at this level. The authorization policy MUST be published as config.authorization, not as a direct member of the binding: config is the member UCP defines for entity-specific settings, and a sibling member here is a USP-invented field on a UCP-governed object. This property is declared with a never-satisfiable schema so that a binding carrying it is rejected rather than silently accepted under additionalProperties, which would let a business believe it had published a policy that no conforming consumer reads."
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "transport": { "enum": ["rest", "mcp", "embedded"] } },
+            "required": ["transport"]
+          },
+          "then": { "required": ["schema"] }
+        },
+        {
+          "if": {
+            "properties": { "transport": { "enum": ["rest", "mcp", "a2a"] } },
+            "required": ["transport"]
+          },
+          "then": { "required": ["endpoint"] }
+        }
+      ],
       "additionalProperties": true
     },
     "CapabilityEntry": {

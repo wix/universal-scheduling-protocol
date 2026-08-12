@@ -47,6 +47,26 @@ for webhook integrity verification:
     `Idempotency-Key`, and `created` is OPTIONAL. Businesses **MUST NOT**
     reject a signed request merely because it carries no `created` parameter.
 
+
+### Request Signing
+
+Platform requests use the same RFC 9421 machinery, with the covered-component
+set UCP requires, so a single signature satisfies a USP verifier and a UCP
+verifier alike:
+
+- Always covered: `@method`, `@authority`, `@path`.
+- Covered when present: `@query`, `usp-agent` / `ucp-agent`,
+  `idempotency-key`, `content-digest`, `content-type`.
+- `@target-uri` **MAY** be covered additionally, but **MUST NOT** replace
+  `@authority` and `@path`; a verifier that enforces covered components treats
+  a request whose target components are unsigned as unsigned.
+- Verifiers **MUST** support `ES256`; signers **SHOULD** default to it. ECDSA
+  values use fixed-width raw `r||s` encoding, not DER.
+
+See specification.md
+[Section 9.1.4](../specification.md#914-request-signing).
+
+
 ### Hold Abuse Prevention
 
 Time slot holds are a potential abuse vector. Businesses **SHOULD** implement:
@@ -89,14 +109,34 @@ for the full normative text and rationale.
   business **SHOULD NOT** accept only a pre-established mechanism (OAuth, API
   key, mTLS) once it intends to serve platforms it has not individually
   vetted.
-- Businesses declare which mechanisms they require in the `authorization`
-  object of their business profile
+- Businesses declare which mechanisms they require in an `authorization` policy
   ([`schemas/profile.json`](../schemas/profile.json) `$defs/AuthorizationPolicy`
-  / `$defs/AuthorizationMechanism`). The same mechanism set is expressed in
+  / `$defs/AuthorizationMechanism`), published **top-level** in a Standalone
+  `/.well-known/usp` profile and as **`config.authorization` on the
+  `dev.usp.services` service binding** in a UCP-Native `/.well-known/ucp`
+  profile. USP does not add top-level members to a UCP profile document; it
+  declares only under its own `dev.usp.*` namespace authority, and `config` is
+  the member UCP defines for entity-specific settings. The same mechanism set is expressed in
   [`openapi/usp-rest.json`](../openapi/usp-rest.json) `components.securitySchemes`
   and [`openrpc/usp-mcp.json`](../openrpc/usp-mcp.json)
   `components.x-usp-securitySchemes`; MCP may present credentials on the HTTP
   layer (when MCP is over HTTP) or via `_meta.usp.authorization`.
+- On rejection, businesses **SHOULD** return `401` with `WWW-Authenticate`
+  naming what they would have accepted, so a mismatch is diagnosable instead of
+  silent.
+- **Forward compatibility:** mechanism identifiers, JWK members, algorithms,
+  and profile fields are open vocabularies. Consumers **MUST** ignore what they
+  do not recognize rather than reject the document, and **MUST NOT** treat an
+  unrecognized mechanism as accepted (fail closed).
+
+!!! warning "Platform identity is not per-resource authority"
+
+    Signatures, OAuth, API keys and mTLS all answer "which platform is
+    calling," not "may this caller act on *this* booking." A business that
+    accepts only a platform-level mechanism on get/cancel/reschedule and other
+    PII-bearing operations lets any authenticated platform act on any booking
+    it can identify. Require a booking-scoped credential (or an equivalent
+    per-resource check) on those operations.
 
 !!! info "Why this diverges from UCP's optional-auth guidance"
 
@@ -178,6 +218,8 @@ USP is designed to minimize PCI-DSS scope for implementations:
 |-------------|:----------:|:----------:|----------|
 | HTTPS / TLS 1.2+ | Required | Required | RFC 8446 |
 | Webhook signatures | Required | Required | RFC 9421 |
+| Webhook replay window + event de-duplication | Required | Required | RFC 9421 |
+| Request signing (recommended privileged-op mechanism) | Recommended | Recommended | RFC 9421 |
 | Idempotency keys | Recommended | Recommended | draft-ietf-httpapi-idempotency-key-header |
 | Hold abuse prevention | Recommended | Recommended | USP spec |
 | Privileged-op authentication (some accepted mechanism) | Required | Required | USP spec §10.1.6 |
