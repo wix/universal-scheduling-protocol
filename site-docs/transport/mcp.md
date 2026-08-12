@@ -262,7 +262,7 @@ POST /webhooks/usp HTTP/1.1
 Host: platform.example.com
 Content-Type: application/json
 Content-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
-Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type");keyid="biz-webhook-2026"
+Signature-Input: sig1=("@method" "@authority" "@path" "content-digest" "content-type");keyid="biz-webhook-2026";created=1711036800
 Signature: sig1=:MEUCIQDTxNq8h7LGHpvVZQp1iHkFp9...:
 
 {

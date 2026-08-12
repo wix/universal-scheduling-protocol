@@ -136,8 +136,10 @@ Each **ServiceBinding** entry:
 | `version`  | string     | **Yes**     | Protocol version at this endpoint (`YYYY-MM-DD`).             |
 | `transport`| string     | **Yes**     | Transport protocol: `rest`, `mcp`, `a2a`, or `embedded`.      |
 | `endpoint` | string URI | Conditional | Base URL. **Required** for `rest`, `mcp`, and `a2a`.          |
-| `spec`     | string URI | No          | URL to the human-readable specification. Recommended.         |
-| `schema`   | string URI | No          | URL to the machine-readable schema. Recommended.              |
+| `spec`     | string URI | **Yes**     | URL to the human-readable specification.                       |
+| `schema`   | string URI | Conditional | URL to the machine-readable schema. **Required** for `rest`, `mcp`, and `embedded`. |
+| `id`       | string     | No          | Disambiguates multiple instances of the same service.          |
+| `config`   | object     | No          | Binding-specific settings. Carries `authorization` in UCP-Native Mode. |
 
 ### Profile Hosting Requirements
 

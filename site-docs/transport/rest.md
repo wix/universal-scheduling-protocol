@@ -212,6 +212,10 @@ a covered component named `@created`. Request replay protection is the signed
 `Idempotency-Key`, matching UCP; businesses MUST NOT reject a signed request
 merely because it carries no `created`.
 
+
+Verifiers MUST support `ES256` and signers SHOULD default to it. ECDSA
+signature values use fixed-width raw `r||s` encoding, not DER.
+
 ### Platform Signing Keys
 
 When a platform signs requests, it **MUST** publish signing material in the
@@ -219,7 +223,9 @@ platform profile via the top-level `keys` array (UCP-canonical). It **MAY**
 also publish an identical `signing_keys` array during transition; dual-publish
 is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first
 and fall back to `signing_keys` otherwise. Businesses that enforce request
-verification MUST advertise this requirement in their business profile.
+verification MUST advertise this requirement in their published `authorization`
+policy.
+
 
 ### Example
 
@@ -230,7 +236,7 @@ Content-Type: application/json
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 Content-Digest: sha-256=:RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=:
-Signature-Input: sig1=("@method" "@authority" "@path" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
+Signature-Input: sig1=("@method" "@authority" "@path" "usp-agent" "idempotency-key" "content-digest" "content-type");keyid="platform-2026"
 Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
 
 {"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
