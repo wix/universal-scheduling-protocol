@@ -186,19 +186,40 @@ State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, r
 
 ### Signed Components
 
-The signature MUST cover at minimum:
+USP uses the same covered-component set as UCP's REST binding, so one signature
+satisfies a USP verifier and a UCP verifier alike.
 
+Always covered:
+
+- `@method`
+- `@authority`
+- `@path`
+
+Covered when present on the request:
+
+- `@query`
+- `usp-agent` (or `ucp-agent` in UCP-Native Mode)
+- `idempotency-key`
 - `content-digest`
 - `content-type`
-- `@method`
-- `@target-uri`
-- `@created`
 
-The `usp-agent` and `idempotency-key` headers SHOULD also be included when present.
+`@target-uri` MAY be covered in addition, but MUST NOT replace `@authority` and
+`@path`: a verifier that enforces covered components treats a request whose
+target components are unsigned as unsigned.
+
+`created` is an OPTIONAL RFC 9421 signature *parameter* (`;created=...`), never
+a covered component named `@created`. Request replay protection is the signed
+`Idempotency-Key`, matching UCP; businesses MUST NOT reject a signed request
+merely because it carries no `created`.
 
 ### Platform Signing Keys
 
-The platform's signing keys are published in the platform profile via the `signing_keys` array. Businesses that enforce request verification MUST advertise this requirement in their business profile.
+When a platform signs requests, it **MUST** publish signing material in the
+platform profile via the top-level `keys` array (UCP-canonical). It **MAY**
+also publish an identical `signing_keys` array during transition; dual-publish
+is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first
+and fall back to `signing_keys` otherwise. Businesses that enforce request
+verification MUST advertise this requirement in their business profile.
 
 ### Example
 
