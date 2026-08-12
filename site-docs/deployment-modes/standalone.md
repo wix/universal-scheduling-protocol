@@ -84,6 +84,17 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
       "currency": "USD"
     }
   },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -97,6 +108,13 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
   ]
 }
 ```
+
+!!! note "Signing material: `keys` canonical"
+
+    When the business sends signed webhooks, publish UCP-canonical `keys`.
+    Dual-publishing identical `signing_keys` is recommended during transition.
+    Verifiers resolve `keys` first, then fall back to `signing_keys`. See
+    [Security](../security.md) and specification.md Section 10.1.1.
 
 ### Profile Fields
 
@@ -118,8 +136,10 @@ Each **ServiceBinding** entry:
 | `version`  | string     | **Yes**     | Protocol version at this endpoint (`YYYY-MM-DD`).             |
 | `transport`| string     | **Yes**     | Transport protocol: `rest`, `mcp`, `a2a`, or `embedded`.      |
 | `endpoint` | string URI | Conditional | Base URL. **Required** for `rest`, `mcp`, and `a2a`.          |
-| `spec`     | string URI | No          | URL to the human-readable specification. Recommended.         |
-| `schema`   | string URI | No          | URL to the machine-readable schema. Recommended.              |
+| `spec`     | string URI | **Yes**     | URL to the human-readable specification.                       |
+| `schema`   | string URI | Conditional | URL to the machine-readable schema. **Required** for `rest`, `mcp`, and `embedded`. |
+| `id`       | string     | No          | Disambiguates multiple instances of the same service.          |
+| `config`   | object     | No          | Binding-specific settings. Carries `authorization` in UCP-Native Mode. |
 
 ### Profile Hosting Requirements
 

@@ -353,7 +353,7 @@ clarifies how USP relates to each and why a new protocol is necessary.
 | **ACP** (Agentic Commerce Protocol)                | USP includes an ACP booking extension for Standalone Mode deployments. See [Section 8.5.6](#856-acp-booking-extension).                                                                                                                                                                                                                                                                                                                                                            |
 | **RFC 9457** (Problem Details) [RFC 9457]          | USP uses RFC 9457 Problem Details for HTTP error responses. See [Section 9.1](#91-rest-binding).                                                                                                                                                                                                                                                                                                                                                                                   |
 | **RFC 6749** (OAuth 2.0) [RFC 6749]                | USP uses OAuth 2.0 for authorization and identity linking. See [Section 10.2.3](#1023-authentication-and-authorization).                                                                                                                                                                                                                                                                                                                                                           |
-| **RFC 9421** (HTTP Message Signatures) [RFC 9421]  | USP uses HTTP Message Signatures for webhook integrity verification. See [Section 10.1.1](#1011-webhook-security).                                                                                                                                                                                                                                                                                                                                                                 |
+| **RFC 9421** (HTTP Message Signatures) [RFC 9421]  | USP uses HTTP Message Signatures for webhook integrity verification ([Section 10.1.1](#1011-webhook-security)) and for platform request signing ([Section 9.1.4](#914-request-signing)), the RECOMMENDED way to satisfy [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).                                                                                                                                                                                                                                                                                                                                                                 |
 
 ### 1.5 Deployment Modes
 
@@ -3030,8 +3030,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
 provides a push-based complement to the pull-based service catalog
 feed ([Section 3.1](#31-service-catalog-feed)). Catalog webhooks ride on the
-same webhook infrastructure (RFC 9421 signing, `signing_keys`, verification
-flow) defined in [Section 10.1.1](#1011-webhook-security).
+same webhook infrastructure (RFC 9421 signing, `keys` / transition
+`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event               | Trigger                                                                         |
 |---------------------|---------------------------------------------------------------------------------|
@@ -3701,7 +3701,16 @@ An example profile:
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json"
+          "schema": "https://usp.dev/services/rest.openapi.json",
+          "config": {
+            "authorization": {
+              "privileged_operations_require_authentication": true,
+              "accepted_mechanisms": [
+                "http_message_signature",
+                "booking_scoped_credential"
+              ]
+            }
+          }
         }
       ]
     },
@@ -3780,8 +3789,16 @@ An example profile:
       "dev.usp.services": [
         {
           "version": "2026-02-09",
+          "spec": "https://usp.dev/specification",
           "transport": "rest",
-          "endpoint": "https://business.example.com/usp/v1"
+          "endpoint": "https://business.example.com/usp/v1",
+          "schema": "https://usp.dev/services/rest.openapi.json",
+          "config": {
+            "authorization": {
+              "privileged_operations_require_authentication": true,
+              "accepted_mechanisms": ["http_message_signature"]
+            }
+          }
         }
       ]
     },
@@ -3852,6 +3869,17 @@ not redefine these concerns:
 > supplies on its own; UCP's own posture on platform authentication is
 > optional (`SHOULD`). Section 10.1.6 applies to UCP-Native checkout and
 > booking-extension operations exactly as it does to Standalone Mode.
+>
+> In UCP-Native Mode the policy required by Section 10.1.6 is published as
+> `config.authorization` on the `dev.usp.services` service binding in
+> `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)),
+> **not** as a top-level member of the UCP profile: USP declares only under its
+> own `dev.usp.*` namespace authority
+> ([Section 2.5](#25-namespace-governance)), and `config` is the member [UCP]
+> reserves for entity-specific settings.
+> Key publication and request signing likewise reuse UCP's own key array and
+> covered components ([Section 9.1.4](#914-request-signing)), so a UCP-Native
+> business adds a policy declaration rather than any new UCP-facing surface.
 
 ### 7.4 Paid Bookings Extension Schema
 
@@ -4599,6 +4627,17 @@ interactions.
       "currency": "USD"
     }
   },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -4620,7 +4659,9 @@ The business profile document has the following top-level fields:
 | Field          | Type              | Required    | Description                                                                                                                 |
 |----------------|-------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------|
 | `usp`          | object            | **Yes**     | The USP metadata object. Contains version, services, capabilities, checkout systems, business identity, and backward-compatibility declarations. |
-| `signing_keys` | Array[SigningKey] | Conditional | Public keys for webhook signature verification. **MUST** be present when the business sends signed webhooks. See [Section 10.1.1](#1011-webhook-security). |
+| `keys`         | Array[SigningKey] | Conditional | [UCP]-canonical public keys for webhook signature verification (top-level JWK Set [RFC 7517]). **MUST** be present when the business sends signed webhooks. Dual-publish with identical `signing_keys` is **RECOMMENDED** during transition. See [Section 10.1.1](#1011-webhook-security). |
+| `signing_keys` | Array[SigningKey] | No          | Transition alias for `keys`. **MAY** be published while consumers still read `signing_keys`. When both are present they **MUST** list the same keys; verifiers resolve against `keys` first. See [Section 10.1.1](#1011-webhook-security). |
+| `authorization`| AuthorizationPolicy | Conditional | How this business authenticates platforms for privileged operations. **MUST** be present when the business exposes privileged operations. In UCP-Native Mode this policy is published as `config.authorization` on the `dev.usp.services` service binding instead. See [Section 10.1.6](#1016-platform-authentication-for-privileged-operations). |
 
 The `usp` object fields:
 
@@ -4639,9 +4680,35 @@ Each **ServiceBinding** (an entry in a `services` value array) has:
 |------------|------------|-------------|----------------------------------------------------------------------------------------------------------------|
 | `version`  | string     | **Yes**     | Protocol version implemented at this endpoint (`YYYY-MM-DD`).                                                 |
 | `transport`| string     | **Yes**     | Transport protocol: `rest`, `mcp`, `a2a`, or `embedded`.                                                      |
-| `endpoint` | string URI | Conditional | Base URL of the endpoint. **REQUIRED** for `rest`, `mcp`, and `a2a` transports.                              |
-| `spec`     | string URI | No          | URL to the human-readable specification. **RECOMMENDED**.                                                     |
-| `schema`   | string URI | No          | URL to the machine-readable schema (OpenAPI for `rest`, OpenRPC for `mcp`). **RECOMMENDED**.                  |
+| `endpoint` | string URI | Conditional | Base URL of the endpoint. **REQUIRED** for `rest`, `mcp`, and `a2a` transports (for `a2a`, the Agent Card URL). |
+| `spec`     | string URI | **Yes**     | URL to the human-readable specification.                                                                      |
+| `schema`   | string URI | Conditional | URL to the machine-readable schema (OpenAPI for `rest`, OpenRPC for `mcp` and `embedded`). **REQUIRED** for `rest`, `mcp`, and `embedded`; not applicable to `a2a`. |
+| `id`       | string     | No          | Disambiguates multiple instances of the same service. Mirrors the [UCP] service definition field.             |
+| `config`   | object     | No          | Binding-specific settings, following [UCP]'s convention of carrying entity-specific configuration under `config`. Carries `authorization` in UCP-Native Mode (see below). |
+
+These requirements mirror [UCP]'s service definition, so the same binding
+object is conformant when it is published inside `/.well-known/ucp` in
+UCP-Native Mode. The `spec` and `schema` origins **MUST** match the namespace
+authority of the service key: `https://usp.dev/...` for `dev.usp.*`
+([Section 2.5](#25-namespace-governance)).
+
+The `config` object carries binding-specific settings:
+
+| Field           | Type                | Required    | Description                                                                                                   |
+|-----------------|---------------------|-------------|-----------------------------------------------------------------------------------------------------------------|
+| `authorization` | AuthorizationPolicy | Conditional | Authentication policy governing privileged operations at this endpoint. This is where UCP-Native deployments publish the policy, since USP does not add top-level members to a [UCP] profile and `config` is the slot [UCP] defines for entity-specific settings. **REQUIRED** in UCP-Native Mode when the endpoint exposes privileged operations. See [Section 10.1.6](#1016-platform-authentication-for-privileged-operations). |
+
+A ServiceBinding **MUST NOT** carry `authorization` as a direct member; the
+policy belongs under `config`. Consumers **MUST** reject a binding that
+declares a direct `authorization` member rather than reading it, and **MUST
+NOT** treat it as a published policy. This is the one exception to the
+forward-compatibility rule in
+[Section 10.1.6](#1016-platform-authentication-for-privileged-operations) that
+otherwise requires consumers to ignore unrecognized profile fields: silently
+ignoring a misplaced policy would leave a business believing it had advertised
+an authentication requirement that no conforming platform reads, and silently
+honoring it would keep the non-idiomatic placement alive in deployed profiles.
+[`schemas/usp.json`](schemas/usp.json) enforces this.
 
 Each **ProfileCapabilityEntry** (an entry in a `capabilities` value array) has:
 
@@ -4795,6 +4862,33 @@ Businesses fetching platform profiles:
 - **MUST** treat platform profile fetch failures as protocol errors. See the
   `profile_unreachable` and `profile_malformed` error codes in
   [Section 9.4](#94-error-code-mapping).
+
+**Fetch hardening (MUST/SHOULD).** A platform profile URI is supplied by the
+caller, so fetching it is an outbound request that an unauthenticated party
+chooses. Businesses therefore:
+
+- **MUST** reject profile URLs that resolve to special-use IP addresses
+  [RFC 6890] (loopback, link-local including the cloud metadata address
+  `169.254.169.254`, private, and other reserved ranges), except a loopback
+  target when the verifier itself runs on that loopback interface for local
+  development. Verifiers **SHOULD** validate the resolved address rather than
+  the hostname alone, to resist DNS rebinding.
+- **SHOULD** enforce connect and response timeouts, and **SHOULD** bound the
+  response body size. A profile is an identity and capability manifest, not a
+  data payload; a bound of no less than 128 KiB does not reject conformant
+  profiles.
+- **SHOULD** keep the cost of resolving unrecognized platforms constant
+  regardless of how many distinct platforms call, for example with a
+  fixed-size (LRU) profile cache, a global rate limit on discovery fetches,
+  backoff on repeated failures, and negative caching of unresolvable URIs.
+  This matters specifically for the personal-agent population
+  ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)),
+  where the number of distinct profile URIs is large.
+- **SHOULD** force-refresh a cached profile at most once per TTL floor per
+  origin when signature verification fails with an unknown `keyid`.
+
+These requirements match [UCP]'s profile fetching rules; a UCP-Native business
+inherits them from UCP and need not implement them twice.
 
 #### 8.2.4 Backward Compatibility
 
@@ -5863,9 +5957,21 @@ The business resolves the platform profile to perform capability negotiation ([S
 
 State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, registry) **SHOULD** be signed using HTTP Message Signatures [RFC 9421] to ensure integrity and authenticity. Signing is the **RECOMMENDED** way to satisfy the privileged-operation authentication requirement of [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) when the platform has no pre-established credential with the business: it requires no prior credential exchange, so it scales unchanged from a single well-known platform to a large population of distinct personal-agent instances. Request signing uses the same infrastructure as webhook signing ([Section 10.1.1](#1011-webhook-security)).
 
-**Signed components:** The signature **MUST** cover at minimum: `content-digest`, `content-type`, `@method`, `@target-uri`, and `@created`. The `usp-agent` and `idempotency-key` headers **SHOULD** also be included when present.
+**Signed components:** The covered components are the same set [UCP] requires for its REST binding, so that one signature satisfies a USP verifier and a UCP verifier alike. The signature **MUST** cover `@method`, `@authority`, and `@path`. It **MUST** additionally cover each of the following when present on the request: `@query`, `usp-agent` (or `ucp-agent`, in UCP-Native Mode), `idempotency-key`, `content-digest`, and `content-type`.
 
-**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
+> **Do not substitute `@target-uri` for `@authority` and `@path`.** A verifier
+> that enforces covered components (as [UCP] does) treats a request whose
+> target components are absent from the covered set as unsigned, so a signature
+> covering only `@target-uri` fails verification. `@target-uri` **MAY** be
+> covered in addition, never instead.
+
+**Signature parameters:** `keyid` **MUST** identify the signing key. `created` is **OPTIONAL** for request signing, matching [UCP]: request replay protection is provided at the business layer by the signed `Idempotency-Key` (see the replay paragraph below), not by a signature timestamp. A signer that includes `created` **MUST** express it as an RFC 9421 signature parameter (`;created=...`), not as a covered component identifier.
+
+**Algorithm and encoding:** Verifiers **MUST** support verifying `ES256` (ECDSA P-256 with SHA-256), which is the baseline [UCP] and USP share. Signers **SHOULD** default to `ES256` absent a specific counterparty constraint. ECDSA signature values **MUST** use the fixed-width raw `r||s` encoding required by [RFC 9421] (64 bytes for P-256), not ASN.1/DER; several common crypto libraries emit DER by default and require explicit conversion. `Content-Digest` is computed over the raw body bytes per [RFC 9530] using `sha-256`; intermediaries **MUST NOT** re-serialize JSON bodies, as that invalidates the signature.
+
+**Replay protection:** Platforms **SHOULD** send `Idempotency-Key` on state-modifying privileged requests ([Section 9.1.1](#911-idempotency)) and, when signing, **MUST** include it in the covered components so it cannot be altered in transit. Businesses **SHOULD** reject or de-duplicate replays on that key. USP does not impose a signature-timestamp freshness window on requests; where a business does enforce one (or where a signature carries `created`/`expires` for an external profile such as Web Bot Auth), it **MUST** be applied in addition to, not instead of, idempotency-key de-duplication.
+
+**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
 
 **Example:**
 
@@ -5876,7 +5982,7 @@ Content-Type: application/json
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 Content-Digest: sha-256=:RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=:
-Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
+Signature-Input: sig1=("@method" "@authority" "@path" "usp-agent" "idempotency-key" "content-digest" "content-type");keyid="platform-2026"
 Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
 
 {"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
@@ -5955,7 +6061,7 @@ The `_meta.usp.profile` field inside `arguments` carries the platform's profile 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
 - **Public methods** (`x-usp-access: public` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)): catalog, availability query, and registry search/get. Authentication is optional.
-- **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, feed subscribe, registry register, waitlist list. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same five mechanisms documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
+- **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, feed subscribe, registry register, waitlist list. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same mechanism set documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
 - **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, waitlist entry, or registry registration. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it.
 
 When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
@@ -6149,7 +6255,7 @@ POST /webhooks/usp HTTP/1.1
 Host: platform.example.com
 Content-Type: application/json
 Content-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
-Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type");keyid="biz-webhook-2026"
+Signature-Input: sig1=("@method" "@authority" "@path" "content-digest" "content-type");keyid="biz-webhook-2026";created=1711036800
 Signature: sig1=:MEUCIQDTxNq8h7LGHpvVZQp1iHkFp9...:
 
 {
@@ -6661,13 +6767,17 @@ uses HTTP Message Signatures [RFC 9421] for webhook verification.
   64 bytes for P-256 (32 + 32). Many crypto libraries (OpenSSL, Java, .NET)
   default to DER encoding and require explicit conversion.
 - **Covered components:** The signature **MUST** cover at minimum: `@method`,
-  `@authority`, `@path`, `@created`, `content-digest`, and `content-type`.
+  `@authority`, `@path`, `content-digest`, and `content-type`.
   Including `@authority` prevents cross-host relay attacks; including `@path`
-  prevents endpoint confusion.
+  prevents endpoint confusion. The freshness timestamp is carried as the
+  RFC 9421 `created` **signature parameter** (`;created=...`), which businesses
+  **MUST** include on webhooks; it is a parameter, not a covered component, and
+  is never written as `@created`.
 - **Content digest:** The request **MUST** include a `Content-Digest`
   header [RFC 9530] computed over the webhook body.
 - **Key ID:** The `Signature-Input` **MUST** include a `keyid` parameter that
-  matches a key in the business profile's `signing_keys` array.
+  matches a key in the business profile's `keys` array (or, during transition,
+  its `signing_keys` fallback; see resolution rule below).
 
 **Intermediary Warning:** Proxies, API gateways, and other intermediaries
 **MUST NOT** re-serialize JSON bodies, as this would invalidate the signature.
@@ -6676,17 +6786,45 @@ verification.
 
 **Signing Keys in Business Profile:**
 
-The business profile **MUST** include a top-level `signing_keys` array
-containing one or more public keys in JWK format [RFC 7517]. See
+When the business sends signed webhooks, the business profile **MUST** publish
+signing material in a top-level `keys` array containing one or more public keys
+in JWK format [RFC 7517] (UCP-canonical, so the profile document is also a
+valid JWK Set). The profile **MAY** also publish a top-level `signing_keys`
+array during transition; dual-publishing identical `keys` and `signing_keys` is
+**RECOMMENDED** so USP publishers satisfy both UCP main/draft verifiers and
+legacy readers. When both arrays are present they **MUST** list the same keys.
+Verifiers **MUST** resolve a `keyid` against `keys` when it is present and fall
+back to `signing_keys` otherwise. This publisher and verifier rule applies to
+platform profiles ([Section 8.2.3](#823-platform-profile)) identically. See
 [Section 8.2.1](#821-business-profile-fields) for the full business profile
 structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
 hosting requirements.
+
+> **`keys` alias ([UCP] migration).** [UCP] is moving its canonical key array
+> from `signing_keys` to a top-level `keys` array, so that the profile document
+> is simultaneously a valid JWK Set [RFC 7517]. USP tracks this without forcing
+> a flag day: a profile **MAY** publish `keys` in addition to, or instead of,
+> `signing_keys`, and both arrays **MUST** list the same keys when both are
+> present. Verifiers **MUST** resolve a `keyid` against `keys` when it is
+> present and fall back to `signing_keys` otherwise. This rule applies to
+> platform profiles ([Section 8.2.3](#823-platform-profile)) identically.
 
 > **JSON Schema:** [/$defs/SigningKey](schemas/profile.json) · [schemas/usp.json](schemas/usp.json)
 
 ```json
 {
   "usp": { "..." : "..." },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -6706,14 +6844,14 @@ Each `SigningKey` object has the following fields:
 | Field | Type   | Required    | Description                                                                                                 |
 |-------|--------|-------------|-------------------------------------------------------------------------------------------------------------|
 | `kid` | string | **Yes**     | Key ID. Matched against the `keyid` parameter in the `Signature-Input` header to identify the signing key. |
-| `kty` | string | **Yes**     | Key type: `EC` or `RSA`.                                                                                   |
-| `crv` | string | Conditional | Elliptic curve: `P-256` or `P-384`. **REQUIRED** when `kty` is `EC`.                                      |
+| `kty` | string | **Yes**     | Key type, e.g. `EC` or `RSA` (`OKP` where the counterparty profile defines it).                            |
+| `crv` | string | Conditional | Elliptic curve, e.g. `P-256` or `P-384`. **REQUIRED** when `kty` is `EC`.                                  |
 | `x`   | string | Conditional | X coordinate (base64url). **REQUIRED** for EC keys.                                                        |
 | `y`   | string | Conditional | Y coordinate (base64url). **REQUIRED** for EC keys.                                                        |
 | `n`   | string | Conditional | Modulus (base64url). **REQUIRED** for RSA keys.                                                             |
 | `e`   | string | Conditional | Exponent (base64url). **REQUIRED** for RSA keys.                                                            |
 | `use` | string | No          | Intended key usage: `sig` or `enc`. **SHOULD** be set to `sig` for webhook verification keys.              |
-| `alg` | string | No          | Algorithm: `ES256`, `ES384`, or `RS256`. Implementations **MUST** support `ES256`. `ES384` and `RS256` are **OPTIONAL**. |
+| `alg` | string | No          | Algorithm, e.g. `ES256`, `ES384`, or `RS256`. Verifiers **MUST** support verifying `ES256`; signers **SHOULD** default to it. Other values are **OPTIONAL**, and the JWK vocabulary is open (see the forward-compatibility rule in [Section 10.1.6](#1016-platform-authentication-for-privileged-operations)): a verifier that encounters a key type, curve, or algorithm it does not implement **MUST** skip that key rather than reject the profile. |
 
 Multiple keys **MUST** be supported for key rotation. The business **SHOULD**
 publish the new key before transitioning to it. Old keys **MUST** be retained
@@ -6722,14 +6860,16 @@ for at least **7 days** after rotation. Businesses **SHOULD** rotate keys every
 
 **Key Compromise Response:**
 
-1. Immediately remove the compromised key from the business profile.
-2. Add a new key with a different `kid`.
+1. Immediately remove the compromised key from `keys` and from `signing_keys`
+   when that transition alias is also published.
+2. Add a new key with a different `kid` (to both arrays when dual-publishing).
 3. Reject all signatures made with the compromised key.
 
 **Verification:** Platforms **MUST** verify webhook signatures before processing
 events by parsing `Signature` and `Signature-Input` headers per [RFC 9421],
-looking up the `keyid` in the business profile's `signing_keys`, verifying the
-signature, and verifying the `Content-Digest` matches the body.
+looking up the `keyid` in the business profile's `keys` array first (falling
+back to `signing_keys` when `keys` is absent), verifying the signature, and
+verifying the `Content-Digest` matches the body.
 
 **Signature Verification Error Codes:**
 
@@ -6737,23 +6877,35 @@ signature, and verifying the `Content-Digest` matches the body.
 |----------------------|-------------|----------------------------------------------------------------------------------------------|
 | `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
 | `signature_invalid`  | 401         | Signature verification failed.                                                               |
-| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile.            |
-| `digest_mismatch`    | 401         | `Content-Digest` header does not match the computed digest of the request body.             |
-| `signature_expired`  | 401         | The `@created` timestamp is outside the acceptable window (older than 5 minutes).           |
+| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile (`keys`, else `signing_keys`). |
+| `digest_mismatch`    | 400         | `Content-Digest` header does not match the computed digest of the body. (400, matching [UCP]: the message is malformed rather than unauthenticated.) |
+| `algorithm_unsupported` | 400      | The signature algorithm of the resolved key is not supported by the verifier.                |
+| `signature_expired`  | 401         | The `created` signature parameter is outside the freshness window the verifier enforces. Applies to webhooks (see the replay rules below) and to any other signature the verifier evaluates for freshness; it does **not** apply to request signatures, where `created` is optional and replay protection is the signed `Idempotency-Key` ([Section 9.1.4](#914-request-signing)). |
 
-> **REST:** [401 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
+> **REST:** [401/400 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
 
 **Response Signing:** Businesses **SHOULD** sign responses for booking
 confirmations and pricing data using HTTP Message Signatures [RFC 9421].
 Response signatures use `@status` instead of `@method` as a covered component.
 
-**Replay Protection:** Recipients **MUST** implement replay protection by:
+**Replay Protection:** The rules differ by direction, because the two
+directions carry different anti-replay material.
 
-- Checking the `@created` parameter in `Signature-Input` and rejecting messages
-  older than **5 minutes**.
-- Tracking the `Idempotency-Key` (for requests) or event `id` (for webhooks)
-  and rejecting duplicates.
-- Both checks **MUST** be applied together — timestamp alone is insufficient.
+- **Webhooks (business to platform).** Businesses **MUST** include the `created`
+  signature parameter, and receiving platforms **MUST** reject payloads whose
+  `created` is older than a configurable window (RECOMMENDED: **5 minutes**).
+  Platforms **MUST** additionally track the event `id` and reject duplicates.
+  Both checks **MUST** be applied together; a timestamp alone is insufficient.
+  A webhook has no idempotency key of its own, which is why the timestamp is
+  required here.
+- **Requests (platform to business).** Replay protection is the signed
+  `Idempotency-Key`, per [Section 9.1.4](#914-request-signing) and matching
+  [UCP]'s model. `created` is OPTIONAL on request signatures, and businesses
+  **MUST NOT** reject a request solely because it carries no `created`
+  parameter.
+
+Note that `created` is an RFC 9421 signature *parameter* (`;created=...`), not
+a covered component identifier; it is never written as `@created`.
 
 #### 10.1.2 Hold Abuse Prevention
 
@@ -6880,14 +7032,32 @@ the business **MUST** confirm the authenticated principal is authorized to act
 on behalf of the profile identified in the agent header, and **MUST** reject
 requests where the two conflict.
 
-**Accepted mechanisms:** A business **MUST** accept at least one of the
-following for privileged operations, and **MUST** publish which one(s) it
-requires via the `authorization` object in its business profile (see
-[`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`):
+**Where the policy is published (both modes):** The `authorization` object is
+defined once in [`schemas/profile.json`](schemas/profile.json)
+`$defs/AuthorizationPolicy` and published according to deployment mode:
+
+- **Standalone Mode:** as a top-level `authorization` member of the business
+  profile at `/.well-known/usp` ([Section 8.2.1](#821-business-profile-fields)).
+- **UCP-Native Mode:** as `config.authorization` on the business's
+  `dev.usp.services` service binding inside the `ucp.services` registry of
+  `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)).
+  USP **MUST NOT** add top-level members to a [UCP] profile document: under
+  UCP's namespace governance ([Section 2.5](#25-namespace-governance)) a
+  non-UCP declaration belongs under the reverse-domain key of its own
+  authority, which for USP is `dev.usp.*`. Within that key, `config` is the
+  member [UCP] defines for carrying entity-specific settings on a service or
+  capability entry, so the policy travels in the slot UCP already reserves for
+  it rather than as an invented sibling field. Publishing it on the
+  `dev.usp.services` binding also scopes it correctly, since it governs access
+  to the USP endpoint that binding declares.
+
+A business **MUST** accept at least one of the following for privileged
+operations, and **MUST** publish which one(s) it requires via that
+`authorization` policy:
 
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `signing_keys` already published in the platform profile ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
+| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
 | Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
@@ -6899,6 +7069,48 @@ not individually vetted, since doing so reintroduces the pre-onboarding
 bottleneck this section exists to avoid for personal agents. HTTP Message
 Signatures or a booking-scoped credential **SHOULD** be offered alongside any
 pre-established mechanism for that reason.
+
+**Forward compatibility (MUST):** The mechanism list, the signing-key
+vocabulary, and the profile documents that carry them are extension points, not
+closed sets. A consumer **MUST NOT** reject a profile document, a key, or an
+`authorization` policy solely because it contains a mechanism identifier, JWK
+member, algorithm, or profile field the consumer does not recognize; it **MUST**
+ignore what it does not recognize and continue with what it does. A consumer
+**MUST NOT** treat an unrecognized mechanism as an accepted one: if none of the
+mechanisms it recognizes is present, it **MUST** behave as though no mutually
+supported mechanism exists and fail closed. This is what lets USP inherit a new
+[UCP] mechanism or algorithm as a data change rather than a specification
+revision.
+
+The single exception is a misplaced policy: a service binding that declares
+`authorization` as a direct member instead of under `config` **MUST** be
+rejected ([Section 8.2.1](#821-business-profile-fields)). Ignoring it would
+leave the business advertising an authentication requirement that no conforming
+platform reads, which fails open in exactly the way this section forbids.
+
+**Signalling rejection (SHOULD):** When a business rejects a privileged request
+for missing or invalid authentication, it **SHOULD** return `401 Unauthorized`
+with a `WWW-Authenticate` header per [RFC 9110], and **SHOULD** name the
+mechanisms it would have accepted so the caller can correct itself rather than
+retry blindly. This is the same signalling [UCP] uses for unauthorized protocol
+errors. Note that `signature` is not an IANA-registered authentication scheme;
+a business requiring HTTP Message Signatures **SHOULD** advertise them through
+its published `authorization` policy and **MAY** additionally reference them in
+`WWW-Authenticate` for diagnostic purposes.
+
+> **Security consideration: platform identity is not per-resource authority.**
+> Every platform-level mechanism in the table above (HTTP Message Signatures,
+> OAuth, API key, mTLS) answers "which platform is calling," not "may this
+> caller act on *this* booking." A business that accepts only a platform-level
+> mechanism on `get`/`update`/`cancel`/reschedule and other PII-bearing
+> operations therefore authorizes any authenticated platform to act on any
+> booking it can identify, which is the exposure the resource-identifier rule
+> at the top of this section warns about. Businesses **SHOULD** additionally
+> require a `booking_scoped_credential` (or an equivalent per-resource check,
+> such as binding the booking to the buyer identity established by identity
+> linking in [Section 10.2.4](#1024-identity-linking)) on those operations.
+> USP does not raise this to a **MUST** while the credential's issuance format
+> is still being specified.
 
 > **Why not simply require OAuth Bearer everywhere, or simply follow UCP's
 > optional guidance?** Mandating only a pre-established mechanism assumes a
@@ -7188,7 +7400,7 @@ cancellation fee for the original booking.
 
 Businesses **SHOULD** notify platforms of waitlist state changes via webhooks.
 Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
-`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
+`keys` / transition `signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event                       | Trigger                                                    |
 |-----------------------------|------------------------------------------------------------|
@@ -7632,6 +7844,9 @@ registration of:
 - **[RFC 5246]** Dierks, T. and E. Rescorla, "The Transport Layer Security (TLS)
   Protocol Version 1.2", RFC 5246, DOI 10.17487/RFC5246, August
   2008. https://www.rfc-editor.org/rfc/rfc5246
+- **[RFC 6890]** Cotton, M., Vegoda, L., Bonica, R., Ed., and B. Haberman,
+  "Special-Purpose IP Address Registries", BCP 153, RFC 6890, DOI
+  10.17487/RFC6890, April 2013. https://www.rfc-editor.org/rfc/rfc6890
 - **[RFC 6749]** Hardt, D., Ed., "The OAuth 2.0 Authorization Framework", RFC
   6749, DOI 10.17487/RFC6749, October
   2012. https://www.rfc-editor.org/rfc/rfc6749
@@ -7785,6 +8000,7 @@ version of USP when:
 [RFC 6749 §10.12]: https://www.rfc-editor.org/rfc/rfc6749#section-10.12
 
 [RFC 6750]: https://www.rfc-editor.org/rfc/rfc6750
+[RFC 6890]: https://www.rfc-editor.org/rfc/rfc6890
 
 [RFC 7009]: https://www.rfc-editor.org/rfc/rfc7009
 
@@ -7833,6 +8049,7 @@ version of USP when:
 [RFC 6749 §10.12]: https://www.rfc-editor.org/rfc/rfc6749#section-10.12
 
 [RFC 6750]: https://www.rfc-editor.org/rfc/rfc6750
+[RFC 6890]: https://www.rfc-editor.org/rfc/rfc6890
 
 [RFC 7009]: https://www.rfc-editor.org/rfc/rfc7009
 

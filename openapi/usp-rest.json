@@ -162,23 +162,56 @@
     },
     "responses": {
       "BadRequest": {
-        "description": "Protocol error: malformed request",
+        "description": "Protocol error: malformed request, or a signature the verifier cannot evaluate (digest_mismatch, algorithm_unsupported).",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp.dev/errors/invalid_request",
-              "title": "Bad Request",
-              "status": 400,
-              "detail": "Malformed JSON or missing required fields"
+            "examples": {
+              "invalid_request": {
+                "summary": "Malformed request",
+                "value": {
+                  "type": "https://usp.dev/errors/invalid_request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Malformed JSON or missing required fields"
+                }
+              },
+              "algorithm_unsupported": {
+                "summary": "Signature algorithm not supported by the verifier",
+                "value": {
+                  "type": "https://usp.dev/errors/algorithm_unsupported",
+                  "title": "Algorithm Unsupported",
+                  "status": 400,
+                  "detail": "The algorithm of the resolved signing key is not supported; ES256 is the baseline every verifier supports"
+                }
+              },
+              "digest_mismatch": {
+                "summary": "Content-Digest does not match body",
+                "value": {
+                  "type": "https://usp.dev/errors/digest_mismatch",
+                  "title": "Digest Mismatch",
+                  "status": 400,
+                  "detail": "Content-Digest header does not match the computed digest of the request body"
+                }
+              }
             }
           }
         }
       },
       "Unauthorized": {
-        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile), digest_mismatch (Content-Digest does not match body), signature_expired (@created outside acceptable window).",
+        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile keys/signing_keys), signature_expired (the RFC 9421 'created' signature parameter is outside a freshness window the verifier enforces; note that 'created' is OPTIONAL on request signatures, where replay protection is the signed Idempotency-Key, so this code applies chiefly to webhooks). digest_mismatch and algorithm_unsupported are 400-class; see BadRequest. Responses SHOULD carry WWW-Authenticate naming the mechanisms the business would have accepted (specification.md Section 10.1.6).",
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "SHOULD be present. Names the authentication mechanisms the business would have accepted for this operation, per RFC 9110 and the business's published AuthorizationPolicy. Note that 'signature' is not an IANA-registered auth scheme; HTTP Message Signature support is advertised authoritatively via the profile's authorization policy.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer realm=\"usp\", error=\"invalid_token\""
+          }
+        },
         "content": {
           "application/problem+json": {
             "schema": {
@@ -221,22 +254,13 @@
                   "detail": "The keyid in Signature-Input does not match any key in the signer's profile"
                 }
               },
-              "digest_mismatch": {
-                "summary": "Content-Digest does not match body",
-                "value": {
-                  "type": "https://usp.dev/errors/digest_mismatch",
-                  "title": "Digest Mismatch",
-                  "status": 401,
-                  "detail": "Content-Digest header does not match the computed digest of the request body"
-                }
-              },
               "signature_expired": {
-                "summary": "Signature timestamp outside acceptable window",
+                "summary": "Signature 'created' parameter outside the verifier's freshness window",
                 "value": {
                   "type": "https://usp.dev/errors/signature_expired",
                   "title": "Signature Expired",
                   "status": 401,
-                  "detail": "The @created timestamp is outside the acceptable window"
+                  "detail": "The 'created' signature parameter is outside the acceptable window"
                 }
               }
             }
@@ -385,7 +409,7 @@
       "HttpMessageSignature": {
         "type": "http",
         "scheme": "signature",
-        "description": "RFC 9421 HTTP Message Signatures, keyed off the signing_keys published in the platform profile referenced by the USP-Agent/UCP-Agent header. RECOMMENDED default mechanism: requires no pre-established credential, so a personal single-user agent can authenticate solely by publishing a profile. See specification.md Section 9.1.4 and Section 10.1.6. Note: 'signature' is not an IANA-registered HTTP auth scheme; this entry documents USP's use of RFC 9421 rather than asserting WWW-Authenticate scheme registration. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "description": "RFC 9421 HTTP Message Signatures, keyed off the keys (or transition signing_keys alias; verifiers resolve keys first) published in the platform profile referenced by the USP-Agent/UCP-Agent header. RECOMMENDED default mechanism: requires no pre-established credential, so a personal single-user agent can authenticate solely by publishing a profile. Covered components are UCP's REST set so one signature satisfies both verifiers: @method, @authority and @path are always covered, plus @query, usp-agent (or ucp-agent), idempotency-key, content-digest and content-type when present. @target-uri MAY be covered additionally but MUST NOT replace @authority and @path. The 'created' parameter is OPTIONAL; request replay protection is the signed Idempotency-Key. ECDSA signature values use fixed-width raw r||s encoding, not DER, and verifiers MUST support ES256. See specification.md Section 9.1.4 and Section 10.1.6. Note: 'signature' is not an IANA-registered HTTP auth scheme; this entry documents USP's use of RFC 9421 rather than asserting WWW-Authenticate scheme registration. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes; that identifier set is open, and consumers ignore unrecognized mechanisms rather than treating them as accepted.",
         "x-usp-mechanism": "http_message_signature"
       },
       "BookingScopedCredential": {
@@ -4042,6 +4066,17 @@
                       "currency": "USD"
                     }
                   },
+                  "keys": [
+                    {
+                      "kid": "usp-webhook-key-2026-02",
+                      "kty": "EC",
+                      "crv": "P-256",
+                      "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+                      "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+                      "use": "sig",
+                      "alg": "ES256"
+                    }
+                  ],
                   "signing_keys": [
                     {
                       "kid": "usp-webhook-key-2026-02",

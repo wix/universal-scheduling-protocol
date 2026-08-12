@@ -50,7 +50,16 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json"
+          "schema": "https://usp.dev/services/rest.openapi.json",
+          "config": {
+            "authorization": {
+              "privileged_operations_require_authentication": true,
+              "accepted_mechanisms": [
+                "http_message_signature",
+                "booking_scoped_credential"
+              ]
+            }
+          }
         }
       ]
     },
@@ -112,8 +121,16 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
       "dev.usp.services": [
         {
           "version": "2026-02-09",
+          "spec": "https://usp.dev/specification",
           "transport": "rest",
-          "endpoint": "https://business.example.com/usp/v1"
+          "endpoint": "https://business.example.com/usp/v1",
+          "schema": "https://usp.dev/services/rest.openapi.json",
+          "config": {
+            "authorization": {
+              "privileged_operations_require_authentication": true,
+              "accepted_mechanisms": ["http_message_signature"]
+            }
+          }
         }
       ]
     },
