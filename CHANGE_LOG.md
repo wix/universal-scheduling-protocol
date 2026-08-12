@@ -1,5 +1,13 @@
 # Change Log
 
+## 12/08/26 at 15:33:08 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned USP publisher rules so signing material **MUST** appear in top-level `keys` (UCP-canonical) with optional identical `signing_keys` during transition, dual-publish recommended, and verifiers resolving `keys` first across `specification.md` §8.2.1 / §9.1.4 / §10.1.1, `schemas/profile.json`, site-docs, and OpenAPI examples
+- Softened former publisher **MUST** on `signing_keys` so USP publishers satisfy UCP main/draft verifiers that require `keys[]`, without breaking Standalone readers that still consume the transition alias
+- Cleared residual AC-S contradictions in the same signing surfaces: request covered components match UCP (`@authority`/`@path`, not `@created` as a covered component), `created` is an OPTIONAL request signature parameter, and `digest_mismatch` is HTTP 400 in both the spec table and `openapi/usp-rest.json`
+
+---
+
 ## 09/08/26 at 18:09:19 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Aligned `openrpc/usp-mcp.json` with the AC-S auth model already in `openapi/usp-rest.json`, so transport-agnostic privileged-vs-public access and the five authorization mechanisms are shared rather than REST-only: extracted `$defs/AuthorizationMechanism` in `schemas/profile.json` (referenced by `AuthorizationPolicy`), annotated OpenAPI `securitySchemes` with `x-usp-mechanism`, and added matching `components.x-usp-securitySchemes` plus `McpAuthorization` / `McpUspMeta*` schemas and per-method `x-usp-access` (`public` / `privileged_platform` / `privileged_scoped`) in the MCP binding
