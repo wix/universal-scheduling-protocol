@@ -3030,8 +3030,8 @@ payloads **MUST** be signed (see [Section 10.1.1](#1011-webhook-security)).
 Businesses **SHOULD** notify platforms of catalog changes via webhooks. This
 provides a push-based complement to the pull-based service catalog
 feed ([Section 3.1](#31-service-catalog-feed)). Catalog webhooks ride on the
-same webhook infrastructure (RFC 9421 signing, `signing_keys`, verification
-flow) defined in [Section 10.1.1](#1011-webhook-security).
+same webhook infrastructure (RFC 9421 signing, `keys` / transition
+`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event               | Trigger                                                                         |
 |---------------------|---------------------------------------------------------------------------------|
@@ -4599,6 +4599,17 @@ interactions.
       "currency": "USD"
     }
   },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -4620,7 +4631,8 @@ The business profile document has the following top-level fields:
 | Field          | Type              | Required    | Description                                                                                                                 |
 |----------------|-------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------|
 | `usp`          | object            | **Yes**     | The USP metadata object. Contains version, services, capabilities, checkout systems, business identity, and backward-compatibility declarations. |
-| `signing_keys` | Array[SigningKey] | Conditional | Public keys for webhook signature verification. **MUST** be present when the business sends signed webhooks. See [Section 10.1.1](#1011-webhook-security). |
+| `keys`         | Array[SigningKey] | Conditional | [UCP]-canonical public keys for webhook signature verification (top-level JWK Set [RFC 7517]). **MUST** be present when the business sends signed webhooks. Dual-publish with identical `signing_keys` is **RECOMMENDED** during transition. See [Section 10.1.1](#1011-webhook-security). |
+| `signing_keys` | Array[SigningKey] | No          | Transition alias for `keys`. **MAY** be published while consumers still read `signing_keys`. When both are present they **MUST** list the same keys; verifiers resolve against `keys` first. See [Section 10.1.1](#1011-webhook-security). |
 
 The `usp` object fields:
 
@@ -5863,9 +5875,19 @@ The business resolves the platform profile to perform capability negotiation ([S
 
 State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, registry) **SHOULD** be signed using HTTP Message Signatures [RFC 9421] to ensure integrity and authenticity. Signing is the **RECOMMENDED** way to satisfy the privileged-operation authentication requirement of [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) when the platform has no pre-established credential with the business: it requires no prior credential exchange, so it scales unchanged from a single well-known platform to a large population of distinct personal-agent instances. Request signing uses the same infrastructure as webhook signing ([Section 10.1.1](#1011-webhook-security)).
 
-**Signed components:** The signature **MUST** cover at minimum: `content-digest`, `content-type`, `@method`, `@target-uri`, and `@created`. The `usp-agent` and `idempotency-key` headers **SHOULD** also be included when present.
+**Signed components:** The covered components are the same set [UCP] requires for its REST binding, so that one signature satisfies a USP verifier and a UCP verifier alike. The signature **MUST** cover `@method`, `@authority`, and `@path`. It **MUST** additionally cover each of the following when present on the request: `@query`, `usp-agent` (or `ucp-agent`, in UCP-Native Mode), `idempotency-key`, `content-digest`, and `content-type`.
 
-**Platform signing keys:** The platform's signing keys are published in the platform profile ([Section 8.2.3](#823-platform-profile)) via the `signing_keys` array. Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
+> **Do not substitute `@target-uri` for `@authority` and `@path`.** A verifier
+> that enforces covered components (as [UCP] does) treats a request whose
+> target components are absent from the covered set as unsigned, so a signature
+> covering only `@target-uri` fails verification. `@target-uri` **MAY** be
+> covered in addition, never instead.
+
+**Signature parameters:** `keyid` **MUST** identify the signing key. `created` is **OPTIONAL** for request signing, matching [UCP]: request replay protection is provided at the business layer by the signed `Idempotency-Key` (see the replay paragraph below), not by a signature timestamp. A signer that includes `created` **MUST** express it as an RFC 9421 signature parameter (`;created=...`), not as a covered component identifier.
+
+**Replay protection:** Platforms **SHOULD** send `Idempotency-Key` on state-modifying privileged requests ([Section 9.1.1](#911-idempotency)) and, when signing, **MUST** include it in the covered components so it cannot be altered in transit. Businesses **SHOULD** reject or de-duplicate replays on that key. USP does not impose a signature-timestamp freshness window on requests; where a business does enforce one, it **MUST** be applied in addition to, not instead of, idempotency-key de-duplication.
+
+**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
 
 **Example:**
 
@@ -5876,7 +5898,7 @@ Content-Type: application/json
 USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 Content-Digest: sha-256=:RK/0qy18MlBSVnWgjwz6lZEWjP/lF5HF9bvEF8FabDg=:
-Signature-Input: sig1=("@method" "@target-uri" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
+Signature-Input: sig1=("@method" "@authority" "@path" "content-digest" "content-type" "usp-agent" "idempotency-key");keyid="platform-2026";created=1711036800
 Signature: sig1=:MEUCIQDXyK9N3p5Rt...:
 
 {"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
@@ -6661,13 +6683,17 @@ uses HTTP Message Signatures [RFC 9421] for webhook verification.
   64 bytes for P-256 (32 + 32). Many crypto libraries (OpenSSL, Java, .NET)
   default to DER encoding and require explicit conversion.
 - **Covered components:** The signature **MUST** cover at minimum: `@method`,
-  `@authority`, `@path`, `@created`, `content-digest`, and `content-type`.
+  `@authority`, `@path`, `content-digest`, and `content-type`.
   Including `@authority` prevents cross-host relay attacks; including `@path`
-  prevents endpoint confusion.
+  prevents endpoint confusion. The freshness timestamp is carried as the
+  RFC 9421 `created` **signature parameter** (`;created=...`), which businesses
+  **MUST** include on webhooks; it is a parameter, not a covered component, and
+  is never written as `@created`.
 - **Content digest:** The request **MUST** include a `Content-Digest`
   header [RFC 9530] computed over the webhook body.
 - **Key ID:** The `Signature-Input` **MUST** include a `keyid` parameter that
-  matches a key in the business profile's `signing_keys` array.
+  matches a key in the business profile's `keys` array (or, during transition,
+  its `signing_keys` fallback; see resolution rule below).
 
 **Intermediary Warning:** Proxies, API gateways, and other intermediaries
 **MUST NOT** re-serialize JSON bodies, as this would invalidate the signature.
@@ -6676,8 +6702,16 @@ verification.
 
 **Signing Keys in Business Profile:**
 
-The business profile **MUST** include a top-level `signing_keys` array
-containing one or more public keys in JWK format [RFC 7517]. See
+When the business sends signed webhooks, the business profile **MUST** publish
+signing material in a top-level `keys` array containing one or more public keys
+in JWK format [RFC 7517] (UCP-canonical, so the profile document is also a
+valid JWK Set). The profile **MAY** also publish a top-level `signing_keys`
+array during transition; dual-publishing identical `keys` and `signing_keys` is
+**RECOMMENDED** so USP publishers satisfy both UCP main/draft verifiers and
+legacy readers. When both arrays are present they **MUST** list the same keys.
+Verifiers **MUST** resolve a `keyid` against `keys` when it is present and fall
+back to `signing_keys` otherwise. This publisher and verifier rule applies to
+platform profiles ([Section 8.2.3](#823-platform-profile)) identically. See
 [Section 8.2.1](#821-business-profile-fields) for the full business profile
 structure and [Section 8.2.2](#822-profile-hosting-requirements) for profile
 hosting requirements.
@@ -6687,6 +6721,17 @@ hosting requirements.
 ```json
 {
   "usp": { "..." : "..." },
+  "keys": [
+    {
+      "kid": "usp-webhook-key-2026-02",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "...",
+      "y": "...",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ],
   "signing_keys": [
     {
       "kid": "usp-webhook-key-2026-02",
@@ -6722,14 +6767,16 @@ for at least **7 days** after rotation. Businesses **SHOULD** rotate keys every
 
 **Key Compromise Response:**
 
-1. Immediately remove the compromised key from the business profile.
-2. Add a new key with a different `kid`.
+1. Immediately remove the compromised key from `keys` and from `signing_keys`
+   when that transition alias is also published.
+2. Add a new key with a different `kid` (to both arrays when dual-publishing).
 3. Reject all signatures made with the compromised key.
 
 **Verification:** Platforms **MUST** verify webhook signatures before processing
 events by parsing `Signature` and `Signature-Input` headers per [RFC 9421],
-looking up the `keyid` in the business profile's `signing_keys`, verifying the
-signature, and verifying the `Content-Digest` matches the body.
+looking up the `keyid` in the business profile's `keys` array first (falling
+back to `signing_keys` when `keys` is absent), verifying the signature, and
+verifying the `Content-Digest` matches the body.
 
 **Signature Verification Error Codes:**
 
@@ -6737,23 +6784,34 @@ signature, and verifying the `Content-Digest` matches the body.
 |----------------------|-------------|----------------------------------------------------------------------------------------------|
 | `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
 | `signature_invalid`  | 401         | Signature verification failed.                                                               |
-| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile.            |
-| `digest_mismatch`    | 401         | `Content-Digest` header does not match the computed digest of the request body.             |
-| `signature_expired`  | 401         | The `@created` timestamp is outside the acceptable window (older than 5 minutes).           |
+| `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile (`keys`, else `signing_keys`). |
+| `digest_mismatch`    | 400         | `Content-Digest` header does not match the computed digest of the body. (400, matching [UCP]: the message is malformed rather than unauthenticated.) |
+| `signature_expired`  | 401         | The `created` signature parameter is outside the freshness window the verifier enforces. Applies to webhooks (see the replay rules below); it does **not** apply to request signatures, where `created` is optional and replay protection is the signed `Idempotency-Key` ([Section 9.1.4](#914-request-signing)). |
 
-> **REST:** [401 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
+> **REST:** [401/400 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
 
 **Response Signing:** Businesses **SHOULD** sign responses for booking
 confirmations and pricing data using HTTP Message Signatures [RFC 9421].
 Response signatures use `@status` instead of `@method` as a covered component.
 
-**Replay Protection:** Recipients **MUST** implement replay protection by:
+**Replay Protection:** The rules differ by direction, because the two
+directions carry different anti-replay material.
 
-- Checking the `@created` parameter in `Signature-Input` and rejecting messages
-  older than **5 minutes**.
-- Tracking the `Idempotency-Key` (for requests) or event `id` (for webhooks)
-  and rejecting duplicates.
-- Both checks **MUST** be applied together — timestamp alone is insufficient.
+- **Webhooks (business to platform).** Businesses **MUST** include the `created`
+  signature parameter, and receiving platforms **MUST** reject payloads whose
+  `created` is older than a configurable window (RECOMMENDED: **5 minutes**).
+  Platforms **MUST** additionally track the event `id` and reject duplicates.
+  Both checks **MUST** be applied together; a timestamp alone is insufficient.
+  A webhook has no idempotency key of its own, which is why the timestamp is
+  required here.
+- **Requests (platform to business).** Replay protection is the signed
+  `Idempotency-Key`, per [Section 9.1.4](#914-request-signing) and matching
+  [UCP]'s model. `created` is OPTIONAL on request signatures, and businesses
+  **MUST NOT** reject a request solely because it carries no `created`
+  parameter.
+
+Note that `created` is an RFC 9421 signature *parameter* (`;created=...`), not
+a covered component identifier; it is never written as `@created`.
 
 #### 10.1.2 Hold Abuse Prevention
 
@@ -6887,7 +6945,7 @@ requires via the `authorization` object in its business profile (see
 
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `signing_keys` already published in the platform profile ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
+| HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
 | Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
@@ -7188,7 +7246,7 @@ cancellation fee for the original booking.
 
 Businesses **SHOULD** notify platforms of waitlist state changes via webhooks.
 Waitlist webhooks ride on the same webhook infrastructure (RFC 9421 signing,
-`signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
+`keys` / transition `signing_keys`, verification flow) defined in [Section 10.1.1](#1011-webhook-security).
 
 | Event                       | Trigger                                                    |
 |-----------------------------|------------------------------------------------------------|

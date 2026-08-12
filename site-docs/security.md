@@ -28,15 +28,24 @@ USP uses [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc94
 for webhook integrity verification:
 
 - Businesses **MUST** sign webhook payloads using keys published in the
-  business profile.
+  business profile: UCP-canonical `keys` (**MUST** when signing), with
+  optional identical `signing_keys` during transition (**RECOMMENDED**
+  dual-publish). Verifiers resolve `keys` first, then fall back to
+  `signing_keys`.
 - Platforms **MUST** verify webhook signatures before processing events.
 - Signatures **MUST** cover at minimum: the request body digest,
-  `Content-Type` header, and a timestamp.
+  `Content-Type` header, and a timestamp (the RFC 9421 `created` signature
+  parameter, written `;created=...`, not as a covered component).
 
-!!! warning "Replay Protection"
+!!! warning "Replay Protection differs by direction"
 
-    Webhook receivers **SHOULD** reject payloads older than a configurable
-    window (recommended: 5 minutes) to prevent replay attacks.
+    **Webhooks** carry no idempotency key, so receivers **MUST** reject
+    payloads whose `created` parameter is older than a configurable window
+    (recommended: 5 minutes) *and* de-duplicate on the event `id`.
+
+    **Requests** follow UCP's model instead: replay protection is the signed
+    `Idempotency-Key`, and `created` is OPTIONAL. Businesses **MUST NOT**
+    reject a signed request merely because it carries no `created` parameter.
 
 ### Hold Abuse Prevention
 
