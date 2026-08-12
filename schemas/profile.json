@@ -7,7 +7,7 @@
     "SigningKey": {
       "type": "object",
       "title": "SigningKey",
-      "description": "A public key in JWK format (RFC 7517) used to verify HTTP Message Signatures (RFC 9421) on webhook payloads sent by the profile publisher. The keyid parameter in the Signature-Input header of a webhook MUST match the kid of one of these keys.",
+      "description": "A public key in JWK format (RFC 7517) used to verify HTTP Message Signatures (RFC 9421) on webhook payloads or privileged requests sent by the profile publisher. The keyid parameter in the Signature-Input header MUST match the kid of one of these keys in the publisher's keys array (or the transition signing_keys alias; verifiers resolve keys first).",
       "required": ["kid", "kty"],
       "properties": {
         "kid": {
@@ -55,18 +55,24 @@
     "BusinessProfile": {
       "type": "object",
       "title": "BusinessProfile",
-      "description": "A USP business profile document. MUST be published at /.well-known/usp over HTTPS with no redirects and with Cache-Control: public, max-age>=60. Describes the scheduling endpoints, capabilities, payment support, business identity, and (optionally) webhook signing keys of a USP-enabled business.",
+      "description": "A USP business profile document. MUST be published at /.well-known/usp over HTTPS with no redirects and with Cache-Control: public, max-age>=60. Describes the scheduling endpoints, capabilities, payment support, business identity, and (when sending signed webhooks) UCP-canonical keys plus optional transition signing_keys of a USP-enabled business.",
       "required": ["usp"],
       "properties": {
         "usp": {
           "$ref": "usp.json#/$defs/business_schema",
           "description": "The USP metadata object. Contains version, services endpoint registry, capabilities registry, optional checkout_systems, business identity, and optional backward-compatibility declarations."
         },
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SigningKey" },
+          "description": "CONDITIONAL. UCP-canonical public keys for verifying webhook signatures (top-level RFC 7517 JWK Set). MUST be present when the business sends signed webhook payloads. Dual-publishing an identical signing_keys array is RECOMMENDED during transition. When both keys and signing_keys are present they MUST list the same keys; verifiers resolve a keyid against keys first, falling back to signing_keys. Multiple keys MUST be supported to enable zero-downtime key rotation. The business SHOULD publish a new key before switching to it, and SHOULD retain the old key for at least 24 hours after rotation. See specification.md Section 10.1.1."
+        },
         "signing_keys": {
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/SigningKey" },
-          "description": "CONDITIONAL. Public keys for verifying webhook signatures. MUST be present when the business sends signed webhook payloads. Multiple keys MUST be supported to enable zero-downtime key rotation. The business SHOULD publish a new key before switching to it, and SHOULD retain the old key for at least 24 hours after rotation."
+          "description": "OPTIONAL. Transition alias for keys. MAY be published while consumers still read signing_keys. When both keys and signing_keys are present they MUST list the same keys; verifiers resolve a keyid against keys first, falling back to signing_keys. See specification.md Section 10.1.1."
         },
         "authorization": {
           "$ref": "#/$defs/AuthorizationPolicy",
@@ -101,7 +107,7 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/AuthorizationMechanism" },
-          "description": "Mechanisms this business accepts for authenticating privileged-operation requests, in no particular preference order. http_message_signature (RFC 9421, keyed off the calling platform's profile signing_keys) requires no pre-established credential and is RECOMMENDED as a default so that a single-consumer personal agent can authenticate solely by publishing a profile. booking_scoped_credential authorizes get/update/cancel/reschedule/PII-bearing operations on one specific booking or waitlist entry, independent of platform identity (issuance mechanism tracked separately; see specification.md Section 10.1.6). oauth2_bearer, api_key, and mtls require pre-established credentials and suit known, pre-vetted host platforms."
+          "description": "Mechanisms this business accepts for authenticating privileged-operation requests, in no particular preference order. http_message_signature (RFC 9421, keyed off the calling platform's profile keys, or the transition signing_keys alias; verifiers resolve keys first) requires no pre-established credential and is RECOMMENDED as a default so that a single-consumer personal agent can authenticate solely by publishing a profile. booking_scoped_credential authorizes get/update/cancel/reschedule/PII-bearing operations on one specific booking or waitlist entry, independent of platform identity (issuance mechanism tracked separately; see specification.md Section 10.1.6). oauth2_bearer, api_key, and mtls require pre-established credentials and suit known, pre-vetted host platforms."
         },
         "token_endpoint": {
           "type": "string",
@@ -126,11 +132,17 @@
           "format": "uri",
           "description": "HTTPS callback URL where the business should deliver webhook notifications (booking lifecycle events). Businesses MUST deliver webhooks to this URL when registered. See §9.2.3 and §10.1.1."
         },
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SigningKey" },
+          "description": "CONDITIONAL. UCP-canonical public keys for verifying HTTP Message Signatures (RFC 9421) on platform requests (top-level RFC 7517 JWK Set). MUST be present when the platform signs privileged REST requests or privileged MCP-over-HTTP requests. Dual-publishing an identical signing_keys array is RECOMMENDED during transition. When both keys and signing_keys are present they MUST list the same keys; verifiers resolve a keyid against keys first, falling back to signing_keys. Multiple keys MUST be supported for zero-downtime key rotation. See §9.1.4, §10.1.1, and §10.1.6."
+        },
         "signing_keys": {
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/SigningKey" },
-          "description": "CONDITIONAL. Public keys for verifying HTTP Message Signatures (RFC 9421) on platform requests. SHOULD be present when the platform signs privileged REST requests or privileged MCP-over-HTTP requests. Multiple keys MUST be supported for zero-downtime key rotation. See §9.1.4 and §10.1.6."
+          "description": "OPTIONAL. Transition alias for keys. MAY be published while consumers still read signing_keys. When both keys and signing_keys are present they MUST list the same keys; verifiers resolve a keyid against keys first, falling back to signing_keys. See §9.1.4 and §10.1.1."
         }
       },
       "additionalProperties": false
