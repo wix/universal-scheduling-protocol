@@ -1,5 +1,13 @@
 # Change Log
 
+## 15/08/26 at 09:24:11 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Switched `.github/workflows/ci.yml` to `runs-on: self-hosted`. GitHub-hosted runners are not permitted in this organisation, and `devex-gha-authority` does not merely warn - it **cancels the job**, which is why the `check` run on [#200](https://github.com/wix-private/universal-scheduling-protocol-spec/pull/200) reported a failure after one second without executing a single step. The validation tooling itself was never broken
+- Avoided naming the forbidden runner label even in the explanatory comment, in case the policy check greps the workflow file rather than parsing it - otherwise the comment explaining the rule would trip the rule
+- Narrowed the `push` trigger to `master`. Listening to both `push` and `pull_request` unqualified ran the whole job twice for every commit on a PR branch, which is what produced the two separate `ci` entries in the checks list
+
+---
+
 ## 15/08/26 at 06:47:19 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added an optional opaque `revision` to `Booking` and `WaitlistEntry`, closing a gap the proof-of-possession work assumed was already filled: a booking `revision` did not exist anywhere in the repository, and neither did `ETag`, `If-Match`, or any other conditional-request machinery. A `booking_scoped_credential` authorizes a *resource* rather than a session and MAY be re-issued to the same key, so two agents - or one agent on two devices - can legitimately hold a valid credential for the same booking. Without a concurrency control the second write silently overwrote the first and **neither caller learned anything was lost**
