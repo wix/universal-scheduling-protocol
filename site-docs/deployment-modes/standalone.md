@@ -31,18 +31,18 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
           "schema": "https://usp.dev/services/rest.openapi.json"
         },
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
@@ -53,14 +53,14 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -68,7 +68,7 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -201,16 +201,16 @@ sequenceDiagram
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
-        { "version": "2026-02-09" }
+        { "version": "2026-08-14" }
       ],
       "dev.usp.services.availability": [
-        { "version": "2026-02-09" }
+        { "version": "2026-08-14" }
       ],
       "dev.usp.services.bookings": [
-        { "version": "2026-02-09" }
+        { "version": "2026-08-14" }
       ]
     }
   }
@@ -238,7 +238,7 @@ Capabilities are versioned independently. A business supporting multiple version
 ```json
 "capabilities": {
   "dev.usp.services.catalog": [
-    { "version": "2026-02-09" },
+    { "version": "2026-08-14" },
     { "version": "2026-06-15" }
   ]
 }

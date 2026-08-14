@@ -425,7 +425,7 @@ If your platform does not use UCP, follow these steps:
    and reschedule booking operations. See [Section 5](#5-booking-lifecycle).
 6. **If offering paid services:** Implement payment
    integration ([Section 8.5](#85-payment-integration)) - choose the generic
-   payment flow ([Section 8.5.4](#854-generic-payment-flow)) and/or the ACP
+   payment flow ([Section 8.5.4](#854-embedded-and-generic-payment-flow)) and/or the ACP
    booking extension ([Section 8.5.6](#856-acp-booking-extension)).
 7. **If offering free services only:**
    Skip [Section 8.5](#85-payment-integration) entirely.
@@ -797,7 +797,7 @@ profile includes a `locations` array that enumerates the locations it manages:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",
@@ -892,11 +892,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1032,7 +1032,7 @@ requirements.
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
 | `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
 | `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`, `field_service`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
-| `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules) below.                                                                                                                                         |
+| `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See **Category rules** below.                                                                                                                                         |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
 | `locations`         | Array\[Location\]            | No       | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`.                                                                                                                                                                                                                          |
@@ -1618,11 +1618,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1735,11 +1735,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1805,11 +1805,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1917,11 +1917,11 @@ Response (partial success):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2002,7 +2002,7 @@ Businesses declare feature flags inside the capability entry in their profile:
 ```json
 "dev.usp.services.availability": [
 {
-"version": "2026-02-09",
+"version": "2026-08-14",
 "holds": true
 }
 ]
@@ -2151,11 +2151,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2274,11 +2274,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2300,7 +2300,7 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {}
   },
   "messages": [
@@ -2333,11 +2333,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2452,7 +2452,7 @@ at a specific time.
 | `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.2](#92-error-handling) for the distinction.                                                                                                                                                                                 |
+| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
 | `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -2617,11 +2617,11 @@ Response (paid service, `payment_timing: at_booking`):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2704,11 +2704,11 @@ Response (free service, `requires_payment: false`):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2913,11 +2913,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3217,11 +3217,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3325,11 +3325,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3464,11 +3464,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3697,7 +3697,7 @@ An example profile:
       ],
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3724,14 +3724,14 @@ An example profile:
       ],
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -3739,14 +3739,14 @@ An example profile:
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -3788,7 +3788,7 @@ An example profile:
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3805,21 +3805,21 @@ An example profile:
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -3967,7 +3967,7 @@ so it needs no governance rule beyond the one this extension already relies on.
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -4345,9 +4345,9 @@ sequenceDiagram
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
-      "dev.usp.services.bookings": [{ "version": "2026-02-09" }]
+      "dev.usp.services.bookings": [{ "version": "2026-08-14" }]
     }
   },
   "booking": {
@@ -4584,18 +4584,18 @@ interactions.
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
           "schema": "https://usp.dev/services/rest.openapi.json"
         },
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
@@ -4606,14 +4606,14 @@ interactions.
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -4621,7 +4621,7 @@ interactions.
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4816,25 +4816,25 @@ round-trip negotiation handshake.
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4981,21 +4981,21 @@ standard scheduling request):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -5032,7 +5032,7 @@ capabilities registry:
 ```json
 "capabilities": {
 "dev.usp.services.catalog": [
-{"version": "2026-02-09"},
+{"version": "2026-08-14"},
 {"version": "2026-06-15"}
 ]
 }
@@ -6061,6 +6061,7 @@ Each USP REST operation maps to a JSON-RPC method:
 |-----------------------------------------------|--------------------------------|-----------------------------------------|
 | `POST /services/list`                         | `usp_services_list`            | List services from catalog              |
 | `GET /services/{service_id}`                  | `usp_services_get`             | Get a single service                    |
+| `POST /services/lookup`                       | `usp_services_lookup`          | Batch-get services by ID                |
 | `GET /services/feed`                          | `usp_services_feed`            | Get service catalog feed                |
 | `POST /services/feed/subscriptions`           | `usp_services_feed_subscribe`  | Create a feed subscription              |
 | `POST /availability/query`                    | `usp_availability_query`       | Query time slots                        |
@@ -6225,11 +6226,11 @@ Responses use the `structuredContent` / `content` dual-envelope pattern. The `st
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.availability": [
             {
-              "version": "2026-02-09"
+              "version": "2026-08-14"
             }
           ]
         }
@@ -6268,7 +6269,7 @@ Business outcome errors (e.g., slot unavailable, hold expired) are returned insi
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-02-09"
+        "version": "2026-08-14"
       },
       "messages": [
         {
@@ -6320,7 +6321,7 @@ Booking, catalog, and (when the waitlist extension is supported) waitlist lifecy
 
 **Acknowledgment:** Platforms **MUST** respond with an HTTP 2xx status code within 10 seconds to acknowledge receipt. Non-2xx responses or timeouts trigger retry.
 
-**URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-feed-subscriptions)).
+**URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-operations)).
 
 **Signature verification:** All webhook payloads **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events.
 
@@ -6481,7 +6482,7 @@ USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) obj
   "mimeType": "application/json",
   "metadata": {
     "usp": {
-      "version": "2026-02-09"
+      "version": "2026-08-14"
     }
   },
   "data": {
@@ -6639,7 +6640,7 @@ globals (native):
       "payment"
     ],
     "service_id": "svc_massage_001",
-    "version": "2026-02-09"
+    "version": "2026-08-14"
   }
 }
 ```
@@ -7084,7 +7085,7 @@ consent for categories not explicitly granted.
 
 - Raw payment credentials (card numbers, bank account details) **MUST NOT** be
   transmitted via USP APIs. Payment processing **MUST** use the redirect or
-  tokenized patterns defined in the [Paid Bookings extension](#1123-paid-bookings).
+  tokenized patterns defined in the [Paid Bookings extension](#74-paid-bookings-extension-schema).
 - Sensitive identity documents (government IDs, health records) **MUST NOT** be
   included in booking request/response payloads. Businesses requiring such
   documents **SHOULD** use out-of-band secure channels.
@@ -7829,7 +7830,7 @@ No request body. Response (HTTP 200): USP envelope only `{ messages? }`.
 
 **Accept Offer** — `POST /waitlist/{entry_id}/accept`
 
-Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-booking-actions) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
+Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-operations) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
 
 Request body:
 
@@ -8068,13 +8069,13 @@ Platforms advertise this capability in their platform profile (see
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
-      "dev.usp.services.catalog": [{ "version": "2026-02-09" }],
-      "dev.usp.services.availability": [{ "version": "2026-02-09" }],
+      "dev.usp.services.catalog": [{ "version": "2026-08-14" }],
+      "dev.usp.services.availability": [{ "version": "2026-08-14" }],
       "dev.usp.platform.calendar_freebusy": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "extends": "dev.usp.services.availability",
           "supported_providers": ["google", "microsoft", "apple"]
         }
@@ -8209,7 +8210,7 @@ This table covers all REST and MCP operations defined by USP. Webhook delivery
 URLs are not managed via dedicated endpoints — they are configured via the
 platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile))
 or per-subscription via `POST /services/feed/subscriptions`
-([Section 3.12](#312-feed-subscriptions)). ESP messages
+([Section 3.12](#312-operations)). ESP messages
 ([Section 9.5](#95-embedded-scheduling-protocol-esp)) use inter-frame
 `MessageChannel` communication and are not included in this table.
 
@@ -8545,13 +8546,3 @@ version of USP when:
 [RFC 9110]: https://www.rfc-editor.org/rfc/rfc9110
 
 [RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
-
-[RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
-
-[RFC 9449]: https://www.rfc-editor.org/rfc/rfc9449
-
-[RFC 9457]: https://www.rfc-editor.org/rfc/rfc9457
-
-[RFC 9530]: https://www.rfc-editor.org/rfc/rfc9530
-
-[ISO 8601]: https://www.iso.org/standard/70907.html

@@ -3,9 +3,17 @@
   "$id": "https://usp.dev/schemas/services/paid_bookings.json",
   "title": "USP Paid Bookings Extension",
   "description": "Extends dev.ucp.shopping.checkout with booking context. UCP assimilation artifact for integrating USP scheduling with UCP checkout. When complete_checkout succeeds, payment and booking are atomically finalized.",
+  "requires": {
+    "dev.ucp.shopping.checkout": ">=2026-01-11",
+    "dev.usp.services.bookings": ">=2026-08-14"
+  },
   "allOf": [
-    { "$ref": "https://ucp.dev/schemas/shopping/checkout.json" },
-    { "$ref": "#/$defs/dev.ucp.shopping.checkout" }
+    {
+      "$ref": "https://ucp.dev/schemas/shopping/checkout.json"
+    },
+    {
+      "$ref": "#/$defs/dev.ucp.shopping.checkout"
+    }
   ],
   "$defs": {
     "dev.ucp.shopping.checkout": {
@@ -26,7 +34,11 @@
       "type": "object",
       "title": "BookingContext",
       "description": "Booking context for UCP checkout. Contains scheduling details that are validated at create_checkout and finalized at complete_checkout.",
-      "required": ["service_id", "service_type", "slot"],
+      "required": [
+        "service_id",
+        "service_type",
+        "slot"
+      ],
       "properties": {
         "booking_id": {
           "type": "string",
@@ -53,9 +65,15 @@
           "items": {
             "type": "object",
             "properties": {
-              "id": { "type": "string" },
-              "type": { "type": "string" },
-              "name": { "type": "string" }
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           },
           "description": "Requested resources (e.g., specific staff, room)."
@@ -67,17 +85,26 @@
         },
         "confirmation_mode": {
           "type": "string",
-          "enum": ["auto", "manual"],
+          "enum": [
+            "auto",
+            "manual"
+          ],
           "description": "auto or manual."
         },
         "booking_status": {
           "type": "string",
-          "enum": ["pending", "confirmed", "canceled"],
+          "enum": [
+            "pending",
+            "confirmed",
+            "canceled"
+          ],
           "description": "Checkout-scoped status: pending, confirmed, or canceled. Derived from UCP checkout status (see USP specification Section 7.5). Distinct from full Booking.status in booking.json. Response only."
         },
         "actions": {
           "type": "array",
-          "items": { "$ref": "#/$defs/BookingContextAction" },
+          "items": {
+            "$ref": "#/$defs/BookingContextAction"
+          },
           "description": "Non-payment actions the buyer must complete before payment (e.g., waiver). Payment actions are not used; payment is via UCP checkout."
         },
         "notes": {
@@ -88,10 +115,19 @@
           "type": "object",
           "description": "The person receiving the service, when different from the buyer. Same schema as Buyer. When absent, the buyer is the recipient.",
           "properties": {
-            "first_name": { "type": "string" },
-            "last_name": { "type": "string" },
-            "email": { "type": "string", "format": "email" },
-            "phone_number": { "type": "string" }
+            "first_name": {
+              "type": "string"
+            },
+            "last_name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "phone_number": {
+              "type": "string"
+            }
           }
         }
       }
@@ -100,7 +136,12 @@
       "type": "object",
       "title": "BookingContextAction",
       "description": "Non-payment action for UCP checkout booking context. Same shape as booking.json Action without payment_context.",
-      "required": ["type", "status", "continue_url", "expires_at"],
+      "required": [
+        "type",
+        "status",
+        "continue_url",
+        "expires_at"
+      ],
       "properties": {
         "type": {
           "type": "string",
@@ -108,7 +149,11 @@
         },
         "status": {
           "type": "string",
-          "enum": ["pending", "completed", "expired"]
+          "enum": [
+            "pending",
+            "completed",
+            "expired"
+          ]
         },
         "continue_url": {
           "type": "string",
@@ -128,12 +173,28 @@
       "type": "object",
       "title": "SlotReference",
       "description": "Reference to a booked time slot.",
-      "required": ["id", "start", "end", "duration"],
+      "required": [
+        "id",
+        "start",
+        "end",
+        "duration"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "start": { "type": "string", "format": "date-time" },
-        "end": { "type": "string", "format": "date-time" },
-        "duration": { "type": "string", "description": "ISO 8601 duration" }
+        "id": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "string",
+          "description": "ISO 8601 duration"
+        }
       }
     }
   }

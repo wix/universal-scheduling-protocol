@@ -9,10 +9,3 @@
 # $ref'd - does not belong here. Those are listed in INFORMATIVE_DEFS in
 # tools/usp_check.py, because "accepted forever by design" and "not fixed yet"
 # should not look the same to a reader.
-
-# schemas/registry.json $defs/RegistrationRequest is unreferenced because
-# openapi/usp-rest.json declares the POST /registry/businesses body as a large
-# inline object tree instead of a thin $ref. That is the duplication CLAUDE.md
-# rule 3 forbids, and the two copies are already free to drift. Fixed in the
-# hygiene commit.
-UNREFERENCED:schemas/registry.json:RegistrationRequest
