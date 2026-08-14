@@ -103,12 +103,21 @@ for the full normative text and rationale.
   a profile fetchable over HTTPS with no redirects, cached by URI.
 - A business **MUST** accept at least one of: HTTP Message Signatures
   (RFC 9421, **recommended default**, permissionless, works the same for one
-  platform or a million distinct personal-agent instances), a booking-scoped
-  capability credential (authorizes get/cancel/PII operations on one booking
-  regardless of platform identity), OAuth 2.0 Bearer, an API key, or mTLS. A
-  business **SHOULD NOT** accept only a pre-established mechanism (OAuth, API
-  key, mTLS) once it intends to serve platforms it has not individually
-  vetted.
+  platform or a million distinct personal-agent instances), platform key
+  proof-of-possession (`platform_key_pop`, permissionless, derived from DPoP
+  (RFC 9449); the caller proves possession of an ephemeral key it never
+  transmits), a booking-scoped capability credential (authorizes
+  get/cancel/PII operations on one booking regardless of platform identity),
+  OAuth 2.0 Bearer, an API key, or mTLS. That list is illustrative rather than
+  closed. A business **SHOULD NOT** accept only a pre-established mechanism
+  (OAuth, API key, mTLS) once it intends to serve platforms it has not
+  individually vetted.
+- The last two compose: a booking-scoped credential issued to a caller that
+  authenticated with `platform_key_pop` carries a `cnf` confirmation key, which
+  makes it **sender-constrained**. Without that binding the credential is a
+  plain bearer token, so anyone who observes it in a log, an HTTP trace, or a
+  compromised database can act on the booking. With it, the value alone is
+  useless.
 - Businesses declare which mechanisms they require in an `authorization` policy
   ([`schemas/profile.json`](../schemas/profile.json) `$defs/AuthorizationPolicy`
   / `$defs/AuthorizationMechanism`), published **top-level** in a Standalone

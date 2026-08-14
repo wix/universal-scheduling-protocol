@@ -45,7 +45,7 @@ Sent by the business when the embedded UI is loaded and ready. Declares which de
       "payment"
     ],
     "service_id": "svc_massage_001",
-    "version": "2026-02-09"
+    "version": "2026-08-14"
   }
 }
 ```

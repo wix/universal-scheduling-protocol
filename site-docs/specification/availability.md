@@ -20,7 +20,7 @@ Businesses declare feature flags inside the capability entry in their profile:
 ```json
 "dev.usp.services.availability": [
   {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "holds": true
   }
 ]
@@ -140,10 +140,10 @@ Returns available time slots for a service within a date range. Use the [Availab
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.availability": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -234,10 +234,10 @@ Creates a temporary hold on a time slot to prevent double-booking while the buye
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.availability": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -257,7 +257,7 @@ Creates a temporary hold on a time slot to prevent double-booking while the buye
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {}
       },
       "messages": [
@@ -291,10 +291,10 @@ Explicitly releases a hold before it expires, freeing the slot for other buyers.
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.availability": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
