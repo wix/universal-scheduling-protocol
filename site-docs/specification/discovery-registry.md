@@ -63,10 +63,10 @@ Registers a business in the discovery registry.
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.discovery.registry": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -137,10 +137,10 @@ Search operations matching no results **MUST** return HTTP 200 with an empty `bu
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.discovery.registry": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -227,10 +227,10 @@ Search the registry for specific **services** offered by registered businesses. 
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.discovery.registry": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },

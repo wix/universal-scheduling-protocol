@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  # Only master on push: a pull_request event already covers branch commits, and
+  # listening to both made every PR commit run this job twice.
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Must stay self-hosted: GitHub-hosted runners are not permitted in this
+    # organisation, and devex-gha-authority cancels any job that requests one.
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install check dependencies
+        run: pip install -r requirements-dev.txt
+
+      # Every JSON artefact parses, every schemas/ file compiles as a JSON
+      # Schema, and the version literal agrees across the artefacts that
+      # assert this repository's version identity.
+      - name: Validate schemas
+        run: python tools/usp_check.py schemas
+
+      # Every $ref resolves the same way under $id base-URI rules and on the
+      # filesystem. The published $id values carry directory segments the flat
+      # schemas/ layout does not have, so a cross-level $ref can validate in an
+      # IDE and break in any $id-honouring validator.
+      - name: Validate cross-file references
+        run: python tools/usp_check.py refs
+
+      # Canonicalization and proof vectors round-trip, and their error codes
+      # are reachable from the normative text.
+      - name: Validate test vectors
+        run: python tools/usp_check.py vectors
+
+      # Not --strict: site-docs deliberately links to repository files that sit
+      # outside docs_dir (specification.md, schemas/, openapi/, openrpc/), which
+      # resolve on GitHub but not in mkdocs. Seven such links exist today, so
+      # --strict would make this job red permanently for a design choice rather
+      # than a defect.
+      - name: Build docs
+        run: |
+          pip install -r requirements.txt
+          python -m mkdocs build

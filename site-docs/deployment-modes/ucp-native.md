@@ -46,7 +46,7 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
       ],
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -71,14 +71,14 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
       ],
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -86,14 +86,14 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -120,7 +120,7 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -137,17 +137,17 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -176,12 +176,22 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 | Identity Linking       | UCP identity linking               | UCP Identity              |
 | Buyer Consent          | UCP consent mechanism              | UCP Consent               |
 | Transport Security     | UCP TLS requirements               | UCP Security              |
-| Authentication         | UCP OAuth 2.0 support              | UCP Auth                  |
+| Authentication (transport mechanics) | UCP OAuth 2.0 / signature support | UCP Auth     |
 | Rate Limiting          | UCP rate limiting framework        | UCP Rate Limiting         |
 
 !!! tip "Reading guidance"
 
     In UCP-Native Mode, read Sections 9.1--9.5 and 10.1 for USP-specific details (error codes, method mappings, webhook payload schemas). **Skip Sections 9.6 and 10.2** -- those are infrastructure requirements for Standalone Mode that UCP already provides.
+
+!!! warning "Do not skip Section 10.1.6"
+
+    The skip list above stops at Section 10.2. **Section 10.1.6 still applies in full.**
+
+    UCP supplies transport mechanics -- how a token or signature is carried -- but USP's requirement that privileged operations **MUST** be authenticated is a USP-level floor layered on top of UCP, not something UCP-Native Mode provides on its own: UCP's own posture on platform authentication is optional (`SHOULD`). Section 10.1.6 applies to UCP-Native checkout and booking-extension operations exactly as it does in Standalone Mode.
+
+    In UCP-Native Mode the authorization policy is published as **`config.authorization` on the `dev.usp.services` service binding** in `/.well-known/ucp`, **not** as a top-level member of the UCP profile: USP declares only under its own `dev.usp.*` namespace authority, and `config` is the member UCP reserves for entity-specific settings.
+
+    See [Section 10.1.6](../specification.md#1016-platform-authentication-for-privileged-operations).
 
 ---
 
@@ -249,7 +259,7 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
         { "version": "2026-01-11" }
       ],
       "dev.usp.services.paid_bookings": [
-        { "version": "2026-02-09" }
+        { "version": "2026-08-14" }
       ]
     },
     "payment_handlers": {
@@ -450,9 +460,9 @@ sequenceDiagram
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
-          "dev.usp.services.bookings": [{ "version": "2026-02-09" }]
+          "dev.usp.services.bookings": [{ "version": "2026-08-14" }]
         }
       },
       "booking": {

@@ -1,0 +1,11 @@
+# Accepted pre-existing failures, one key per line.
+#
+# This is a debt ledger, not a suppression flag. Every entry names a real defect
+# that tools/usp_check.py has found and that is scheduled to be fixed. Emptying
+# this file is the acceptance criterion for the hygiene commit that closes the
+# last of them, so debt cannot quietly become permanent.
+#
+# A $def that is deliberately informative - published to be read rather than
+# $ref'd - does not belong here. Those are listed in INFORMATIVE_DEFS in
+# tools/usp_check.py, because "accepted forever by design" and "not fixed yet"
+# should not look the same to a reader.

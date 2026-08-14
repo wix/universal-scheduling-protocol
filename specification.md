@@ -1,6 +1,6 @@
 # Universal Scheduling Protocol (USP)
 
-**Version:** `2026-02-21`
+**Version:** `2026-08-14`
 
 **Status:** Draft
 
@@ -425,7 +425,7 @@ If your platform does not use UCP, follow these steps:
    and reschedule booking operations. See [Section 5](#5-booking-lifecycle).
 6. **If offering paid services:** Implement payment
    integration ([Section 8.5](#85-payment-integration)) - choose the generic
-   payment flow ([Section 8.5.4](#854-generic-payment-flow)) and/or the ACP
+   payment flow ([Section 8.5.4](#854-embedded-and-generic-payment-flow)) and/or the ACP
    booking extension ([Section 8.5.6](#856-acp-booking-extension)).
 7. **If offering free services only:**
    Skip [Section 8.5](#85-payment-integration) entirely.
@@ -797,7 +797,7 @@ profile includes a `locations` array that enumerates the locations it manages:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",
@@ -892,11 +892,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1032,7 +1032,7 @@ requirements.
 | `name`              | string                       | **Yes**  | Human-readable display name for the service (e.g., "Women's Haircut & Style").                                                                                                                                                                                                                                                             |
 | `description`       | string \| Description        | No       | Service description. Accepts either a plain string (backward compatible) or a structured `Description` object with multiple format variants. See [Section 3.3.2](#332-description-schema).                                                                                                                                                 |
 | `type`              | string                       | **Yes**  | The service vertical. **MUST** be one of the core verticals (`appointment`, `group`, `reservation`, `rental`, `field_service`) or a vendor-defined vertical using reverse-domain notation. See [Section 1.3](#13-service-verticals).                                                                                                                        |
-| `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See [Category rules](#category-rules) below.                                                                                                                                         |
+| `categories`        | Array\[ServiceCategory\]     | No       | Multi-taxonomy category labels. Each entry has required `taxonomy` plus optional `id`, `name`, `parent_id`, `value`, and `primary`. The simple single-category case is a one-element array with `taxonomy: "merchant"`. See **Category rules** below.                                                                                                                                         |
 | `duration`          | Duration                     | **Yes**  | Duration configuration. See [Section 3.7](#37-duration).                                                                                                                                                                                                                                                                                   |
 | `pricing`           | Pricing                      | **Yes**  | Pricing model and amounts. See [Section 3.8](#38-pricing).                                                                                                                                                                                                                                                                                 |
 | `locations`         | Array\[Location\]            | No       | Physical or virtual locations where the service is offered. Each location has `{id, name, address, coordinates}`.                                                                                                                                                                                                                          |
@@ -1618,11 +1618,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1735,11 +1735,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1805,11 +1805,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -1917,11 +1917,11 @@ Response (partial success):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2002,7 +2002,7 @@ Businesses declare feature flags inside the capability entry in their profile:
 ```json
 "dev.usp.services.availability": [
 {
-"version": "2026-02-09",
+"version": "2026-08-14",
 "holds": true
 }
 ]
@@ -2151,11 +2151,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2274,11 +2274,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2300,7 +2300,7 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {}
   },
   "messages": [
@@ -2333,11 +2333,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2452,12 +2452,13 @@ at a specific time.
 | `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.2](#92-error-handling) for the distinction.                                                                                                                                                                                 |
+| `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
 | `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `revision`          | string          | No          | Opaque concurrency token for the booking's current state, used for conditional writes ([Section 5.6](#56-conditional-writes-and-concurrency)). Changes on every modification. Treat as opaque: do not parse it or infer recency from it. |
 
 **Booking Expiry**
 
@@ -2617,11 +2618,11 @@ Response (paid service, `payment_timing: at_booking`):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2704,11 +2705,11 @@ Response (free service, `requires_payment: false`):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -2913,11 +2914,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3138,6 +3139,73 @@ They use the standard booking webhook payload (`BookingEvent`) defined in
 
 ---
 
+### 5.6 Conditional Writes and Concurrency
+
+A `booking_scoped_credential` authorizes a *resource*, not a session, and a
+business **MAY** re-issue one to the same bound key. Nothing stops two agents -
+or the same agent on two devices - from holding a valid credential for the same
+booking at once. Without a concurrency control, the second write silently
+overwrites the first and neither caller learns that anything was lost.
+
+`Booking` and `WaitlistEntry` therefore carry an **OPTIONAL opaque `revision`**.
+
+**Semantics.** A business that supports conditional writes **MUST** return
+`revision` on every representation of the resource, **MUST** change it whenever
+any part of the resource changes, and **MUST NOT** reuse a value for a different
+state. Businesses **SHOULD NOT** derive it from `updated_at` alone: two
+modifications inside a single timestamp tick would produce the same value and
+defeat the check. Platforms **MUST** treat the value as opaque - it may be a row
+version, an entity tag, or a hash, and parsing it or inferring recency from it is
+never valid.
+
+**Presence is the advertisement.** There is no capability flag for this. A
+business that returns `revision` supports conditional writes and **MUST** honour
+preconditions; one that does not return it does not, and a platform then writes
+unconditionally. This is deliberately the same contract as an absent HTTP
+`ETag`, and it is what keeps the feature non-breaking for businesses that
+already exist.
+
+**Carriage.** The precondition mirrors how idempotency is already carried
+([Section 9.1.1](#911-idempotency)):
+
+| | REST | MCP |
+|---|---|---|
+| Precondition | `If-Match: <revision>` | `_meta.usp.if_match` |
+| Stale precondition | `412 Precondition Failed` | `revision_mismatch` (`-32002`) |
+
+When the precondition is present and does not match, the business **MUST**
+reject the request and **MUST NOT** apply the write. On rejection a platform
+re-reads the resource, reconciles, and retries with the current `revision`.
+
+**`412` is not `409`.** This specification already uses `409 Conflict` for
+idempotency-key conflicts - the same key replayed with different parameters.
+A stale precondition is a different failure with a different remedy, and
+returning `409` for it leaves a platform unable to tell "your key was reused
+wrongly" from "someone else edited this booking."
+
+**Interaction with `Idempotency-Key` (MUST).** An idempotent **replay** returns
+the stored original response **without** re-evaluating the precondition. The
+ordering matters and is not merely an optimization: the caller's `revision` was
+current when the original request succeeded, and that request changed it, so
+re-checking on retry would fail a call that had already been applied - turning a
+dropped response into a permanent error.
+
+**Applicability.** Conditional writes are defined for **bookings and waitlist
+entries** - the two resource types that carry `revision`, and the same pair
+[Section 10.1.6](#1016-platform-authentication-for-privileged-operations)
+requires per-resource authorization for. Holds are excluded deliberately: a hold
+has no update operation, only release, and releasing an already-released hold is
+idempotent, so there is no lost update to prevent. `usp_availability_release`
+shares the MCP metadata wrapper that carries `if_match`; a business **MUST**
+ignore the field there.
+
+> **On MCP the precondition is tamper-evident; on REST it is not.** The `usp_p`
+> digest of a `platform_key_pop` proof covers the canonicalized `params` with
+> only `_meta.usp.authorization` removed, so `_meta.usp.if_match` falls **inside**
+> the signed digest and an intermediary cannot rewrite it. The REST `If-Match`
+> header has no equivalent protection unless [RFC 9421] request signing is also
+> in use. This is the same asymmetry that already applies to method arguments.
+
 ## 6. Discovery Registry (Optional)
 
 **Capability:** `dev.usp.discovery.registry` (optional extension)
@@ -3217,11 +3285,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3325,11 +3393,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3464,11 +3532,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -3697,7 +3765,7 @@ An example profile:
       ],
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3724,14 +3792,14 @@ An example profile:
       ],
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -3739,14 +3807,14 @@ An example profile:
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -3788,7 +3856,7 @@ An example profile:
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3805,21 +3873,21 @@ An example profile:
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -3896,6 +3964,16 @@ The extension schema uses `allOf` composition with `$defs` keyed by
 `dev.ucp.shopping.checkout`, consistent with UCP's schema composition model.
 See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
 
+That same composition is how a checkout response carries an issued
+`booking_scoped_credential` in UCP-Native Mode, as a **sibling of `booking`**
+([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)). Two
+points about that placement are deliberate. It is not a member of `booking`,
+because `BookingContext` is scheduling data that platforms persist and
+re-display, and a credential must never flow there. And it is not an invented
+member of the [UCP] checkout root either: it is declared inside USP's own
+registered extension, by the same mechanism that already contributes `booking`,
+so it needs no governance rule beyond the one this extension already relies on.
+
 **The `create_checkout` request with the paid bookings extension:**
 
 ```json
@@ -3957,7 +4035,7 @@ See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -4335,9 +4413,9 @@ sequenceDiagram
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
-      "dev.usp.services.bookings": [{ "version": "2026-02-09" }]
+      "dev.usp.services.bookings": [{ "version": "2026-08-14" }]
     }
   },
   "booking": {
@@ -4574,18 +4652,18 @@ interactions.
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
           "schema": "https://usp.dev/services/rest.openapi.json"
         },
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
@@ -4596,14 +4674,14 @@ interactions.
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -4611,7 +4689,7 @@ interactions.
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4806,25 +4884,25 @@ round-trip negotiation handshake.
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4847,6 +4925,26 @@ The `usp` object in a platform profile has the following fields:
 | `version`      | string | **Yes**  | The highest USP protocol version the platform supports (`YYYY-MM-DD`).                                                                  |
 | `capabilities` | object | **Yes**  | Capabilities the platform can consume. Same key/value format as the business profile: reverse-domain keys → arrays of **ProfileCapabilityEntry**. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`).  |
 | `services`     | object | No       | Service consumption preferences. Keys are reverse-domain service names; values list preferred transports in preference order.            |
+
+A platform profile also carries members **at the document root, as siblings of
+`usp`** rather than inside it. These are defined in
+[`schemas/profile.json`](schemas/profile.json) `$defs/PlatformProfile` and were
+previously documented only there:
+
+| Field          | Type   | Required        | Description                                                                                                                              |
+|----------------|--------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `keys`         | object | **Conditional** | [UCP]-canonical [RFC 7517] JWK Set used to verify HTTP Message Signatures on this platform's requests. **MUST** be present when the platform signs privileged REST requests **or privileged MCP-over-HTTP requests** ([Section 9.1.4](#914-request-signing)). Multiple keys **MUST** be supported, for zero-downtime rotation. |
+| `signing_keys` | object | No              | Transition alias for `keys`. Dual-publishing an identical array is **RECOMMENDED** during transition; when both are present they **MUST** list the same keys, and verifiers resolve `keys` first.  |
+| `webhook_url`  | string | No              | Callback URL for webhook delivery to this platform ([Section 10.1.1](#1011-webhook-security)).                                            |
+
+**A platform that signs nothing publishes no `keys`, and is conformant.** Both
+halves of that condition matter, and an implementer reading only the first would
+get it wrong: a proof-of-possession proof rides *in-band* - on the `DPoP` header
+over REST, and inside `_meta.usp.authorization` over MCP - and is **not** request
+signing in the sense above. So a platform authenticating solely with
+`platform_key_pop` publishes a **keyless** profile on **both** bindings, and a
+business **MUST NOT** require `keys` from it. This is what lets a single shared
+platform profile serve every instance of a personal agent.
 
 Platform profile hosting requirements are identical to business profile
 requirements: HTTPS, no redirects, `Cache-Control: public, max-age≥60`,
@@ -4951,21 +5049,21 @@ standard scheduling request):
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09"
+          "version": "2026-08-14"
         }
       ]
     }
@@ -5002,7 +5100,7 @@ capabilities registry:
 ```json
 "capabilities": {
 "dev.usp.services.catalog": [
-{"version": "2026-02-09"},
+{"version": "2026-08-14"},
 {"version": "2026-06-15"}
 ]
 }
@@ -5881,6 +5979,13 @@ with [draft-ietf-httpapi-idempotency-key-header]:
   the operation.
 - If the business receives a request with a previously seen `Idempotency-Key` but
   different parameters, it **MUST** return `409 Conflict`.
+- If a replayed request also carries a conditional-write precondition
+  (`If-Match`, or `_meta.usp.if_match` on MCP), the business **MUST** return the
+  stored result **without** re-evaluating that precondition
+  ([Section 5.6](#56-conditional-writes-and-concurrency)). The caller's revision
+  was current when the original request succeeded, and that request changed it,
+  so re-checking on replay would reject a call that had already been applied -
+  turning a dropped response into a permanent failure.
 
 ```
 POST /bookings HTTP/1.1
@@ -5971,7 +6076,11 @@ State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, r
 
 **Replay protection:** Platforms **SHOULD** send `Idempotency-Key` on state-modifying privileged requests ([Section 9.1.1](#911-idempotency)) and, when signing, **MUST** include it in the covered components so it cannot be altered in transit. Businesses **SHOULD** reject or de-duplicate replays on that key. USP does not impose a signature-timestamp freshness window on requests; where a business does enforce one (or where a signature carries `created`/`expires` for an external profile such as Web Bot Auth), it **MUST** be applied in addition to, not instead of, idempotency-key de-duplication.
 
-**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
+**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`). A platform that does **not** sign requests
+publishes no `keys` and remains conformant; in particular a
+`platform_key_pop` proof is carried in-band and is not request signing in this
+sense, so it does not trigger this requirement on either binding
+([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 **Example:**
 
@@ -6027,6 +6136,7 @@ Each USP REST operation maps to a JSON-RPC method:
 |-----------------------------------------------|--------------------------------|-----------------------------------------|
 | `POST /services/list`                         | `usp_services_list`            | List services from catalog              |
 | `GET /services/{service_id}`                  | `usp_services_get`             | Get a single service                    |
+| `POST /services/lookup`                       | `usp_services_lookup`          | Batch-get services by ID                |
 | `GET /services/feed`                          | `usp_services_feed`            | Get service catalog feed                |
 | `POST /services/feed/subscriptions`           | `usp_services_feed_subscribe`  | Create a feed subscription              |
 | `POST /availability/query`                    | `usp_availability_query`       | Query time slots                        |
@@ -6056,15 +6166,76 @@ Each USP REST operation maps to a JSON-RPC method:
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the authenticated *principal* against this URI on first contact and rejects a later mismatch. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
 - **Public methods** (`x-usp-access: public` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)): catalog, availability query, and registry search/get. Authentication is optional.
-- **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, feed subscribe, registry register, waitlist list. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same mechanism set documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
-- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, waitlist entry, or registry registration. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it.
+- **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, feed subscribe, registry register, waitlist list, and registry update/delete. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same mechanism set documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
+- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, or waitlist entry. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it. Registry registrations are deliberately **not** in this set: a registry entry has exactly one owner, so it is authorized at platform tier against the registering platform's bound `jkt` rather than needing a second credential type.
 
 When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
+
+**Proof-of-possession carriage (`platform_key_pop`).** The proof rides in
+`_meta.usp.authorization.proof` on **both** MCP transports - stdio *and*
+HTTP-SSE. MCP-over-HTTP deliberately does **not** get a REST-style `DPoP`
+header: keeping one carriage means one client code path, and it means a business
+behind an SSE gateway does not need to know its own externally visible URL in
+order to verify a proof.
+
+Two invariants follow, and a business **MUST** enforce both:
+
+- `mechanism: "platform_key_pop"` **MUST** be accompanied by `proof`.
+- A `credential` whose issued form carried `cnf` **MUST** be accompanied by
+  `proof`, whatever `mechanism` the caller declares
+  ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
+
+**Claims.** The MCP proof is a compact JWS with header
+`{ "typ": "usp-pop+jwt", "alg": "EdDSA", "jwk": <public JWK> }` and these claims:
+
+| Claim | Requirement | Meaning |
+|---|---|---|
+| `usp_m` | **MUST** | The invoked method name, replacing [RFC 9449]'s `htm`. |
+| `aud`   | **MUST** | A business profile URI the callee publishes, replacing `htu`. |
+| `usp_p` | **MUST** | `base64url(SHA-256(JCS(canonical params)))` - see below. |
+| `iat`   | **MUST** | Issued-at, for the freshness window. |
+| `jti`   | **MUST** | Unique proof identifier, for the replay cache. |
+| `ath`   | Conditional | `base64url(SHA-256(credential value))`. Present at presentation, **absent** at issuance. |
+| `nonce` | Conditional | Present only after the business has challenged for one. |
+
+`typ` is deliberately **not** `dpop+jwt`. The REST binding uses genuine
+[RFC 9449] proofs; giving the MCP proof a different `typ` means neither can be
+replayed as the other, and a verifier rejects the mismatch before it evaluates
+any claim.
+
+**`aud` is mandatory, not optional.** With no `htu` to bind the target, and with
+neither `ath` nor a credential present at issuance, a proof captured by one
+business would otherwise be replayable verbatim at a *different* business. A
+business **MUST** reject a proof whose `aud` is not one of the profile URIs it
+publishes, **MUST** accept each URI it is reachable at, and **SHOULD** publish a
+canonical one. `aud` is always available to the caller, because a conformant
+business is discovered *through* its profile URI in the first place.
+
+**Canonical params.** The `usp_p` digest is computed over `params` with
+`_meta.usp.authorization` removed - and *only* that member removed. If
+`_meta.usp` is left empty it is retained as `{}`. Everything else is included
+verbatim, which keeps `_meta.usp.profile` and `_meta.usp.idempotency_key` inside
+the digest: the first gives the identity binding above something to bind
+against, and the second means create-replay is covered for free.
+
+The result is serialized with **JCS ([RFC 8785])** rather than digested
+byte-exactly, because an MCP client does **not** control its own wire bytes -
+the SDK serializes `params`, and gateways re-serialize freely. JCS is a
+canonical *form*, so re-serialization is harmless. This is strictly better than
+the REST binding, where the specification must instead forbid intermediaries
+from re-serializing. Platforms **SHOULD** avoid non-integer JSON numbers in
+canonicalized params, so that JCS's ECMAScript number-serialization edge case
+never arises.
+
+Because `usp_p` covers every argument, the MCP profile is **stronger on argument
+integrity than REST**: `buyer`, `delivery_address` and the rest are all covered,
+so an intermediary cannot alter the call. REST covers nothing equivalent unless
+[RFC 9421] signing with `Content-Digest` is also in use.
 
 For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment, and other methods that declare `idempotency_key` on `_meta.usp`), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
 
@@ -6130,11 +6301,11 @@ Responses use the `structuredContent` / `content` dual-envelope pattern. The `st
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.availability": [
             {
-              "version": "2026-02-09"
+              "version": "2026-08-14"
             }
           ]
         }
@@ -6173,7 +6344,7 @@ Business outcome errors (e.g., slot unavailable, hold expired) are returned insi
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-02-09"
+        "version": "2026-08-14"
       },
       "messages": [
         {
@@ -6225,7 +6396,7 @@ Booking, catalog, and (when the waitlist extension is supported) waitlist lifecy
 
 **Acknowledgment:** Platforms **MUST** respond with an HTTP 2xx status code within 10 seconds to acknowledge receipt. Non-2xx responses or timeouts trigger retry.
 
-**URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-feed-subscriptions)).
+**URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-operations)).
 
 **Signature verification:** All webhook payloads **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events.
 
@@ -6279,6 +6450,7 @@ A conforming MCP binding implementation **MUST:**
 5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
 6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
 7. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 A conforming MCP binding implementation **SHOULD:**
 
@@ -6286,6 +6458,7 @@ A conforming MCP binding implementation **SHOULD:**
 2. Provide a human-readable text summary in `result.content[]`.
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
 4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
+5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
 
@@ -6384,7 +6557,7 @@ USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) obj
   "mimeType": "application/json",
   "metadata": {
     "usp": {
-      "version": "2026-02-09"
+      "version": "2026-08-14"
     }
   },
   "data": {
@@ -6489,7 +6662,16 @@ Protocol errors indicate transport-level or infrastructure failures that prevent
 | `rate_limited`              | Too many requests                                                                                                    | `429 Too Many Requests`     | `-32007`      |
 | `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32008`      |
 | `service_unavailable`       | Business is temporarily unable to handle requests                                                                    | `503 Service Unavailable`   | `-32009`      |
+| `pop_proof_required`        | A sender-constrained credential was presented without a valid proof of possession, or a required `platform_key_pop` proof was missing or invalid. Fine-grained detail is in `data.code` ([Section 10.1.1](#1011-webhook-security)) | `401 Unauthorized`          | `-32001`      |
+| `revision_mismatch`         | Conditional-write precondition failed: the `If-Match` / `_meta.usp.if_match` revision is stale, so the resource changed since the platform last read it ([Section 5.6](#56-conditional-writes-and-concurrency)) | `412 Precondition Failed`   | `-32002`      |
 | `server_error`              | Unexpected server failure                                                                                            | `500 Internal Server Error` | `-32603`      |
+
+> **The USP JSON-RPC code range is now fully allocated.** `-32001` through
+> `-32009` are all assigned. A future protocol error needs either a new range
+> or a `data.code` discriminator on an existing entry - which is already the
+> established pattern for the `signature_*` and proof-of-possession codes in
+> [Section 10.1.1](#1011-webhook-security), none of which consume a JSON-RPC
+> number of their own.
 
 > **Note on `capabilities_incompatible`:** This is a business outcome error
 > (returned with HTTP 200 and a `messages[]` entry) rather than a protocol
@@ -6541,7 +6723,7 @@ globals (native):
       "payment"
     ],
     "service_id": "svc_massage_001",
-    "version": "2026-02-09"
+    "version": "2026-08-14"
   }
 }
 ```
@@ -6871,16 +7053,21 @@ looking up the `keyid` in the business profile's `keys` array first (falling
 back to `signing_keys` when `keys` is absent), verifying the signature, and
 verifying the `Content-Digest` matches the body.
 
-**Signature Verification Error Codes:**
+**Signature and Proof-of-Possession Verification Error Codes:**
 
 | Error Code           | HTTP Status | Description                                                                                  |
 |----------------------|-------------|----------------------------------------------------------------------------------------------|
-| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
-| `signature_invalid`  | 401         | Signature verification failed.                                                               |
+| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers. Responses **SHOULD** carry `data.mechanism` naming the mechanism that was expected, since this code now covers more than one. |
+| `signature_invalid`  | 401         | Signature verification failed.                                                                |
 | `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile (`keys`, else `signing_keys`). |
 | `digest_mismatch`    | 400         | `Content-Digest` header does not match the computed digest of the body. (400, matching [UCP]: the message is malformed rather than unauthenticated.) |
 | `algorithm_unsupported` | 400      | The signature algorithm of the resolved key is not supported by the verifier.                |
 | `signature_expired`  | 401         | The `created` signature parameter is outside the freshness window the verifier enforces. Applies to webhooks (see the replay rules below) and to any other signature the verifier evaluates for freshness; it does **not** apply to request signatures, where `created` is optional and replay protection is the signed `Idempotency-Key` ([Section 9.1.4](#914-request-signing)). |
+| `pop_proof_missing`  | 401         | A required `platform_key_pop` proof is absent, or a credential carrying `cnf` was presented without one. A business **MUST** return this rather than accepting the credential as a bearer token ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)). |
+| `pop_proof_invalid`  | 401         | The proof failed to parse or verify: bad `typ`, rejected `alg`, signature failure, or a mismatched `htm`/`htu`, `usp_m`/`aud`/`usp_p`, or `ath`. |
+| `pop_key_mismatch`   | 401         | The [RFC 7638] thumbprint of the proof header `jwk` does not equal the `cnf.jkt` recorded for the presented credential — the cross-key replay case. |
+| `pop_proof_replayed` | 401         | The proof's `jti` has already been seen inside the freshness window. |
+| `proof_nonce_required` | 401       | The business requires a nonce. The response carries `data.nonce`, and the platform retries with a fresh proof carrying it. |
 
 > **REST:** [401/400 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
 
@@ -6981,7 +7168,7 @@ consent for categories not explicitly granted.
 
 - Raw payment credentials (card numbers, bank account details) **MUST NOT** be
   transmitted via USP APIs. Payment processing **MUST** use the redirect or
-  tokenized patterns defined in the [Paid Bookings extension](#1123-paid-bookings).
+  tokenized patterns defined in the [Paid Bookings extension](#74-paid-bookings-extension-schema).
 - Sensitive identity documents (government IDs, health records) **MUST NOT** be
   included in booking request/response payloads. Businesses requiring such
   documents **SHOULD** use out-of-band secure channels.
@@ -7005,6 +7192,17 @@ USP separates operations into two trust tiers, independent of deployment mode:
   **MUST** be authenticated. A resource identifier (booking ID, site ID, hold
   ID, registry entry ID) is not a credential; treating it as one lets anyone
   who can guess or observe an identifier act on it.
+
+**Enforcement posture is declared, not negotiated.** The `authorization`
+policy's `privileged_operations_require_authentication` flag declares whether a
+deployment *enforces* the requirement above. It does not grant permission to
+ignore it. A deployment that publishes `false` declares itself **out of
+conformance for privileged operations**; the value is intended only for
+explicitly non-production sandbox deployments. A platform **MUST** treat
+`false` as a signal to **refuse** to transact real bookings or transmit buyer
+personal data to that deployment — refuse, not warn and continue. Publishing
+`true` while accepting unauthenticated privileged requests is likewise
+non-conformant.
 
 **This split, and the MUST on privileged operations, is a deliberate USP
 requirement layered on top of [UCP]'s own posture.** Every other UCP-inherited
@@ -7032,6 +7230,40 @@ the business **MUST** confirm the authenticated principal is authorized to act
 on behalf of the profile identified in the agent header, and **MUST** reject
 requests where the two conflict.
 
+**What "authorized to act on behalf of the profile" means when the profile is
+shared and keyless.** Read naively, the requirement above is unsatisfiable for a
+permissionless caller: a profile URI is **self-asserted**, it is fetched over an
+unauthenticated `GET`, and a single profile document is deliberately shared by
+every instance of a platform - so nothing in the document can distinguish one
+caller from another, and no business can verify the claim by inspecting it. A
+specification that requires the impossible gets implemented as a string
+comparison against a caller-supplied header, which authorizes nothing.
+
+The requirement is therefore satisfied as follows:
+
+- **The authenticated principal is the key**, not the URI. Under
+  `platform_key_pop` it is the `jkt`; under `http_message_signature` it is the
+  profile-published key that verified the signature; under the pre-established
+  mechanisms it is the registered client.
+- **The profile URI carries branding, capabilities, and contact details.** It is
+  descriptive metadata, and a business **MUST NOT** treat it as an
+  authentication factor or as evidence of who is calling.
+- **Binding is trust-on-first-use.** On first contact a business records the
+  pairing of principal to profile URI, and on subsequent requests **MUST**
+  reject a request whose principal does not match the one recorded for that
+  URI. A business **MAY** flag or rate-limit the case where a different key
+  claims a profile URI already bound to another, which is the signal that
+  something is being impersonated.
+- **One credential is enough.** A key-bound credential satisfies this MUST on
+  its own: the `cnf` binding *is* the proof that the caller is the principal the
+  business recorded. A business **MUST NOT** additionally require a separate
+  platform credential on the same request for the sole purpose of satisfying
+  identity binding.
+
+The same reading applies wherever this requirement is restated for the MCP
+binding ([Section 9.2.2](#922-requestresponse-format)), where the agent header's
+role is played by `_meta.usp.profile`.
+
 **Where the policy is published (both modes):** The `authorization` object is
 defined once in [`schemas/profile.json`](schemas/profile.json)
 `$defs/AuthorizationPolicy` and published according to deployment mode:
@@ -7051,14 +7283,19 @@ defined once in [`schemas/profile.json`](schemas/profile.json)
   `dev.usp.services` binding also scopes it correctly, since it governs access
   to the USP endpoint that binding declares.
 
-A business **MUST** accept at least one of the following for privileged
-operations, and **MUST** publish which one(s) it requires via that
-`authorization` policy:
+A business **MUST** accept at least one mechanism for privileged operations,
+and **MUST** publish which one(s) it requires via that `authorization` policy.
+The following table is **illustrative, not exhaustive**: it documents the
+mechanisms USP describes today, and a business accepting only a mechanism
+added later - by USP or by [UCP] - is conformant. Reading the table as a
+closed set would contradict the forward-compatibility rule below, which
+makes this list an extension point.
 
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
-| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
+| Platform key proof-of-possession (`platform_key_pop`) | Permissionless | Proves possession of an **ephemeral key the caller never transmits**, as a compact JWS derived from DPoP ([RFC 9449]). The business records the [RFC 7638] thumbprint (`jkt`) as the platform identifier; nothing is published, registered, or rotated, and the platform profile stays keyless. Composes with rather than replaces the rows around it: it is what lets a permissionless caller authenticate without the [RFC 9421] covered-component machinery, and what makes a booking-scoped credential **sender-constrained** via `cnf.jkt`. Not a credential on its own. |
+| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
 | Mutual TLS (mTLS)                                 | Pre-established | High-security environments requiring certificate-based authentication. |
@@ -7082,11 +7319,284 @@ supported mechanism exists and fail closed. This is what lets USP inherit a new
 [UCP] mechanism or algorithm as a data change rather than a specification
 revision.
 
+**This rule governs profile documents, keys, and `authorization` policies. It
+does *not* extend to a credential's `cnf` object or to a proof-of-possession
+proof**, both of which are closed structures. A consumer **MUST** reject an
+unrecognized member or an unrecognized confirmation method there rather than
+ignore it. The two rules point in opposite directions on purpose: ignoring an
+unrecognized field in a profile costs a capability, whereas ignoring an
+unrecognized confirmation method silently downgrades a sender-constrained
+credential to a bearer token, which is precisely the failure this section's
+proof-of-possession mechanism exists to prevent.
+
 The single exception is a misplaced policy: a service binding that declares
 `authorization` as a direct member instead of under `config` **MUST** be
 rejected ([Section 8.2.1](#821-business-profile-fields)). Ignoring it would
 leave the business advertising an authentication requirement that no conforming
 platform reads, which fails open in exactly the way this section forbids.
+
+**Normative placement of `platform_key_pop` (MUST, both modes).** The
+`platform_key_pop` mechanism is specified **in this section**, which applies in
+both deployment modes, and **not** in
+[Section 10.2.3](#1023-authentication-and-authorization). Section 10.2.3 already
+says a business **SHOULD** support DPoP ([RFC 9449]) for proof-of-possession,
+but it sits inside [Section 10.2](#102-security-infrastructure-for-standalone-mode),
+which UCP-Native deployments skip in their entirety
+([Section 7.3](#73-inherited-infrastructure)) - so a mechanism specified there
+would be inapplicable to exactly the deployments
+[Section 7.3](#73-inherited-infrastructure) directs to keep reading this
+section.
+
+The two are **distinct, not one generalizing the other.** Section 10.2.3's DPoP
+sentence hardens a *pre-established* OAuth Bearer token: it presumes a token
+already exists and adds sender-constraint to it. `platform_key_pop` is a
+permissionless mechanism with no token at all, usable by a caller that has never
+been onboarded. A business **MAY** implement either without the other. Where a
+deployment does both, the same key **SHOULD** serve both, so there is one key
+and one custody item rather than two.
+
+**Carriage in UCP-Native Mode (MUST).** Two different rules apply, because two
+different governance models are in play, and conflating them is what has made
+this question look unanswerable:
+
+- **On USP's own service endpoint** - the endpoint declared by the
+  `dev.usp.services` binding - USP defines the request headers in both modes.
+  The credential and proof are carried exactly as in Standalone Mode.
+- **On a [UCP]-governed endpoint**, such as checkout, USP **MUST NOT** redefine
+  the `Authorization` header, which UCP owns. The proof rides the `DPoP`
+  request header, which [RFC 9449] defines independently of the `Authorization`
+  authentication scheme and which is therefore additive rather than a
+  redefinition. An issued credential is returned **in the response body, inside
+  the `dev.usp.services.paid_bookings` extension**, as a sibling of that
+  extension's `booking` object - never as an invented member of the [UCP]
+  checkout root, and never *inside* `booking`, which carries scheduling context
+  that platforms persist and re-display and so must never hold a secret.
+
+This resolves an open question that the namespace-governance rule above does not
+by itself answer. That rule governs **profile documents**: USP declares under
+`dev.usp.*` and adds no top-level member to `/.well-known/ucp`. **Response
+bodies are governed by [UCP]'s extension-composition model instead** - an
+extension declares what it adds through a registered capability and an `allOf`
+composition over `$defs` keyed by the extended object
+([Section 7.4](#74-paid-bookings-extension-schema)). That is already how
+`dev.usp.services.paid_bookings` contributes `booking` to a checkout. A
+credential added the same way is therefore a *declared* extension member, not an
+invented one, and requires no new governance rule.
+
+**Relationship to [UCP]: an extension, not an inheritance.** [UCP] resolves
+signing keys from the keys published in a platform profile. A credential bound
+by `cnf.jkt` to a key that is deliberately **not** in the platform profile is
+therefore a key-resolution path [UCP] does not define. It is *permitted* - UCP's
+mechanism list is open and businesses **MAY** enforce additional rules - but
+implementers **MUST NOT** read `platform_key_pop` as [UCP] conformance, and a
+[UCP]-only verifier is not expected to support it. Should [UCP] later define its
+own proof-of-possession pattern, USP reconciles with it rather than assuming
+alignment.
+
+Conversely, one point converges rather than diverging, and is worth stating so
+the identity-binding rule above is not mistaken for a departure: [UCP]'s
+identity-binding rule is **consistency-only** - a verifier ensures the
+authenticated identity is consistent with the agent header. USP's requirement
+that a fetchable profile accompany *every* privileged request is **stricter**
+than [UCP], not looser.
+
+##### The `platform_key_pop` mechanism
+
+**Key generation and platform identity.** On first contact with a business, a
+platform generates a keypair, keeps the private half local, and never publishes
+it. The public key travels only inside the proof, as a bare JWK in the proof
+header. The business computes its [RFC 7638] thumbprint and **that thumbprint,
+`jkt`, is the platform identifier** - there is no registration step, no token
+endpoint, and no pre-established credential.
+
+Nothing about this key belongs in the platform profile. It is a per-credential
+key, not a published platform identity key, so none of the publication,
+rotation, or key-lifecycle machinery in
+[Section 9.1.4](#914-request-signing) applies, and the platform profile stays
+**keyless** - which [Section 8.2.3](#823-platform-profile) makes conformant by
+requiring `keys` only when the platform *signs* privileged requests. A proof is
+not [RFC 9421] request signing, on either binding.
+
+Because the key is self-generated, a business **MUST** resolve it from the proof
+header and **MUST** ignore any `kid`: there is no published key set to resolve a
+`kid` against, and honouring one would reintroduce the key-resolution step this
+mechanism exists to remove.
+
+**Binding at issuance is in-band.** A resource-creating privileged operation
+carries a proof and **no credential**. The business verifies the proof, computes
+`jkt`, binds it to the `USP-Agent` profile URI on first contact, records it as
+the platform identity, and binds the credential it issues to that same key,
+echoing the binding back:
+
+```json
+"booking_scoped_credential": {
+  "value": "bsc_7f3c1a9e4b2d8065f1ae93c7",
+  "expires_at": "2026-06-14T18:00:00Z",
+  "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+}
+```
+
+The echo is not decoration: it is the only way a platform can detect a business
+that accepted the proof and then issued an **unbound** credential anyway. A
+platform **SHOULD** verify that `cnf.jkt` matches its own key and **MUST NOT**
+treat a credential returned without `cnf` as sender-constrained.
+
+**Presentation.** The same flow, two envelopes. Verification order and claim
+semantics are identical; only the wire form differs:
+
+| | REST | MCP (stdio and HTTP-SSE) |
+|---|---|---|
+| Credential | `Authorization: DPoP <bsc_…>` | `_meta.usp.authorization.credential` |
+| Proof | `DPoP` header, `typ: dpop+jwt` ([RFC 9449]) | `_meta.usp.authorization.proof`, `typ: usp-pop+jwt` |
+| Binds the operation | `htm` | `usp_m` (JSON-RPC method name) |
+| Binds the target | `htu` | `aud` (a published business profile URI) |
+| Binds the arguments | *(not covered)* | `usp_p`, a digest over the canonicalized `params` |
+| Freshness | `iat`, `jti`, optional `DPoP-Nonce` | `iat`, `jti`, optional `nonce` after a challenge |
+| Binds the credential | `ath` | `ath` |
+
+Two consequences are worth stating rather than leaving to be discovered. Over
+REST the proof is a **standard [RFC 9449] proof**, so an implementer can use an
+off-the-shelf DPoP library, and `DPoP` is an IANA-registered authentication
+scheme - unlike `signature`, which this section already has to caveat. Over MCP
+the `typ` differs deliberately, so that neither proof can be replayed as the
+other before claim checking, and the MCP profile is **stronger on argument
+integrity**: `usp_p` covers `buyer`, `delivery_address` and every other
+argument, so an intermediary cannot alter the call. The MCP claim set,
+canonicalization, and the reason `aud` is mandatory there are specified in
+[Section 9.2.2](#922-requestresponse-format).
+
+The scheme change from `Bearer` to `DPoP` on REST is load-bearing, not
+cosmetic. It is what stops a business from silently accepting a
+sender-constrained credential as a plain bearer token, and it removes the
+credential from the three-way `Authorization: Bearer` collision it previously
+shared with `oauth2_bearer` and `api_key`.
+
+**Algorithms.** `EdDSA` (Ed25519) is the floor and **MUST** be supported by any
+business advertising `platform_key_pop`; `ES256` **MAY** be accepted in
+addition. EdDSA is the floor deliberately: it avoids the fixed-width `r||s`
+versus DER encoding trap that [Section 9.1.4](#914-request-signing) already has
+to warn about for ECDSA. A business **MUST** reject `alg: none`, and **MUST**
+reject a proof whose header JWK carries any private-key member. Accepted
+algorithms are advertised through the `authorization` policy, which is an open
+object, so this requires no schema change.
+
+**Downgrade resistance (MUST, both bindings).** A credential carrying `cnf` is
+sender-constrained and **MUST NOT** be accepted as a bearer token. A business
+that receives such a credential without an accompanying valid proof over the key
+whose [RFC 7638] thumbprint equals `cnf.jkt` **MUST** reject the request as
+unauthenticated, **whatever `mechanism` the caller declares**, and **MUST NOT**
+fall back to any other mechanism the caller also presented. A business **MUST
+NOT** issue a `cnf`-bearing credential and later accept it without a proof.
+
+This MUST is stated for both bindings because syntax alone enforces it on
+neither. On REST the `Bearer` → `DPoP` scheme change makes the downgrade
+visible, but a rule is still needed behind it. On MCP there is **no scheme at
+all**, and the declared `mechanism` sits inside `_meta.usp.authorization`, which
+is excluded from the argument digest - so without this rule an attacker holding
+a leaked credential could declare `mechanism: "booking_scoped_credential"`, omit
+the proof, and present it as a bearer. The entire mechanism would be bypassable
+in one field.
+
+**Verification order (MUST, business side).** A business **MUST** evaluate a
+presented credential and proof in this order, because the codes returned differ
+per step and reordering them leaks information about which part was wrong:
+
+1. The credential is known and unexpired.
+2. **The credential carries `cnf` ⇒ a proof is mandatory**, regardless of the
+   declared `mechanism`.
+3. The credential's scope matches the addressed resource.
+4. The proof parses and its `typ` matches the binding in use.
+5. The `alg` is one the business accepts, and is not `none`.
+6. The [RFC 7638] thumbprint of the header JWK equals the recorded `cnf.jkt`
+   (any `kid` is ignored).
+7. The signature verifies against that header JWK.
+8. `aud` is a profile URI this business publishes (MCP), or `htm` and `htu`
+   match the request (REST).
+9. `usp_m` equals the invoked method and `usp_p` equals the recomputed argument
+   digest (MCP).
+10. `ath` matches the presented credential value.
+11. `iat` is within the accepted skew and `nonce` matches if one was required.
+12. `jti` has not been seen; record it.
+
+At **issuance** the credential steps and `ath` are skipped, and the thumbprint
+is *recorded* rather than compared; every other step still applies.
+
+**Replay defence (MUST).** A business **MUST** reject a proof whose `iat` is
+outside a ±60-second window and **MUST** cache `jti` values for at least twice
+that window. This applies to **every** privileged operation presenting a proof,
+**reads included**. Read coverage matters: idempotency-key de-duplication is
+only a **SHOULD**, and only on state-modifying operations
+([Section 9.1.4](#914-request-signing)), so without this rule a captured proof
+for `get`-style operations would replay freely against exactly the responses
+that carry buyer personal data.
+
+A business **MAY** additionally require a nonce, and a platform **MUST** support
+being challenged for one. The asymmetry is deliberate: it lets a business turn
+nonces on unilaterally without a flag day. A nonce shortens the `jti` window; it
+does not replace `jti`.
+
+**Credential lifetime and invalidation.** `expires_at` is REQUIRED and tracks
+the **resource**, not a session: a booking made three months out still needs a
+cancel path on day 89, so a business **SHOULD** set it to the end of the
+resource's actionable window rather than to a short fixed interval. A business
+**MUST** invalidate the credential when the resource reaches a terminal state,
+and **MAY** re-issue one to the same bound key on an authenticated read, which
+is how a long-lived booking survives an expiry without a new create call.
+
+**Be precise about "revocable".** USP defines **no revocation operation** on
+any binding: there is no endpoint or method by which a platform surrenders a
+credential, or by which a business is asked to invalidate one early. The only
+invalidation paths are expiry and terminal state, both of which are the
+business's own doing. A business that needs to invalidate a credential out of
+band does so through its own systems, and implementers **SHOULD NOT** plan
+around a protocol revocation facility that does not exist. This is the main
+reason `expires_at` is REQUIRED rather than optional - expiry is the only
+bound the protocol itself guarantees.
+
+**What is deliberately not required.** No [RFC 9421] request signing and no
+`Content-Digest`; no `keys` or `signing_keys` in the platform profile; no
+per-instance profiles; no published, registered, or rotated platform keys; no
+authorization server, token endpoint, or client registration. A business
+implementing this mechanism verifies a signature, computes a thumbprint, checks
+a handful of claims, and stores a `jkt`. That short list is the point: it is
+what makes the mechanism reachable for a business that would never stand up an
+authorization server.
+
+> **What this defends, and what it does not.** Binding to a key the platform
+> never transmits means a credential leaked through logs, an HTTP trace, a
+> TLS-terminating proxy, a misrouted response, or a business-side database
+> compromise is **not usable on its own**. It does **not** defend against theft
+> of the platform's local key material, or a hostile process on the platform
+> host; those remain the dominant residual risk, and mitigating them is a matter
+> of local file permissions or an OS keychain rather than of this protocol.
+
+**Test vectors.** Because no implementation of this mechanism exists yet on
+either binding, the normative text above would otherwise ship entirely
+unvalidated - and canonicalization is the one part of it that can be wrong in a
+way review will not catch. [`tests/vectors/pop/`](tests/vectors/pop) therefore
+publishes worked vectors, each with the inputs, the canonical bytes, and the
+expected outcome. The signed ones carry real Ed25519 signatures over published
+keys, so an independent implementation can verify them rather than take them on
+trust:
+
+| Vector | What it pins down |
+|---|---|
+| `001-jcs-nested-buyer` | Canonicalization of nested arguments; `profile` and `idempotency_key` stay inside the digest while `authorization` is removed. |
+| `002-jcs-meta-only` | Canonicalization when only `_meta` and the resource id remain. |
+| `003-jcs-unicode-empty-meta` | Unicode, key ordering, and an `_meta.usp` left empty - retained as `{}`, not dropped. |
+| `004-proof-issuance-no-ath` | Issuance: no credential, **no `ath`**, thumbprint recorded rather than compared. |
+| `005-proof-presentation-ath-nonce` | Presentation: `ath` over the credential value, plus a challenged `nonce`. |
+| `006-cross-key-replay` | **The load-bearing case.** A credential issued to one key, replayed with a valid proof signed by another. |
+| `007-downgrade-cnf-without-proof` | A `cnf`-bearing credential presented with no proof and `mechanism` declared as `booking_scoped_credential`. |
+| `008-replayed-jti` | A byte-identical resend, rejected on the second presentation. |
+| `009-aud-mismatch` | A proof captured at one business and presented at another. |
+| `010-alg-none` | `alg: none`, rejected before any signature check. |
+
+Vector `006` is the one that matters most, and is worth stating plainly: its
+proof **verifies correctly against its own header key**. An implementation that
+checks the signature and stops will accept it. Only comparing the thumbprint
+against the recorded `cnf.jkt` rejects it. That single comparison is the
+difference between this mechanism and a bearer token wearing a proof.
 
 **Signalling rejection (SHOULD):** When a business rejects a privileged request
 for missing or invalid authentication, it **SHOULD** return `401 Unauthorized`
@@ -7098,19 +7608,42 @@ a business requiring HTTP Message Signatures **SHOULD** advertise them through
 its published `authorization` policy and **MAY** additionally reference them in
 `WWW-Authenticate` for diagnostic purposes.
 
-> **Security consideration: platform identity is not per-resource authority.**
-> Every platform-level mechanism in the table above (HTTP Message Signatures,
-> OAuth, API key, mTLS) answers "which platform is calling," not "may this
-> caller act on *this* booking." A business that accepts only a platform-level
-> mechanism on `get`/`update`/`cancel`/reschedule and other PII-bearing
-> operations therefore authorizes any authenticated platform to act on any
-> booking it can identify, which is the exposure the resource-identifier rule
-> at the top of this section warns about. Businesses **SHOULD** additionally
-> require a `booking_scoped_credential` (or an equivalent per-resource check,
-> such as binding the booking to the buyer identity established by identity
-> linking in [Section 10.2.4](#1024-identity-linking)) on those operations.
-> USP does not raise this to a **MUST** while the credential's issuance format
-> is still being specified.
+**Per-resource authorization (MUST).** Every platform-level mechanism in the
+table above (HTTP Message Signatures, OAuth, API key, mTLS) answers "which
+platform is calling," not "may this caller act on *this* booking." A business
+that accepts only a platform-level mechanism on `get`/`update`/`cancel`/
+reschedule and other PII-bearing operations authorizes **any** authenticated
+platform to act on **any** booking it can identify, which is the exposure the
+resource-identifier rule at the top of this section opens by warning about.
+
+A business therefore **MUST** require a `booking_scoped_credential`, or an
+equivalent per-resource check, on privileged operations addressing an existing
+**booking** or **waitlist entry**. An equivalent check is one that ties the
+caller to the specific resource - for example binding the booking to a buyer
+identity established by identity linking
+([Section 10.2.4](#1024-identity-linking)). Platform authentication alone does
+not qualify, which is the whole point of the requirement.
+
+The resource types are named deliberately rather than left as
+"get/cancel/reschedule/PII", because the two other resource families need
+different answers:
+
+- **Feed subscriptions:** per-resource authorization is **RECOMMENDED**. A
+  subscription carries no buyer personal data, but its identifier is still not a
+  credential, so the mechanism remains available and offered.
+- **Registry registrations:** per-resource authorization is **NOT REQUIRED**.
+  These are authorized at platform tier against the registering platform's bound
+  principal ([Section 9.2.2](#922-requestresponse-format)), since a registry
+  entry has exactly one owner.
+
+> **This requirement is a breaking change.** It was a **SHOULD** in USP
+> `2026-02-21`, deferred there while the credential's issuance format was
+> unspecified. That format is now specified in this section, so the deferral has
+> expired. Changing an authorization requirement is not a clarification, and a
+> business conformant under `2026-02-21` may be non-conformant under this
+> version without changing a line of its own code - which is why this release
+> carries a version bump rather than shipping the change quietly under the old
+> one.
 
 > **Why not simply require OAuth Bearer everywhere, or simply follow UCP's
 > optional guidance?** Mandating only a pre-established mechanism assumes a
@@ -7179,7 +7712,13 @@ For platforms using a pre-established mechanism in Standalone Mode:
   `client_credentials` grant for platform-to-business (non-buyer-scoped)
   authentication, and **SHOULD** support DPoP [RFC 9449] for proof-of-possession
   where additional security is required. Tokens are transmitted via the
-  `Authorization: Bearer <token>` header.
+  `Authorization: Bearer <token>` header. This DPoP sentence hardens an
+  *already-issued* OAuth token and is Standalone-Mode-only. It is **not** the
+  definition of the permissionless `platform_key_pop` mechanism, which is
+  specified for both deployment modes in
+  [Section 10.1.6](#1016-platform-authentication-for-privileged-operations);
+  the two are distinct, and a deployment implementing both **SHOULD** use one
+  key for both.
 - **API keys:** for simpler integrations with a small number of known
   platforms. Keys **SHOULD** be rotated periodically and are transmitted via
   the `Authorization: Bearer <key>` header.
@@ -7312,6 +7851,7 @@ The waitlist entry tracks a buyer's position and preferences.
 | `offered_slot`     | object          | No       | `{slot_id, start, end}` - the slot being offered to this buyer. Present when `status` is `offered`.               |
 | `offer_expires_at` | string          | No       | RFC 3339 expiration time for the current offer. Present when `status` is `offered`.                               |
 | `created_at`       | string          | **Yes**  | RFC 3339 timestamp of when the entry was created.                                                                 |
+| `revision`         | string          | No       | Opaque concurrency token for the entry's current state ([Section 5.6](#56-conditional-writes-and-concurrency)). |
 
 #### 11.1.2 Waitlist Lifecycle
 
@@ -7374,7 +7914,7 @@ No request body. Response (HTTP 200): USP envelope only `{ messages? }`.
 
 **Accept Offer** — `POST /waitlist/{entry_id}/accept`
 
-Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-booking-actions) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
+Accepting an offer **MUST** atomically create a booking for the offered slot. The response includes both the updated waitlist entry (status: `accepted`) and the newly created booking object. The `booking.id` field is always present in the response. For paid services, the booking's `actions` array will contain a `payment` action (see [Section 5.3](#53-operations) and [Section 8.5](#85-payment-integration)), which the platform processes via the normal payment flow.
 
 Request body:
 
@@ -7613,13 +8153,13 @@ Platforms advertise this capability in their platform profile (see
 ```json
 {
   "usp": {
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "capabilities": {
-      "dev.usp.services.catalog": [{ "version": "2026-02-09" }],
-      "dev.usp.services.availability": [{ "version": "2026-02-09" }],
+      "dev.usp.services.catalog": [{ "version": "2026-08-14" }],
+      "dev.usp.services.availability": [{ "version": "2026-08-14" }],
       "dev.usp.platform.calendar_freebusy": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "extends": "dev.usp.services.availability",
           "supported_providers": ["google", "microsoft", "apple"]
         }
@@ -7754,7 +8294,7 @@ This table covers all REST and MCP operations defined by USP. Webhook delivery
 URLs are not managed via dedicated endpoints — they are configured via the
 platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile))
 or per-subscription via `POST /services/feed/subscriptions`
-([Section 3.12](#312-feed-subscriptions)). ESP messages
+([Section 3.12](#312-operations)). ESP messages
 ([Section 9.5](#95-embedded-scheduling-protocol-esp)) use inter-frame
 `MessageChannel` communication and are not included in this table.
 
@@ -7858,12 +8398,21 @@ registration of:
   2013. https://www.rfc-editor.org/rfc/rfc7009
 - **[RFC 7517]** Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI
   10.17487/RFC7517, May 2015. https://www.rfc-editor.org/rfc/rfc7517
+- **[RFC 7519]** Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token (JWT)
+  ", RFC 7519, DOI 10.17487/RFC7519, May
+  2015. https://www.rfc-editor.org/rfc/rfc7519
 - **[RFC 7617]** Reschke, J., "The 'Basic' HTTP Authentication Scheme", RFC
   7617, DOI 10.17487/RFC7617, September
   2015. https://www.rfc-editor.org/rfc/rfc7617
 - **[RFC 7636]** Sakimura, N., Ed., Bradley, J., and N. Agarwal, "Proof Key for
   Code Exchange by OAuth Public Clients", RFC 7636, DOI 10.17487/RFC7636,
   September 2015. https://www.rfc-editor.org/rfc/rfc7636
+- **[RFC 7638]** Jones, M. and N. Sakimura, "JSON Web Key (JWK) Thumbprint",
+  RFC 7638, DOI 10.17487/RFC7638, September
+  2015. https://www.rfc-editor.org/rfc/rfc7638
+- **[RFC 7800]** Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-Possession
+  Key Semantics for JSON Web Tokens (JWTs)", RFC 7800, DOI 10.17487/RFC7800,
+  April 2016. https://www.rfc-editor.org/rfc/rfc7800
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key
   Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May
   2017. https://www.rfc-editor.org/rfc/rfc8174
@@ -7876,6 +8425,9 @@ registration of:
 - **[RFC 8615]** Nottingham, M., "Well-Known Uniform Resource Identifiers (
   URIs)", RFC 8615, DOI 10.17487/RFC8615, May
   2019. https://www.rfc-editor.org/rfc/rfc8615
+- **[RFC 8785]** Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+  Canonicalization Scheme (JCS)", RFC 8785, DOI 10.17487/RFC8785, June
+  2020. https://www.rfc-editor.org/rfc/rfc8785
 - **[RFC 8941]** Nottingham, M. and P-H. Kamp, "Structured Field Values for
   HTTP", RFC 8941, DOI 10.17487/RFC8941, February
   2021. https://www.rfc-editor.org/rfc/rfc8941
@@ -8026,6 +8578,10 @@ version of USP when:
 
 [RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
 
+[RFC 7519]: https://www.rfc-editor.org/rfc/rfc7519
+[RFC 7638]: https://www.rfc-editor.org/rfc/rfc7638
+[RFC 7800]: https://www.rfc-editor.org/rfc/rfc7800
+[RFC 8785]: https://www.rfc-editor.org/rfc/rfc8785
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
 
 [RFC 9449]: https://www.rfc-editor.org/rfc/rfc9449
@@ -8074,13 +8630,3 @@ version of USP when:
 [RFC 9110]: https://www.rfc-editor.org/rfc/rfc9110
 
 [RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
-
-[RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
-
-[RFC 9449]: https://www.rfc-editor.org/rfc/rfc9449
-
-[RFC 9457]: https://www.rfc-editor.org/rfc/rfc9457
-
-[RFC 9530]: https://www.rfc-editor.org/rfc/rfc9530
-
-[ISO 8601]: https://www.iso.org/standard/70907.html

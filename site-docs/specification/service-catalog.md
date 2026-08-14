@@ -30,10 +30,10 @@ The feed returns a paginated, chronologically ordered list of service records, s
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -465,10 +465,10 @@ All specified filters combine with AND logic. Within `categories`, values combin
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -531,10 +531,10 @@ Returns the full service object for a single service.
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -585,10 +585,10 @@ Returns full service objects for a batch of service IDs in a single request. Des
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
