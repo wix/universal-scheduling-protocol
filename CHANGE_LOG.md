@@ -1,5 +1,19 @@
 # Change Log
 
+## 15/08/26 at 02:04:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Specified MCP proof carriage in §9.2.2 and wired it into `openrpc/usp-mcp.json`: one new `proof` property on `McpAuthorization`, the claim set, the canonicalization rule, and the credential returned on the three creating methods. The MCP binding previously could not express a mechanism its own advertised `AuthorizationMechanism` set contains, which is the same class of defect this work exists to fix
+- Put `proof` **inside** `McpAuthorization` rather than as a sibling `_meta.usp.proof`. All five `_meta.usp` wrappers are `additionalProperties: false`, so the sibling form would have required a structural edit to every one of them; they already `$ref` `McpAuthorization` and needed only description changes. Easy to miss, and missing it would have made the design non-conformant with its own binding file
+- Carried the proof in `_meta.usp.authorization.proof` on **both** MCP transports rather than giving MCP-over-HTTP a REST-style `DPoP` header. One client code path, and a business behind an SSE gateway does not need to know its own externally visible URL in order to verify a proof
+- Gave the MCP proof `typ: usp-pop+jwt` rather than `dpop+jwt`, and bound `usp_m`/`aud` in place of `htm`/`htu`. The differing `typ` means a REST proof and an MCP proof cannot be replayed as one another, and a verifier rejects the mismatch before evaluating any claim
+- Made `aud` **mandatory**. Without `htu` to bind the target, and with neither `ath` nor a credential present at issuance, a proof captured by one business would otherwise replay verbatim at a different business. `aud` is always available to the caller because a conformant business is discovered through its profile URI in the first place
+- Specified the argument digest over **JCS-canonicalized** params rather than byte-exactly, because an MCP client does not control its own wire bytes - the SDK serializes `params` and gateways re-serialize freely. Removed only `_meta.usp.authorization` from the digest, deliberately leaving `_meta.usp.profile` and `_meta.usp.idempotency_key` inside it: the first gives identity binding something to bind against, the second covers create-replay for free
+- Rewrote the four privileged wrapper descriptions, which actively **forbade** what this design requires. `McpUspMetaPrivilegedPlatform` stated that `booking_scoped_credential` "does not apply until a booking or waitlist entry exists" without saying that this is the tier at which one is *issued*, and the `authorization` property on all four recommended a retained credential with no mention of the proof its `cnf` binding requires
+- Recorded, in `McpAuthorization.proof` itself, why the mandatory-proof rule is stated as policy rather than left to syntax: `mechanism` is caller-asserted and excluded from the digest, so without the rule an attacker holding a leaked credential could declare `mechanism: booking_scoped_credential`, omit `proof`, and present a sender-constrained credential as a bearer token
+- Added two §9.2.4 conformance items and deliberately did **not** restate the existing MUSTs on profile binding and mechanism selection, which already cover their ground
+
+---
+
 ## 15/08/26 at 01:29:11 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Wired the REST carriage of `platform_key_pop`: the proof rides the `DPoP` request header, the credential rides `Authorization: DPoP <bsc_...>`, and `booking_scoped_credential` is now returned on the `POST /bookings`, `POST /availability/holds` and `POST /waitlist` creation responses. The credential was previously *consumable* by 17 operations and *issued* by none - the security scheme depended on a value no response in the document ever returned
