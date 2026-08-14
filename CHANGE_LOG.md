@@ -1,5 +1,16 @@
 # Change Log
 
+## 14/08/26 at 23:12:40 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `tools/usp_check.py`, the repository's first mechanical validation. Nothing here previously checked that the JSON artefacts parse, that `schemas/*.json` compile as JSON Schema, or that cross-file `$ref`s resolve at all - the only `package.json` script builds the docs site - so schema drift was detectable only by review
+- Made the `refs` check resolve every `$ref` **two** ways, by `$id` base-URI rules and by filesystem path, and fail when they disagree. Every `$id` under `schemas/` declares a directory the flat on-disk layout does not have (`services/`, `platform/`), so a cross-level `$ref` such as `booking.json` -> `usp.json` resolves cleanly in a filesystem-based editor and 404s in any `$id`-honouring validator. Existing refs all happen to stay within one level, which is exactly why the trap is invisible until someone adds the first cross-level one
+- Added a version-identity assertion across `specification.md`, `README.md`, both binding `info.version` fields, and the roadmap's current row, turning what was a manual grep discipline into a build failure. It fires immediately: both bindings carry `2026-02-09` while the spec is at `2026-02-21`
+- Added an unreferenced-`$defs` report, which found that `schemas/registry.json` `$defs/RegistrationRequest` is referenced by nothing because `openapi/usp-rest.json` declares the `POST /registry/businesses` body as a large inline object tree - the duplication [CLAUDE.md](CLAUDE.md) rule 3 forbids, with the two copies already free to drift
+- Added `tools/known-issues.txt` as an explicit debt ledger rather than a suppression flag, so the three pre-existing failures above stay visible and their removal is a reviewable event; deliberately informative `$defs` are listed separately in the script, because "accepted forever by design" and "not fixed yet" should not look alike
+- Added `.github/workflows/ci.yml`, the repository's first CI, running the three checks and a docs build. Deliberately not `mkdocs --strict`: `site-docs` links to repository files outside `docs_dir` that resolve on GitHub but not in mkdocs, and failing CI permanently on a design choice would train people to ignore it
+
+---
+
 ## 14/08/26 at 22:56:14 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Resolved a contradiction where the schema permitted what the specification body forbids: `schemas/profile.json` justified not defaulting `privileged_operations_require_authentication` to true on the grounds that "free/demo/sandbox deployments MAY legitimately run without it", while §10.1.6 states that privileged operations - explicitly including creating a booking - **MUST** be authenticated. A business could therefore publish `false`, validate cleanly, and believe it was conformant while serving real bookings unauthenticated. The property description now states that the flag declares *enforcement posture* rather than permission to violate §10.1.6, that a conformant deployment serving real bookings or buyer data **MUST** set it `true`, and that `false` is permitted only for explicitly non-production sandbox deployments
