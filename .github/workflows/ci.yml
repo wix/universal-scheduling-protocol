@@ -1,7 +1,10 @@
 name: ci
 
 on:
+  # Only master on push: a pull_request event already covers branch commits, and
+  # listening to both made every PR commit run this job twice.
   push:
+    branches: [master]
   pull_request:
 
 permissions:
@@ -9,7 +12,9 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # Must stay self-hosted: GitHub-hosted runners are not permitted in this
+    # organisation, and devex-gha-authority cancels any job that requests one.
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
