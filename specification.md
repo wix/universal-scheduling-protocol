@@ -3896,6 +3896,16 @@ The extension schema uses `allOf` composition with `$defs` keyed by
 `dev.ucp.shopping.checkout`, consistent with UCP's schema composition model.
 See [`schemas/paid_bookings.json`](schemas/paid_bookings.json).
 
+That same composition is how a checkout response carries an issued
+`booking_scoped_credential` in UCP-Native Mode, as a **sibling of `booking`**
+([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)). Two
+points about that placement are deliberate. It is not a member of `booking`,
+because `BookingContext` is scheduling data that platforms persist and
+re-display, and a credential must never flow there. And it is not an invented
+member of the [UCP] checkout root either: it is declared inside USP's own
+registered extension, by the same mechanism that already contributes `booking`,
+so it needs no governance rule beyond the one this extension already relies on.
+
 **The `create_checkout` request with the paid bookings extension:**
 
 ```json

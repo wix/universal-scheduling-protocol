@@ -15,12 +15,6 @@
 # version bump that accompanies raising scoped authorization to a MUST.
 VERSION:mismatch
 
-# schemas/paid_bookings.json declares $defs/dev.ucp.shopping.checkout - the
-# object that adds `booking` to a UCP checkout - but the root allOf never
-# references it, so the extension validates nothing. Blocks UCP-Native carriage
-# of the booking-scoped credential and is fixed by that change.
-UNREFERENCED:schemas/paid_bookings.json:dev.ucp.shopping.checkout
-
 # schemas/registry.json $defs/RegistrationRequest is unreferenced because
 # openapi/usp-rest.json declares the POST /registry/businesses body as a large
 # inline object tree instead of a thin $ref. That is the duplication CLAUDE.md

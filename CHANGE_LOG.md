@@ -1,5 +1,14 @@
 # Change Log
 
+## 15/08/26 at 02:26:18 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed a latent defect that made the paid-bookings extension **inert**: `schemas/paid_bookings.json` declared `$defs/dev.ucp.shopping.checkout` - the object contributing `booking` to a UCP checkout - but the root `allOf` never referenced it, so the extension was applied to nothing and an instance with a missing or misshapen `booking` validated silently. This is a pre-existing bug, fixed here rather than deferred to the hygiene commit because the UCP-Native credential carriage is unimplementable without it: adding a property to an object nothing composes would have looked correct and validated nothing
+- Added `booking_scoped_credential` to that extension object as a **sibling of `booking`**, settling where the credential rides in UCP-Native paid bookings. Not inside `booking`: `BookingContext` is scheduling data that platforms persist and re-display, so a credential placed there would be written to whatever store the booking is cached in - widening precisely the leak surface the `cnf` binding closes
+- Recorded in §7.4 why this is not a namespace violation, since the obvious objection is that USP must not add members to a UCP-governed object. It is declared inside USP's own registered `dev.usp.services.paid_bookings` extension, by the same `allOf` composition that already contributes `booking`, so it is a *declared* extension member rather than an invented one and needs no governance rule beyond the one this extension already relies on
+- Marked the credential response-only in the schema description - a platform **MUST NOT** send it on a request and a business **MUST** ignore it if received - because a bidirectional-looking field in a checkout object invites a client to echo back what it was given
+
+---
+
 ## 15/08/26 at 02:04:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Specified MCP proof carriage in §9.2.2 and wired it into `openrpc/usp-mcp.json`: one new `proof` property on `McpAuthorization`, the claim set, the canonicalization rule, and the credential returned on the three creating methods. The MCP binding previously could not express a mechanism its own advertised `AuthorizationMechanism` set contains, which is the same class of defect this work exists to fix
