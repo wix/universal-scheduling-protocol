@@ -1,5 +1,12 @@
 # Change Log
 
+## 14/08/26 at 22:56:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Resolved a contradiction where the schema permitted what the specification body forbids: `schemas/profile.json` justified not defaulting `privileged_operations_require_authentication` to true on the grounds that "free/demo/sandbox deployments MAY legitimately run without it", while §10.1.6 states that privileged operations - explicitly including creating a booking - **MUST** be authenticated. A business could therefore publish `false`, validate cleanly, and believe it was conformant while serving real bookings unauthenticated. The property description now states that the flag declares *enforcement posture* rather than permission to violate §10.1.6, that a conformant deployment serving real bookings or buyer data **MUST** set it `true`, and that `false` is permitted only for explicitly non-production sandbox deployments
+- Added the matching §10.1.6 paragraph so the rule is normative in the body and not only in a schema description: a deployment publishing `false` declares itself out of conformance for privileged operations, and a platform **MUST** treat `false` as a signal to *refuse* to transact real bookings or transmit buyer personal data - refuse, not warn and continue. Stated the converse case too (publishing `true` while accepting unauthenticated privileged requests is equally non-conformant), since the flag is only meaningful if it describes actual behaviour
+
+---
+
 ## 12/08/26 at 15:33:08 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Aligned USP publisher rules so signing material **MUST** appear in top-level `keys` (UCP-canonical) with optional identical `signing_keys` during transition, dual-publish recommended, and verifiers resolving `keys` first across `specification.md` §8.2.1 / §9.1.4 / §10.1.1, `schemas/profile.json`, site-docs, and OpenAPI examples

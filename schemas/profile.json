@@ -101,7 +101,7 @@
       "properties": {
         "privileged_operations_require_authentication": {
           "type": "boolean",
-          "description": "Whether the business rejects unauthenticated requests to privileged operations (booking mutations, inventory holds, waitlist operations, payment-adjacent completion, registry writes, and any response carrying buyer personal data). Businesses handling real bookings or buyer data SHOULD set this to true; USP does not default it to true on the business's behalf because free/demo/sandbox deployments MAY legitimately run without it."
+          "description": "Whether the business rejects unauthenticated requests to privileged operations (booking mutations, inventory holds, waitlist operations, payment-adjacent completion, registry writes, and any response carrying buyer personal data). This flag declares a deployment's ENFORCEMENT POSTURE; it does not grant permission to ignore the specification.md Section 10.1.6 requirement that privileged operations MUST be authenticated. A conformant deployment serving real bookings or buyer data MUST set this to true. false is permitted only for explicitly non-production sandbox deployments, and a deployment publishing false declares itself out of conformance for privileged operations: platforms MUST treat false as a signal to refuse to transact real bookings or transmit buyer personal data to that deployment."
         },
         "accepted_mechanisms": {
           "type": "array",
