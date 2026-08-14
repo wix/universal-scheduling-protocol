@@ -60,6 +60,14 @@
           "type": "string",
           "format": "uuid"
         }
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "description": "OPTIONAL conditional-write precondition. Carries the opaque `revision` the platform last observed for this resource. When present, the business MUST apply the write only if the resource's current revision matches, and MUST return 412 otherwise rather than applying it - this is what stops two agents holding the same booking_scoped_credential from silently clobbering each other's changes. Omit it to write unconditionally. A business that does not return `revision` on this resource type does not support conditional writes and ignores this header. Interaction with Idempotency-Key: an idempotent REPLAY returns the stored original response WITHOUT re-evaluating this precondition, since the revision the caller sent was current at the time the original request succeeded and re-checking it would fail a retry of an already-successful call.",
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "schemas": {
@@ -439,6 +447,22 @@
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "PreconditionFailed": {
+        "description": "Conditional-write precondition failed: the If-Match revision is stale, so the resource changed since the platform last observed it. Distinct from 409, which this API uses for idempotency-key conflicts. Re-read the resource, reconcile, and retry with the new revision.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp.dev/errors/revision_mismatch",
+              "title": "Precondition Failed",
+              "status": 412,
+              "detail": "The If-Match revision is stale; the booking changed since it was read. Re-read the booking and retry with the current revision."
             }
           }
         }
@@ -2274,6 +2298,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "requestBody": {
@@ -2343,6 +2370,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
           },
@@ -2403,6 +2433,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "responses": {
@@ -2445,6 +2478,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
@@ -2506,6 +2542,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "requestBody": {
@@ -2570,6 +2609,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
           },
@@ -2630,6 +2672,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "requestBody": {
@@ -2702,6 +2747,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
           },
@@ -2762,6 +2810,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "requestBody": {
@@ -2864,6 +2915,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
@@ -3291,6 +3345,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "responses": {
@@ -3322,6 +3379,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
@@ -3383,6 +3443,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "requestBody": {
@@ -3440,6 +3503,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
@@ -3501,6 +3567,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "responses": {
@@ -3540,6 +3609,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"

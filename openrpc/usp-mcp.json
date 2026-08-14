@@ -3360,6 +3360,10 @@
                         "format": "uuid",
                         "description": "Idempotency key for state-modifying operations (UUID v4). Equivalent to the REST Idempotency-Key header."
                     },
+                    "if_match": {
+                        "type": "string",
+                        "description": "OPTIONAL conditional-write precondition, carrying the opaque `revision` the platform last observed for the addressed resource. MCP equivalent of the REST If-Match header. When present, the business MUST apply the write only if the resource's current revision matches, and MUST reject with revision_mismatch otherwise rather than applying it - this is what stops two agents holding the same booking_scoped_credential from silently clobbering each other. Omit it to write unconditionally. Defined for bookings and waitlist entries, which carry `revision`; usp_availability_release shares this wrapper but a hold has no revision and no update operation, so a business MUST ignore if_match there. Interaction with idempotency_key: an idempotent REPLAY returns the stored original response WITHOUT re-evaluating this precondition, since re-checking would fail a retry of an already-successful call. Note this field falls INSIDE the usp_p proof digest, which strips only _meta.usp.authorization, so on MCP the precondition is covered against tampering by an intermediary - REST has no equivalent protection for its If-Match header."
+                    },
                     "authorization": {
                         "$ref": "#/components/schemas/McpAuthorization",
                         "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
@@ -3426,6 +3430,7 @@
                                 "pop_key_mismatch",
                                 "pop_proof_replayed",
                                 "proof_nonce_required",
+                                "revision_mismatch",
                                 "rate_limited",
                                 "version_unsupported",
                                 "service_unavailable",

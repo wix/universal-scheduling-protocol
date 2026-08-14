@@ -153,6 +153,10 @@
           "type": "string",
           "format": "date-time",
           "description": "RFC 3339 expiration time. Present for pending and requires_action bookings."
+        },
+        "revision": {
+          "type": "string",
+          "description": "OPTIONAL. Opaque concurrency token for the current state of this booking, used for conditional writes (specification.md Section 5.6). A business that returns this MUST honour a matching precondition on mutating operations - If-Match on REST, _meta.usp.if_match on MCP - and MUST reject a stale one rather than applying the write, which is what stops two agents holding the same booking_scoped_credential from silently clobbering each other. Its presence in a response IS the advertisement that the business supports conditional writes; a platform that receives no revision performs unconditional writes, exactly as with an absent HTTP ETag. The value MUST change whenever any part of the booking changes and MUST NOT be reused for a different state. Businesses SHOULD NOT derive it from updated_at alone, since two modifications inside one timestamp tick would collide and defeat the check. Platforms MUST treat it as opaque: do not parse it, order it, or infer recency from it - it may be a row version, an entity tag, or a hash."
         }
       }
     },
