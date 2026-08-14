@@ -609,7 +609,7 @@
         {
             "name": "usp_services_feed_subscribe",
             "summary": "Create Feed Subscription",
-            "description": "Register for push-based catalog change notifications. Maps to POST /services/feed/subscriptions. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Register for push-based catalog change notifications. Maps to POST /services/feed/subscriptions. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -623,7 +623,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "callback_url",
@@ -919,7 +919,7 @@
         {
             "name": "usp_availability_hold",
             "summary": "Hold Slot",
-            "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -933,7 +933,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "slot_id",
@@ -1099,7 +1099,7 @@
         {
             "name": "usp_bookings_create",
             "summary": "Create Booking",
-            "description": "Creates a new booking for a service at a specific time slot. Maps to POST /bookings. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Creates a new booking for a service at a specific time slot. Maps to POST /bookings. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1113,7 +1113,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "service_id",
@@ -1831,7 +1831,7 @@
         {
             "name": "usp_waitlist_join",
             "summary": "Join Waitlist",
-            "description": "Join the waitlist for a service/slot. Maps to POST /waitlist. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Join the waitlist for a service/slot. Maps to POST /waitlist. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1845,7 +1845,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "service_id",
@@ -1935,7 +1935,7 @@
         {
             "name": "usp_waitlist_list",
             "summary": "List Waitlist Entries",
-            "description": "List waitlist entries with optional filtering by service and status. Maps to POST /waitlist/list. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "List waitlist entries with optional filtering by service and status. Maps to POST /waitlist/list. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1949,7 +1949,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "service_id",
@@ -2401,7 +2401,7 @@
         {
             "name": "usp_registry_register",
             "summary": "Register Business (Discovery Registry)",
-            "description": "Register a USP-enabled business with an optional discovery registry. Maps to POST /registry/businesses. Requires dev.usp.discovery.registry. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Register a USP-enabled business with an optional discovery registry. Maps to POST /registry/businesses. Requires dev.usp.discovery.registry. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2415,7 +2415,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization)."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "profile_url",
@@ -3423,9 +3423,13 @@
                 "mechanism": "http_message_signature",
                 "description": "RFC 9421 HTTP Message Signatures. On MCP-over-HTTP, present Signature / Signature-Input on the HTTP request; keys resolve from the keys (or legacy signing_keys) array of the platform profile referenced by _meta.usp.profile. Covered components and parameters are identical to the REST binding (UCP's set: @method, @authority, @path, plus @query / agent header / idempotency-key / content-digest / content-type when present; 'created' OPTIONAL; replay protection via the signed idempotency key). RECOMMENDED default. Same mechanism as openapi/usp-rest.json components.securitySchemes.HttpMessageSignature."
             },
+            "PlatformKeyPop": {
+                "mechanism": "platform_key_pop",
+                "description": "Platform key proof-of-possession. Permissionless: the caller generates an ephemeral key, never transmits the private half, and proves possession on each privileged request; the business records the RFC 7638 thumbprint (jkt) as the platform identifier. Carry the proof in _meta.usp.authorization.proof on BOTH MCP transports - stdio and HTTP-SSE - rather than on a DPoP HTTP header, so there is one client code path and a business behind an SSE gateway need not know its externally visible URL. The MCP proof deliberately differs from the REST one: typ is usp-pop+jwt rather than dpop+jwt, and it binds usp_m (the JSON-RPC method name) and aud (a published business profile URI) in place of htm and htu, plus usp_p over the canonicalized params. The differing typ means neither proof can be replayed as the other before claim checking. This mechanism is also what makes a booking_scoped_credential sender-constrained via cnf.jkt. Same mechanism identifier as openapi/usp-rest.json components.securitySchemes.PlatformKeyPop, though the two bindings carry it differently. See specification.md Section 9.2.2 and Section 10.1.6."
+            },
             "BookingScopedCredential": {
                 "mechanism": "booking_scoped_credential",
-                "description": "Booking- or waitlist-entry-scoped capability credential issued at create. Carry via _meta.usp.authorization (mechanism=booking_scoped_credential, credential=<token>) or, when MCP is over HTTP, via Authorization: Bearer <token> if the business documents that wire form. Same mechanism as openapi BookingScopedCredential."
+                "description": "Booking- or waitlist-entry-scoped capability credential issued at create. Shape defined at schemas/profile.json#/$defs/BookingScopedCredential. Carry via _meta.usp.authorization (mechanism=booking_scoped_credential, credential=<token>) or, when MCP is over HTTP, via Authorization: Bearer <token> if the business documents that wire form. When the credential carries a cnf confirmation key it is sender-constrained and MUST be accompanied by a platform_key_pop proof over the bound key; see specification.md Section 10.1.6. Same mechanism as openapi BookingScopedCredential."
             },
             "OAuth2Bearer": {
                 "mechanism": "oauth2_bearer",
