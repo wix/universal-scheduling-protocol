@@ -1,0 +1,29 @@
+# Accepted pre-existing failures, one key per line.
+#
+# This is a debt ledger, not a suppression flag. Every entry names a real defect
+# that tools/usp_check.py has found and that is scheduled to be fixed. Emptying
+# this file is the acceptance criterion for the hygiene commit that closes the
+# last of them, so debt cannot quietly become permanent.
+#
+# A $def that is deliberately informative - published to be read rather than
+# $ref'd - does not belong here. Those are listed in INFORMATIVE_DEFS in
+# tools/usp_check.py, because "accepted forever by design" and "not fixed yet"
+# should not look the same to a reader.
+
+# openapi/usp-rest.json and openrpc/usp-mcp.json carry info.version 2026-02-09,
+# two releases behind specification.md and README.md (2026-02-21). Fixed by the
+# version bump that accompanies raising scoped authorization to a MUST.
+VERSION:mismatch
+
+# schemas/paid_bookings.json declares $defs/dev.ucp.shopping.checkout - the
+# object that adds `booking` to a UCP checkout - but the root allOf never
+# references it, so the extension validates nothing. Blocks UCP-Native carriage
+# of the booking-scoped credential and is fixed by that change.
+UNREFERENCED:schemas/paid_bookings.json:dev.ucp.shopping.checkout
+
+# schemas/registry.json $defs/RegistrationRequest is unreferenced because
+# openapi/usp-rest.json declares the POST /registry/businesses body as a large
+# inline object tree instead of a thin $ref. That is the duplication CLAUDE.md
+# rule 3 forbids, and the two copies are already free to drift. Fixed in the
+# hygiene commit.
+UNREFERENCED:schemas/registry.json:RegistrationRequest
