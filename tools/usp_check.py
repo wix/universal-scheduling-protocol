@@ -220,6 +220,19 @@ def check_schemas(findings: Findings) -> None:
             except Exception as exc:  # noqa: BLE001 - surface any validator complaint
                 findings.fail(f"SCHEMA:{rel(path)}", f"not a valid JSON Schema: {exc}")
 
+    # Internal anchors: a link to a section that does not exist reads as a
+    # working cross-reference and silently goes nowhere.
+    spec = SPEC.read_text()
+    headings = set()
+    for line in spec.splitlines():
+        match = re.match(r"^#{2,6}\s+(.*)$", line)
+        if match:
+            slug = re.sub(r"[^\w\s-]", "", match.group(1).strip().lower())
+            headings.add("#" + re.sub(r"\s+", "-", slug))
+    for anchor in sorted(set(re.findall(r"\]\((#[a-z0-9-]+)\)", spec)) - headings):
+        findings.fail(f"ANCHOR:{anchor}",
+                      f"specification.md links to {anchor}, which matches no heading")
+
     versions = read_version_literals()
     distinct = set(versions.values())
     if len(distinct) != 1:

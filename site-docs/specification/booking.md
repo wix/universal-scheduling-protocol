@@ -181,10 +181,10 @@ Creates a new booking for a service at a specific time slot. Resource selection 
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.bookings": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -262,10 +262,10 @@ Creates a new booking for a service at a specific time slot. Resource selection 
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.bookings": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },
@@ -426,10 +426,10 @@ The universal callback the platform calls after payment succeeds. This completes
     ```json
     {
       "usp": {
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.bookings": [
-            { "version": "2026-02-09" }
+            { "version": "2026-08-14" }
           ]
         }
       },

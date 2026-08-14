@@ -13,11 +13,21 @@
       ],
       "dev.usp.services": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json"
+          "schema": "https://usp.dev/services/rest.openapi.json",
+          "config": {
+            "authorization": {
+              "privileged_operations_require_authentication": true,
+              "accepted_mechanisms": [
+                "http_message_signature",
+                "platform_key_pop",
+                "booking_scoped_credential"
+              ]
+            }
+          }
         }
       ]
     },
@@ -31,28 +41,28 @@
       ],
       "dev.usp.services.catalog": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-02-09",
+          "version": "2026-08-14",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -81,17 +91,28 @@
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",
       "currency": "USD"
-    }
-  },
-  "signing_keys": [
-    {
-      "kid": "business_ucp_demo_2026",
-      "kty": "EC",
-      "crv": "P-256",
-      "x": "WbbXwVYGdJoP4Xm3qCkGvBRcRvKtEfXDbWvPzpPS8LA",
-      "y": "sP4jHHxYqC89HBo8TjrtVOAGHfJDflYxw7MFMxuFMPY",
-      "use": "sig",
-      "alg": "ES256"
-    }
-  ]
+    },
+    "keys": [
+      {
+        "kid": "business_ucp_demo_2026",
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "WbbXwVYGdJoP4Xm3qCkGvBRcRvKtEfXDbWvPzpPS8LA",
+        "y": "sP4jHHxYqC89HBo8TjrtVOAGHfJDflYxw7MFMxuFMPY",
+        "use": "sig",
+        "alg": "ES256"
+      }
+    ],
+    "signing_keys": [
+      {
+        "kid": "business_ucp_demo_2026",
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "WbbXwVYGdJoP4Xm3qCkGvBRcRvKtEfXDbWvPzpPS8LA",
+        "y": "sP4jHHxYqC89HBo8TjrtVOAGHfJDflYxw7MFMxuFMPY",
+        "use": "sig",
+        "alg": "ES256"
+      }
+    ]
+  }
 }

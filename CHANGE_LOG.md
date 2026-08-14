@@ -1,5 +1,20 @@
 # Change Log
 
+## 15/08/26 at 05:08:33 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Corrected `site-docs/deployment-modes/ucp-native.md`, which told UCP-Native implementers the **opposite of the specification** and is the highest-impact item here: its reading guidance listed only "Skip Sections 9.6 and 10.2" and omitted the entire "do not skip §10.1.6" carve-out, so a business following the published docs would have skipped the section that makes privileged-operation authentication mandatory. Also refreshed the stale Authentication row, which still read "UCP OAuth 2.0 support" after the specification broadened it to "UCP OAuth 2.0 / signature support"
+- Fixed `docs/ucp-native-demo-merchant-profile.example.json`, which violated the rule it exists to demonstrate: `signing_keys` sat at the document root as a **top-level sibling of `ucp`** in a UCP profile - exactly what §10.1.6 forbids USP from doing. Moved it under `ucp` as the UCP-canonical `keys` with the transition alias dual-published, and added the `config.authorization` policy the binding had entirely lacked. This file is what implementers copy, so a defect here propagates
+- Refreshed **133 stale `2026-02-09` example literals** across the specification, site docs, the OpenAPI examples, and the demo profile, while preserving the **7** that name a specific historical version on purpose - the `supported_versions` map, the `dev.usp.services.booking@2026-02-09` pin illustrating pin syntax, and the roadmap history rows. The distinction is made by matching what a line *says*, not by counting occurrences
+- Added the missing `usp_services_lookup` row to the §9.2.1 method-mapping table, which listed 26 rows for 27 methods. The method is normative in REST and present in the MCP binding, so the omission made the table quietly wrong rather than merely incomplete
+- Deleted the duplicated link-definition block at the end of the specification. Every reference definition appeared twice; the second copy is now removed
+- Replaced the inline `POST /registry/businesses` request body in `openapi/usp-rest.json` with a thin `$ref` to `schemas/registry.json` `$defs/RegistrationRequest`, the duplication [CLAUDE.md](CLAUDE.md) rule 3 forbids. The two copies were verified byte-equivalent first, so this deduplicates before they drift rather than after
+- Added the `requires` object to `schemas/paid_bookings.json`, which §1 says extension schemas **SHOULD** declare
+- Fixed six pre-existing broken internal anchors, each resolved by locating the section whose heading actually matches rather than by guessing from the section number - `#1123-paid-bookings` pointed at a calendar schema section, and `#92-error-handling` pointed at the MCP binding rather than the error-code mapping. One, `#category-rules`, referenced a bold run-in paragraph that is not a heading at all and now reads as plain text
+- Added an anchor check to `tools/usp_check.py`, so a link to a non-existent section fails the build instead of reading as a working cross-reference that goes nowhere
+- **`tools/known-issues.txt` is now empty.** Every failure the validator found when it was introduced has been fixed rather than tolerated, which was the acceptance criterion for this commit
+
+---
+
 ## 15/08/26 at 04:31:52 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added ten test vectors under `tests/vectors/pop/` covering canonicalization, issuance, presentation, and six rejection cases. `platform_key_pop` is specified on both bindings and implemented on neither, so without these the normative text ships entirely unvalidated - and canonicalization is the one part of it that can be wrong in a way review will not catch, because two implementers can read the same rule and encode it differently

@@ -167,6 +167,9 @@
       },
       "BuyerFreeBusy": {
         "$ref": "../schemas/calendar_freebusy.json#/$defs/BuyerFreeBusy"
+      },
+      "RegistrationRequest": {
+        "$ref": "../schemas/registry.json#/$defs/RegistrationRequest"
       }
     },
     "responses": {
@@ -3597,76 +3600,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "profile_url",
-                  "deployment_mode",
-                  "name",
-                  "verticals",
-                  "categories",
-                  "timezone"
-                ],
-                "properties": {
-                  "profile_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "The business's /.well-known/usp or /.well-known/ucp profile URL. Must be reachable and return a valid profile."
-                  },
-                  "deployment_mode": {
-                    "type": "string",
-                    "enum": [
-                      "standalone",
-                      "ucp_native"
-                    ],
-                    "description": "Deployment mode of the business."
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Business display name."
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Optional brief description of the business."
-                  },
-                  "verticals": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Service verticals the business supports."
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Service categories the business offers."
-                  },
-                  "location": {
-                    "type": "object",
-                    "description": "Physical location. Required when the business offers at_business_location or hybrid services.",
-                    "properties": {
-                      "address": {
-                        "type": "string"
-                      },
-                      "coordinates": {
-                        "type": "object",
-                        "properties": {
-                          "lat": {
-                            "type": "number"
-                          },
-                          "lng": {
-                            "type": "number"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "timezone": {
-                    "type": "string",
-                    "description": "IANA timezone identifier."
-                  }
-                }
+                "$ref": "#/components/schemas/RegistrationRequest"
               }
             }
           }
@@ -4198,11 +4132,11 @@
                 },
                 "example": {
                   "usp": {
-                    "version": "2026-02-09",
+                    "version": "2026-08-14",
                     "services": {
                       "dev.usp.services": [
                         {
-                          "version": "2026-02-09",
+                          "version": "2026-08-14",
                           "transport": "rest",
                           "endpoint": "https://business.example.com/usp/v1",
                           "spec": "https://usp.dev/specification",
@@ -4213,21 +4147,21 @@
                     "capabilities": {
                       "dev.usp.services.catalog": [
                         {
-                          "version": "2026-02-09",
+                          "version": "2026-08-14",
                           "spec": "https://usp.dev/specification#3-service-catalog",
                           "schema": "https://usp.dev/schemas/services/catalog.json"
                         }
                       ],
                       "dev.usp.services.availability": [
                         {
-                          "version": "2026-02-09",
+                          "version": "2026-08-14",
                           "spec": "https://usp.dev/specification#4-availability",
                           "schema": "https://usp.dev/schemas/services/availability.json"
                         }
                       ],
                       "dev.usp.services.bookings": [
                         {
-                          "version": "2026-02-09",
+                          "version": "2026-08-14",
                           "spec": "https://usp.dev/specification#5-booking-lifecycle",
                           "schema": "https://usp.dev/schemas/services/booking.json"
                         }
