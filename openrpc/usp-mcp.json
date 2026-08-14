@@ -983,6 +983,10 @@
                                     "items": {
                                         "$ref": "#/components/schemas/Message"
                                     }
+                                },
+                                "booking_scoped_credential": {
+                                    "$ref": "#/components/schemas/BookingScopedCredential",
+                                    "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on this creation result only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the resource it re-displays widens exactly the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt binding the credential to the key whose possession was proved on this call; the platform SHOULD verify cnf.jkt matches its own key, and MUST NOT treat a credential returned without cnf as sender-constrained."
                                 }
                             }
                         },
@@ -1019,7 +1023,7 @@
         {
             "name": "usp_availability_release",
             "summary": "Release Slot",
-            "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1033,7 +1037,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "hold_id",
@@ -1216,6 +1220,10 @@
                                     "items": {
                                         "$ref": "#/components/schemas/Message"
                                     }
+                                },
+                                "booking_scoped_credential": {
+                                    "$ref": "#/components/schemas/BookingScopedCredential",
+                                    "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on this creation result only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the resource it re-displays widens exactly the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt binding the credential to the key whose possession was proved on this call; the platform SHOULD verify cnf.jkt matches its own key, and MUST NOT treat a credential returned without cnf as sender-constrained."
                                 }
                             }
                         },
@@ -1252,7 +1260,7 @@
         {
             "name": "usp_bookings_get",
             "summary": "Get Booking",
-            "description": "Returns the current state of a booking. Maps to GET /bookings/{booking_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Returns the current state of a booking. Maps to GET /bookings/{booking_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1266,7 +1274,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1332,7 +1340,7 @@
         {
             "name": "usp_bookings_update",
             "summary": "Update Booking",
-            "description": "Updates mutable fields (buyer, recipient, notes) on a booking. Maps to PUT /bookings/{booking_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Updates mutable fields (buyer, recipient, notes) on a booking. Maps to PUT /bookings/{booking_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1346,7 +1354,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1434,7 +1442,7 @@
         {
             "name": "usp_bookings_confirm",
             "summary": "Confirm Booking",
-            "description": "Business-initiated confirmation for manual mode bookings. Maps to POST /bookings/{booking_id}/confirm. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Business-initiated confirmation for manual mode bookings. Maps to POST /bookings/{booking_id}/confirm. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1448,7 +1456,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1514,7 +1522,7 @@
         {
             "name": "usp_bookings_cancel",
             "summary": "Cancel Booking",
-            "description": "Cancels a booking. Maps to POST /bookings/{booking_id}/cancel. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Cancels a booking. Maps to POST /bookings/{booking_id}/cancel. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1528,7 +1536,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1607,7 +1615,7 @@
         {
             "name": "usp_bookings_reschedule",
             "summary": "Reschedule Booking",
-            "description": "Moves a booking to a different time slot. Maps to POST /bookings/{booking_id}/reschedule. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Moves a booking to a different time slot. Maps to POST /bookings/{booking_id}/reschedule. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1621,7 +1629,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1708,7 +1716,7 @@
         {
             "name": "usp_bookings_confirm_payment",
             "summary": "Confirm Payment",
-            "description": "Callback after payment succeeds. Maps to POST /bookings/{booking_id}/confirm-payment. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Callback after payment succeeds. Maps to POST /bookings/{booking_id}/confirm-payment. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1722,7 +1730,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "booking_id",
@@ -1899,6 +1907,10 @@
                                 },
                                 "entry": {
                                     "$ref": "#/components/schemas/WaitlistEntry"
+                                },
+                                "booking_scoped_credential": {
+                                    "$ref": "#/components/schemas/BookingScopedCredential",
+                                    "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on this creation result only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the resource it re-displays widens exactly the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt binding the credential to the key whose possession was proved on this call; the platform SHOULD verify cnf.jkt matches its own key, and MUST NOT treat a credential returned without cnf as sender-constrained."
                                 }
                             }
                         },
@@ -2066,7 +2078,7 @@
         {
             "name": "usp_waitlist_get",
             "summary": "Get Waitlist Entry",
-            "description": "Get waitlist entry status. Maps to GET /waitlist/{entry_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Get waitlist entry status. Maps to GET /waitlist/{entry_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2080,7 +2092,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "entry_id",
@@ -2146,7 +2158,7 @@
         {
             "name": "usp_waitlist_leave",
             "summary": "Leave Waitlist",
-            "description": "Leave the waitlist. Maps to DELETE /waitlist/{entry_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Leave the waitlist. Maps to DELETE /waitlist/{entry_id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2160,7 +2172,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "entry_id",
@@ -2233,7 +2245,7 @@
         {
             "name": "usp_waitlist_accept",
             "summary": "Accept Waitlist Offer",
-            "description": "Accept an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/accept. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Accept an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/accept. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2247,7 +2259,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "entry_id",
@@ -2322,7 +2334,7 @@
         {
             "name": "usp_waitlist_decline",
             "summary": "Decline Waitlist Offer",
-            "description": "Decline an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/decline. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Decline an offered slot from the waitlist. Maps to POST /waitlist/{entry_id}/decline. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2336,7 +2348,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "entry_id",
@@ -2926,7 +2938,7 @@
         {
             "name": "usp_registry_update",
             "summary": "Update Registration (Discovery Registry)",
-            "description": "Update an existing registry registration. Maps to PUT /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Update an existing registry registration. Maps to PUT /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2940,7 +2952,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "id",
@@ -3079,7 +3091,7 @@
         {
             "name": "usp_registry_delete",
             "summary": "Delete Registration (Discovery Registry)",
-            "description": "Remove a business from the discovery registry. Maps to DELETE /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization).",
+            "description": "Remove a business from the discovery registry. Maps to DELETE /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -3093,7 +3105,7 @@
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available."
+                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
                 },
                 {
                     "name": "id",
@@ -3266,7 +3278,11 @@
                     },
                     "credential": {
                         "type": "string",
-                        "description": "REQUIRED when mechanism is oauth2_bearer, api_key, or booking_scoped_credential and the credential is not already presented on the MCP HTTP transport. Omit when mechanism is http_message_signature or mtls (those bind at the HTTP/TLS layer of an MCP-over-HTTP session)."
+                        "description": "REQUIRED when mechanism is oauth2_bearer, api_key, or booking_scoped_credential and the credential is not already presented on the MCP HTTP transport. Omit when mechanism is http_message_signature or mtls (those bind at the HTTP/TLS layer of an MCP-over-HTTP session). For platform_key_pop the rule depends on the tier: OMIT at issuance, where no credential exists yet and the proof alone authenticates the caller, and REQUIRED at presentation on a privileged_scoped method, where it carries the booking_scoped_credential value that the accompanying proof's ath claim covers."
+                    },
+                    "proof": {
+                        "$ref": "../schemas/usp.json#/$defs/PopProofJwt",
+                        "description": "Proof of possession for the platform_key_pop mechanism, carried here on BOTH MCP transports - stdio and HTTP-SSE. MCP-over-HTTP deliberately does not use a REST-style DPoP header, so there is one client code path and a business behind an SSE gateway need not know its own externally visible URL to verify a proof. REQUIRED when mechanism is platform_key_pop. ALSO REQUIRED, whatever mechanism is declared, when the presented credential was issued carrying cnf: such a credential is sender-constrained, and a business MUST reject it presented without a matching proof rather than accept it as a bearer token. That rule is what stops the mechanism being bypassed by declaring mechanism=booking_scoped_credential and omitting this field - mechanism is caller-asserted and, like the rest of this object, is excluded from the usp_p digest. Header is typ usp-pop+jwt (deliberately not dpop+jwt, so a REST proof and an MCP proof cannot be replayed as one another), alg EdDSA, jwk the bare public key. Claims are usp_m (the invoked method name), aud (a business profile URI the callee publishes), usp_p (base64url SHA-256 over the JCS canonicalization of params with _meta.usp.authorization removed), iat, jti, ath at presentation only, and nonce only after a challenge. See specification.md Section 9.2.2."
                     }
                 },
                 "additionalProperties": false
@@ -3289,7 +3305,7 @@
                 "required": [
                     "profile"
                 ],
-                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Platform-level privileged call (create booking/hold/waitlist, register, subscribe): accepts http_message_signature, oauth2_bearer, api_key, or mtls from AuthorizationPolicy; booking_scoped_credential does not apply until a booking or waitlist entry exists.",
+                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Platform-level privileged call (create booking/hold/waitlist, register, subscribe): accepts http_message_signature, platform_key_pop, oauth2_bearer, api_key, or mtls from AuthorizationPolicy. booking_scoped_credential does not apply at this tier, because no booking or waitlist entry exists yet - this is the tier at which one is ISSUED. A caller using platform_key_pop here sends authorization.proof with NO credential and the proof carries no ath; the business computes the RFC 7638 thumbprint of the proof header jwk, records it as the platform identity, and binds the credential it issues to that key.",
                 "properties": {
                     "profile": {
                         "type": "string",
@@ -3303,7 +3319,7 @@
                     },
                     "authorization": {
                         "$ref": "#/components/schemas/McpAuthorization",
-                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy)."
+                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
                     }
                 },
                 "additionalProperties": false
@@ -3313,7 +3329,7 @@
                 "required": [
                     "profile"
                 ],
-                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Platform-level privileged call without an idempotency key (e.g. waitlist list). Same authentication rules as McpUspMetaPrivilegedPlatform.",
+                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Platform-level privileged call without an idempotency key (e.g. waitlist list). Same authentication rules as McpUspMetaPrivilegedPlatform, including platform_key_pop presented as authorization.proof with no credential. Note this wrapper is used by methods that create nothing, so no booking_scoped_credential is issued on them.",
                 "properties": {
                     "profile": {
                         "type": "string",
@@ -3322,7 +3338,7 @@
                     },
                     "authorization": {
                         "$ref": "#/components/schemas/McpAuthorization",
-                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy)."
+                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
                     }
                 },
                 "additionalProperties": false
@@ -3332,7 +3348,7 @@
                 "required": [
                     "profile"
                 ],
-                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Scoped privileged call on an existing booking, hold, waitlist entry, or registry registration: same platform mechanisms as privileged_platform, and SHOULD prefer booking_scoped_credential via authorization when the business accepts it.",
+                "description": "USP protocol metadata for this MCP tool call. Privileged operation: profile is REQUIRED and authentication MUST satisfy Section 10.1.6. Scoped privileged call on an existing booking, hold, waitlist entry, or registry registration: same platform mechanisms as privileged_platform, and SHOULD prefer booking_scoped_credential via authorization when the business accepts it, accompanied by the platform_key_pop proof its cnf binding requires.",
                 "properties": {
                     "profile": {
                         "type": "string",
@@ -3346,7 +3362,7 @@
                     },
                     "authorization": {
                         "$ref": "#/components/schemas/McpAuthorization",
-                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy)."
+                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
                     }
                 },
                 "additionalProperties": false
@@ -3365,7 +3381,7 @@
                     },
                     "authorization": {
                         "$ref": "#/components/schemas/McpAuthorization",
-                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy)."
+                        "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
                     }
                 },
                 "additionalProperties": false

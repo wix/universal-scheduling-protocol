@@ -6090,6 +6090,67 @@ Privileged vs public access is transport-agnostic and **MUST** match the REST bi
 
 When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
 
+**Proof-of-possession carriage (`platform_key_pop`).** The proof rides in
+`_meta.usp.authorization.proof` on **both** MCP transports - stdio *and*
+HTTP-SSE. MCP-over-HTTP deliberately does **not** get a REST-style `DPoP`
+header: keeping one carriage means one client code path, and it means a business
+behind an SSE gateway does not need to know its own externally visible URL in
+order to verify a proof.
+
+Two invariants follow, and a business **MUST** enforce both:
+
+- `mechanism: "platform_key_pop"` **MUST** be accompanied by `proof`.
+- A `credential` whose issued form carried `cnf` **MUST** be accompanied by
+  `proof`, whatever `mechanism` the caller declares
+  ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
+
+**Claims.** The MCP proof is a compact JWS with header
+`{ "typ": "usp-pop+jwt", "alg": "EdDSA", "jwk": <public JWK> }` and these claims:
+
+| Claim | Requirement | Meaning |
+|---|---|---|
+| `usp_m` | **MUST** | The invoked method name, replacing [RFC 9449]'s `htm`. |
+| `aud`   | **MUST** | A business profile URI the callee publishes, replacing `htu`. |
+| `usp_p` | **MUST** | `base64url(SHA-256(JCS(canonical params)))` - see below. |
+| `iat`   | **MUST** | Issued-at, for the freshness window. |
+| `jti`   | **MUST** | Unique proof identifier, for the replay cache. |
+| `ath`   | Conditional | `base64url(SHA-256(credential value))`. Present at presentation, **absent** at issuance. |
+| `nonce` | Conditional | Present only after the business has challenged for one. |
+
+`typ` is deliberately **not** `dpop+jwt`. The REST binding uses genuine
+[RFC 9449] proofs; giving the MCP proof a different `typ` means neither can be
+replayed as the other, and a verifier rejects the mismatch before it evaluates
+any claim.
+
+**`aud` is mandatory, not optional.** With no `htu` to bind the target, and with
+neither `ath` nor a credential present at issuance, a proof captured by one
+business would otherwise be replayable verbatim at a *different* business. A
+business **MUST** reject a proof whose `aud` is not one of the profile URIs it
+publishes, **MUST** accept each URI it is reachable at, and **SHOULD** publish a
+canonical one. `aud` is always available to the caller, because a conformant
+business is discovered *through* its profile URI in the first place.
+
+**Canonical params.** The `usp_p` digest is computed over `params` with
+`_meta.usp.authorization` removed - and *only* that member removed. If
+`_meta.usp` is left empty it is retained as `{}`. Everything else is included
+verbatim, which keeps `_meta.usp.profile` and `_meta.usp.idempotency_key` inside
+the digest: the first gives the identity binding above something to bind
+against, and the second means create-replay is covered for free.
+
+The result is serialized with **JCS ([RFC 8785])** rather than digested
+byte-exactly, because an MCP client does **not** control its own wire bytes -
+the SDK serializes `params`, and gateways re-serialize freely. JCS is a
+canonical *form*, so re-serialization is harmless. This is strictly better than
+the REST binding, where the specification must instead forbid intermediaries
+from re-serializing. Platforms **SHOULD** avoid non-integer JSON numbers in
+canonicalized params, so that JCS's ECMAScript number-serialization edge case
+never arises.
+
+Because `usp_p` covers every argument, the MCP profile is **stronger on argument
+integrity than REST**: `buyer`, `delivery_address` and the rest are all covered,
+so an intermediary cannot alter the call. REST covers nothing equivalent unless
+[RFC 9421] signing with `Content-Digest` is also in use.
+
 For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment, and other methods that declare `idempotency_key` on `_meta.usp`), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
 
 > **Schema reference:** The MCP binding schema is defined in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json). Shared authorization policy and mechanism enums live in [`schemas/profile.json`](schemas/profile.json) (`$defs/AuthorizationPolicy`, `$defs/AuthorizationMechanism`) and **MUST NOT** be re-defined inline in either binding.
@@ -6303,6 +6364,7 @@ A conforming MCP binding implementation **MUST:**
 5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
 6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
 7. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 A conforming MCP binding implementation **SHOULD:**
 
@@ -6310,6 +6372,7 @@ A conforming MCP binding implementation **SHOULD:**
 2. Provide a human-readable text summary in `result.content[]`.
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
 4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
+5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
 
