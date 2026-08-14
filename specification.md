@@ -7069,7 +7069,8 @@ operations, and **MUST** publish which one(s) it requires via that
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
-| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Detailed issuance and validation mechanics are tracked separately (issue #134; feeds the broader booking get/cancel/PII authorization requirement in plan item V2-X6 / issue #162); this section only reserves the mechanism name so it composes with the rest of this table today. |
+| Platform key proof-of-possession (`platform_key_pop`) | Permissionless | Proves possession of an **ephemeral key the caller never transmits**, as a compact JWS derived from DPoP ([RFC 9449]). The business records the [RFC 7638] thumbprint (`jkt`) as the platform identifier; nothing is published, registered, or rotated, and the platform profile stays keyless. Composes with rather than replaces the rows around it: it is what lets a permissionless caller authenticate without the [RFC 9421] covered-component machinery, and what makes a booking-scoped credential **sender-constrained** via `cnf.jkt`. Not a credential on its own. |
+| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
 | Mutual TLS (mTLS)                                 | Pre-established | High-security environments requiring certificate-based authentication. |
@@ -7940,12 +7941,21 @@ registration of:
   2013. https://www.rfc-editor.org/rfc/rfc7009
 - **[RFC 7517]** Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI
   10.17487/RFC7517, May 2015. https://www.rfc-editor.org/rfc/rfc7517
+- **[RFC 7519]** Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token (JWT)
+  ", RFC 7519, DOI 10.17487/RFC7519, May
+  2015. https://www.rfc-editor.org/rfc/rfc7519
 - **[RFC 7617]** Reschke, J., "The 'Basic' HTTP Authentication Scheme", RFC
   7617, DOI 10.17487/RFC7617, September
   2015. https://www.rfc-editor.org/rfc/rfc7617
 - **[RFC 7636]** Sakimura, N., Ed., Bradley, J., and N. Agarwal, "Proof Key for
   Code Exchange by OAuth Public Clients", RFC 7636, DOI 10.17487/RFC7636,
   September 2015. https://www.rfc-editor.org/rfc/rfc7636
+- **[RFC 7638]** Jones, M. and N. Sakimura, "JSON Web Key (JWK) Thumbprint",
+  RFC 7638, DOI 10.17487/RFC7638, September
+  2015. https://www.rfc-editor.org/rfc/rfc7638
+- **[RFC 7800]** Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-Possession
+  Key Semantics for JSON Web Tokens (JWTs)", RFC 7800, DOI 10.17487/RFC7800,
+  April 2016. https://www.rfc-editor.org/rfc/rfc7800
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key
   Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174, May
   2017. https://www.rfc-editor.org/rfc/rfc8174
@@ -7958,6 +7968,9 @@ registration of:
 - **[RFC 8615]** Nottingham, M., "Well-Known Uniform Resource Identifiers (
   URIs)", RFC 8615, DOI 10.17487/RFC8615, May
   2019. https://www.rfc-editor.org/rfc/rfc8615
+- **[RFC 8785]** Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+  Canonicalization Scheme (JCS)", RFC 8785, DOI 10.17487/RFC8785, June
+  2020. https://www.rfc-editor.org/rfc/rfc8785
 - **[RFC 8941]** Nottingham, M. and P-H. Kamp, "Structured Field Values for
   HTTP", RFC 8941, DOI 10.17487/RFC8941, February
   2021. https://www.rfc-editor.org/rfc/rfc8941
@@ -8108,6 +8121,10 @@ version of USP when:
 
 [RFC 9207]: https://www.rfc-editor.org/rfc/rfc9207
 
+[RFC 7519]: https://www.rfc-editor.org/rfc/rfc7519
+[RFC 7638]: https://www.rfc-editor.org/rfc/rfc7638
+[RFC 7800]: https://www.rfc-editor.org/rfc/rfc7800
+[RFC 8785]: https://www.rfc-editor.org/rfc/rfc8785
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
 
 [RFC 9449]: https://www.rfc-editor.org/rfc/rfc9449

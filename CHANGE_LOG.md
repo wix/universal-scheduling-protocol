@@ -1,5 +1,16 @@
 # Change Log
 
+## 15/08/26 at 00:21:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Registered the `platform_key_pop` mechanism identifier across all **six** artefacts that duplicate the mechanism set by design: `schemas/profile.json` (`AuthorizationMechanism` examples and description, plus `accepted_mechanisms`), `openapi/usp-rest.json` `components.securitySchemes`, `openrpc/usp-mcp.json` `components.x-usp-securitySchemes`, the §10.1.6 mechanism table, `site-docs/security.md`, and the per-method boilerplate in the MCP binding. Partial updates are the most likely failure mode here and nothing enforced consistency, so a sweep across all six is part of the acceptance for this work
+- Corrected the working assumption that the MCP per-method boilerplate was "~30 occurrences of one string". It is **four distinct strings totalling 38 occurrences across 19 methods**, and the one usually quoted appears only 6 times. A search-and-replace on that single string would have left 32 sites advertising a mechanism set the binding's own security schemes contradict. This entry updates the two strings that *enumerate* mechanisms (6 method descriptions, 6 `_meta` parameter descriptions), asserted by exact count before and after; the other two carry scoped-credential semantics and are updated where the proof requirement lands
+- Registered the mechanism differently in each binding, because the two are **not symmetric** and treating them as such would have produced an invalid OpenAPI document: OpenRPC has a USP-specific `x-usp-securitySchemes` whose entries are `{mechanism, description}`, whereas OpenAPI has no such extension and uses standard `components.securitySchemes`, where the entry must be a real OpenAPI scheme (`type: http`, `scheme: DPoP`) carrying the shared identifier in `x-usp-mechanism`
+- Retired the sentence "Detailed issuance and validation mechanics are tracked separately (issue #134)" from both places it was duplicated (§10.1.6 and `openapi/usp-rest.json`). It became false the moment the credential acquired a schema, and leaving it would have told implementers to wait for a specification that had already landed
+- Added [RFC 7519], [RFC 7638], [RFC 7800] and [RFC 8785] as normative references with link definitions. The mechanism is described in terms of JWK thumbprints, `cnf` semantics, and JSON canonicalization, none of which the document previously cited; only [RFC 9449] and [RFC 7517] were already present
+- Recorded in each description that this mechanism *composes with* rather than replaces the rows around it, since the single most likely misreading is that `platform_key_pop` is an alternative to `booking_scoped_credential` rather than the thing that makes it sender-constrained
+
+---
+
 ## 14/08/26 at 23:58:12 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added `$defs/ConfirmationKey` and `$defs/PopProofJwt` to `schemas/usp.json` and `$defs/BookingScopedCredential` to `schemas/profile.json`. `booking_scoped_credential` has been an advertised mechanism name with **no object definition anywhere in `schemas/`** since it was reserved, so every implementer was free to invent an incompatible shape; §10.1.6 said as much, describing itself as reserving only the name
