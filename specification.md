@@ -7006,6 +7006,17 @@ USP separates operations into two trust tiers, independent of deployment mode:
   ID, registry entry ID) is not a credential; treating it as one lets anyone
   who can guess or observe an identifier act on it.
 
+**Enforcement posture is declared, not negotiated.** The `authorization`
+policy's `privileged_operations_require_authentication` flag declares whether a
+deployment *enforces* the requirement above. It does not grant permission to
+ignore it. A deployment that publishes `false` declares itself **out of
+conformance for privileged operations**; the value is intended only for
+explicitly non-production sandbox deployments. A platform **MUST** treat
+`false` as a signal to **refuse** to transact real bookings or transmit buyer
+personal data to that deployment — refuse, not warn and continue. Publishing
+`true` while accepting unauthenticated privileged requests is likewise
+non-conformant.
+
 **This split, and the MUST on privileged operations, is a deliberate USP
 requirement layered on top of [UCP]'s own posture.** Every other UCP-inherited
 concern in [Section 7.3](#73-inherited-infrastructure) still carries over
