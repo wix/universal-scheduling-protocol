@@ -74,6 +74,32 @@
       ],
       "additionalProperties": true
     },
+    "ConfirmationKey": {
+      "type": "object",
+      "title": "ConfirmationKey",
+      "description": "RFC 7800 confirmation ('cnf') claim, restricted to the JWK-thumbprint form. Binds a credential to a specific public key so that the credential is sender-constrained: a holder who does not control the corresponding private key cannot use it, which is what makes a leaked credential value useless on its own. Defined once here because it is shared by the platform_key_pop mechanism and by profile.json BookingScopedCredential; see specification.md Section 10.1.6. Deliberately restricted to jkt: the embedded-key (jwk) and key-reference (kid) forms of RFC 7800 are not used by USP. Closed object: the Section 10.1.6 forward-compatibility rule, which requires consumers to ignore what they do not recognize, does NOT extend to this object, because ignoring an unrecognized confirmation method would silently downgrade a sender-constrained credential to a bearer token.",
+      "required": ["jkt"],
+      "properties": {
+        "jkt": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "description": "JWK SHA-256 Thumbprint (RFC 7638) of the public key whose possession the caller must prove, base64url-encoded without padding - exactly 43 characters for SHA-256. Computed over the RFC 7638 canonical required-member subset for the key type. A business MUST compare this against the thumbprint recomputed from the jwk in the presented proof header, and MUST ignore any kid: there is no published key set to resolve a kid against, so honouring one would reintroduce a key-resolution step this mechanism exists to avoid."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+      ]
+    },
+    "PopProofJwt": {
+      "type": "string",
+      "title": "PopProofJwt",
+      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+      "description": "A compact-serialization JWS proof-of-possession token for the platform_key_pop mechanism (specification.md Section 10.1.6). Structurally derived from DPoP (RFC 9449). The REST binding carries a standard RFC 9449 dpop+jwt proof on the DPoP header, so off-the-shelf DPoP libraries apply; the MCP binding carries a USP-defined proof with typ usp-pop+jwt inside _meta.usp.authorization.proof, whose claim set binds the JSON-RPC method and the canonicalized params instead of an HTTP method and URL. The two typ values differ deliberately so that neither proof can be replayed as the other before claim checking. The public key travels in the proof header as a bare jwk; a proof carrying a private key member, or alg none, MUST be rejected. This is not a credential: it proves key possession only, and MUST be evaluated together with the credential or issuance request it accompanies. Claim semantics are normative prose in specification.md Section 9.2.2 and Section 10.1.6 rather than JSON Schema, because this value is a signed string on the wire, not a wire object.",
+      "examples": [
+        "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVkRFNBIiwiandrIjp7Imt0eSI6Ik9LUCJ9.eyJqdGkiOiIwMUhaWCJ9.c2lnbmF0dXJl"
+      ]
+    },
     "CapabilityEntry": {
       "type": "object",
       "title": "CapabilityEntry",

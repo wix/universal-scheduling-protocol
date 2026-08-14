@@ -117,6 +117,43 @@
       },
       "additionalProperties": true
     },
+    "BookingScopedCredential": {
+      "type": "object",
+      "title": "BookingScopedCredential",
+      "description": "A sender-constrained capability credential issued at resource creation, authorizing continuation operations (get/update/confirm/cancel/reschedule and other responses carrying buyer personal data) on exactly ONE booking or waitlist entry, independent of the calling platform's identity. See specification.md Section 10.1.6. Returned alongside the created resource on the creation response only, and never on reads: it is a bearer secret with its own lifetime and MUST NOT be persisted into, or echoed back inside, the Booking or WaitlistEntry object. Defined here rather than in booking.json for two reasons: it is an authorization object rather than booking domain data, so it belongs beside AuthorizationMechanism and AuthorizationPolicy; and this file shares an $id level with usp.json, so the cnf reference resolves identically under $id base-URI rules and on the filesystem, which a reference from booking.json (whose $id carries a services/ segment) would not. Closed object: unlike the profile documents in this file, a credential is security-critical and the Section 10.1.6 forward-compatibility rule does not apply, so an unrecognized member MUST cause rejection rather than be ignored.",
+      "required": ["value", "expires_at"],
+      "properties": {
+        "value": {
+          "type": "string",
+          "pattern": "^bsc_",
+          "minLength": 26,
+          "description": "The opaque credential value. MUST begin with bsc_ so that it is distinguishable on the wire from an oauth2_bearer token or an api_key sharing the Authorization header, and so that it is greppable in logs and traces when a leak has to be scoped. Businesses MUST generate the portion after the prefix from a cryptographically secure random source with at least 128 bits of entropy, and MUST NOT derive it from the resource identifier: a credential derived from the booking ID is the resource-identifier-as-credential mistake that Section 10.1.6 opens by forbidding. Platforms MUST treat the whole value as opaque."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp after which the business MUST reject this credential. A finite expiry is REQUIRED. The lifetime tracks the RESOURCE rather than a short session clock: a booking made three months out still needs a cancel path on day 89, so businesses SHOULD set this to the end of the resource's actionable window (for a booking, its cancellation or reschedule window; for a waitlist entry, its offer window) rather than to a fixed short interval. A business MAY re-issue a credential to the same bound key on an authenticated read."
+        },
+        "cnf": {
+          "$ref": "usp.json#/$defs/ConfirmationKey",
+          "description": "Confirmation key binding this credential to the public key whose possession the caller proved on the issuing request. REQUIRED when the business issues under the platform_key_pop mechanism, and RECOMMENDED in all cases; a credential without cnf is a plain bearer token, so anyone who observes the value in a log, an HTTP trace, or a compromised database can use it. When cnf is present the business MUST reject any presentation of this credential that is not accompanied by a valid proof whose header jwk has an RFC 7638 thumbprint equal to cnf.jkt, whatever mechanism the caller declares. Echoing cnf back to the platform is what lets the platform detect a business that silently ignored the binding and issued a bearer token instead."
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "OPTIONAL. USP method names this credential authorizes on its resource, for example usp_bookings_get and usp_bookings_cancel. Absence means the full continuation set for the resource type. A business MUST NOT interpret absence as authorizing more than that set, and MUST NOT accept this credential for any resource other than the one it was issued against."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "value": "bsc_7f3c1a9e4b2d8065f1ae93c7",
+          "expires_at": "2026-06-14T18:00:00Z",
+          "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+        }
+      ]
+    },
     "PlatformProfile": {
       "type": "object",
       "title": "PlatformProfile",

@@ -294,6 +294,31 @@ def check_refs(findings: Findings) -> None:
                 continue
             target_path = id_hit
 
+        # A *relative* $ref between two schema files whose $id values sit in
+        # different directory segments is broken under $id base-URI rules even
+        # though it resolves on the filesystem, because the published $id
+        # segments (services/, platform/) do not exist on disk. The flat
+        # fallback above deliberately tolerates same-level refs, so this is the
+        # check that actually catches the cross-level case.
+        if (file_part
+                and not file_part.startswith(USP_SCHEMA_BASE)
+                and path.parent == SCHEMA_DIR
+                and target_path.parent == SCHEMA_DIR):
+            def id_dir(p: Path) -> str:
+                doc_id = docs.get(p, {}).get("$id", "") if p in docs else \
+                    json.loads(p.read_text()).get("$id", "")
+                tail = doc_id[len(USP_SCHEMA_BASE):] if doc_id.startswith(USP_SCHEMA_BASE) else ""
+                return tail.rsplit("/", 1)[0] if "/" in tail else ""
+
+            if id_dir(path) != id_dir(target_path):
+                findings.fail(
+                    f"REFLEVEL:{rel(path)}:{ref}",
+                    f"relative $ref at {pointer} crosses an $id directory level "
+                    f"({id_dir(path) or '<root>'} -> {id_dir(target_path) or '<root>'}); "
+                    f"it resolves on the filesystem but under $id rules names "
+                    f"a document that does not exist. Write it as the absolute "
+                    f"canonical URI, or move the definition to a same-level file")
+
         if target_path not in docs:
             try:
                 docs[target_path] = json.loads(target_path.read_text())
