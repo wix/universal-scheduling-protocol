@@ -1,5 +1,16 @@
 # Change Log
 
+## 15/08/26 at 03:14:22 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `booking_scoped_credential` from `PUT`/`DELETE /registry/businesses/{id}`, where it was offered although no booking exists - contradicting both the scheme's own description and the platform-tier `_meta` wrapper those methods used
+- Closed the hole that removal opens, which "platform_key_pop replaces it" does **not** close on its own: `usp_registry_update` and `usp_registry_delete` were `privileged_scoped`, so dropping the credential would have left them with no per-resource authority at all, and raising scoped authorization to a **MUST** would then have made them MUST-scoped methods with nothing to scope against. Both are re-tiered to `privileged_platform` and authorized against the registering platform's bound `jkt`. A registry entry has exactly one owner, so trust-on-first-use ownership is already the model and no new credential type is needed
+- Made the re-tier a **paired** edit and asserted it: `x-usp-access`, the `_meta` wrapper `$ref`, the method description, and the `_meta` parameter description all move together. Changing the tier without the parameter description would leave a platform-tier method whose own parameter documentation still recommends a booking-scoped credential. Post-conditions: tiers are 8 public / 8 platform / 11 scoped, boilerplate counts are 8/11/8/11, and no method is left half-swapped
+- **Kept** `booking_scoped_credential` on the four REST feed-subscription operations rather than removing it alongside the registry ones. Feed subscriptions are a third resource family, neither booking nor waitlist, and a subscription ID is exactly the "a resource identifier is not a credential" case §10.1.6 opens by warning about - dropping the per-resource mechanism there would have made the specification weaker, and scoping the forthcoming MUST to booking and waitlist would have silently orphaned them. The credential's description now names all three families explicitly, and states that registry registrations are deliberately not among them
+- Recorded the REST/MCP asymmetry rather than leaving it to look like an omission: MCP exposes no subscription-lifecycle methods at all, so those four operations exist only on REST. Requirement count for the credential moves from 17 to 15, with all four subscription operations intact
+- Fixed the §9.2.2 prose tier lists, the only place the tiers are written out in English and therefore the easiest place for them to drift out of agreement with `x-usp-access`
+
+---
+
 ## 15/08/26 at 02:51:07 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added five proof-of-possession error codes - `pop_proof_missing`, `pop_proof_invalid`, `pop_key_mismatch`, `pop_proof_replayed`, `proof_nonce_required` - to the §10.1.1 table and the OpenRPC `USPProtocolError` enum, and retitled that table to cover proof verification as well as signatures. Distinguishable codes matter more here than usual: wrong key, replayed proof, and missing proof are three different caller mistakes with three different fixes, and collapsing them into one 401 leaves a platform unable to tell a bug from an attack

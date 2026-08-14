@@ -458,7 +458,7 @@
       "BookingScopedCredential": {
         "type": "http",
         "scheme": "DPoP",
-        "description": "Booking-scoped or waitlist-entry-scoped capability credential issued at creation, authorizing get/update/cancel/reschedule/PII-bearing operations on that single resource independent of platform identity. Transmitted as 'Authorization: DPoP <bsc_...>'. Shape defined at schemas/profile.json#/$defs/BookingScopedCredential and returned by the creation responses. The DPoP scheme replaces Bearer for two reasons. It removes this credential from the Authorization: Bearer slot it previously shared with OAuth2Bearer and ApiKey, where a server could not tell from the request alone which scheme the caller intended. And it stops a business silently accepting a sender-constrained credential as a plain bearer token. When the credential carries a cnf confirmation key it is sender-constrained and MUST be presented together with a PlatformKeyPop proof over the bound key - the requirement object listing both is that case, and OpenAPI cannot express the 'only when cnf is present' condition, so the credential-alone alternative remains listed for unbound legacy credentials while the MUST is carried in specification.md Section 10.1.6. A business that issued a cnf-bearing credential MUST NOT accept it without a proof, whatever mechanism the caller declares. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "description": "Resource-scoped capability credential issued at creation, authorizing get/update/cancel/reschedule/PII-bearing operations on that single resource independent of platform identity. The resource is a booking, a waitlist entry, or a feed subscription. Registry registrations are NOT in this set: they are authorized at platform tier against the registering platform's bound jkt, since a registry entry has exactly one owner and needs no separate credential type. Transmitted as 'Authorization: DPoP <bsc_...>'. Shape defined at schemas/profile.json#/$defs/BookingScopedCredential and returned by the creation responses. The DPoP scheme replaces Bearer for two reasons. It removes this credential from the Authorization: Bearer slot it previously shared with OAuth2Bearer and ApiKey, where a server could not tell from the request alone which scheme the caller intended. And it stops a business silently accepting a sender-constrained credential as a plain bearer token. When the credential carries a cnf confirmation key it is sender-constrained and MUST be presented together with a PlatformKeyPop proof over the bound key - the requirement object listing both is that case, and OpenAPI cannot express the 'only when cnf is present' condition, so the credential-alone alternative remains listed for unbound legacy credentials while the MUST is carried in specification.md Section 10.1.6. A business that issued a cnf-bearing credential MUST NOT accept it without a proof, whatever mechanism the caller declares. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
         "x-usp-mechanism": "booking_scoped_credential"
       },
       "OAuth2Bearer": {
@@ -4117,13 +4117,6 @@
             "PlatformKeyPop": []
           },
           {
-            "BookingScopedCredential": [],
-            "PlatformKeyPop": []
-          },
-          {
-            "BookingScopedCredential": []
-          },
-          {
             "OAuth2Bearer": []
           },
           {
@@ -4166,13 +4159,6 @@
           },
           {
             "PlatformKeyPop": []
-          },
-          {
-            "BookingScopedCredential": [],
-            "PlatformKeyPop": []
-          },
-          {
-            "BookingScopedCredential": []
           },
           {
             "OAuth2Bearer": []
