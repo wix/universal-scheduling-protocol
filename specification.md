@@ -6586,6 +6586,7 @@ Protocol errors indicate transport-level or infrastructure failures that prevent
 | `rate_limited`              | Too many requests                                                                                                    | `429 Too Many Requests`     | `-32007`      |
 | `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32008`      |
 | `service_unavailable`       | Business is temporarily unable to handle requests                                                                    | `503 Service Unavailable`   | `-32009`      |
+| `pop_proof_required`        | A sender-constrained credential was presented without a valid proof of possession, or a required `platform_key_pop` proof was missing or invalid. Fine-grained detail is in `data.code` ([Section 10.1.1](#1011-webhook-security)) | `401 Unauthorized`          | `-32001`      |
 | `server_error`              | Unexpected server failure                                                                                            | `500 Internal Server Error` | `-32603`      |
 
 > **Note on `capabilities_incompatible`:** This is a business outcome error
@@ -6968,16 +6969,21 @@ looking up the `keyid` in the business profile's `keys` array first (falling
 back to `signing_keys` when `keys` is absent), verifying the signature, and
 verifying the `Content-Digest` matches the body.
 
-**Signature Verification Error Codes:**
+**Signature and Proof-of-Possession Verification Error Codes:**
 
 | Error Code           | HTTP Status | Description                                                                                  |
 |----------------------|-------------|----------------------------------------------------------------------------------------------|
-| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers.                |
-| `signature_invalid`  | 401         | Signature verification failed.                                                               |
+| `signature_missing`  | 401         | Request does not include required `Signature` and `Signature-Input` headers. Responses **SHOULD** carry `data.mechanism` naming the mechanism that was expected, since this code now covers more than one. |
+| `signature_invalid`  | 401         | Signature verification failed.                                                                |
 | `key_not_found`      | 401         | The `keyid` in `Signature-Input` does not match any key in the signer's profile (`keys`, else `signing_keys`). |
 | `digest_mismatch`    | 400         | `Content-Digest` header does not match the computed digest of the body. (400, matching [UCP]: the message is malformed rather than unauthenticated.) |
 | `algorithm_unsupported` | 400      | The signature algorithm of the resolved key is not supported by the verifier.                |
 | `signature_expired`  | 401         | The `created` signature parameter is outside the freshness window the verifier enforces. Applies to webhooks (see the replay rules below) and to any other signature the verifier evaluates for freshness; it does **not** apply to request signatures, where `created` is optional and replay protection is the signed `Idempotency-Key` ([Section 9.1.4](#914-request-signing)). |
+| `pop_proof_missing`  | 401         | A required `platform_key_pop` proof is absent, or a credential carrying `cnf` was presented without one. A business **MUST** return this rather than accepting the credential as a bearer token ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)). |
+| `pop_proof_invalid`  | 401         | The proof failed to parse or verify: bad `typ`, rejected `alg`, signature failure, or a mismatched `htm`/`htu`, `usp_m`/`aud`/`usp_p`, or `ath`. |
+| `pop_key_mismatch`   | 401         | The [RFC 7638] thumbprint of the proof header `jwk` does not equal the `cnf.jkt` recorded for the presented credential — the cross-key replay case. |
+| `pop_proof_replayed` | 401         | The proof's `jti` has already been seen inside the freshness window. |
+| `proof_nonce_required` | 401       | The business requires a nonce. The response carries `data.nonce`, and the platform retries with a fresh proof carrying it. |
 
 > **REST:** [401/400 responses](openapi/usp-rest.json) · **MCP:** [JSON-RPC error codes](openrpc/usp-mcp.json)
 

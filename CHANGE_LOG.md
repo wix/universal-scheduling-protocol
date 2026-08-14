@@ -1,5 +1,15 @@
 # Change Log
 
+## 15/08/26 at 02:51:07 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added five proof-of-possession error codes - `pop_proof_missing`, `pop_proof_invalid`, `pop_key_mismatch`, `pop_proof_replayed`, `proof_nonce_required` - to the §10.1.1 table and the OpenRPC `USPProtocolError` enum, and retitled that table to cover proof verification as well as signatures. Distinguishable codes matter more here than usual: wrong key, replayed proof, and missing proof are three different caller mistakes with three different fixes, and collapsing them into one 401 leaves a platform unable to tell a bug from an attack
+- Allocated **one** new JSON-RPC code, `pop_proof_required` = `-32001`, rather than one per failure mode. The USP range `-32003`…`-32009` is fully consumed and only `-32001` and `-32002` remain, so spending both would have exhausted the range for a single feature. The fine-grained codes ride in `data.code` and the Problem Details `type`, which is exactly how the six existing `signature_*` codes already work - they appear in the OpenRPC enum and in no §9.4 row at all. `-32002` is left free
+- Broadened `signature_missing` / `signature_invalid` / `signature_expired` to cover proofs as well as RFC 9421 signatures, and added a `data.mechanism` discriminator. Without it those codes became ambiguous the moment two mechanisms could produce them, leaving a caller unable to tell which credential to correct
+- Added `data.nonce`, carried on `proof_nonce_required`. `USPProtocolError.data` was already an open object requiring only `code` and `content`, so this is one declared property rather than a structural change. The asymmetry is deliberate - a business **MAY** require nonces while a platform **MUST** support being challenged - which lets a business turn nonces on unilaterally without a flag day
+- Mirrored the codes into `openapi/usp-rest.json`'s 401 prose and added three worked Problem Details examples, including the cross-key case, so the response shape is discoverable from the binding rather than only from the specification body
+
+---
+
 ## 15/08/26 at 02:26:18 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed a latent defect that made the paid-bookings extension **inert**: `schemas/paid_bookings.json` declared `$defs/dev.ucp.shopping.checkout` - the object contributing `booking` to a UCP checkout - but the root `allOf` never referenced it, so the extension was applied to nothing and an instance with a missing or misshapen `booking` validated silently. This is a pre-existing bug, fixed here rather than deferred to the hygiene commit because the UCP-Native credential carriage is unimplementable without it: adding a property to an object nothing composes would have looked correct and validated nothing

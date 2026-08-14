@@ -210,7 +210,7 @@
         }
       },
       "Unauthorized": {
-        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile keys/signing_keys), signature_expired (the RFC 9421 'created' signature parameter is outside a freshness window the verifier enforces; note that 'created' is OPTIONAL on request signatures, where replay protection is the signed Idempotency-Key, so this code applies chiefly to webhooks). digest_mismatch and algorithm_unsupported are 400-class; see BadRequest. Responses SHOULD carry WWW-Authenticate naming the mechanisms the business would have accepted (specification.md Section 10.1.6).",
+        "description": "Protocol error: authentication required or signature verification failed. Signature error codes: signature_missing (no Signature/Signature-Input headers), signature_invalid (verification failed), key_not_found (keyid not in signer profile keys/signing_keys), signature_expired (the RFC 9421 'created' signature parameter is outside a freshness window the verifier enforces; note that 'created' is OPTIONAL on request signatures, where replay protection is the signed Idempotency-Key, so this code applies chiefly to webhooks). digest_mismatch and algorithm_unsupported are 400-class; see BadRequest. Responses SHOULD carry WWW-Authenticate naming the mechanisms the business would have accepted (specification.md Section 10.1.6). Proof-of-possession error codes (Section 10.1.6): pop_proof_missing (a required platform_key_pop proof is absent, or a credential carrying cnf was presented without one - a business MUST return this rather than accept the credential as a bearer token), pop_proof_invalid (proof failed to parse or verify, or htm/htu/ath did not match), pop_key_mismatch (the RFC 7638 thumbprint of the proof header jwk does not equal the recorded cnf.jkt - the cross-key replay case), pop_proof_replayed (jti already seen inside the freshness window), and proof_nonce_required (the business requires a nonce; the response carries it and the platform retries with a fresh proof). All are 401 and all are reported through the same Problem Details shape as the signature_* codes above.",
         "headers": {
           "WWW-Authenticate": {
             "description": "SHOULD be present. Names the authentication mechanisms the business would have accepted for this operation, per RFC 9110 and the business's published AuthorizationPolicy. Note that 'signature' is not an IANA-registered auth scheme; HTTP Message Signature support is advertised authoritatively via the profile's authorization policy.",
@@ -270,6 +270,33 @@
                   "title": "Signature Expired",
                   "status": 401,
                   "detail": "The 'created' signature parameter is outside the acceptable window"
+                }
+              },
+              "pop_proof_missing": {
+                "summary": "Proof of possession missing",
+                "value": {
+                  "type": "https://usp.dev/errors/pop_proof_missing",
+                  "title": "Proof of possession missing",
+                  "status": 401,
+                  "detail": "The presented booking_scoped_credential carries a cnf confirmation key and is sender-constrained. Present it as 'Authorization: DPoP <credential>' together with a DPoP proof header over the bound key; it MUST NOT be sent as a bearer token."
+                }
+              },
+              "pop_key_mismatch": {
+                "summary": "Proof key does not match the credential binding",
+                "value": {
+                  "type": "https://usp.dev/errors/pop_key_mismatch",
+                  "title": "Proof key does not match the credential binding",
+                  "status": 401,
+                  "detail": "The RFC 7638 thumbprint of the jwk in the DPoP proof header does not match the cnf.jkt this credential was issued against. The credential is bound to a different key."
+                }
+              },
+              "pop_proof_replayed": {
+                "summary": "Proof replayed",
+                "value": {
+                  "type": "https://usp.dev/errors/pop_proof_replayed",
+                  "title": "Proof replayed",
+                  "status": 401,
+                  "detail": "The jti in the DPoP proof has already been seen within the freshness window. Build a fresh proof for each request."
                 }
               }
             }
