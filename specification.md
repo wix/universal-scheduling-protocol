@@ -2458,6 +2458,7 @@ at a specific time.
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `revision`          | string          | No          | Opaque concurrency token for the booking's current state, used for conditional writes ([Section 5.6](#56-conditional-writes-and-concurrency)). Changes on every modification. Treat as opaque: do not parse it or infer recency from it. |
 
 **Booking Expiry**
 
@@ -3137,6 +3138,73 @@ They use the standard booking webhook payload (`BookingEvent`) defined in
 
 
 ---
+
+### 5.6 Conditional Writes and Concurrency
+
+A `booking_scoped_credential` authorizes a *resource*, not a session, and a
+business **MAY** re-issue one to the same bound key. Nothing stops two agents -
+or the same agent on two devices - from holding a valid credential for the same
+booking at once. Without a concurrency control, the second write silently
+overwrites the first and neither caller learns that anything was lost.
+
+`Booking` and `WaitlistEntry` therefore carry an **OPTIONAL opaque `revision`**.
+
+**Semantics.** A business that supports conditional writes **MUST** return
+`revision` on every representation of the resource, **MUST** change it whenever
+any part of the resource changes, and **MUST NOT** reuse a value for a different
+state. Businesses **SHOULD NOT** derive it from `updated_at` alone: two
+modifications inside a single timestamp tick would produce the same value and
+defeat the check. Platforms **MUST** treat the value as opaque - it may be a row
+version, an entity tag, or a hash, and parsing it or inferring recency from it is
+never valid.
+
+**Presence is the advertisement.** There is no capability flag for this. A
+business that returns `revision` supports conditional writes and **MUST** honour
+preconditions; one that does not return it does not, and a platform then writes
+unconditionally. This is deliberately the same contract as an absent HTTP
+`ETag`, and it is what keeps the feature non-breaking for businesses that
+already exist.
+
+**Carriage.** The precondition mirrors how idempotency is already carried
+([Section 9.1.1](#911-idempotency)):
+
+| | REST | MCP |
+|---|---|---|
+| Precondition | `If-Match: <revision>` | `_meta.usp.if_match` |
+| Stale precondition | `412 Precondition Failed` | `revision_mismatch` (`-32002`) |
+
+When the precondition is present and does not match, the business **MUST**
+reject the request and **MUST NOT** apply the write. On rejection a platform
+re-reads the resource, reconciles, and retries with the current `revision`.
+
+**`412` is not `409`.** This specification already uses `409 Conflict` for
+idempotency-key conflicts - the same key replayed with different parameters.
+A stale precondition is a different failure with a different remedy, and
+returning `409` for it leaves a platform unable to tell "your key was reused
+wrongly" from "someone else edited this booking."
+
+**Interaction with `Idempotency-Key` (MUST).** An idempotent **replay** returns
+the stored original response **without** re-evaluating the precondition. The
+ordering matters and is not merely an optimization: the caller's `revision` was
+current when the original request succeeded, and that request changed it, so
+re-checking on retry would fail a call that had already been applied - turning a
+dropped response into a permanent error.
+
+**Applicability.** Conditional writes are defined for **bookings and waitlist
+entries** - the two resource types that carry `revision`, and the same pair
+[Section 10.1.6](#1016-platform-authentication-for-privileged-operations)
+requires per-resource authorization for. Holds are excluded deliberately: a hold
+has no update operation, only release, and releasing an already-released hold is
+idempotent, so there is no lost update to prevent. `usp_availability_release`
+shares the MCP metadata wrapper that carries `if_match`; a business **MUST**
+ignore the field there.
+
+> **On MCP the precondition is tamper-evident; on REST it is not.** The `usp_p`
+> digest of a `platform_key_pop` proof covers the canonicalized `params` with
+> only `_meta.usp.authorization` removed, so `_meta.usp.if_match` falls **inside**
+> the signed digest and an intermediary cannot rewrite it. The REST `If-Match`
+> header has no equivalent protection unless [RFC 9421] request signing is also
+> in use. This is the same asymmetry that already applies to method arguments.
 
 ## 6. Discovery Registry (Optional)
 
@@ -5911,6 +5979,13 @@ with [draft-ietf-httpapi-idempotency-key-header]:
   the operation.
 - If the business receives a request with a previously seen `Idempotency-Key` but
   different parameters, it **MUST** return `409 Conflict`.
+- If a replayed request also carries a conditional-write precondition
+  (`If-Match`, or `_meta.usp.if_match` on MCP), the business **MUST** return the
+  stored result **without** re-evaluating that precondition
+  ([Section 5.6](#56-conditional-writes-and-concurrency)). The caller's revision
+  was current when the original request succeeded, and that request changed it,
+  so re-checking on replay would reject a call that had already been applied -
+  turning a dropped response into a permanent failure.
 
 ```
 POST /bookings HTTP/1.1
@@ -6588,7 +6663,15 @@ Protocol errors indicate transport-level or infrastructure failures that prevent
 | `version_unsupported`       | The requested USP version is not supported                                                                           | `400 Bad Request`           | `-32008`      |
 | `service_unavailable`       | Business is temporarily unable to handle requests                                                                    | `503 Service Unavailable`   | `-32009`      |
 | `pop_proof_required`        | A sender-constrained credential was presented without a valid proof of possession, or a required `platform_key_pop` proof was missing or invalid. Fine-grained detail is in `data.code` ([Section 10.1.1](#1011-webhook-security)) | `401 Unauthorized`          | `-32001`      |
+| `revision_mismatch`         | Conditional-write precondition failed: the `If-Match` / `_meta.usp.if_match` revision is stale, so the resource changed since the platform last read it ([Section 5.6](#56-conditional-writes-and-concurrency)) | `412 Precondition Failed`   | `-32002`      |
 | `server_error`              | Unexpected server failure                                                                                            | `500 Internal Server Error` | `-32603`      |
+
+> **The USP JSON-RPC code range is now fully allocated.** `-32001` through
+> `-32009` are all assigned. A future protocol error needs either a new range
+> or a `data.code` discriminator on an existing entry - which is already the
+> established pattern for the `signature_*` and proof-of-possession codes in
+> [Section 10.1.1](#1011-webhook-security), none of which consume a JSON-RPC
+> number of their own.
 
 > **Note on `capabilities_incompatible`:** This is a business outcome error
 > (returned with HTTP 200 and a `messages[]` entry) rather than a protocol
@@ -7768,6 +7851,7 @@ The waitlist entry tracks a buyer's position and preferences.
 | `offered_slot`     | object          | No       | `{slot_id, start, end}` - the slot being offered to this buyer. Present when `status` is `offered`.               |
 | `offer_expires_at` | string          | No       | RFC 3339 expiration time for the current offer. Present when `status` is `offered`.                               |
 | `created_at`       | string          | **Yes**  | RFC 3339 timestamp of when the entry was created.                                                                 |
+| `revision`         | string          | No       | Opaque concurrency token for the entry's current state ([Section 5.6](#56-conditional-writes-and-concurrency)). |
 
 #### 11.1.2 Waitlist Lifecycle
 

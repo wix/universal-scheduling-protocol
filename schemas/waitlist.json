@@ -8,7 +8,14 @@
       "type": "object",
       "title": "WaitlistEntry",
       "description": "Tracks a buyer's position and preferences in the waitlist queue. When a spot opens (due to cancellation or reschedule), the business offers it to the next eligible waitlisted buyer.",
-      "required": ["id", "service_id", "buyer", "status", "position", "created_at"],
+      "required": [
+        "id",
+        "service_id",
+        "buyer",
+        "status",
+        "position",
+        "created_at"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -27,16 +34,32 @@
           "items": {
             "type": "object",
             "properties": {
-              "start_date": { "type": "string", "format": "date" },
-              "end_date": { "type": "string", "format": "date" },
-              "time_of_day": { "type": "string", "description": "Preferred time window (e.g., morning, afternoon)." }
+              "start_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "end_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "time_of_day": {
+                "type": "string",
+                "description": "Preferred time window (e.g., morning, afternoon)."
+              }
             }
           },
           "description": "Preferred time windows. If omitted, the buyer accepts any available slot."
         },
         "status": {
           "type": "string",
-          "enum": ["waiting", "offered", "accepted", "expired", "declined", "removed"],
+          "enum": [
+            "waiting",
+            "offered",
+            "accepted",
+            "expired",
+            "declined",
+            "removed"
+          ],
           "description": "Current waitlist status. waiting: in queue. offered: slot offered. accepted: converted to booking. expired/declined: offer not accepted. removed: buyer left waitlist."
         },
         "position": {
@@ -48,9 +71,19 @@
           "type": "object",
           "description": "The slot being offered to this buyer. Present when status is offered.",
           "properties": {
-            "slot_id": { "type": "string" },
-            "start": { "type": "string", "format": "date-time", "description": "RFC 3339 start time." },
-            "end": { "type": "string", "format": "date-time", "description": "RFC 3339 end time." }
+            "slot_id": {
+              "type": "string"
+            },
+            "start": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339 start time."
+            },
+            "end": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339 end time."
+            }
           }
         },
         "offer_expires_at": {
@@ -62,6 +95,10 @@
           "type": "string",
           "format": "date-time",
           "description": "RFC 3339 timestamp of when the entry was created."
+        },
+        "revision": {
+          "type": "string",
+          "description": "OPTIONAL. Opaque concurrency token for the current state of this waitlist entry, used for conditional writes (specification.md Section 5.6). Same semantics as Booking.revision: a business that returns it MUST honour a matching precondition on leave/accept/decline - If-Match on REST, _meta.usp.if_match on MCP - and MUST reject a stale one. This matters most on accept: an offer that has already been accepted or has expired must not be accepted twice by two agents racing on the same entry. Its presence in a response IS the advertisement that conditional writes are supported. The value MUST change whenever the entry changes, MUST NOT be reused, and MUST be treated as opaque by platforms."
         }
       }
     },
@@ -69,12 +106,25 @@
       "type": "object",
       "title": "Buyer",
       "description": "The person making and paying for the booking. When no separate recipient is specified, the buyer is also the person receiving the service.",
-      "required": ["first_name", "last_name", "email"],
+      "required": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
       "properties": {
-        "first_name": { "type": "string" },
-        "last_name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone_number": { "type": "string" }
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone_number": {
+          "type": "string"
+        }
       }
     }
   },
