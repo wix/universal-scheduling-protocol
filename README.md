@@ -152,7 +152,8 @@ USP references IETF standards directly for all cross-cutting infrastructure:
 |---------|----------|---------|
 | Discovery | RFC 8615 (Well-Known URIs) | [Section 8.2](specification.md#82-business-profile-well-knownusp) (Standalone) |
 | Error model | RFC 9457 (Problem Details for HTTP APIs) | [Section 9.1](specification.md#91-rest-binding) |
-| Authorization | RFC 6749 (OAuth 2.0), RFC 9449 (DPoP) | [Section 10.2.3](specification.md#1023-authentication-and-authorization) (Standalone) |
+| Authorization | RFC 6749 (OAuth 2.0) | [Section 10.2.3](specification.md#1023-authentication-and-authorization) (Standalone) |
+| Proof of possession | RFC 9449 (DPoP), RFC 7638 (JWK Thumbprint), RFC 7800 (`cnf`) | [Section 10.1.6](specification.md#1016-platform-authentication-for-privileged-operations) (both modes) |
 | Transport security | RFC 8446 (TLS 1.3), RFC 9110 (HTTP Semantics) | [Section 10.2.1](specification.md#1021-transport-security) (Standalone) |
 | Idempotency | draft-ietf-httpapi-idempotency-key-header | [Section 9.1.1](specification.md#911-idempotency) |
 | Webhook verification | RFC 9421 (HTTP Message Signatures) | [Section 10.1.1](specification.md#1011-webhook-security) |

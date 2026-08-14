@@ -1,5 +1,16 @@
 # Change Log
 
+## 14/08/26 at 23:34:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Settled where `platform_key_pop` is normatively specified, which the surrounding design had left ambiguous in a way that would have made the mechanism inapplicable to half its audience. §10.2.3 already says businesses **SHOULD** support DPoP for proof-of-possession, but §10.2 is skipped in its entirety by UCP-Native deployments, so a mechanism specified there would not reach the deployments §7.3 explicitly directs to keep reading §10.1.6. The mechanism is therefore specified in §10.1.6, which is mode-agnostic, and §10.2.3 now carries a pointer saying so
+- Stated that the two are **distinct rather than one generalizing the other**: §10.2.3's DPoP hardens an already-issued OAuth token, while `platform_key_pop` is permissionless and involves no token at all. Left unstated, an implementer would reasonably read the new mechanism as a restatement of the old sentence and implement only the OAuth-bound form
+- Answered the open question of how the credential and proof travel in UCP-Native Mode, by separating two governance models that had been conflated. On USP's own service endpoint USP defines the headers in both modes. On a UCP-governed endpoint USP **MUST NOT** redefine `Authorization`, so the proof rides the additive `DPoP` header and an issued credential is returned inside the `dev.usp.services.paid_bookings` extension as a sibling of `booking` - never at the UCP checkout root, and never inside `booking`, which platforms persist and re-display and so must never hold a secret
+- Recorded *why* that is permitted, since the namespace-governance rule alone does not answer it: that rule governs profile documents, whereas response bodies are governed by UCP's extension-composition model, which is already how `dev.usp.services.paid_bookings` contributes `booking` to a checkout. A credential added the same way is a declared extension member rather than an invented one, so no new governance rule is required
+- Stated the UCP relationship honestly as an **extension, not an inheritance**: binding a key that is deliberately absent from the platform profile is a key-resolution path UCP does not define, so implementers **MUST NOT** read this as UCP conformance. Also recorded the converse, that USP's requirement for a fetchable profile on every privileged request is *stricter* than UCP's consistency-only rule, so the identity-binding work is not a divergence
+- Split the `README.md` standards table so RFC 9449 is no longer listed as Standalone-only, and added RFC 7638 and RFC 7800 alongside it; the previous row would have told readers that proof-of-possession does not apply in UCP-Native Mode
+
+---
+
 ## 14/08/26 at 23:12:40 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added `tools/usp_check.py`, the repository's first mechanical validation. Nothing here previously checked that the JSON artefacts parse, that `schemas/*.json` compile as JSON Schema, or that cross-file `$ref`s resolve at all - the only `package.json` script builds the docs site - so schema drift was detectable only by review
