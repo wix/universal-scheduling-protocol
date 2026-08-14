@@ -2938,7 +2938,7 @@
         {
             "name": "usp_registry_update",
             "summary": "Update Registration (Discovery Registry)",
-            "description": "Update an existing registry registration. Maps to PUT /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
+            "description": "Update an existing registry registration. Maps to PUT /registry/businesses/{id}. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2948,11 +2948,11 @@
                         "type": "object",
                         "properties": {
                             "usp": {
-                                "$ref": "#/components/schemas/McpUspMetaPrivilegedScoped"
+                                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "id",
@@ -3086,12 +3086,12 @@
                     "$ref": "#/components/errors/USPProtocolError"
                 }
             ],
-            "x-usp-access": "privileged_scoped"
+            "x-usp-access": "privileged_platform"
         },
         {
             "name": "usp_registry_delete",
             "summary": "Delete Registration (Discovery Registry)",
-            "description": "Remove a business from the discovery registry. Maps to DELETE /registry/businesses/{id}. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
+            "description": "Remove a business from the discovery registry. Maps to DELETE /registry/businesses/{id}. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -3101,11 +3101,11 @@
                         "type": "object",
                         "properties": {
                             "usp": {
-                                "$ref": "#/components/schemas/McpUspMetaPrivilegedScoped"
+                                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
                             }
                         }
                     },
-                    "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
+                    "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
                 },
                 {
                     "name": "id",
@@ -3160,7 +3160,7 @@
                     "$ref": "#/components/errors/USPProtocolError"
                 }
             ],
-            "x-usp-access": "privileged_scoped"
+            "x-usp-access": "privileged_platform"
         }
     ],
     "components": {
