@@ -1,6 +1,6 @@
 # Universal Scheduling Protocol (USP)
 
-**Version:** `2026-02-21`
+**Version:** `2026-08-14`
 
 **Status:** Draft
 
@@ -7496,19 +7496,42 @@ a business requiring HTTP Message Signatures **SHOULD** advertise them through
 its published `authorization` policy and **MAY** additionally reference them in
 `WWW-Authenticate` for diagnostic purposes.
 
-> **Security consideration: platform identity is not per-resource authority.**
-> Every platform-level mechanism in the table above (HTTP Message Signatures,
-> OAuth, API key, mTLS) answers "which platform is calling," not "may this
-> caller act on *this* booking." A business that accepts only a platform-level
-> mechanism on `get`/`update`/`cancel`/reschedule and other PII-bearing
-> operations therefore authorizes any authenticated platform to act on any
-> booking it can identify, which is the exposure the resource-identifier rule
-> at the top of this section warns about. Businesses **SHOULD** additionally
-> require a `booking_scoped_credential` (or an equivalent per-resource check,
-> such as binding the booking to the buyer identity established by identity
-> linking in [Section 10.2.4](#1024-identity-linking)) on those operations.
-> USP does not raise this to a **MUST** while the credential's issuance format
-> is still being specified.
+**Per-resource authorization (MUST).** Every platform-level mechanism in the
+table above (HTTP Message Signatures, OAuth, API key, mTLS) answers "which
+platform is calling," not "may this caller act on *this* booking." A business
+that accepts only a platform-level mechanism on `get`/`update`/`cancel`/
+reschedule and other PII-bearing operations authorizes **any** authenticated
+platform to act on **any** booking it can identify, which is the exposure the
+resource-identifier rule at the top of this section opens by warning about.
+
+A business therefore **MUST** require a `booking_scoped_credential`, or an
+equivalent per-resource check, on privileged operations addressing an existing
+**booking** or **waitlist entry**. An equivalent check is one that ties the
+caller to the specific resource - for example binding the booking to a buyer
+identity established by identity linking
+([Section 10.2.4](#1024-identity-linking)). Platform authentication alone does
+not qualify, which is the whole point of the requirement.
+
+The resource types are named deliberately rather than left as
+"get/cancel/reschedule/PII", because the two other resource families need
+different answers:
+
+- **Feed subscriptions:** per-resource authorization is **RECOMMENDED**. A
+  subscription carries no buyer personal data, but its identifier is still not a
+  credential, so the mechanism remains available and offered.
+- **Registry registrations:** per-resource authorization is **NOT REQUIRED**.
+  These are authorized at platform tier against the registering platform's bound
+  principal ([Section 9.2.2](#922-requestresponse-format)), since a registry
+  entry has exactly one owner.
+
+> **This requirement is a breaking change.** It was a **SHOULD** in USP
+> `2026-02-21`, deferred there while the credential's issuance format was
+> unspecified. That format is now specified in this section, so the deferral has
+> expired. Changing an authorization requirement is not a clarification, and a
+> business conformant under `2026-02-21` may be non-conformant under this
+> version without changing a line of its own code - which is why this release
+> carries a version bump rather than shipping the change quietly under the old
+> one.
 
 > **Why not simply require OAuth Bearer everywhere, or simply follow UCP's
 > optional guidance?** Mandating only a pre-established mechanism assumes a

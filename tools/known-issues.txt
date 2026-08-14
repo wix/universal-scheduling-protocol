@@ -10,11 +10,6 @@
 # tools/usp_check.py, because "accepted forever by design" and "not fixed yet"
 # should not look the same to a reader.
 
-# openapi/usp-rest.json and openrpc/usp-mcp.json carry info.version 2026-02-09,
-# two releases behind specification.md and README.md (2026-02-21). Fixed by the
-# version bump that accompanies raising scoped authorization to a MUST.
-VERSION:mismatch
-
 # schemas/registry.json $defs/RegistrationRequest is unreferenced because
 # openapi/usp-rest.json declares the POST /registry/businesses body as a large
 # inline object tree instead of a thin $ref. That is the duplication CLAUDE.md

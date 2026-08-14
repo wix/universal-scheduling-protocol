@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Universal Scheduling Protocol (USP) REST API",
-    "version": "2026-02-09",
+    "version": "2026-08-14",
     "description": "The Universal Scheduling Protocol (USP) enables consumer platforms and AI agents to discover, check availability of, and book time-based services from businesses. This OpenAPI specification defines the REST binding for all USP operations.",
     "contact": {
       "url": "https://usp.dev"

@@ -2,7 +2,7 @@
     "openrpc": "1.3.2",
     "info": {
         "title": "Universal Scheduling Protocol (USP) MCP API",
-        "version": "2026-02-09",
+        "version": "2026-08-14",
         "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. MCP clients invoke USP operations via the standard MCP tools/call method, with params.name set to the method name defined here and params.arguments containing the operation parameters. Each method maps to a corresponding REST operation. Responses use the structuredContent/content dual-envelope pattern. Privileged vs public operation access follows specification.md Section 10.1.6 and mirrors openapi/usp-rest.json: public catalog/availability/registry-search methods MAY be anonymous; privileged methods (x-usp-access=privileged_platform|privileged_scoped) MUST authenticate with a mechanism declared in the business's AuthorizationPolicy (published top-level in a Standalone /.well-known/usp profile, or as config.authorization on the dev.usp.services binding in a UCP-Native /.well-known/ucp profile) and MUST bind to _meta.usp.profile. See components.x-usp-securitySchemes for the MCP expression of the documented mechanisms; that identifier set is open for forward compatibility with UCP, and unrecognized identifiers are ignored rather than treated as accepted.",
         "contact": {
             "url": "https://usp.dev"

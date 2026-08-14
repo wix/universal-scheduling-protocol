@@ -1,5 +1,16 @@
 # Change Log
 
+## 15/08/26 at 04:02:15 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- **BREAKING.** Raised §10.1.6's per-resource authorization requirement from **SHOULD** to **MUST** for privileged operations on an existing booking or waitlist entry. The section deferred this explicitly while the credential's issuance format was unspecified; that format is now specified, so the deferral has expired. Platform authentication alone does not satisfy it, which is the entire point: a business accepting only a platform-level mechanism authorizes any authenticated platform to act on any booking it can identify
+- Named the resource types the MUST covers instead of leaving it as "get/cancel/reschedule/PII", because the other two resource families need different answers and an unqualified MUST would have swept them in. Feed subscriptions: **RECOMMENDED** - no buyer personal data, but a subscription ID is still not a credential. Registry registrations: **NOT REQUIRED** - authorized at platform tier against the registering platform's bound principal, since a registry entry has exactly one owner
+- Bumped the protocol version from `2026-02-21` to `2026-08-14`, and recorded in the specification itself that this is a **breaking authorization change rather than a clarification**: a business conformant under `2026-02-21` may be non-conformant under this version without changing a line of its own code. Shipping that quietly under the old version number would have removed the only signal an implementer gets
+- Restricted the bump to the five places that assert this repository's **version identity** - `specification.md`, `README.md`, both binding `info.version` fields, and a new roadmap row - and deliberately left every literal that names a *specific historical* version alone: the `/.well-known/usp-2026-02-09` `supported_versions` example, the `dev.usp.services.booking@2026-02-09` capability pin illustrating pin syntax, and the roadmap's history rows. Bumping a pin example would teach that pins track the current version, which is the opposite of what a pin is
+- Fixed a two-release staleness in passing: both bindings carried `info.version` `2026-02-09` while the specification was at `2026-02-21`, so the bindings had been advertising a superseded version. The `version` assertion added with the CI now makes that class of drift a build failure rather than something found by inspection, and its entry in `tools/known-issues.txt` is now cleared
+- Landed this as its own commit, apart from the additive mechanism registration, so the breaking and non-breaking halves of this work can be reviewed - and if necessary reverted - independently
+
+---
+
 ## 15/08/26 at 03:38:40 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Rewrote §10.1.6's identity-binding MUST, which was **unsatisfiable as written** for a permissionless caller. It required a business to confirm the authenticated principal is authorized to act on behalf of the profile in the agent header, but a profile URI is self-asserted, fetched over an unauthenticated GET, and deliberately shared by every instance of a platform - so nothing in the document distinguishes one caller from another. A requirement that cannot be met gets implemented as a string comparison against a caller-supplied header, which authorizes nothing at all; that is exactly the defect this work exists to correct
