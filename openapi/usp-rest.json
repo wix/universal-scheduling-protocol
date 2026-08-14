@@ -422,16 +422,16 @@
         "x-usp-mechanism": "http_message_signature"
       },
       "PlatformKeyPop": {
-        "type": "http",
-        "scheme": "DPoP",
-        "description": "Platform key proof-of-possession. The caller generates an ephemeral key, never transmits the private half, and proves possession of it on each privileged request by presenting a compact JWS whose header carries the bare public JWK. The business computes the RFC 7638 thumbprint (jkt) and records it as the platform identifier, binding it to the USP-Agent profile URI on first contact. Permissionless: no registration, no token endpoint, no pre-established credential, and no published or rotated platform keys - the platform profile stays keyless, which schemas/profile.json makes conformant by requiring keys only when the platform signs privileged requests. Over REST the proof is a standard RFC 9449 dpop+jwt proof on the DPoP header, so off-the-shelf DPoP libraries apply, and the DPoP authentication scheme is IANA-registered (unlike 'signature' above). The MCP binding carries a USP-defined proof in _meta.usp.authorization.proof instead; see openrpc/usp-mcp.json. This mechanism is also what makes a booking_scoped_credential sender-constrained: a credential issued to a platform_key_pop caller carries cnf.jkt, and presenting it requires a fresh proof over the bound key. See specification.md Section 10.1.6 and schemas/usp.json#/$defs/PopProofJwt. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes; that identifier set is open, and consumers ignore unrecognized mechanisms rather than treating them as accepted.",
+        "type": "apiKey",
+        "in": "header",
+        "name": "DPoP",
+        "description": "Platform key proof-of-possession, carried as an RFC 9449 dpop+jwt proof on the DPoP request header. The caller generates an ephemeral key, never transmits the private half, and proves possession on each privileged request by presenting a compact JWS whose header carries the bare public JWK; the business computes the RFC 7638 thumbprint (jkt), records it as the platform identifier, and binds it to the USP-Agent profile URI on first contact. Permissionless: no registration, no token endpoint, no pre-established credential, and no published or rotated platform keys - the platform profile stays keyless. Modelled as apiKey/header/DPoP rather than http/DPoP deliberately: on a resource-creating call there is NO Authorization header at all, and the proof header is itself the credential, so an http scheme would misdescribe the wire form at issuance. At issuance the proof carries no ath and the business records the thumbprint. At presentation it carries ath over the credential value and the business compares the thumbprint against the recorded cnf.jkt; that case appears in a security requirement object ANDed with BookingScopedCredential, since both must be satisfied together. Off-the-shelf DPoP libraries apply, and DPoP is an IANA-registered authentication scheme - unlike 'signature' above. The MCP binding carries the proof in _meta.usp.authorization.proof on both its transports instead; see openrpc/usp-mcp.json. See specification.md Section 10.1.6 and schemas/usp.json#/$defs/PopProofJwt. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes; that identifier set is open, and consumers ignore unrecognized mechanisms rather than treating them as accepted.",
         "x-usp-mechanism": "platform_key_pop"
       },
       "BookingScopedCredential": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization",
-        "description": "Booking-scoped or waitlist-entry-scoped capability credential issued at creation, authorizing get/update/cancel/reschedule/PII-bearing operations on that single resource independent of platform identity. Shape defined at schemas/profile.json#/$defs/BookingScopedCredential and referenced from components.schemas.BookingScopedCredential. When issued to a caller authenticated with platform_key_pop the credential carries a cnf confirmation key and is sender-constrained; see specification.md Section 10.1.6. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
+        "type": "http",
+        "scheme": "DPoP",
+        "description": "Booking-scoped or waitlist-entry-scoped capability credential issued at creation, authorizing get/update/cancel/reschedule/PII-bearing operations on that single resource independent of platform identity. Transmitted as 'Authorization: DPoP <bsc_...>'. Shape defined at schemas/profile.json#/$defs/BookingScopedCredential and returned by the creation responses. The DPoP scheme replaces Bearer for two reasons. It removes this credential from the Authorization: Bearer slot it previously shared with OAuth2Bearer and ApiKey, where a server could not tell from the request alone which scheme the caller intended. And it stops a business silently accepting a sender-constrained credential as a plain bearer token. When the credential carries a cnf confirmation key it is sender-constrained and MUST be presented together with a PlatformKeyPop proof over the bound key - the requirement object listing both is that case, and OpenAPI cannot express the 'only when cnf is present' condition, so the credential-alone alternative remains listed for unbound legacy credentials while the MUST is carried in specification.md Section 10.1.6. A business that issued a cnf-bearing credential MUST NOT accept it without a proof, whatever mechanism the caller declares. Mechanism identifier shared with schemas/profile.json#/$defs/AuthorizationMechanism and with openrpc/usp-mcp.json components.x-usp-securitySchemes.",
         "x-usp-mechanism": "booking_scoped_credential"
       },
       "OAuth2Bearer": {
@@ -1151,6 +1151,9 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1238,6 +1241,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1245,9 +1258,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       },
@@ -1321,6 +1331,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1328,9 +1348,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -1417,6 +1434,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1424,9 +1451,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -1513,6 +1537,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1520,9 +1554,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -1797,6 +1828,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Message"
                           }
+                        },
+                        "booking_scoped_credential": {
+                          "$ref": "#/components/schemas/BookingScopedCredential",
+                          "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on the creation response only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the booking it re-displays has widened the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt and is sender-constrained; the platform SHOULD verify cnf.jkt matches its own key and MUST NOT treat a credential returned without cnf as sender-constrained."
                         }
                       }
                     }
@@ -1809,6 +1844,9 @@
         "security": [
           {
             "HttpMessageSignature": []
+          },
+          {
+            "PlatformKeyPop": []
           },
           {
             "OAuth2Bearer": []
@@ -1905,6 +1943,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -1912,9 +1960,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2051,6 +2096,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Message"
                           }
+                        },
+                        "booking_scoped_credential": {
+                          "$ref": "#/components/schemas/BookingScopedCredential",
+                          "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on the creation response only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the booking it re-displays has widened the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt and is sender-constrained; the platform SHOULD verify cnf.jkt matches its own key and MUST NOT treat a credential returned without cnf as sender-constrained."
                         }
                       }
                     }
@@ -2063,6 +2112,9 @@
         "security": [
           {
             "HttpMessageSignature": []
+          },
+          {
+            "PlatformKeyPop": []
           },
           {
             "OAuth2Bearer": []
@@ -2152,6 +2204,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2159,9 +2221,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       },
@@ -2272,6 +2331,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2279,9 +2348,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2368,6 +2434,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2375,9 +2451,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2485,6 +2558,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2492,9 +2575,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2610,6 +2690,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2617,9 +2707,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2766,6 +2853,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -2773,9 +2870,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -2883,6 +2977,10 @@
                       "properties": {
                         "entry": {
                           "$ref": "#/components/schemas/WaitlistEntry"
+                        },
+                        "booking_scoped_credential": {
+                          "$ref": "#/components/schemas/BookingScopedCredential",
+                          "description": "CONDITIONAL. Sender-constrained capability credential authorizing continuation operations on the resource just created. Returned on the creation response only, never on reads, and never as a member of the created resource object itself: it is a bearer secret with its own lifetime, and a platform that persists it into the booking it re-displays has widened the leak surface the cnf binding exists to close. Present when the business accepts the booking_scoped_credential mechanism. When the caller authenticated with platform_key_pop this carries cnf.jkt and is sender-constrained; the platform SHOULD verify cnf.jkt matches its own key and MUST NOT treat a credential returned without cnf as sender-constrained."
                         }
                       }
                     }
@@ -2895,6 +2993,9 @@
         "security": [
           {
             "HttpMessageSignature": []
+          },
+          {
+            "PlatformKeyPop": []
           },
           {
             "OAuth2Bearer": []
@@ -3030,6 +3131,9 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3117,6 +3221,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3124,9 +3238,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       },
@@ -3200,6 +3311,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3207,9 +3328,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -3311,6 +3429,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3318,9 +3446,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -3404,6 +3529,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3411,9 +3546,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
@@ -3567,6 +3699,9 @@
         "security": [
           {
             "HttpMessageSignature": []
+          },
+          {
+            "PlatformKeyPop": []
           },
           {
             "OAuth2Bearer": []
@@ -3952,6 +4087,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -3959,9 +4104,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       },
@@ -3996,6 +4138,16 @@
             "HttpMessageSignature": []
           },
           {
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": [],
+            "PlatformKeyPop": []
+          },
+          {
+            "BookingScopedCredential": []
+          },
+          {
             "OAuth2Bearer": []
           },
           {
@@ -4003,9 +4155,6 @@
           },
           {
             "MutualTLS": []
-          },
-          {
-            "BookingScopedCredential": []
           }
         ]
       }
