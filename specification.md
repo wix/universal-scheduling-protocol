@@ -6090,7 +6090,7 @@ Each USP REST operation maps to a JSON-RPC method:
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the authenticated *principal* against this URI on first contact and rejects a later mismatch. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
@@ -7146,6 +7146,40 @@ the business **MUST** confirm the authenticated principal is authorized to act
 on behalf of the profile identified in the agent header, and **MUST** reject
 requests where the two conflict.
 
+**What "authorized to act on behalf of the profile" means when the profile is
+shared and keyless.** Read naively, the requirement above is unsatisfiable for a
+permissionless caller: a profile URI is **self-asserted**, it is fetched over an
+unauthenticated `GET`, and a single profile document is deliberately shared by
+every instance of a platform - so nothing in the document can distinguish one
+caller from another, and no business can verify the claim by inspecting it. A
+specification that requires the impossible gets implemented as a string
+comparison against a caller-supplied header, which authorizes nothing.
+
+The requirement is therefore satisfied as follows:
+
+- **The authenticated principal is the key**, not the URI. Under
+  `platform_key_pop` it is the `jkt`; under `http_message_signature` it is the
+  profile-published key that verified the signature; under the pre-established
+  mechanisms it is the registered client.
+- **The profile URI carries branding, capabilities, and contact details.** It is
+  descriptive metadata, and a business **MUST NOT** treat it as an
+  authentication factor or as evidence of who is calling.
+- **Binding is trust-on-first-use.** On first contact a business records the
+  pairing of principal to profile URI, and on subsequent requests **MUST**
+  reject a request whose principal does not match the one recorded for that
+  URI. A business **MAY** flag or rate-limit the case where a different key
+  claims a profile URI already bound to another, which is the signal that
+  something is being impersonated.
+- **One credential is enough.** A key-bound credential satisfies this MUST on
+  its own: the `cnf` binding *is* the proof that the caller is the principal the
+  business recorded. A business **MUST NOT** additionally require a separate
+  platform credential on the same request for the sole purpose of satisfying
+  identity binding.
+
+The same reading applies wherever this requirement is restated for the MCP
+binding ([Section 9.2.2](#922-requestresponse-format)), where the agent header's
+role is played by `_meta.usp.profile`.
+
 **Where the policy is published (both modes):** The `authorization` object is
 defined once in [`schemas/profile.json`](schemas/profile.json)
 `$defs/AuthorizationPolicy` and published according to deployment mode:
@@ -7165,9 +7199,13 @@ defined once in [`schemas/profile.json`](schemas/profile.json)
   `dev.usp.services` binding also scopes it correctly, since it governs access
   to the USP endpoint that binding declares.
 
-A business **MUST** accept at least one of the following for privileged
-operations, and **MUST** publish which one(s) it requires via that
-`authorization` policy:
+A business **MUST** accept at least one mechanism for privileged operations,
+and **MUST** publish which one(s) it requires via that `authorization` policy.
+The following table is **illustrative, not exhaustive**: it documents the
+mechanisms USP describes today, and a business accepting only a mechanism
+added later - by USP or by [UCP] - is conformant. Reading the table as a
+closed set would contradict the forward-compatibility rule below, which
+makes this list an extension point.
 
 | Mechanism                                       | Onboarding      | Best fit                                                                                                                                                                                                                                                                                                    |
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -7412,6 +7450,24 @@ A business **MAY** additionally require a nonce, and a platform **MUST** support
 being challenged for one. The asymmetry is deliberate: it lets a business turn
 nonces on unilaterally without a flag day. A nonce shortens the `jti` window; it
 does not replace `jti`.
+
+**Credential lifetime and invalidation.** `expires_at` is REQUIRED and tracks
+the **resource**, not a session: a booking made three months out still needs a
+cancel path on day 89, so a business **SHOULD** set it to the end of the
+resource's actionable window rather than to a short fixed interval. A business
+**MUST** invalidate the credential when the resource reaches a terminal state,
+and **MAY** re-issue one to the same bound key on an authenticated read, which
+is how a long-lived booking survives an expiry without a new create call.
+
+**Be precise about "revocable".** USP defines **no revocation operation** on
+any binding: there is no endpoint or method by which a platform surrenders a
+credential, or by which a business is asked to invalidate one early. The only
+invalidation paths are expiry and terminal state, both of which are the
+business's own doing. A business that needs to invalidate a credential out of
+band does so through its own systems, and implementers **SHOULD NOT** plan
+around a protocol revocation facility that does not exist. This is the main
+reason `expires_at` is REQUIRED rather than optional - expiry is the only
+bound the protocol itself guarantees.
 
 **What is deliberately not required.** No [RFC 9421] request signing and no
 `Content-Digest`; no `keys` or `signing_keys` in the platform profile; no

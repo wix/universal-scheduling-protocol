@@ -1,5 +1,17 @@
 # Change Log
 
+## 15/08/26 at 03:38:40 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Rewrote §10.1.6's identity-binding MUST, which was **unsatisfiable as written** for a permissionless caller. It required a business to confirm the authenticated principal is authorized to act on behalf of the profile in the agent header, but a profile URI is self-asserted, fetched over an unauthenticated GET, and deliberately shared by every instance of a platform - so nothing in the document distinguishes one caller from another. A requirement that cannot be met gets implemented as a string comparison against a caller-supplied header, which authorizes nothing at all; that is exactly the defect this work exists to correct
+- Defined what the MUST means instead: the authenticated principal is the **key** (the `jkt` under `platform_key_pop`, the profile-published key under `http_message_signature`, the registered client otherwise), the profile URI carries branding and capabilities and **MUST NOT** be treated as an authentication factor, and the pairing is recorded trust-on-first-use with a later mismatch rejected
+- Stated that a key-bound credential satisfies the mechanism-independent identity-binding MUST **on its own**, and that a business **MUST NOT** require a second platform credential on the same request merely to satisfy it. Without that sentence the natural reading forces every scoped call to carry two credentials, which would defeat the point of a per-resource one
+- Applied the same reading to the MCP restatement of the rule, and recorded there why `_meta.usp.profile` is deliberately kept inside the `usp_p` digest: the profile a caller asserts is then covered by the proof rather than free to be rewritten in transit
+- Made §10.1.6's mechanism table **illustrative rather than exhaustive**. Read strictly, "a business MUST accept at least one of the following" over a five-row table meant a business accepting only a newer mechanism accepted none of them and was non-conformant - contradicting the forward-compatibility rule twenty lines below, which makes the same list an extension point
+- Specified credential lifetime and invalidation: `expires_at` tracks the resource rather than a session, invalidation at terminal state is a **MUST**, and re-issuance to the same bound key on an authenticated read is permitted so a long-lived booking survives an expiry without a new create call
+- Scoped the word "revocable" honestly: USP defines **no revocation operation on any binding**. Expiry and terminal state are the only invalidation paths, and both are the business's own doing. Saying so plainly is what stops an implementer designing around a protocol facility that does not exist, and it is the reason `expires_at` is REQUIRED rather than optional - expiry is the only bound the protocol itself guarantees
+
+---
+
 ## 15/08/26 at 03:14:22 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed `booking_scoped_credential` from `PUT`/`DELETE /registry/businesses/{id}`, where it was offered although no booking exists - contradicting both the scheme's own description and the platform-tier `_meta` wrapper those methods used
