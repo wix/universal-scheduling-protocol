@@ -3420,6 +3420,12 @@
                                 "digest_mismatch",
                                 "algorithm_unsupported",
                                 "signature_expired",
+                                "pop_proof_required",
+                                "pop_proof_missing",
+                                "pop_proof_invalid",
+                                "pop_key_mismatch",
+                                "pop_proof_replayed",
+                                "proof_nonce_required",
                                 "rate_limited",
                                 "version_unsupported",
                                 "service_unavailable",
@@ -3429,6 +3435,14 @@
                         "content": {
                             "type": "string",
                             "description": "Human-readable error description."
+                        },
+                        "mechanism": {
+                            "$ref": "../schemas/profile.json#/$defs/AuthorizationMechanism",
+                            "description": "OPTIONAL discriminator naming the mechanism the failure relates to. RECOMMENDED on signature_missing, signature_invalid and signature_expired, which now cover both RFC 9421 signatures and platform_key_pop proofs and are otherwise ambiguous to a caller deciding what to correct."
+                        },
+                        "nonce": {
+                            "type": "string",
+                            "description": "REQUIRED on proof_nonce_required, absent otherwise. The server-supplied nonce the platform MUST include in a freshly built proof when retrying. A business MAY enable nonces unilaterally without a flag day, because platforms are required to support being challenged even when they never volunteer a nonce."
                         }
                     }
                 }
