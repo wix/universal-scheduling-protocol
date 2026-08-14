@@ -7099,6 +7099,71 @@ rejected ([Section 8.2.1](#821-business-profile-fields)). Ignoring it would
 leave the business advertising an authentication requirement that no conforming
 platform reads, which fails open in exactly the way this section forbids.
 
+**Normative placement of `platform_key_pop` (MUST, both modes).** The
+`platform_key_pop` mechanism is specified **in this section**, which applies in
+both deployment modes, and **not** in
+[Section 10.2.3](#1023-authentication-and-authorization). Section 10.2.3 already
+says a business **SHOULD** support DPoP ([RFC 9449]) for proof-of-possession,
+but it sits inside [Section 10.2](#102-security-infrastructure-for-standalone-mode),
+which UCP-Native deployments skip in their entirety
+([Section 7.3](#73-inherited-infrastructure)) - so a mechanism specified there
+would be inapplicable to exactly the deployments
+[Section 7.3](#73-inherited-infrastructure) directs to keep reading this
+section.
+
+The two are **distinct, not one generalizing the other.** Section 10.2.3's DPoP
+sentence hardens a *pre-established* OAuth Bearer token: it presumes a token
+already exists and adds sender-constraint to it. `platform_key_pop` is a
+permissionless mechanism with no token at all, usable by a caller that has never
+been onboarded. A business **MAY** implement either without the other. Where a
+deployment does both, the same key **SHOULD** serve both, so there is one key
+and one custody item rather than two.
+
+**Carriage in UCP-Native Mode (MUST).** Two different rules apply, because two
+different governance models are in play, and conflating them is what has made
+this question look unanswerable:
+
+- **On USP's own service endpoint** - the endpoint declared by the
+  `dev.usp.services` binding - USP defines the request headers in both modes.
+  The credential and proof are carried exactly as in Standalone Mode.
+- **On a [UCP]-governed endpoint**, such as checkout, USP **MUST NOT** redefine
+  the `Authorization` header, which UCP owns. The proof rides the `DPoP`
+  request header, which [RFC 9449] defines independently of the `Authorization`
+  authentication scheme and which is therefore additive rather than a
+  redefinition. An issued credential is returned **in the response body, inside
+  the `dev.usp.services.paid_bookings` extension**, as a sibling of that
+  extension's `booking` object - never as an invented member of the [UCP]
+  checkout root, and never *inside* `booking`, which carries scheduling context
+  that platforms persist and re-display and so must never hold a secret.
+
+This resolves an open question that the namespace-governance rule above does not
+by itself answer. That rule governs **profile documents**: USP declares under
+`dev.usp.*` and adds no top-level member to `/.well-known/ucp`. **Response
+bodies are governed by [UCP]'s extension-composition model instead** - an
+extension declares what it adds through a registered capability and an `allOf`
+composition over `$defs` keyed by the extended object
+([Section 7.4](#74-paid-bookings-extension-schema)). That is already how
+`dev.usp.services.paid_bookings` contributes `booking` to a checkout. A
+credential added the same way is therefore a *declared* extension member, not an
+invented one, and requires no new governance rule.
+
+**Relationship to [UCP]: an extension, not an inheritance.** [UCP] resolves
+signing keys from the keys published in a platform profile. A credential bound
+by `cnf.jkt` to a key that is deliberately **not** in the platform profile is
+therefore a key-resolution path [UCP] does not define. It is *permitted* - UCP's
+mechanism list is open and businesses **MAY** enforce additional rules - but
+implementers **MUST NOT** read `platform_key_pop` as [UCP] conformance, and a
+[UCP]-only verifier is not expected to support it. Should [UCP] later define its
+own proof-of-possession pattern, USP reconciles with it rather than assuming
+alignment.
+
+Conversely, one point converges rather than diverging, and is worth stating so
+the identity-binding rule above is not mistaken for a departure: [UCP]'s
+identity-binding rule is **consistency-only** - a verifier ensures the
+authenticated identity is consistent with the agent header. USP's requirement
+that a fetchable profile accompany *every* privileged request is **stricter**
+than [UCP], not looser.
+
 **Signalling rejection (SHOULD):** When a business rejects a privileged request
 for missing or invalid authentication, it **SHOULD** return `401 Unauthorized`
 with a `WWW-Authenticate` header per [RFC 9110], and **SHOULD** name the
@@ -7190,7 +7255,13 @@ For platforms using a pre-established mechanism in Standalone Mode:
   `client_credentials` grant for platform-to-business (non-buyer-scoped)
   authentication, and **SHOULD** support DPoP [RFC 9449] for proof-of-possession
   where additional security is required. Tokens are transmitted via the
-  `Authorization: Bearer <token>` header.
+  `Authorization: Bearer <token>` header. This DPoP sentence hardens an
+  *already-issued* OAuth token and is Standalone-Mode-only. It is **not** the
+  definition of the permissionless `platform_key_pop` mechanism, which is
+  specified for both deployment modes in
+  [Section 10.1.6](#1016-platform-authentication-for-privileged-operations);
+  the two are distinct, and a deployment implementing both **SHOULD** use one
+  key for both.
 - **API keys:** for simpler integrations with a small number of known
   platforms. Keys **SHOULD** be rotated periodically and are transmitted via
   the `Authorization: Bearer <key>` header.
