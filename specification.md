@@ -4848,6 +4848,26 @@ The `usp` object in a platform profile has the following fields:
 | `capabilities` | object | **Yes**  | Capabilities the platform can consume. Same key/value format as the business profile: reverse-domain keys → arrays of **ProfileCapabilityEntry**. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`).  |
 | `services`     | object | No       | Service consumption preferences. Keys are reverse-domain service names; values list preferred transports in preference order.            |
 
+A platform profile also carries members **at the document root, as siblings of
+`usp`** rather than inside it. These are defined in
+[`schemas/profile.json`](schemas/profile.json) `$defs/PlatformProfile` and were
+previously documented only there:
+
+| Field          | Type   | Required        | Description                                                                                                                              |
+|----------------|--------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `keys`         | object | **Conditional** | [UCP]-canonical [RFC 7517] JWK Set used to verify HTTP Message Signatures on this platform's requests. **MUST** be present when the platform signs privileged REST requests **or privileged MCP-over-HTTP requests** ([Section 9.1.4](#914-request-signing)). Multiple keys **MUST** be supported, for zero-downtime rotation. |
+| `signing_keys` | object | No              | Transition alias for `keys`. Dual-publishing an identical array is **RECOMMENDED** during transition; when both are present they **MUST** list the same keys, and verifiers resolve `keys` first.  |
+| `webhook_url`  | string | No              | Callback URL for webhook delivery to this platform ([Section 10.1.1](#1011-webhook-security)).                                            |
+
+**A platform that signs nothing publishes no `keys`, and is conformant.** Both
+halves of that condition matter, and an implementer reading only the first would
+get it wrong: a proof-of-possession proof rides *in-band* - on the `DPoP` header
+over REST, and inside `_meta.usp.authorization` over MCP - and is **not** request
+signing in the sense above. So a platform authenticating solely with
+`platform_key_pop` publishes a **keyless** profile on **both** bindings, and a
+business **MUST NOT** require `keys` from it. This is what lets a single shared
+platform profile serve every instance of a personal agent.
+
 Platform profile hosting requirements are identical to business profile
 requirements: HTTPS, no redirects, `Cache-Control: public, max-age≥60`,
 `Content-Type: application/json`.
@@ -5971,7 +5991,11 @@ State-modifying REST requests (POST, PUT, DELETE on bookings, holds, waitlist, r
 
 **Replay protection:** Platforms **SHOULD** send `Idempotency-Key` on state-modifying privileged requests ([Section 9.1.1](#911-idempotency)) and, when signing, **MUST** include it in the covered components so it cannot be altered in transit. Businesses **SHOULD** reject or de-duplicate replays on that key. USP does not impose a signature-timestamp freshness window on requests; where a business does enforce one (or where a signature carries `created`/`expires` for an external profile such as Web Bot Auth), it **MUST** be applied in addition to, not instead of, idempotency-key de-duplication.
 
-**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`).
+**Platform signing keys:** When a platform signs requests, it **MUST** publish signing material in the platform profile ([Section 8.2.3](#823-platform-profile)) via the top-level `keys` array (UCP-canonical). It **MAY** also publish an identical `signing_keys` array during transition; dual-publish is **RECOMMENDED**. Verifiers **MUST** resolve a `keyid` against `keys` first and fall back to `signing_keys` otherwise (same rule as [Section 10.1.1](#1011-webhook-security)). Businesses that require HTTP Message Signatures for privileged operations **MUST** advertise this in their business profile's `authorization` object (see [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) and [`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`). A platform that does **not** sign requests
+publishes no `keys` and remains conformant; in particular a
+`platform_key_pop` proof is carried in-band and is not request signing in this
+sense, so it does not trigger this requirement on either binding
+([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 **Example:**
 
@@ -7094,6 +7118,16 @@ supported mechanism exists and fail closed. This is what lets USP inherit a new
 [UCP] mechanism or algorithm as a data change rather than a specification
 revision.
 
+**This rule governs profile documents, keys, and `authorization` policies. It
+does *not* extend to a credential's `cnf` object or to a proof-of-possession
+proof**, both of which are closed structures. A consumer **MUST** reject an
+unrecognized member or an unrecognized confirmation method there rather than
+ignore it. The two rules point in opposite directions on purpose: ignoring an
+unrecognized field in a profile costs a capability, whereas ignoring an
+unrecognized confirmation method silently downgrades a sender-constrained
+credential to a bearer token, which is precisely the failure this section's
+proof-of-possession mechanism exists to prevent.
+
 The single exception is a misplaced policy: a service binding that declares
 `authorization` as a direct member instead of under `config` **MUST** be
 rejected ([Section 8.2.1](#821-business-profile-fields)). Ignoring it would
@@ -7164,6 +7198,158 @@ identity-binding rule is **consistency-only** - a verifier ensures the
 authenticated identity is consistent with the agent header. USP's requirement
 that a fetchable profile accompany *every* privileged request is **stricter**
 than [UCP], not looser.
+
+##### The `platform_key_pop` mechanism
+
+**Key generation and platform identity.** On first contact with a business, a
+platform generates a keypair, keeps the private half local, and never publishes
+it. The public key travels only inside the proof, as a bare JWK in the proof
+header. The business computes its [RFC 7638] thumbprint and **that thumbprint,
+`jkt`, is the platform identifier** - there is no registration step, no token
+endpoint, and no pre-established credential.
+
+Nothing about this key belongs in the platform profile. It is a per-credential
+key, not a published platform identity key, so none of the publication,
+rotation, or key-lifecycle machinery in
+[Section 9.1.4](#914-request-signing) applies, and the platform profile stays
+**keyless** - which [Section 8.2.3](#823-platform-profile) makes conformant by
+requiring `keys` only when the platform *signs* privileged requests. A proof is
+not [RFC 9421] request signing, on either binding.
+
+Because the key is self-generated, a business **MUST** resolve it from the proof
+header and **MUST** ignore any `kid`: there is no published key set to resolve a
+`kid` against, and honouring one would reintroduce the key-resolution step this
+mechanism exists to remove.
+
+**Binding at issuance is in-band.** A resource-creating privileged operation
+carries a proof and **no credential**. The business verifies the proof, computes
+`jkt`, binds it to the `USP-Agent` profile URI on first contact, records it as
+the platform identity, and binds the credential it issues to that same key,
+echoing the binding back:
+
+```json
+"booking_scoped_credential": {
+  "value": "bsc_7f3c1a9e4b2d8065f1ae93c7",
+  "expires_at": "2026-06-14T18:00:00Z",
+  "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+}
+```
+
+The echo is not decoration: it is the only way a platform can detect a business
+that accepted the proof and then issued an **unbound** credential anyway. A
+platform **SHOULD** verify that `cnf.jkt` matches its own key and **MUST NOT**
+treat a credential returned without `cnf` as sender-constrained.
+
+**Presentation.** The same flow, two envelopes. Verification order and claim
+semantics are identical; only the wire form differs:
+
+| | REST | MCP (stdio and HTTP-SSE) |
+|---|---|---|
+| Credential | `Authorization: DPoP <bsc_…>` | `_meta.usp.authorization.credential` |
+| Proof | `DPoP` header, `typ: dpop+jwt` ([RFC 9449]) | `_meta.usp.authorization.proof`, `typ: usp-pop+jwt` |
+| Binds the operation | `htm` | `usp_m` (JSON-RPC method name) |
+| Binds the target | `htu` | `aud` (a published business profile URI) |
+| Binds the arguments | *(not covered)* | `usp_p`, a digest over the canonicalized `params` |
+| Freshness | `iat`, `jti`, optional `DPoP-Nonce` | `iat`, `jti`, optional `nonce` after a challenge |
+| Binds the credential | `ath` | `ath` |
+
+Two consequences are worth stating rather than leaving to be discovered. Over
+REST the proof is a **standard [RFC 9449] proof**, so an implementer can use an
+off-the-shelf DPoP library, and `DPoP` is an IANA-registered authentication
+scheme - unlike `signature`, which this section already has to caveat. Over MCP
+the `typ` differs deliberately, so that neither proof can be replayed as the
+other before claim checking, and the MCP profile is **stronger on argument
+integrity**: `usp_p` covers `buyer`, `delivery_address` and every other
+argument, so an intermediary cannot alter the call. The MCP claim set,
+canonicalization, and the reason `aud` is mandatory there are specified in
+[Section 9.2.2](#922-requestresponse-format).
+
+The scheme change from `Bearer` to `DPoP` on REST is load-bearing, not
+cosmetic. It is what stops a business from silently accepting a
+sender-constrained credential as a plain bearer token, and it removes the
+credential from the three-way `Authorization: Bearer` collision it previously
+shared with `oauth2_bearer` and `api_key`.
+
+**Algorithms.** `EdDSA` (Ed25519) is the floor and **MUST** be supported by any
+business advertising `platform_key_pop`; `ES256` **MAY** be accepted in
+addition. EdDSA is the floor deliberately: it avoids the fixed-width `r||s`
+versus DER encoding trap that [Section 9.1.4](#914-request-signing) already has
+to warn about for ECDSA. A business **MUST** reject `alg: none`, and **MUST**
+reject a proof whose header JWK carries any private-key member. Accepted
+algorithms are advertised through the `authorization` policy, which is an open
+object, so this requires no schema change.
+
+**Downgrade resistance (MUST, both bindings).** A credential carrying `cnf` is
+sender-constrained and **MUST NOT** be accepted as a bearer token. A business
+that receives such a credential without an accompanying valid proof over the key
+whose [RFC 7638] thumbprint equals `cnf.jkt` **MUST** reject the request as
+unauthenticated, **whatever `mechanism` the caller declares**, and **MUST NOT**
+fall back to any other mechanism the caller also presented. A business **MUST
+NOT** issue a `cnf`-bearing credential and later accept it without a proof.
+
+This MUST is stated for both bindings because syntax alone enforces it on
+neither. On REST the `Bearer` → `DPoP` scheme change makes the downgrade
+visible, but a rule is still needed behind it. On MCP there is **no scheme at
+all**, and the declared `mechanism` sits inside `_meta.usp.authorization`, which
+is excluded from the argument digest - so without this rule an attacker holding
+a leaked credential could declare `mechanism: "booking_scoped_credential"`, omit
+the proof, and present it as a bearer. The entire mechanism would be bypassable
+in one field.
+
+**Verification order (MUST, business side).** A business **MUST** evaluate a
+presented credential and proof in this order, because the codes returned differ
+per step and reordering them leaks information about which part was wrong:
+
+1. The credential is known and unexpired.
+2. **The credential carries `cnf` ⇒ a proof is mandatory**, regardless of the
+   declared `mechanism`.
+3. The credential's scope matches the addressed resource.
+4. The proof parses and its `typ` matches the binding in use.
+5. The `alg` is one the business accepts, and is not `none`.
+6. The [RFC 7638] thumbprint of the header JWK equals the recorded `cnf.jkt`
+   (any `kid` is ignored).
+7. The signature verifies against that header JWK.
+8. `aud` is a profile URI this business publishes (MCP), or `htm` and `htu`
+   match the request (REST).
+9. `usp_m` equals the invoked method and `usp_p` equals the recomputed argument
+   digest (MCP).
+10. `ath` matches the presented credential value.
+11. `iat` is within the accepted skew and `nonce` matches if one was required.
+12. `jti` has not been seen; record it.
+
+At **issuance** the credential steps and `ath` are skipped, and the thumbprint
+is *recorded* rather than compared; every other step still applies.
+
+**Replay defence (MUST).** A business **MUST** reject a proof whose `iat` is
+outside a ±60-second window and **MUST** cache `jti` values for at least twice
+that window. This applies to **every** privileged operation presenting a proof,
+**reads included**. Read coverage matters: idempotency-key de-duplication is
+only a **SHOULD**, and only on state-modifying operations
+([Section 9.1.4](#914-request-signing)), so without this rule a captured proof
+for `get`-style operations would replay freely against exactly the responses
+that carry buyer personal data.
+
+A business **MAY** additionally require a nonce, and a platform **MUST** support
+being challenged for one. The asymmetry is deliberate: it lets a business turn
+nonces on unilaterally without a flag day. A nonce shortens the `jti` window; it
+does not replace `jti`.
+
+**What is deliberately not required.** No [RFC 9421] request signing and no
+`Content-Digest`; no `keys` or `signing_keys` in the platform profile; no
+per-instance profiles; no published, registered, or rotated platform keys; no
+authorization server, token endpoint, or client registration. A business
+implementing this mechanism verifies a signature, computes a thumbprint, checks
+a handful of claims, and stores a `jkt`. That short list is the point: it is
+what makes the mechanism reachable for a business that would never stand up an
+authorization server.
+
+> **What this defends, and what it does not.** Binding to a key the platform
+> never transmits means a credential leaked through logs, an HTTP trace, a
+> TLS-terminating proxy, a misrouted response, or a business-side database
+> compromise is **not usable on its own**. It does **not** defend against theft
+> of the platform's local key material, or a hostile process on the platform
+> host; those remain the dominant residual risk, and mitigating them is a matter
+> of local file permissions or an OS keychain rather than of this protocol.
 
 **Signalling rejection (SHOULD):** When a business rejects a privileged request
 for missing or invalid authentication, it **SHOULD** return `401 Unauthorized`
