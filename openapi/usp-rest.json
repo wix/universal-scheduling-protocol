@@ -66,6 +66,15 @@
       "USPEnvelope": {
         "$ref": "../schemas/usp.json#/$defs/USPEnvelope"
       },
+      "BookingScopedCredential": {
+        "$ref": "../schemas/profile.json#/$defs/BookingScopedCredential"
+      },
+      "ConfirmationKey": {
+        "$ref": "../schemas/usp.json#/$defs/ConfirmationKey"
+      },
+      "PopProofJwt": {
+        "$ref": "../schemas/usp.json#/$defs/PopProofJwt"
+      },
       "PaginationRequest": {
         "$ref": "../schemas/usp.json#/$defs/PaginationRequest"
       },

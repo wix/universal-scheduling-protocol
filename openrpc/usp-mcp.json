@@ -3153,6 +3153,15 @@
     ],
     "components": {
         "schemas": {
+            "BookingScopedCredential": {
+                "$ref": "../schemas/profile.json#/$defs/BookingScopedCredential"
+            },
+            "ConfirmationKey": {
+                "$ref": "../schemas/usp.json#/$defs/ConfirmationKey"
+            },
+            "PopProofJwt": {
+                "$ref": "../schemas/usp.json#/$defs/PopProofJwt"
+            },
             "BookingWebhookEvent": {
                 "$ref": "../schemas/webhook_event.json#/$defs/BookingEvent"
             },
