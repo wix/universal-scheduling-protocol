@@ -1,5 +1,16 @@
 # Change Log
 
+## 15/08/26 at 04:31:52 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added ten test vectors under `tests/vectors/pop/` covering canonicalization, issuance, presentation, and six rejection cases. `platform_key_pop` is specified on both bindings and implemented on neither, so without these the normative text ships entirely unvalidated - and canonicalization is the one part of it that can be wrong in a way review will not catch, because two implementers can read the same rule and encode it differently
+- Signed the proof vectors with **real Ed25519 keys** derived from fixed seeds rather than publishing placeholders, so an independent implementation can verify them instead of taking them on trust. The private keys are in the repository deliberately, documented as test-only, precisely so the vectors are reproducible byte-for-byte
+- Made `006-cross-key-replay` the centrepiece and said so in §10.1.6: its proof **verifies correctly against its own header key**, so an implementation that checks the signature and stops will accept it. Only comparing the thumbprint against the recorded `cnf.jkt` rejects it. That is the test the superseded profile-URI binding would have failed, and it is the difference between this mechanism and a bearer token wearing a proof
+- Extended `tools/usp_check.py` to verify the vectors rather than merely parse them: it recomputes every JCS serialization and `usp_p` digest, verifies each signature against the JWK in its own proof header, recomputes each published thumbprint, checks `expected_claims` against the signed payload, and asserts that a `pop_key_mismatch` vector genuinely uses a key differing from the credential's `cnf.jkt` - otherwise that vector would pass while testing nothing
+- Made the checker fail any vector whose `id` is not cited in `specification.md`, and cited all ten in a §10.1.6 table. Vectors that nothing references are the normal way this kind of artefact rots; this makes prose and vectors fail together instead of drifting apart
+- Verified the checker is not vacuously green: tampering with a signature and neutering the cross-key vector each produce the expected failure
+
+---
+
 ## 15/08/26 at 04:02:15 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - **BREAKING.** Raised §10.1.6's per-resource authorization requirement from **SHOULD** to **MUST** for privileged operations on an existing booking or waitlist entry. The section deferred this explicitly while the credential's issuance format was unspecified; that format is now specified, so the deferral has expired. Platform authentication alone does not satisfy it, which is the entire point: a business accepting only a platform-level mechanism authorizes any authenticated platform to act on any booking it can identify

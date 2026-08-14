@@ -409,6 +409,10 @@ def b64u(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
+def unb64u(text: str) -> bytes:
+    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+
+
 def spec_error_codes() -> set[str]:
     """Codes documented in the 10.1.1 verification error-code table."""
     text = SPEC.read_text()
@@ -486,6 +490,56 @@ def check_vectors(findings: Findings) -> None:
                     findings.fail(f"VECTOR:{vid}:credential",
                                   f"credential fails BookingScopedCredential: "
                                   f"{errors[0].message}")
+
+        # Verify the signature for real where possible. A vector whose proof does
+        # not actually verify is worse than no vector: it teaches the wrong bytes.
+        proof, keyinfo = vector.get("proof"), vector.get("key")
+        if proof and keyinfo and vector.get("expected_claims") is not None:
+            try:
+                from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+            except ImportError:
+                print("  cryptography not installed; skipping signature verification")
+            else:
+                try:
+                    h_b64, p_b64, s_b64 = proof.split(".")
+                    header = json.loads(unb64u(h_b64))
+                    claims = json.loads(unb64u(p_b64))
+                except Exception as exc:  # noqa: BLE001
+                    findings.fail(f"VECTOR:{vid}:proof", f"proof is not a parseable JWS: {exc}")
+                    continue
+
+                if claims != vector["expected_claims"]:
+                    findings.fail(f"VECTOR:{vid}:claims",
+                                  "published expected_claims do not match the signed payload")
+
+                jwk = header.get("jwk", {})
+                jkt = b64u(hashlib.sha256(jcs(jwk)).digest())
+                if keyinfo.get("jkt") and jkt != keyinfo["jkt"]:
+                    findings.fail(f"VECTOR:{vid}:jkt",
+                                  f"RFC 7638 thumbprint of the header jwk is {jkt}, "
+                                  f"but the vector publishes {keyinfo['jkt']}")
+
+                if header.get("alg") == "none":
+                    if s_b64:
+                        findings.fail(f"VECTOR:{vid}:alg-none",
+                                      "an alg:none vector must carry an empty signature segment")
+                else:
+                    pub = Ed25519PublicKey.from_public_bytes(unb64u(jwk["x"]))
+                    try:
+                        pub.verify(unb64u(s_b64), f"{h_b64}.{p_b64}".encode())
+                    except Exception:  # noqa: BLE001
+                        findings.fail(f"VECTOR:{vid}:signature",
+                                      "the published proof signature does not verify against "
+                                      "its own header jwk")
+
+                # The cross-key case must verify against its own key yet still be
+                # rejected, which is exactly what distinguishes it from a forgery.
+                cnf = (vector.get("credential") or {}).get("cnf", {})
+                if cnf and vector.get("expect") == "reject" and \
+                        vector.get("reject_code") == "pop_key_mismatch" and jkt == cnf.get("jkt"):
+                    findings.fail(f"VECTOR:{vid}:cross-key",
+                                  "a pop_key_mismatch vector must use a proof key that differs "
+                                  "from the credential's cnf.jkt, or it tests nothing")
 
         canon = vector.get("canonicalization")
         if canon:

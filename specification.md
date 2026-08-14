@@ -7486,6 +7486,34 @@ authorization server.
 > host; those remain the dominant residual risk, and mitigating them is a matter
 > of local file permissions or an OS keychain rather than of this protocol.
 
+**Test vectors.** Because no implementation of this mechanism exists yet on
+either binding, the normative text above would otherwise ship entirely
+unvalidated - and canonicalization is the one part of it that can be wrong in a
+way review will not catch. [`tests/vectors/pop/`](tests/vectors/pop) therefore
+publishes worked vectors, each with the inputs, the canonical bytes, and the
+expected outcome. The signed ones carry real Ed25519 signatures over published
+keys, so an independent implementation can verify them rather than take them on
+trust:
+
+| Vector | What it pins down |
+|---|---|
+| `001-jcs-nested-buyer` | Canonicalization of nested arguments; `profile` and `idempotency_key` stay inside the digest while `authorization` is removed. |
+| `002-jcs-meta-only` | Canonicalization when only `_meta` and the resource id remain. |
+| `003-jcs-unicode-empty-meta` | Unicode, key ordering, and an `_meta.usp` left empty - retained as `{}`, not dropped. |
+| `004-proof-issuance-no-ath` | Issuance: no credential, **no `ath`**, thumbprint recorded rather than compared. |
+| `005-proof-presentation-ath-nonce` | Presentation: `ath` over the credential value, plus a challenged `nonce`. |
+| `006-cross-key-replay` | **The load-bearing case.** A credential issued to one key, replayed with a valid proof signed by another. |
+| `007-downgrade-cnf-without-proof` | A `cnf`-bearing credential presented with no proof and `mechanism` declared as `booking_scoped_credential`. |
+| `008-replayed-jti` | A byte-identical resend, rejected on the second presentation. |
+| `009-aud-mismatch` | A proof captured at one business and presented at another. |
+| `010-alg-none` | `alg: none`, rejected before any signature check. |
+
+Vector `006` is the one that matters most, and is worth stating plainly: its
+proof **verifies correctly against its own header key**. An implementation that
+checks the signature and stops will accept it. Only comparing the thumbprint
+against the recorded `cnf.jkt` rejects it. That single comparison is the
+difference between this mechanism and a bearer token wearing a proof.
+
 **Signalling rejection (SHOULD):** When a business rejects a privileged request
 for missing or invalid authentication, it **SHOULD** return `401 Unauthorized`
 with a `WWW-Authenticate` header per [RFC 9110], and **SHOULD** name the
