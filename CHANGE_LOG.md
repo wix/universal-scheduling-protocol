@@ -1,5 +1,16 @@
 # Change Log
 
+## 15/08/26 at 01:29:11 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Wired the REST carriage of `platform_key_pop`: the proof rides the `DPoP` request header, the credential rides `Authorization: DPoP <bsc_...>`, and `booking_scoped_credential` is now returned on the `POST /bookings`, `POST /availability/holds` and `POST /waitlist` creation responses. The credential was previously *consumable* by 17 operations and *issued* by none - the security scheme depended on a value no response in the document ever returned
+- Modelled `PlatformKeyPop` as `apiKey` in the `DPoP` header rather than as `http`/`DPoP`, correcting the entry added when the mechanism was registered. On a resource-creating call there is **no `Authorization` header at all** and the proof header is itself the credential, so an `http` scheme would have misdescribed the wire form at exactly the point where the binding is established
+- Moved `BookingScopedCredential` from `apiKey`/`Authorization` to `http`/`DPoP`. This resolves the three-way collision in which `BookingScopedCredential`, `ApiKey` and `OAuth2Bearer` all resolved to `Authorization: Bearer`, leaving a server unable to tell from the request alone which scheme the caller intended; the pre-existing `OAuth2Bearer`/`ApiKey` overlap remains and is out of scope. More importantly the scheme change is what stops a business silently accepting a sender-constrained credential as a plain bearer token
+- Expressed the credential-plus-proof requirement as a **single security requirement object naming both schemes**, which is OpenAPI's AND semantics and therefore an accurate machine-readable statement of the anti-downgrade rule. Kept the credential-alone alternative, because OpenAPI cannot express "only when `cnf` is present" and unbound legacy credentials still exist; the conditional MUST stays in §10.1.6 and is stated in the scheme description so a reader of the binding alone does not conclude the bearer path is sanctioned
+- Added `PlatformKeyPop` as an accepted alternative on all 23 privileged operations (6 platform-tier, 17 scoped), rather than only on the scoped ones. A create call is where the key binding is established, so omitting it there would have left the mechanism advertised but unreachable at issuance
+- Described the credential on the creation responses as returned *beside* the created resource and never inside it, and said why: a platform that persists the credential into the booking it re-displays has widened exactly the leak surface the `cnf` binding exists to close
+
+---
+
 ## 15/08/26 at 00:58:44 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Specified the `platform_key_pop` mechanism normatively in §10.1.6: key generation and `jkt` as the platform identifier, in-band binding at issuance, the REST and MCP presentation forms side by side, accepted algorithms, downgrade resistance, the verification order, and replay defence. Until now the section reserved a mechanism name and defined nothing, so two implementers building it would have built two incompatible things
