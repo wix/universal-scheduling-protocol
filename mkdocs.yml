@@ -5,7 +5,7 @@ site_author: USP Authors
 
 docs_dir: site-docs
 
-repo_url: https://github.com/wix-private/universal-scheduling-protocol-spec
+repo_url: https://github.com/wix/universal-scheduling-protocol
 repo_name: USP on GitHub
 
 theme:
@@ -121,7 +121,7 @@ extra_javascript:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/wix-private/universal-scheduling-protocol-spec
+      link: https://github.com/wix/universal-scheduling-protocol
       name: USP on GitHub
   generator: false
   analytics:

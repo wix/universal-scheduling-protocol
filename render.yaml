@@ -50,4 +50,4 @@ services:
         destination: /specification/*
       - type: redirect
         source: /github
-        destination: https://github.com/wix-private/universal-scheduling-protocol-spec
+        destination: https://github.com/wix/universal-scheduling-protocol
