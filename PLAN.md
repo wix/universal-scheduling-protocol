@@ -56,7 +56,7 @@ Retarget the private-to-public USP mirror from `yahalomran/universal-scheduling-
 | U3 | Add GH Pages deploy workflow (gated to public repo, Actions Pages) | .github/workflows/pages.yml | `test -f .github/workflows/pages.yml` | done |
 | U4 | Remove Vercel config; retarget public GitHub links in mkdocs/render | vercel.json, mkdocs.yml, render.yaml | `test ! -f vercel.json` && grep -q 'wix/universal-scheduling-protocol' mkdocs.yml | done |
 | U5 | Add site-docs sync rule to AGENTS.md (covers CLAUDE.md symlink) | AGENTS.md | grep -q 'site-docs/' AGENTS.md | done |
-| U6 | Enable public Actions/Pages; escalate PAT secret if needed; verify mirror/Pages as far as perms allow; close #205 with summary comment | (ops + issue) | `gh issue view 205 --repo wix-private/universal-scheduling-protocol-spec --json state -q .state` == CLOSED | pending |
+| U6 | Enable public Actions/Pages; escalate PAT/org blockers; verify mirror/Pages as far as perms allow; close #205 | (ops + issue + ESCALATION.md) | issue 205 CLOSED; ESCALATION PENDING for Actions/rules/PAT | in-progress |
 
 ## Manual / secret steps (user or escalate)
 
