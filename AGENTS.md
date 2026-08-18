@@ -50,3 +50,20 @@ Domain data shapes MUST exist **once**, under [`schemas/`](schemas/) as JSON Sch
 ### Why this matters
 
 Duplicated schemas drift (one copy updated, the other not), break validators, and confuse implementers. One definition in `schemas/` plus `$ref` from [`openapi/usp-rest.json`](openapi/usp-rest.json) and [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) matches how this repository avoids that class of errors.
+
+## Specification and site-docs stay in sync
+
+The published website is built from [`site-docs/`](site-docs/) (MkDocs). Agents that change **specification-related** files **MUST** also update the corresponding `site-docs/` pages in the same change set so the site does not drift from the normative text.
+
+### What counts as specification-related
+
+- [`specification.md`](specification.md) (normative prose)
+- Machine-readable artefacts under [`schemas/`](schemas/), [`openapi/`](openapi/), and [`openrpc/`](openrpc/) when the change is user-facing or otherwise reflected on the site
+- Other docs that the site summarises or quotes (for example booking-form profile material that has a `site-docs/` counterpart)
+
+### Rules
+
+1. **Same change set** - If you edit a specification-related file, locate and update the matching page(s) under `site-docs/` (and playground scenario mirrors under `site-docs/playground/` when fixtures change) before finishing.
+2. **No site-only drift** - Do not leave `site-docs/` describing old field names, section numbers, MUST/SHOULD levels, or examples that no longer match `specification.md` or the schemas.
+3. **If unsure which page** - Prefer updating the closest topical page under `site-docs/specification/`, `site-docs/deployment-modes/`, `site-docs/transport/`, or the overview pages (`core-concepts.md`, `getting-started.md`, `security.md`, `extensions.md`, `roadmap.md`) rather than skipping the site update.
+4. **CLAUDE.md** - This file is the same document as [`AGENTS.md`](AGENTS.md) (symlink). The site-docs sync rule applies whenever either name is used.
