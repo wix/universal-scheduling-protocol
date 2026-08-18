@@ -39,6 +39,7 @@ Retarget the private-to-public USP mirror from `yahalomran/universal-scheduling-
 |------|--------|--------|
 | PLAN.md | modify | Plan-first Multitask contract |
 | .github/workflows/mirror-to-public.yml | create | On private `master` push, mirror to `wix/universal-scheduling-protocol` (self-hosted) |
+| .github/workflows/ci.yml | modify | Gate check job to private repo so mirrored public does not request missing self-hosted runners |
 | .github/workflows/pages.yml | create | Build MkDocs and deploy GitHub Pages on public `master` (Actions source; custom-domain ready) |
 | vercel.json | delete | Vercel hosting replaced by GH Pages |
 | mkdocs.yml | modify | Point `repo_url` / social GitHub link at public Wix repo |
@@ -51,7 +52,7 @@ Retarget the private-to-public USP mirror from `yahalomran/universal-scheduling-
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
 | U1 | Complete and commit PLAN.md with discovery | PLAN.md | `test -f PLAN.md` && grep -q mirror-to-public PLAN.md | done |
-| U2 | Add private→public mirror workflow (self-hosted, master-only, gated to private repo) | .github/workflows/mirror-to-public.yml | `test -f .github/workflows/mirror-to-public.yml` | pending |
+| U2 | Add private→public mirror workflow; gate private CI to private repo | .github/workflows/mirror-to-public.yml, .github/workflows/ci.yml | `test -f .github/workflows/mirror-to-public.yml` && grep -q "wix-private/universal-scheduling-protocol-spec" .github/workflows/ci.yml | pending |
 | U3 | Add GH Pages deploy workflow (gated to public repo, Actions Pages) | .github/workflows/pages.yml | `test -f .github/workflows/pages.yml` | pending |
 | U4 | Remove Vercel config; retarget public GitHub links in mkdocs/render | vercel.json, mkdocs.yml, render.yaml | `test ! -f vercel.json` && grep -q 'wix/universal-scheduling-protocol' mkdocs.yml | pending |
 | U5 | Add site-docs sync rule to AGENTS.md (covers CLAUDE.md symlink) | AGENTS.md | grep -q 'site-docs/' AGENTS.md | pending |

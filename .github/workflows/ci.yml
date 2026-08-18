@@ -12,6 +12,9 @@ permissions:
 
 jobs:
   check:
+    # Workflow file is mirrored to the public Wix repo; skip there so public
+    # Actions do not request self-hosted runners that only exist for wix-private.
+    if: github.repository == 'wix-private/universal-scheduling-protocol-spec'
     # Must stay self-hosted: GitHub-hosted runners are not permitted in this
     # organisation, and devex-gha-authority cancels any job that requests one.
     runs-on: self-hosted
