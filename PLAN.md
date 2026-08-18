@@ -50,7 +50,7 @@ Retarget the private-to-public USP mirror from `yahalomran/universal-scheduling-
 
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
-| U1 | Complete and commit PLAN.md with discovery | PLAN.md | `test -f PLAN.md` && grep -q mirror-to-public PLAN.md | in-progress |
+| U1 | Complete and commit PLAN.md with discovery | PLAN.md | `test -f PLAN.md` && grep -q mirror-to-public PLAN.md | done |
 | U2 | Add private→public mirror workflow (self-hosted, master-only, gated to private repo) | .github/workflows/mirror-to-public.yml | `test -f .github/workflows/mirror-to-public.yml` | pending |
 | U3 | Add GH Pages deploy workflow (gated to public repo, Actions Pages) | .github/workflows/pages.yml | `test -f .github/workflows/pages.yml` | pending |
 | U4 | Remove Vercel config; retarget public GitHub links in mkdocs/render | vercel.json, mkdocs.yml, render.yaml | `test ! -f vercel.json` && grep -q 'wix/universal-scheduling-protocol' mkdocs.yml | pending |
