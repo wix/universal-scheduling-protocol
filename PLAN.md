@@ -67,6 +67,9 @@ Retarget the private-to-public USP mirror from `yahalomran/universal-scheduling-
 
 ## Revisions
 
-### 2026-08-18T11:42:00Z - initial full plan after discovery
-- Replaced seed PLAN with Goal, Non-goals, Must-preserve, File actions, Work units U1-U6
-- Documented dual-pushurl discovery and empty public Wix repo / Actions-disabled state
+### 2026-08-18T11:50:00Z - org Actions + master ruleset blockers
+- Escalated: Actions disabled by wix org; master requires linear history + PR + no force-push
+- Mirror target temporarily `synced` (not `master`); pages.yml also listens to `synced`
+- Seeded public branch `mirror-seed` via direct push; master push rejected (GH013)
+- Pages site record created (`build_type=workflow`) pending Actions enablement
+- U6 remains pending until DECISION.md and secret/PAT steps complete

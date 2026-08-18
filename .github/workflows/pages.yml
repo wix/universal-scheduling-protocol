@@ -5,7 +5,7 @@ name: pages
 
 on:
   push:
-    branches: [master]
+    branches: [master, synced]
   workflow_dispatch:
 
 permissions:

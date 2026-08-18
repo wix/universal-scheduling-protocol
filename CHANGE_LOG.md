@@ -1,3 +1,12 @@
+## 18/08/26 at 14:49:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Retargeted the public mirror path from `yahalomran/universal-scheduling-protocol` toward `wix/universal-scheduling-protocol` via a private `mirror-to-public` workflow so master changes can sync without relying on a machine-local dual pushurl
+- Added a public `pages` MkDocs deploy workflow and removed `vercel.json` so site hosting moves from Vercel to GitHub Pages (parity with prior auto-publish on merge once org Actions is enabled)
+- Gated private `ci.yml` to the private repository name so the mirrored public copy does not request wix-private self-hosted runners
+- Pointed `mkdocs.yml` / `render.yaml` GitHub links at the Wix public repo so published site chrome matches the consumer-facing mirror
+- Added an AGENTS.md (and CLAUDE.md via symlink) rule that agents changing specification-related files must also update corresponding `site-docs/` pages so the site does not drift
+
+---
 # Change Log
 
 ## 15/08/26 at 21:07:15 by [Ran Yahalom](mailto:ranya@wix.com)

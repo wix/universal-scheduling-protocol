@@ -36,7 +36,7 @@ jobs:
           fi
           git remote remove public 2>/dev/null || true
           git remote add public "https://x-access-token:${PUBLIC_MIRROR_TOKEN}@github.com/wix/universal-scheduling-protocol.git"
-          # Mirror the checked-out master tip. Force is required for the first
-          # push into an empty repo and keeps the public branch identical to
-          # private master (same outcome as the prior dual-pushurl local mirror).
-          git push public "HEAD:refs/heads/master" --force
+          # Wix org rulesets block force-push and merge commits on `master`.
+          # Sync to `synced` until an org exemption allows mirroring onto master
+          # (see ESCALATION.md). Consumers and Pages can track this branch.
+          git push public "HEAD:refs/heads/synced" --force
