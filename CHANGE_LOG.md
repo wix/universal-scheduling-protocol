@@ -1,5 +1,14 @@
 # Change Log
 
+## 18/08/26 at 17:17:41 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Published the MkDocs site to a new `gh-pages` branch and pointed GitHub Pages at it (branch source, `/ (root)`), so the website is live at <https://wix.github.io/universal-scheduling-protocol/>. GitHub Actions is disabled for this repository by the organisation, so `.github/workflows/pages.yml` cannot run; serving pre-built HTML with a `.nojekyll` marker publishes the site without waiting for an org policy change
+- Added `scripts/publish-pages.sh` and the `publish:pages` npm script wrapping `mkdocs gh-deploy`, because with no workflow available the build-and-publish step has to be run deliberately and should be one reproducible command rather than remembered flags
+- Documented the hosting model in `docs/website-deployment.md`, including how to switch to the existing `pages.yml` workflow once Actions is enabled, and the `CNAME`-in-`site-docs/` requirement so a future custom domain survives the branch overwrite that each publish performs
+- Removed the root `PLAN.md`, an internal multitask planning artifact that described private repository permissions and organisation ruleset details and should never have been visible in a public repository
+
+---
+
 ## 15/08/26 at 21:07:15 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Reconciled `plans/V2_PRODUCTION_PLAN.md` against the current GitHub issue set, the landed USP `2026-08-14` specification and the `linkusp-cli` agent. The plan was written 2026-08-05 and had drifted far enough that it described decisions as pending that had already been made and listed issues that no longer exist in v2 - a plan that misreports the state of the work is worse than no plan, because the launch-blocking set is read off it
