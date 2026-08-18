@@ -26,6 +26,8 @@ Direct `git push` of private history to `master` was rejected (GH013). Push to n
 
 `mirror-to-public.yml` needs private repo secret `PUBLIC_MIRROR_TOKEN` (PAT with Contents: Write on `wix/universal-scheduling-protocol`). User can create the token; secret set on private repo appears possible with current maintain access.
 
+Also: repo reports `permissions.admin=true` but changing `default_branch` via API failed with "You don't have permission to change the default branch" (org policy). Default remains `mirror-seed` until an org admin switches it to `synced`.
+
 Pages site shell is already created: `build_type=workflow`, URL `https://wix.github.io/universal-scheduling-protocol/` (custom domain can be attached later by sibling). Content not published yet.
 
 ## Options
