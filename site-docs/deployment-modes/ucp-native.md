@@ -191,7 +191,7 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 
     In UCP-Native Mode the authorization policy is published as **`config.authorization` on the `dev.usp.services` service binding** in `/.well-known/ucp`, **not** as a top-level member of the UCP profile: USP declares only under its own `dev.usp.*` namespace authority, and `config` is the member UCP reserves for entity-specific settings.
 
-    See [Section 10.1.6](../specification.md#1016-platform-authentication-for-privileged-operations).
+    See [Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations).
 
 ---
 

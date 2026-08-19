@@ -114,7 +114,7 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
     When the business sends signed webhooks, publish UCP-canonical `keys`.
     Dual-publishing identical `signing_keys` is recommended during transition.
     Verifiers resolve `keys` first, then fall back to `signing_keys`. See
-    [Security](../security.md) and specification.md Section 10.1.1.
+    [Security](../security.md) and [Section 10.1.1](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1011-webhook-security).
 
 ### Profile Fields
 
@@ -251,9 +251,9 @@ The optional `supported_versions` field enables businesses to continue serving o
 ```json
 {
   "usp": {
-    "version": "2026-06-01",
+    "version": "2026-08-14",
     "supported_versions": {
-      "2026-02-09": "https://business.example.com/.well-known/usp-2026-02-09"
+      "2026-02-21": "https://business.example.com/.well-known/usp-2026-02-21"
     }
   }
 }

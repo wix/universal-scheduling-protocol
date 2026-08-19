@@ -914,7 +914,7 @@ p.hero-description {
   animation: fade-in 0.4s ease;
 }
 
-.tab-pane.standalone-tab-pane {
+.tab-pane.mode-tab-pane {
   gap: 0;
   width: 100%;
   min-width: 0;
@@ -941,12 +941,6 @@ p.hero-description {
 .sub-tab-pane.active {
   display: flex;
   animation: fade-in 0.4s ease;
-}
-
-#action-tab-ucp-native.active {
-  flex-direction: row;
-  min-width: 0;
-  max-width: 100%;
 }
 
 @keyframes fade-in {
@@ -1187,8 +1181,7 @@ p.hero-description {
 @media (max-width: 1200px) {
   .pane-layout,
   .tab-pane,
-  .sub-tab-pane,
-  #action-tab-ucp-native.active {
+  .sub-tab-pane {
     flex-direction: column;
     align-items: stretch;
     gap: 40px;
@@ -1262,8 +1255,7 @@ p.hero-description {
 
   .pane-layout,
   .tab-pane,
-  .sub-tab-pane,
-  #action-tab-ucp-native.active {
+  .sub-tab-pane {
     flex-direction: column;
     align-items: stretch;
     gap: 40px;
@@ -1615,7 +1607,7 @@ p.hero-description {
     width: 100%;
   }
 
-  .standalone-tab-pane.active {
+  .mode-tab-pane.active {
     width: 100%;
     min-width: 0;
   }

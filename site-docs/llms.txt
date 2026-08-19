@@ -38,9 +38,9 @@ License: Apache 2.0
 
 ## Machine-Readable Artifacts
 
-- OpenAPI 3.1.0: https://github.com/wix-private/universal-scheduling-protocol-spec/blob/master/openapi/usp-rest.json
-- OpenRPC: https://github.com/wix-private/universal-scheduling-protocol-spec/blob/master/openrpc/usp-mcp.json
-- JSON Schemas: https://github.com/wix-private/universal-scheduling-protocol-spec/tree/master/schemas
+- OpenAPI 3.1.0: https://github.com/wix/universal-scheduling-protocol/blob/master/openapi/usp-rest.json
+- OpenRPC: https://github.com/wix/universal-scheduling-protocol/blob/master/openrpc/usp-mcp.json
+- JSON Schemas: https://github.com/wix/universal-scheduling-protocol/tree/master/schemas
 
 ## Service Verticals
 

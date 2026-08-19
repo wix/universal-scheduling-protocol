@@ -130,57 +130,176 @@
     </div>
 
     <div class="carousel-content">
-      <div id="action-tab-ucp-native" class="tab-pane active">
-        <div class="pane-text">
-          <h3>Discovery &amp; Checkout</h3>
-          <p>
-            In UCP-Native mode, scheduling capabilities register in <code>/.well-known/ucp</code>.
-            Paid bookings use UCP atomic checkout so agents discover services and complete payment in one flow.
-          </p>
-          <a href="{{ 'deployment-modes/ucp-native/' | url }}" class="learn-more-btn">Learn more</a>
+      <div id="action-tab-ucp-native" class="tab-pane mode-tab-pane active">
+        <div class="sub-action-tabs">
+          <button class="sub-tab-btn active" onclick="openSubTab(event, 'sub-tab-ucp-discovery')">Discovery</button>
+          <button class="sub-tab-btn" onclick="openSubTab(event, 'sub-tab-ucp-availability')">Availability</button>
+          <button class="sub-tab-btn" onclick="openSubTab(event, 'sub-tab-ucp-checkout')">Checkout</button>
         </div>
-        <div class="pane-visuals">
-          <div class="usp-code-block">
-            <div class="usp-code-block__header">UCP Profile &mdash; Scheduling Capability</div>
+        <div class="sub-tab-content">
+          <div id="sub-tab-ucp-discovery" class="sub-tab-pane active">
+            <div class="pane-text">
+              <h3>Profile Discovery</h3>
+              <p>
+                Scheduling capabilities register in <code>/.well-known/ucp</code> alongside the platform's
+                other UCP capabilities, so agents use a single discovery endpoint for shopping and scheduling.
+              </p>
+              <a href="{{ 'deployment-modes/ucp-native/' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Request &mdash; Fetch UCP Profile</div>
 <pre><code>GET /.well-known/ucp HTTP/1.1
 Host: salon.example.com
-
-{
-  "ucp": { "version": "2026-01-11" },
-  "capabilities": {
-    "dev.usp.services.catalog": [{
-      "version": "2026-08-14",
-      "spec": "https://usp.dev/specification/",
-      "schema": "https://usp.dev/schemas/catalog.json"
-    }],
-    "dev.usp.services.paid_bookings": [{
-      "version": "2026-08-14"
-    }]
+Accept: application/json</code></pre>
+              </div>
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Response &mdash; Registered Capabilities</div>
+<pre><code>{
+  "ucp": {
+    "version": "2026-01-11",
+    "services": {
+      "dev.usp.services": [{
+        "version": "2026-08-14",
+        "transport": "rest",
+        "endpoint": "https://salon.example.com/usp/v1"
+      }]
+    },
+    "capabilities": {
+      "dev.usp.services.catalog": [
+        { "version": "2026-08-14" }
+      ],
+      "dev.usp.services.availability": [
+        { "version": "2026-08-14", "holds": true }
+      ],
+      "dev.usp.services.paid_bookings": [
+        { "version": "2026-08-14",
+          "extends": "dev.ucp.shopping.checkout" }
+      ]
+    }
   }
 }</code></pre>
+              </div>
+            </div>
           </div>
-          <div class="usp-code-block">
-            <div class="usp-code-block__header">Checkout &mdash; Atomic Booking + Payment</div>
+
+          <div id="sub-tab-ucp-availability" class="sub-tab-pane">
+            <div class="pane-text">
+              <h3>Availability &amp; Holds</h3>
+              <p>
+                Catalog and availability work exactly as in Standalone mode. When the business advertises
+                <code>holds: true</code>, the agent reserves the slot first and carries the
+                <code>hold_id</code> into checkout.
+              </p>
+              <a href="{{ 'specification/availability/' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Request &mdash; Hold Slot</div>
+<pre><code>POST /availability/holds HTTP/1.1
+Host: salon.example.com
+Content-Type: application/json
+
+{
+  "slot_id": "slot_20260316_1400",
+  "service_id": "svc_massage_001",
+  "spots": 1
+}</code></pre>
+              </div>
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Response</div>
+<pre><code>{
+  "usp": {
+    "version": "2026-08-14",
+    "capabilities": {
+      "dev.usp.services.availability": [
+        { "version": "2026-08-14" }
+      ]
+    }
+  },
+  "hold": {
+    "id": "hold_xyz789",
+    "slot_id": "slot_20260316_1400",
+    "service_id": "svc_massage_001",
+    "spots": 1,
+    "expires_at": "2026-03-16T13:40:00-04:00",
+    "status": "active"
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div id="sub-tab-ucp-checkout" class="sub-tab-pane">
+            <div class="pane-text">
+              <h3>Atomic Checkout</h3>
+              <p>
+                Paid bookings extend UCP checkout with a <code>booking</code> object. Completing the checkout
+                processes payment, confirms the booking, and releases the hold in one atomic step, so there is
+                no separate <code>confirm-payment</code> call.
+              </p>
+              <a href="{{ 'deployment-modes/ucp-native/#paid-bookings-extension-schema' | url }}" class="learn-more-btn">Learn more</a>
+            </div>
+            <div class="pane-visuals">
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Request &mdash; Create Checkout</div>
 <pre><code>POST /checkout-sessions HTTP/1.1
-Host: platform.example.com
+Host: salon.example.com
 Idempotency-Key: idem_abc123
 
 {
   "line_items": [{
-    "item": { "id": "svc_haircut_001" },
-    "quantity": 1,
-    "booking": {
-      "slot_id": "slot_20260315_0900",
-      "service_id": "svc_haircut_001"
-    }
+    "id": "li_1",
+    "item": { "id": "svc_massage_001",
+              "title": "Deep Tissue Massage",
+              "price": 12000 },
+    "quantity": 1
   }],
-  "buyer": { "email": "alice@example.com" }
+  "currency": "USD",
+  "buyer": { "email": "alice@example.com" },
+  "booking": {
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "slot": {
+      "id": "slot_20260316_1400",
+      "start": "2026-03-16T14:00:00-04:00",
+      "end": "2026-03-16T15:00:00-04:00",
+      "duration": "PT60M"
+    },
+    "hold_id": "hold_xyz789",
+    "confirmation_mode": "auto"
+  }
 }</code></pre>
+              </div>
+              <div class="usp-code-block">
+                <div class="usp-code-block__header">Response</div>
+<pre><code>{
+  "id": "chk_abc123",
+  "status": "ready_for_complete",
+  "line_items": [
+    { "id": "li_1",
+      "item": { "id": "svc_massage_001",
+                "price": 12000 },
+      "quantity": 1 }
+  ],
+  "booking": {
+    "booking_id": "bkg_456def",
+    "service_id": "svc_massage_001",
+    "service_type": "appointment",
+    "booking_status": "pending",
+    "confirmation_mode": "auto"
+  },
+  "totals": [
+    { "type": "total", "amount": 12000 }
+  ]
+}</code></pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div id="action-tab-standalone" class="tab-pane standalone-tab-pane">
+      <div id="action-tab-standalone" class="tab-pane mode-tab-pane">
         <div class="sub-action-tabs">
           <button class="sub-tab-btn active" onclick="openSubTab(event, 'sub-tab-catalog')">Catalog</button>
           <button class="sub-tab-btn" onclick="openSubTab(event, 'sub-tab-availability')">Availability</button>
@@ -216,10 +335,11 @@ Content-Type: application/json
 <pre><code>{
   "usp": {
     "version": "2026-08-14",
-    "capabilities": [
-      { "name": "dev.usp.services.catalog",
-        "version": "2026-08-14" }
-    ]
+    "capabilities": {
+      "dev.usp.services.catalog": [
+        { "version": "2026-08-14" }
+      ]
+    }
   },
   "services": [
     {

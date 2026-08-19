@@ -298,7 +298,7 @@ Search the registry for specific **services** offered by registered businesses. 
 
 ## Filter Matching Semantics
 
-Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section. Canonical schema descriptions (with worked examples) live in [`schemas/registry.json`](../../schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
+Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section. Canonical schema descriptions (with worked examples) live in [`schemas/registry.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
 
 **Composition**
 
