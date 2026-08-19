@@ -1,5 +1,13 @@
 # Change Log
 
+## 19/08/26 at 19:21:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Stopped using `actions/upload-pages-artifact` in `.github/workflows/pages.yml` because that composite nests `uses: actions/upload-artifact@v4` (a moving tag), and Wix org policy rejects nested unpinned actions at job setup even when the parent is SHA-pinned
+- Pack `site/` as a tar in the workflow and upload it with `actions/upload-artifact` pinned to `ea165f8d65b6e75b540449e92b4886f43607fa02` (v4.6.2) under artifact name `github-pages`, so `actions/deploy-pages` still receives the required Pages artifact without a nested tag
+- Documented that `actions/deploy-pages` v4.0.5 is a Node action with no nested `uses:`, and updated `docs/website-deployment.md` so operators know why the official Pages upload composite cannot be used under SHA-pin policy
+
+---
+
 ## 19/08/26 at 19:13:52 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Merged `origin/master` into `chore/pages-branch-deploy` and resolved conflicts in `CHANGE_LOG.md`, `docs/website-deployment.md`, and `scripts/publish-pages.sh`, so the PR can merge without dropping SHA-pinned Actions auto-publish or the live `usp-protocol.dev` domain notes
