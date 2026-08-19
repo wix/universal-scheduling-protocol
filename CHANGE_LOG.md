@@ -1,5 +1,11 @@
 # Change Log
 
+## 19/08/26 at 20:28:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `docs/dtc_charter_nomination.md` from the tree. That document was a UCP governance submission draft and does not belong in the public protocol repository
+
+---
+
 ## 19/08/26 at 19:21:12 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Stopped using `actions/upload-pages-artifact` in `.github/workflows/pages.yml` because that composite nests `uses: actions/upload-artifact@v4` (a moving tag), and Wix org policy rejects nested unpinned actions at job setup even when the parent is SHA-pinned
