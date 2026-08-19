@@ -1,5 +1,12 @@
 # Change Log
 
+## 19/08/26 at 19:00:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Pinned every GitHub Actions `uses:` in `pages.yml`, `ci.yml`, and `mirror-to-public.yml` to full-length commit SHAs (checkout v4.4.0, setup-python v5.6.0, upload-pages-artifact v3.0.1, deploy-pages v4.0.5), because Wix org policy now requires SHA pins and tag-style refs such as `@v4` fail that check
+- Updated `docs/website-deployment.md` and comments in `scripts/publish-pages.sh` so they describe auto-publish via `.github/workflows/pages.yml` when Pages Source is GitHub Actions, and treat `npm run publish:pages` as fallback only, because Actions is enabled and a branch deploy fights the workflow once that source is live
+
+---
+
 ## 18/08/26 at 17:17:41 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Published the MkDocs site to a new `gh-pages` branch and pointed GitHub Pages at it (branch source, `/ (root)`), so the website is live at <https://wix.github.io/universal-scheduling-protocol/>. GitHub Actions is disabled for this repository by the organisation, so `.github/workflows/pages.yml` cannot run; serving pre-built HTML with a `.nojekyll` marker publishes the site without waiting for an org policy change
