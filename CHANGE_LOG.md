@@ -1,5 +1,12 @@
 # Change Log
 
+## 19/08/26 at 19:13:52 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Merged `origin/master` into `chore/pages-branch-deploy` and resolved conflicts in `CHANGE_LOG.md`, `docs/website-deployment.md`, and `scripts/publish-pages.sh`, so the PR can merge without dropping SHA-pinned Actions auto-publish or the live `usp-protocol.dev` domain notes
+- Kept both changelog stories (SHA pins plus custom-domain/live HTTPS notes, and the earlier `gh-pages` publish path from master) without duplicating headings, because each records a distinct operator-facing change
+
+---
+
 ## 19/08/26 at 19:00:14 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Pinned every GitHub Actions `uses:` in `pages.yml`, `ci.yml`, and `mirror-to-public.yml` to full-length commit SHAs (checkout v4.4.0, setup-python v5.6.0, upload-pages-artifact v3.0.1, deploy-pages v4.0.5), because Wix org policy now requires SHA pins and tag-style refs such as `@v4` fail that check

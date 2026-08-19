@@ -5,6 +5,8 @@
 # master (repo wix/universal-scheduling-protocol) with Pages Source set to
 # GitHub Actions. Do not run this after that path is live: it fights the
 # Actions deploy (gh-pages is not what Actions-sourced Pages serves).
+# mkdocs gh-deploy writes .nojekyll so a branch-sourced Pages setup can still
+# serve the tree without a Jekyll build.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
