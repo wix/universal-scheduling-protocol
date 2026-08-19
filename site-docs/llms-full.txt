@@ -2,8 +2,8 @@
 
 > USP is an open standard that enables platforms and AI agents to discover, check availability of, and book time-based services from businesses.
 
-Version: 2026-02-21 | Status: Draft | License: Apache 2.0
-Website: https://usp.live | Repo: https://github.com/wix-private/universal-scheduling-protocol-spec
+Version: 2026-08-14 | Status: Draft | License: Apache 2.0
+Website: https://usp-protocol.dev | Repo: https://github.com/wix/universal-scheduling-protocol
 
 ---
 

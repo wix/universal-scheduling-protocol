@@ -64,7 +64,7 @@
   <g transform="translate(100, 130)">
     <rect width="240" height="30" rx="15" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
     <text x="120" y="20" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="#2dd4bf" letter-spacing="0.5">
-      OPEN STANDARD · v2026-02-21
+      OPEN STANDARD · v2026-08-14
     </text>
   </g>
 
@@ -161,6 +161,6 @@
   <!-- Bottom accent line -->
   <rect x="0" y="620" width="1200" height="10" fill="url(#accent)"/>
 
-  <!-- usp.live watermark -->
-  <text x="1100" y="600" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="rgba(255,255,255,0.25)">usp.live</text>
+  <!-- usp-protocol.dev watermark -->
+  <text x="1100" y="600" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="rgba(255,255,255,0.25)">usp-protocol.dev</text>
 </svg>

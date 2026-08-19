@@ -10,4 +10,4 @@ cd "$(dirname "$0")/.."
 
 python3 -m mkdocs gh-deploy --remote-branch gh-pages --force
 
-echo "Published. Site: https://wix.github.io/universal-scheduling-protocol/"
+echo "Published. Site: https://usp-protocol.dev (fallback: https://wix.github.io/universal-scheduling-protocol/)"

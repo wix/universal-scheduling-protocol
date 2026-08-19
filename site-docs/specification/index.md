@@ -5,7 +5,7 @@ description: USP specification overview, conventions, terminology, and reading g
 
 # Specification Overview
 
-**Protocol Version:** `2026-02-21` | **Status:** Draft
+**Protocol Version:** `2026-08-14` | **Status:** Draft
 
 The Universal Scheduling Protocol (USP) is an open standard that enables
 consumer platforms and AI agents to discover, check availability of, and book

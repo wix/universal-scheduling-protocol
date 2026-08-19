@@ -2,7 +2,9 @@
 
 The protocol website is hosted on GitHub Pages for
 [`wix/universal-scheduling-protocol`](https://github.com/wix/universal-scheduling-protocol)
-and served at <https://wix.github.io/universal-scheduling-protocol/>.
+and served at <https://usp-protocol.dev>. The project URL
+<https://wix.github.io/universal-scheduling-protocol/> still works as a
+fallback. `www.usp-protocol.dev` 301s to the apex.
 
 ## Current setup
 
@@ -45,8 +47,17 @@ enables Actions for this repository:
 
 ## Custom domain
 
-When a custom domain is attached in Pages settings, GitHub writes a `CNAME`
-file to the serving branch. Because `mkdocs gh-deploy` replaces the whole
-branch on each publish, add the same `CNAME` file to `site-docs/` as well so
-every build carries it into `site/`. Otherwise the next publish drops the
-domain binding.
+Canonical host is `usp-protocol.dev` (AC-S3e option B: this origin is the full
+MkDocs site plus published artifacts). `usp.live` should later redirect here.
+
+[`site-docs/CNAME`](../site-docs/CNAME) is required because `mkdocs gh-deploy`
+replaces the whole `gh-pages` branch on each publish. GitHub also writes a
+`CNAME` when you save the custom domain in
+[Settings → Pages](https://github.com/wix/universal-scheduling-protocol/settings/pages).
+Without the file in `site-docs/`, the next publish would drop the binding.
+
+Apex DNS uses GitHub Pages A records (`185.199.108.153` through
+`185.199.111.153`). `www` CNAMEs to `wix.github.io`. DNS check succeeded and
+**Enforce HTTPS** is on. GitHub's Pages banner may still show `http://` even
+when HTTPS is enforced; use curl against `https://usp-protocol.dev` as the
+source of truth.
