@@ -40,7 +40,7 @@ Pin every GitHub Actions `uses:` to a full-length 40-character commit SHA (org p
 | U1 | Plan and commit this PLAN.md | PLAN.md | test -f PLAN.md | done |
 | U2 | SHA-pin pages.yml and workflow comments | .github/workflows/pages.yml | grep -E 'uses:.*@v[0-9]' .github/workflows/pages.yml must be empty; each SHA is 40 hex | done |
 | U3 | SHA-pin ci.yml and mirror-to-public.yml | .github/workflows/ci.yml, .github/workflows/mirror-to-public.yml | grep -E 'uses:.*@v[0-9]' .github/workflows/ must be empty (or comments only) | done |
-| U4 | Update deploy docs and publish-pages.sh comments | docs/website-deployment.md, scripts/publish-pages.sh | grep must not claim Actions is org-disabled in those files | pending |
+| U4 | Update deploy docs and publish-pages.sh comments | docs/website-deployment.md, scripts/publish-pages.sh | grep must not claim Actions is org-disabled in those files | done |
 | U5 | Append CHANGE_LOG.md and verify pinning | CHANGE_LOG.md | newest CHANGE_LOG heading; grep workflows for tag-style uses | pending |
 
 ## Revisions
