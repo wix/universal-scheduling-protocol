@@ -1,7 +1,7 @@
 # Build MkDocs and deploy to GitHub Pages from the public mirror.
 # Pages Settings Source must be GitHub Actions (not Deploy from branch gh-pages)
 # so this workflow can publish. Org policy requires every uses: to be pinned
-# to a full-length commit SHA.
+# to a full-length commit SHA, including nested uses inside composite actions.
 name: pages
 
 on:
@@ -34,9 +34,28 @@ jobs:
           pip install -r requirements.txt
           python -m mkdocs build
 
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      # Do not use actions/upload-pages-artifact: that composite still
+      # `uses: actions/upload-artifact@v4` (a moving tag). Org policy
+      # rejects nested unpinned uses at "Set up job" even when the parent
+      # is SHA-pinned. Pack the Pages tar here, then upload with a
+      # GitHub-owned action pinned to a full SHA. Artifact name must be
+      # github-pages for actions/deploy-pages.
+      - name: Package Pages artifact
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory site \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            .
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          path: site
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     if: github.repository == 'wix/universal-scheduling-protocol'
@@ -46,5 +65,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Node action (dist/index.js), not a composite: no nested uses: to pin.
       - id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

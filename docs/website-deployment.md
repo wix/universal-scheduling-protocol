@@ -12,12 +12,25 @@ fallback. `www.usp-protocol.dev` 301s to the apex.
 |---------|-------|
 | Pages source | GitHub Actions (required). Do not use Deploy from branch `gh-pages`. |
 | Auto-publish | [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) on push to `master` when the repository is `wix/universal-scheduling-protocol` |
-| Action pins | Every `uses:` in workflows is a full-length commit SHA (org policy) |
+| Action pins | Every `uses:` in the workflow file is a full-length commit SHA of a GitHub-owned action (org policy). Composite parents are not enough: nested `uses:` are checked too. |
 | Site source | `site-docs/` and `mkdocs.yml` on `master` |
 | Fallback branch | Pre-built MkDocs output plus `.nojekyll` on `gh-pages` if Source is still Deploy from a branch |
 
 GitHub Actions is enabled for this repository. The `pages` workflow builds MkDocs
-and deploys with `actions/upload-pages-artifact` and `actions/deploy-pages`.
+to `site/`, packs that directory as a tar, uploads the tar with
+`actions/upload-artifact` (artifact name `github-pages`), and deploys with
+`actions/deploy-pages`.
+
+Do not use `actions/upload-pages-artifact`. That action is a composite whose
+`action.yml` still contains `uses: actions/upload-artifact@v4` (a moving tag).
+Wix org policy requires every action, including nested composite steps, to be
+GitHub-created and pinned to a full-length commit SHA. The nested `@v4` ref
+fails at **Set up job**, even when the parent composite is SHA-pinned in
+`pages.yml`. Calling `actions/upload-artifact` from the workflow file with a
+40-character SHA (v4.6.2) keeps the pin in our YAML. `actions/deploy-pages`
+v4.0.5 is a Node action (`dist/index.js`), not a composite, so it has no nested
+`uses:` to pin.
+
 That only publishes if Pages **Source** in
 [Settings → Pages](https://github.com/wix/universal-scheduling-protocol/settings/pages)
 is set to **GitHub Actions**. Switching that setting is a GitHub UI step; it is
