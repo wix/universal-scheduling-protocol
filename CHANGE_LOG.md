@@ -1,5 +1,11 @@
 # Change Log
 
+## 19/08/26 at 20:44:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `site-docs/CNAME` to version control so future MkDocs publishes retain the live `usp-protocol.dev` GitHub Pages custom-domain binding instead of silently dropping it
+
+---
+
 ## 19/08/26 at 20:28:14 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed `docs/dtc_charter_nomination.md` from the tree. That document was a UCP governance submission draft and does not belong in the public protocol repository
