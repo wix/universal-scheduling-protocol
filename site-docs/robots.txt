@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://usp.live/sitemap.xml
+Sitemap: https://usp-protocol.dev/sitemap.xml
 
 # LLM-readable content
-# See https://usp.live/llms.txt for structured protocol summary
-# See https://usp.live/llms-full.txt for complete protocol reference
+# See https://usp-protocol.dev/llms.txt for structured protocol summary
+# See https://usp-protocol.dev/llms-full.txt for complete protocol reference

@@ -6,7 +6,7 @@ keywords: USP roadmap, scheduling protocol future, healthcare scheduling, educat
 
 # Roadmap
 
-USP is currently in **Draft** status (`v2026-02-21`). This page outlines
+USP is currently in **Draft** status (`v2026-08-14`). This page outlines
 what's implemented, what's planned, and how to contribute.
 
 ---

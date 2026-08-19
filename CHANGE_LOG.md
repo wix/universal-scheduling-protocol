@@ -1,5 +1,34 @@
 # Change Log
 
+## 19/08/26 at 19:13:52 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Merged `origin/master` into `chore/pages-branch-deploy` and resolved conflicts in `CHANGE_LOG.md`, `docs/website-deployment.md`, and `scripts/publish-pages.sh`, so the PR can merge without dropping SHA-pinned Actions auto-publish or the live `usp-protocol.dev` domain notes
+- Kept both changelog stories (SHA pins plus custom-domain/live HTTPS notes, and the earlier `gh-pages` publish path from master) without duplicating headings, because each records a distinct operator-facing change
+
+---
+
+## 19/08/26 at 19:00:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Pinned every GitHub Actions `uses:` in `pages.yml`, `ci.yml`, and `mirror-to-public.yml` to full-length commit SHAs (checkout v4.4.0, setup-python v5.6.0, upload-pages-artifact v3.0.1, deploy-pages v4.0.5), because Wix org policy now requires SHA pins and tag-style refs such as `@v4` fail that check
+- Updated `docs/website-deployment.md` and comments in `scripts/publish-pages.sh` so they describe auto-publish via `.github/workflows/pages.yml` when Pages Source is GitHub Actions, and treat `npm run publish:pages` as fallback only, because Actions is enabled and a branch deploy fights the workflow once that source is live
+
+---
+
+## 19/08/26 at 18:10:41 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Aligned website-facing draft labels (homepage banner, spec overview, roadmap status, JSON-LD, llms.txt, social card) with `specification.md` version `2026-08-14`, because the live hero still advertised superseded `v2026-02-21`
+- Updated `docs/website-deployment.md` to record that `https://usp-protocol.dev` returns 200, `www` 301s to apex, and Enforce HTTPS is on, so operators do not treat the GitHub Pages http:// banner as a remaining DNS/TLS blocker
+
+---
+
+## 19/08/26 at 17:47:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Recorded AC-S3e option B: `usp-protocol.dev` is the canonical host for the full MkDocs site and published artifacts, with `usp.live` to redirect later, so cutover messaging and `site_url` match the chosen hosting model instead of a split authority/docs setup
+- Pointed MkDocs `site_url`, `llms.txt`, `llms-full.txt`, `robots.txt`, `humans.txt`, and the social-card watermark at `https://usp-protocol.dev`, and added `site-docs/CNAME`, so GitHub Pages canonical URLs and the next `gh-deploy` keep the custom domain instead of advertising `usp.live`
+- Documented the domain, DNS A/CNAME targets, and Enforce HTTPS step in `docs/website-deployment.md` and the publish script output, so operators do not drop the Pages custom-domain binding on republish
+
+---
+
 ## 18/08/26 at 17:17:41 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Published the MkDocs site to a new `gh-pages` branch and pointed GitHub Pages at it (branch source, `/ (root)`), so the website is live at <https://wix.github.io/universal-scheduling-protocol/>. GitHub Actions is disabled for this repository by the organisation, so `.github/workflows/pages.yml` cannot run; serving pre-built HTML with a `.nojekyll` marker publishes the site without waiting for an org policy change
