@@ -172,7 +172,7 @@ locations through a unified profile:
 ```json
 {
   "usp": {
-    "version": "2026-02-21",
+    "version": "2026-08-14",
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",

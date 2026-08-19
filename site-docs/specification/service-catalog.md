@@ -157,7 +157,7 @@ The service object represents a bookable offering from a business. Each service 
 
 ### Category rules
 
-> **JSON Schema:** [/$defs/ServiceCategory](../../schemas/catalog.json)
+> **JSON Schema:** [/$defs/ServiceCategory](https://github.com/wix/universal-scheduling-protocol/blob/master/schemas/catalog.json)
 
 Each `categories[]` entry carries required `taxonomy` and at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`. Exactly one entry is primary: if exactly one has `primary: true`, that is the primary; else if no entry sets `primary` and exactly one has `taxonomy: "merchant"`, that entry is the primary; else the first entry is the primary. Never more than one `primary: true`. The primary entry is the source for display, localization, and registry projection of `ServiceSearchResult.category` (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`).
 

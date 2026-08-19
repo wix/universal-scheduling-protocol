@@ -3,27 +3,27 @@
     "description": "Standard platform profile with core scheduling capabilities",
     "response": {
       "usp": {
-        "version": "2026-02-21",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#catalog",
-              "schema": "https://usp.dev/schemas/catalog.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#3-service-catalog",
+              "schema": "https://usp.dev/schemas/services/catalog.json"
             }
           ],
           "dev.usp.services.availability": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#availability",
-              "schema": "https://usp.dev/schemas/availability.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#4-availability",
+              "schema": "https://usp.dev/schemas/services/availability.json"
             }
           ],
           "dev.usp.services.bookings": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#bookings",
-              "schema": "https://usp.dev/schemas/booking.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#5-booking-lifecycle",
+              "schema": "https://usp.dev/schemas/services/booking.json"
             }
           ]
         },
@@ -42,34 +42,34 @@
     "description": "Advanced platform profile with waitlist, multi-transport preferences, and signing keys",
     "response": {
       "usp": {
-        "version": "2026-02-21",
+        "version": "2026-08-14",
         "capabilities": {
           "dev.usp.services.catalog": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#catalog",
-              "schema": "https://usp.dev/schemas/catalog.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#3-service-catalog",
+              "schema": "https://usp.dev/schemas/services/catalog.json"
             }
           ],
           "dev.usp.services.availability": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#availability",
-              "schema": "https://usp.dev/schemas/availability.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#4-availability",
+              "schema": "https://usp.dev/schemas/services/availability.json"
             }
           ],
           "dev.usp.services.bookings": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#bookings",
-              "schema": "https://usp.dev/schemas/booking.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#5-booking-lifecycle",
+              "schema": "https://usp.dev/schemas/services/booking.json"
             }
           ],
           "dev.usp.services.waitlist": [
             {
-              "version": "2026-02-21",
-              "spec": "https://usp.dev/spec/2026-02-21#waitlist",
-              "schema": "https://usp.dev/schemas/waitlist.json"
+              "version": "2026-08-14",
+              "spec": "https://usp.dev/specification#111-waitlist-extension",
+              "schema": "https://usp.dev/schemas/services/waitlist.json"
             }
           ]
         },

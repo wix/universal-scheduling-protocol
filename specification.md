@@ -4997,9 +4997,9 @@ platforms that only understand a prior protocol version:
 ```json
 {
   "usp": {
-    "version": "2026-06-01",
+    "version": "2026-08-14",
     "supported_versions": {
-      "2026-02-09": "https://business.example.com/.well-known/usp-2026-02-09"
+      "2026-02-21": "https://business.example.com/.well-known/usp-2026-02-21"
     },
     "services": { ... },
     "capabilities": { ... },

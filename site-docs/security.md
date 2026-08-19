@@ -63,8 +63,8 @@ verifier alike:
 - Verifiers **MUST** support `ES256`; signers **SHOULD** default to it. ECDSA
   values use fixed-width raw `r||s` encoding, not DER.
 
-See specification.md
-[Section 9.1.4](../specification.md#914-request-signing).
+See [Section 9.1.4](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#914-request-signing)
+in the normative specification.
 
 
 ### Hold Abuse Prevention
@@ -89,8 +89,8 @@ payment confirmation) **SHOULD** use an idempotency key:
 ### Platform Authentication for Privileged Operations
 
 This requirement applies in **both** deployment modes: it is not inherited
-from UCP in UCP-Native Mode. See specification.md
-[Section 10.1.6](../specification.md#1016-platform-authentication-for-privileged-operations)
+from UCP in UCP-Native Mode. See
+[Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations)
 for the full normative text and rationale.
 
 - **Public operations** (catalog, availability, profile discovery) **MAY**
@@ -119,15 +119,15 @@ for the full normative text and rationale.
   compromised database can act on the booking. With it, the value alone is
   useless.
 - Businesses declare which mechanisms they require in an `authorization` policy
-  ([`schemas/profile.json`](../schemas/profile.json) `$defs/AuthorizationPolicy`
+  ([`schemas/profile.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/schemas/profile.json) `$defs/AuthorizationPolicy`
   / `$defs/AuthorizationMechanism`), published **top-level** in a Standalone
   `/.well-known/usp` profile and as **`config.authorization` on the
   `dev.usp.services` service binding** in a UCP-Native `/.well-known/ucp`
   profile. USP does not add top-level members to a UCP profile document; it
   declares only under its own `dev.usp.*` namespace authority, and `config` is
   the member UCP defines for entity-specific settings. The same mechanism set is expressed in
-  [`openapi/usp-rest.json`](../openapi/usp-rest.json) `components.securitySchemes`
-  and [`openrpc/usp-mcp.json`](../openrpc/usp-mcp.json)
+  [`openapi/usp-rest.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openapi/usp-rest.json) `components.securitySchemes`
+  and [`openrpc/usp-mcp.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openrpc/usp-mcp.json)
   `components.x-usp-securitySchemes`; MCP may present credentials on the HTTP
   layer (when MCP is over HTTP) or via `_meta.usp.authorization`.
 - On rejection, businesses **SHOULD** return `401` with `WWW-Authenticate`

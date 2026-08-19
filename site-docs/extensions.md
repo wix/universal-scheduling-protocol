@@ -27,7 +27,7 @@ Extensions follow three rules:
 ```json
 {
   "name": "dev.usp.services.waitlist",
-  "version": "2026-02-21",
+  "version": "2026-08-14",
   "extends": "dev.usp.services.bookings",
   "spec": "https://usp.dev/specification#waitlist-extension",
   "schema": "https://usp.dev/schemas/services/waitlist.json"
@@ -44,9 +44,9 @@ minimum protocol and capability versions:
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://usp.dev/schemas/services/waitlist.json",
   "requires": {
-    "protocol": { "min": "2026-02-21" },
+    "protocol": { "min": "2026-08-14" },
     "capabilities": {
-      "dev.usp.services.bookings": { "min": "2026-02-21" }
+      "dev.usp.services.bookings": { "min": "2026-08-14" }
     }
   }
 }

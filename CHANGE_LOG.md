@@ -1,5 +1,30 @@
 # Change Log
 
+## 19/08/26 at 20:28:14 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `docs/dtc_charter_nomination.md` from the tree. That document was a UCP governance submission draft and does not belong in the public protocol repository
+
+---
+
+## 19/08/26 at 19:48:21 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Settled the protocol version advertised by the website and playground on the current draft `2026-08-14` from `specification.md`. Site-docs, homepage examples, JSON-LD, LLM index files, social-card SVG, and playground scenario mirrors had been left on superseded `2026-02-21`, so the published site contradicted the spec it is supposed to describe
+- Updated the Standalone `supported_versions` example in both `specification.md` and `site-docs/deployment-modes/standalone.md` so the current version is `2026-08-14` and the advertised prior version is `2026-02-21`. The previous `2026-06-01` / `2026-02-09` pair was not a real USP release pairing
+- Pointed site-docs links that targeted `../specification.md` and repo-relative `schemas/` / `openapi/` / `openrpc/` files at the public GitHub copies instead, because those paths are outside MkDocs `docs_dir` and produced broken links on the published site
+- Replaced private `wix-private/universal-scheduling-protocol-spec` artifact URLs in `llms.txt` and `llms-full.txt` with `wix/universal-scheduling-protocol`, matching `mkdocs.yml` `repo_url`
+- Aligned playground profile `spec`/`schema` URIs with the shapes in the specification (`https://usp.dev/specification#3-service-catalog` and `https://usp.dev/schemas/services/...`), and corrected playground envelopes that still used `dev.usp.services.booking` (singular) and array-form `capabilities`
+
+---
+
+## 19/08/26 at 19:35:46 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Gave the UCP-Native tab of the homepage "See it in action" section its own capability sub-tabs (Discovery, Availability, Checkout) in `overrides/home.html`. Previously only the Standalone tab exposed sub-tabs, so UCP-Native looked like a single flat example and hid the fact that catalog, availability/holds and checkout are distinct capabilities in that mode too
+- Corrected the UCP-Native examples while rebuilding them: the profile response now nests `services` and `capabilities` under `ucp` (they were siblings of it), and the checkout request now carries `booking` as a top-level member rather than inside a line item, matching `site-docs/deployment-modes/ucp-native.md` and the paid-bookings extension schema
+- Fixed the response envelope in the Standalone catalog example, which used a `capabilities` array of `{name, version}` objects instead of the specified object keyed by capability name, so the homepage no longer contradicts the spec
+- Renamed the CSS class `standalone-tab-pane` to `mode-tab-pane` and dropped the `#action-tab-ucp-native` row-layout overrides in `site-docs/stylesheets/extra.css`, because both deployment-mode panes now share the same sub-tab layout and the id-specific rules would have forced the sub-tab container into a two-column row
+
+---
+
 ## 19/08/26 at 19:21:12 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Stopped using `actions/upload-pages-artifact` in `.github/workflows/pages.yml` because that composite nests `uses: actions/upload-artifact@v4` (a moving tag), and Wix org policy rejects nested unpinned actions at job setup even when the parent is SHA-pinned

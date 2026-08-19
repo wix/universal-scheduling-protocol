@@ -447,7 +447,7 @@ playground/
 │  │ 200 OK  ·  142ms                                  │  │
 │  │                                                    │  │
 │  │ {                                                  │  │
-│  │   "usp": { "version": "2026-02-21", ... },        │  │
+│  │   "usp": { "version": "2026-08-14", ... },        │  │
 │  │   "services": [ ... ],                             │  │
 │  │   "pagination": { "has_more": false }              │  │
 │  │ }                                                  │  │

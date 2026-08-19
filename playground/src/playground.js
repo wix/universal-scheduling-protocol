@@ -633,12 +633,12 @@ export class USPPlayground {
     const platformCode = el('code');
     platformPre.appendChild(platformCode);
     new CodeEditor(platformCode, {
-      capabilities: [
-        { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-        { capability: 'dev.usp.services.availability', version: '2026-02-21', features: { holds: true } },
-        { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-        { capability: 'dev.usp.services.waitlist', version: '2026-02-21' },
-      ],
+      capabilities: {
+          'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+          'dev.usp.services.availability': [{ version: '2026-08-14', holds: true }],
+          'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+          'dev.usp.services.waitlist': [{ version: '2026-08-14' }]
+        },
     });
     platformBox.appendChild(platformPre);
     columns.appendChild(platformBox);
@@ -651,23 +651,23 @@ export class USPPlayground {
     businessPre.appendChild(businessCode);
 
     const businessCaps = {
-      'full-match': [
-        { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-        { capability: 'dev.usp.services.availability', version: '2026-02-21', features: { holds: true } },
-        { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-        { capability: 'dev.usp.services.waitlist', version: '2026-02-21' },
-      ],
-      'partial-match': [
-        { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-        { capability: 'dev.usp.services.availability', version: '2026-02-21', features: { holds: false } },
-        { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-      ],
-      'version-mismatch': [
-        { capability: 'dev.usp.services.catalog', version: '2025-06-01' },
-        { capability: 'dev.usp.services.availability', version: '2025-06-01' },
-        { capability: 'dev.usp.services.booking', version: '2025-06-01' },
-      ],
-      'incompatible': [],
+      'full-match': {
+        'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+        'dev.usp.services.availability': [{ version: '2026-08-14', holds: true }],
+        'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+        'dev.usp.services.waitlist': [{ version: '2026-08-14' }],
+      },
+      'partial-match': {
+        'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+        'dev.usp.services.availability': [{ version: '2026-08-14', holds: false }],
+        'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+      },
+      'version-mismatch': {
+        'dev.usp.services.catalog': [{ version: '2026-02-21' }],
+        'dev.usp.services.availability': [{ version: '2026-02-21' }],
+        'dev.usp.services.bookings': [{ version: '2026-02-21' }],
+      },
+      'incompatible': {},
     };
     new CodeEditor(businessCode, { capabilities: businessCaps[scenarioKey] || businessCaps['full-match'] });
     businessBox.appendChild(businessPre);
@@ -682,7 +682,7 @@ export class USPPlayground {
     const resultMessages = {
       'full-match': { status: 'success', text: 'Full capability match. All features active including holds and waitlist.' },
       'partial-match': { status: 'success', text: 'Partial match. Holds disabled (business does not support). Waitlist pruned (no business support).' },
-      'version-mismatch': { status: 'warning', text: 'Version mismatch. Compatible older version selected (2025-06-01). Some features may be unavailable.' },
+      'version-mismatch': { status: 'warning', text: 'Version mismatch. Compatible older version selected (2026-02-21). Some features may be unavailable.' },
       'incompatible': { status: 'error', text: 'Empty intersection. No compatible capabilities found. Error: capabilities_incompatible' },
     };
 
@@ -849,12 +849,12 @@ export class USPPlayground {
         standard: {
           _status: 200,
           usp: {
-            version: '2026-02-21',
-            capabilities: [
-              { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-              { capability: 'dev.usp.services.availability', version: '2026-02-21' },
-              { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-            ],
+            version: '2026-08-14',
+            capabilities: {
+              'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+              'dev.usp.services.availability': [{ version: '2026-08-14' }],
+              'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+            },
           },
           business: {
             id: 'biz_downtown_spa',
@@ -870,13 +870,13 @@ export class USPPlayground {
         full: {
           _status: 200,
           usp: {
-            version: '2026-02-21',
-            capabilities: [
-              { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-              { capability: 'dev.usp.services.availability', version: '2026-02-21', features: { holds: true } },
-              { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-              { capability: 'dev.usp.services.waitlist', version: '2026-02-21' },
-            ],
+            version: '2026-08-14',
+            capabilities: {
+              'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+              'dev.usp.services.availability': [{ version: '2026-08-14', holds: true }],
+              'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+              'dev.usp.services.waitlist': [{ version: '2026-08-14' }],
+            },
           },
           business: {
             id: 'biz_downtown_spa',
@@ -888,12 +888,12 @@ export class USPPlayground {
         minimal: {
           _status: 200,
           usp: {
-            version: '2026-02-21',
-            capabilities: [
-              { capability: 'dev.usp.services.catalog', version: '2026-02-21' },
-              { capability: 'dev.usp.services.availability', version: '2026-02-21' },
-              { capability: 'dev.usp.services.booking', version: '2026-02-21' },
-            ],
+            version: '2026-08-14',
+            capabilities: {
+              'dev.usp.services.catalog': [{ version: '2026-08-14' }],
+              'dev.usp.services.availability': [{ version: '2026-08-14' }],
+              'dev.usp.services.bookings': [{ version: '2026-08-14' }],
+            },
           },
           business: {
             id: 'biz_downtown_spa',
@@ -905,34 +905,34 @@ export class USPPlayground {
       browse: {
         happy: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.catalog'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.catalog': [{ version: '2026-08-14' }] } },
           services: [
-            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 60 }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
-            { id: 'svc_yoga_001', name: 'Morning Yoga', type: 'group', duration: { fixed: 75 }, pricing: { model: 'per_person', amount: 2500, currency: 'USD' }, capacity: { max: 20 } },
-            { id: 'svc_suite_001', name: 'Spa Suite Experience', type: 'reservation', duration: { fixed: 120 }, pricing: { model: 'fixed', amount: 35000, currency: 'USD' } },
+            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 'PT60M' }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
+            { id: 'svc_yoga_001', name: 'Morning Yoga', type: 'group', duration: { fixed: 'PT75M' }, pricing: { model: 'per_person', amount: 2500, currency: 'USD' }, capacity: { max: 20 } },
+            { id: 'svc_suite_001', name: 'Spa Suite Experience', type: 'reservation', duration: { fixed: 'PT120M' }, pricing: { model: 'fixed', amount: 35000, currency: 'USD' } },
             { id: 'svc_kayak_001', name: 'Kayak Rental', type: 'rental', duration: { range: { min: 60, max: 480 } }, pricing: { model: 'hourly', amount: 4500, currency: 'USD' } },
           ],
           pagination: { has_more: false },
         },
         filtered: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.catalog'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.catalog': [{ version: '2026-08-14' }] } },
           services: [
-            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 60 }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
+            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 'PT60M' }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
           ],
           pagination: { has_more: false },
         },
         search: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.catalog'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.catalog': [{ version: '2026-08-14' }] } },
           services: [
-            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 60 }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
+            { id: 'svc_massage_001', name: 'Swedish Massage', type: 'appointment', duration: { fixed: 'PT60M' }, pricing: { model: 'fixed', amount: 12000, currency: 'USD' } },
           ],
           pagination: { has_more: false },
         },
         empty: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.catalog'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.catalog': [{ version: '2026-08-14' }] } },
           services: [],
           pagination: { has_more: false },
           messages: [{ type: 'info', content: 'No services match the provided filters.' }],
@@ -941,7 +941,7 @@ export class USPPlayground {
       availability: {
         available: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.availability'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.availability': [{ version: '2026-08-14' }] } },
           slots: [
             { id: 'slot_0315_0900', start: '2026-03-15T09:00:00-04:00', end: '2026-03-15T10:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
             { id: 'slot_0315_1100', start: '2026-03-15T11:00:00-04:00', end: '2026-03-15T12:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Mike' }] },
@@ -954,7 +954,7 @@ export class USPPlayground {
         },
         limited: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.availability'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.availability': [{ version: '2026-08-14' }] } },
           slots: [
             { id: 'slot_0315_1800', start: '2026-03-15T18:00:00-04:00', end: '2026-03-15T19:15:00-04:00', capacity: { total: 20, remaining: 2 }, resources: [{ type: 'staff', name: 'Emma' }] },
           ],
@@ -962,7 +962,7 @@ export class USPPlayground {
         },
         'resource-specific': {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.availability'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.availability': [{ version: '2026-08-14' }] } },
           slots: [
             { id: 'slot_0315_0900', start: '2026-03-15T09:00:00-04:00', end: '2026-03-15T10:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
             { id: 'slot_0316_1400', start: '2026-03-16T14:00:00-04:00', end: '2026-03-16T15:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
@@ -970,7 +970,7 @@ export class USPPlayground {
         },
         none: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.availability'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.availability': [{ version: '2026-08-14' }] } },
           slots: [],
           messages: [{ type: 'info', content: 'No availability in the requested date range. Consider joining the waitlist.' }],
         },
@@ -986,7 +986,7 @@ export class USPPlayground {
       hold: {
         granted: {
           _status: 201,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.availability'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.availability': [{ version: '2026-08-14' }] } },
           hold: {
             id: 'hold_abc123',
             slot_id: 'slot_0315_0900',
@@ -1016,7 +1016,7 @@ export class USPPlayground {
       book: {
         instant: {
           _status: 201,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_001',
             service_id: 'svc_massage_001',
@@ -1029,7 +1029,7 @@ export class USPPlayground {
         },
         'payment-required': {
           _status: 201,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_002',
             service_id: 'svc_massage_001',
@@ -1045,7 +1045,7 @@ export class USPPlayground {
         },
         manual: {
           _status: 201,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_003',
             service_id: 'svc_massage_001',
@@ -1082,7 +1082,7 @@ export class USPPlayground {
       payment: {
         success: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_002',
             status: 'confirmed',
@@ -1108,7 +1108,7 @@ export class USPPlayground {
         },
         deposit: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_004',
             status: 'confirmed',
@@ -1120,7 +1120,7 @@ export class USPPlayground {
       manage: {
         view: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_001',
             service_id: 'svc_massage_001',
@@ -1136,7 +1136,7 @@ export class USPPlayground {
         },
         update: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_001',
             status: 'confirmed',
@@ -1147,7 +1147,7 @@ export class USPPlayground {
         },
         cancel: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_001',
             status: 'canceled',
@@ -1157,7 +1157,7 @@ export class USPPlayground {
         },
         reschedule: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.booking'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.bookings': [{ version: '2026-08-14' }] } },
           booking: {
             id: 'bkg_001',
             status: 'confirmed',
@@ -1180,7 +1180,7 @@ export class USPPlayground {
       waitlist: {
         join: {
           _status: 201,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.waitlist'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.waitlist': [{ version: '2026-08-14' }] } },
           entry: {
             id: 'wl_001',
             service_id: 'svc_massage_001',
@@ -1201,7 +1201,7 @@ export class USPPlayground {
         },
         accept: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.waitlist'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.waitlist': [{ version: '2026-08-14' }] } },
           entry: { id: 'wl_001', status: 'accepted' },
           booking: {
             id: 'bkg_005',
@@ -1212,7 +1212,7 @@ export class USPPlayground {
         },
         decline: {
           _status: 200,
-          usp: { version: '2026-02-21', capabilities: ['dev.usp.services.waitlist'] },
+          usp: { version: '2026-08-14', capabilities: { 'dev.usp.services.waitlist': [{ version: '2026-08-14' }] } },
           entry: { id: 'wl_001', status: 'waiting', position: 3 },
         },
         expired: {
