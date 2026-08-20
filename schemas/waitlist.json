@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/waitlist.json",
+  "$id": "https://usp-protocol.dev/schemas/services/waitlist.json",
   "title": "USP Waitlist Extension",
-  "description": "Waitlist extension schema for the Universal Scheduling Protocol. Enables buyers to join a queue when desired time slots are fully booked. Extends dev.usp.services.bookings.",
+  "description": "Waitlist extension schema for the Universal Scheduling Protocol. Enables buyers to join a queue when desired time slots are fully booked. Extends dev.usp-protocol.services.bookings.",
   "$defs": {
     "WaitlistEntry": {
       "type": "object",

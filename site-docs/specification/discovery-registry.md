@@ -5,7 +5,7 @@ description: USP optional discovery registry for cold-start business discovery, 
 
 # Discovery Registry (Optional)
 
-**Capability:** `dev.usp.discovery.registry` (optional extension)
+**Capability:** `dev.usp-protocol.discovery.registry` (optional extension)
 
 This section defines **catalog discovery** via an optional registry: how a platform finds USP-enabled businesses and services when it does not already know a business's domain. **Profile discovery** (fetching `/.well-known/usp` or `/.well-known/ucp` for a known business) is defined in the Standalone and UCP-Native deployment mode pages. See [Specification Overview - Terminology](index.md#terminology) for normative definitions of catalog discovery, profile discovery, and platform onboarding.
 
@@ -63,10 +63,10 @@ Registers a business in the discovery registry.
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.discovery.registry": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.discovery.registry": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -137,10 +137,10 @@ Search operations matching no results **MUST** return HTTP 200 with an empty `bu
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.discovery.registry": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.discovery.registry": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -227,10 +227,10 @@ Search the registry for specific **services** offered by registered businesses. 
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.discovery.registry": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.discovery.registry": [
+            { "version": "2026-08-20" }
           ]
         }
       },

@@ -1,7 +1,7 @@
 # USP + UCP + SPT Demo Implementation Plan
 
 **Date:** 2026-06-10 (rev. spec-aligned)  
-**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), optionally **connects the buyer's calendar** and **filters availability slots** against personal busy times per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (platform-side only; no business changes), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp.services.paid_bookings` + Stripe SPT), and ends with synchronous `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` on the `complete_checkout` response (plan step 20 / §7.5 step 7) - with **no Standalone Mode**, **no `checkout_systems` redirect**, **no `booking.confirmed` webhook E2E** ([§7.5 step 8](#post-demo-bookingconfirmed-webhook-e2e) deferred post-demo), and **no migration** from prior deployments.
+**Goal:** Deliver a **UCP-Native Mode** demo in **one 2-week sprint** where a Link agent discovers a Wix Bookings merchant **already listed in a USP registry**, consumes that merchant's `**profile_url`** per [USP §6](../specification.md#6-discovery-registry-optional), fetches the **UCP business profile** per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp) and [UCP Profile](https://ucp.dev/latest/specification/overview/), optionally **connects the buyer's calendar** and **filters availability slots** against personal busy times per [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (platform-side only; no business changes), runs the [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) paid flow (UCP `create_checkout` + `complete_checkout` with `dev.usp-protocol.services.paid_bookings` + Stripe SPT), and ends with synchronous `**status: completed`**, `**order_id`**, and `**booking.booking_status: confirmed**` on the `complete_checkout` response (plan step 20 / §7.5 step 7) - with **no Standalone Mode**, **no `checkout_systems` redirect**, **no `booking.confirmed` webhook E2E** ([§7.5 step 8](#post-demo-bookingconfirmed-webhook-e2e) deferred post-demo), and **no migration** from prior deployments.
 
 **Normative references:** [USP `specification.md](../specification.md)` §6 (registry), §7 (UCP-Native), `[schemas/paid_bookings.json](../schemas/paid_bookings.json)`, `[schemas/registry.json](../schemas/registry.json)`; [UCP checkout](https://ucp.dev/latest/specification/checkout/), [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture), [Stripe UCP/SPT](https://docs.stripe.com/agentic-commerce/protocol).
 
@@ -154,15 +154,15 @@ Field names in the following detailed steps description refer to  `[paid_booking
   **Why:** Per [USP §6.1](../specification.md#61-business-registration---post-registrybusinesses) and [§7.2](../specification.md#72-profile-registration-in-well-knownucp), merchant capabilities, REST endpoints, and payment handlers are advertised in the UCP profile; the agent must load that document before any booking-time calls.
   **Fields consumed (this request):** `business.profile_url` from step 2.
   **Fields obtained:** none (request only; response fields arrive in step 4).
-4. **Profile document** (`UCP` → `Agent`): `acp-checkout` serves the UCP profile with required capabilities (`dev.ucp.shopping.checkout`, `dev.usp.services.`*), `ucp.services` endpoint map, and `payment_handlers` (including Stripe SPT) in the **UCP wire shape**: reverse-domain keys mapping to **arrays** of handler instances (`id`, `version`, `config`, `available_instruments`, ...). Checkout responses override profile data for payment-time `available_instruments` per [USP §7.4](../specification.md#74-paid-bookings-extension-schema).
+4. **Profile document** (`UCP` → `Agent`): `acp-checkout` serves the UCP profile with required capabilities (`dev.ucp.shopping.checkout`, `dev.usp-protocol.services.`*), `ucp.services` endpoint map, and `payment_handlers` (including Stripe SPT) in the **UCP wire shape**: reverse-domain keys mapping to **arrays** of handler instances (`id`, `version`, `config`, `available_instruments`, ...). Checkout responses override profile data for payment-time `available_instruments` per [USP §7.4](../specification.md#74-paid-bookings-extension-schema).
   **Why:** The agent validates that `paid_bookings` **extends** `checkout` per [§2.4](#24-what-paid_bookings-extends-checkout-means), resolves USP and UCP base URLs, and discovers payment integrations before mutating checkout.
   **Fields obtained → later use:**
 
   | Field obtained  | Used in step(s)  | Required for  |
   | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-  | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 12 (precondition)  | Confirm UCP-Native paid path before `create_checkout`  |
+  | `capabilities` (`dev.ucp.shopping.checkout`, `dev.usp-protocol.services.paid_bookings` with `extends: dev.ucp.shopping.checkout`, `catalog`, `availability`, `bookings`) | 12 (precondition)  | Confirm UCP-Native paid path before `create_checkout`  |
   | `ucp.services["dev.ucp.shopping"]` (REST base URL)  | 12 (`POST create_checkout`), 17 (`POST complete_checkout`) | UCP checkout REST  |
-  | `ucp.services["dev.usp.services"]` (or catalog capability endpoint)  | 5 (`GET /services/{id}`), 9 (`POST /availability/query`)  | USP catalog + availability  |
+  | `ucp.services["dev.usp-protocol.services"]` (or catalog capability endpoint)  | 5 (`GET /services/{id}`), 9 (`POST /availability/query`)  | USP catalog + availability  |
   | `payment_handlers` (reverse-domain keys to handler instance arrays: `id`, `version`, `config`, `available_instruments`; profile indicative, checkout response authoritative at payment time per [USP §7.4](../specification.md#74-paid-bookings-extension-schema))  | 15 (SPT acquisition); 14 (may repeat on checkout response) | Platform-side token acquisition per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) |
   | `business.currency` (when present on profile)  | 12 (fallback for `currency` if not taken from step 6)  | Top-level checkout `currency`  |
   | `availability` capability config (e.g. `holds: false`)  | 12 (confirm demo path skips `hold_id`)  | Hold-free demo scope  |
@@ -217,7 +217,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
   | Field / request input  | Source step(s)  | Notes  |
   | --------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------- |
   | `availability.query.service_id` | 2, 6  | Must equal live `Service.id` from step 6  |
-  | USP REST base URL  | 4  | From `ucp.services["dev.usp.services"]` (or catalog capability endpoint)  |
+  | USP REST base URL  | 4  | From `ucp.services["dev.usp-protocol.services"]` (or catalog capability endpoint)  |
   | `timezone`  | 2, 6, 4 (optional)  | Optional on `availability.query`; may default from registry hit, service, or profile  |
   | `resource_id`  | 6, 11 (optional)  | Only when step 6 `resources[].selectable` is true and buyer selected a resource before query  |
   | `start_date` / `end_date`  | Agent (buyer intent)  | RFC 3339 window; aligned with step 8 busy fetch when calendar connected  |
@@ -241,7 +241,7 @@ Field names in the following detailed steps description refer to  `[paid_booking
 11. **Platform slot filter and selection** (`Agent` internal): When `calendar_state: connected`, the agent removes slots overlapping step 8 `busy_blocks` per §11.2.6, then the buyer picks one remaining slot (human gate; never auto-pick).
   **Why:** Presents only mutually free times; surfaces filtered-out ranges in agent UX so the buyer can adjust their calendar if needed (linkusp `calendar_filtered` + `slots_filtered` in flow JSON).
   **Fields obtained → later use:** selected slot fields from step 10 (post-filter) feed step 12 `booking.slot`.
-12. **Create checkout** (`Agent` → `UCP`): The agent calls UCP `POST create_checkout` with the `dev.usp.services.paid_bookings` extension.
+12. **Create checkout** (`Agent` → `UCP`): The agent calls UCP `POST create_checkout` with the `dev.usp-protocol.services.paid_bookings` extension.
   **Why:** UCP-Native paid booking starts as a standard UCP checkout session extended for scheduling; this is [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee) step 4.
   **Fields consumed (assembled into this request):**
 
@@ -419,7 +419,7 @@ Treat both as correlating signals, not as a strict sequence:
 - [ ] **Buyer calendar gate** completes before availability (`calendar connect` or `calendar skip` per [§11.2](../specification.md#112-buyer-calendar-freebusy-extension)); when connected, slots are filtered platform-side against opaque busy blocks and conflicting times are not offered.
 - [ ] Service search uses at least one filter per [USP §6.3](../specification.md#63-service-search---post-registrysearch_services) (e.g. `query` plus optional `verticals`/`categories`); no client-side post-filter by `deployment_mode` or payment handlers in the demo ([#94](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/94) is the correct solution when agents need those filters).
 - [ ] Link fetches business profile via `GET {profile_url}` where `profile_url` is the **full profile document URL** (e.g. `https://{host}/.well-known/ucp`), not site origin + appended path.
-- [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
+- [ ] UCP-Native profile includes required capabilities per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); `dev.usp-protocol.services.paid_bookings` declares `"extends": "dev.ucp.shopping.checkout"` ([§2.4](#24-what-paid_bookings-extends-checkout-means)); no `checkout_systems` field ([USP §7.1](../specification.md#71-overview-and-when-to-use)).
 - [ ] Payment uses UCP `complete_checkout` with platform-acquired SPT per [UCP payment handlers](https://ucp.dev/latest/specification/overview/#payment-architecture) (not Standalone `confirm-payment`).
 - [ ] Atomic completion per [USP §7.5](../specification.md#75-checkout-flow-and-atomicity-guarantee): `booking.booking_status: confirmed` when `confirmation_mode` is `auto` and checkout `status: completed`.
 - [ ] `order_id` present on the synchronous `complete_checkout` response (`order.id` / `order_id` per [#98](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/98)); demo does **not** require `booking.confirmed` webhook E2E ([#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91), [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) post-demo).
@@ -456,7 +456,7 @@ The registry **MUST** validate that `GET profile_url` returns a valid UCP profil
 3. `GET profile_url` - fetch UCP business profile ([USP §7.2](../specification.md#72-profile-registration-in-well-knownucp); discovery inherited from UCP per [§7.3](../specification.md#73-inherited-infrastructure)).
 4. Match required capabilities and versions; verify `paid_bookings` **extends** `checkout` per [§2.4](#24-what-paid_bookings-extends-checkout-means) (both capabilities present; `extends` field equals `dev.ucp.shopping.checkout`).
 5. Read `payment_handlers` from profile (UCP); there is **no** `checkout_systems` in UCP-Native mode.
-6. Resolve `dev.usp.services` and `dev.ucp.shopping` REST endpoints from `ucp.services`.
+6. Resolve `dev.usp-protocol.services` and `dev.ucp.shopping` REST endpoints from `ucp.services`.
 7. `**GET /services/{service_id}`** on the merchant USP catalog endpoint ([§3.12.3](../specification.md#3123-get-service---get-servicesservice_id)) - live catalog for booking-time decisions per [§6.3](../specification.md#63-service-search---post-registrysearch_services) (registry hit is a non-authoritative snapshot).
 8. **Buyer calendar gate** (platform-only, [§11.2](../specification.md#112-buyer-calendar-freebusy-extension)): ask buyer to connect personal calendar for conflict checking or skip; hard gate before availability (`linkusp flow calendar ask|connect|skip`; ds-general USP subagent Scenario 2 Step 1).
 9. Use the live `Service` object (`type` → `booking.service_type`, `pricing`, `policies`) plus registry `service_id` for availability and checkout (`create_checkout` re-validates catalog price server-side).
@@ -558,7 +558,7 @@ This table is the conformance contract for the demo. Implementation tasks **MUST
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------- |
 | Single `/.well-known/ucp`; no `/.well-known/usp`  | §7.1  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80); greenfield demo |
 | No `checkout_systems` in profile  | §7.2, §7.1  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)  |
-| `dev.usp.services` service entry with REST endpoint  | §7.2  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)  |
+| `dev.usp-protocol.services` service entry with REST endpoint  | §7.2  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)  |
 | Capabilities: `catalog`, `availability`, `bookings`, `paid_bookings`  | §7.2  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80)  |
 | `paid_bookings` extends `dev.ucp.shopping.checkout` (profile `extends` field + protocol) | §7.2, §7.4, [§2.4](#24-what-paid_bookings-extends-checkout-means) | [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73), [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [#81](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/81)  |
 | `dev.ucp.shopping.checkout` capability present  | §7.2  | [#80](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/80), [#73](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/73)  |
@@ -626,16 +626,16 @@ In `GET {profile_url}` → `ucp.capabilities`, a paid UCP-Native demo merchant *
 | Capability  | Role  |
 | -------------------------------- | --------------------------------------------------------------------------------------------- |
 | `dev.ucp.shopping.checkout`  | Base UCP checkout (create/get/update/complete/cancel, `line_items`, `payment_handlers`, etc.) |
-| `dev.usp.services.paid_bookings` | USP **extension** that augments checkout with scheduling  |
+| `dev.usp-protocol.services.paid_bookings` | USP **extension** that augments checkout with scheduling  |
 
 
 The `paid_bookings` entry **MUST** include `"extends": "dev.ucp.shopping.checkout"` per [USP §7.2](../specification.md#72-profile-registration-in-well-knownucp):
 
 ```json
 "dev.ucp.shopping.checkout": [{ "version": "2026-01-11" }],
-"dev.usp.services.paid_bookings": [{
+"dev.usp-protocol.services.paid_bookings": [{
   "version": "2026-02-09",
-  "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+  "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
   "extends": "dev.ucp.shopping.checkout"
 }]
 ```
@@ -643,7 +643,7 @@ The `paid_bookings` entry **MUST** include `"extends": "dev.ucp.shopping.checkou
 **Verification steps** (fail fast if any check fails):
 
 1. `dev.ucp.shopping.checkout` is present with a supported `version`.
-2. `dev.usp.services.paid_bookings` is present with a supported `version`.
+2. `dev.usp-protocol.services.paid_bookings` is present with a supported `version`.
 3. `paid_bookings[0].extends == "dev.ucp.shopping.checkout"` (exact string).
 4. Demo also requires `catalog`, `availability`, and `bookings` USP capabilities per §7.2.
 5. When the profile advertises Stripe SPT (or any paid path), `ucp.payment_handlers` **MUST** follow UCP: reverse-domain keys, each mapping to an **array** of handler objects with at least `id` and `version`, plus handler-specific fields such as `config` and `available_instruments` per [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture) and [USP §7.4](../specification.md#74-paid-bookings-extension-schema). See [`docs/ucp-native-demo-merchant-profile.example.json`](../docs/ucp-native-demo-merchant-profile.example.json).
@@ -706,7 +706,7 @@ flowchart LR
 
 ### 3.2 Calendar
 
-Buyer calendar conflict checking is **in demo scope** as a platform-side showcase of [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (`dev.usp.platform.calendar_freebusy`). No registry, business, or `usp-impl` changes are required: the agent obtains opaque busy blocks via OAuth, queries business availability unchanged, then filters slots locally.
+Buyer calendar conflict checking is **in demo scope** as a platform-side showcase of [USP §11.2](../specification.md#112-buyer-calendar-freebusy-extension) (`dev.usp-protocol.platform.calendar_freebusy`). No registry, business, or `usp-impl` changes are required: the agent obtains opaque busy blocks via OAuth, queries business availability unchanged, then filters slots locally.
 
 **Reference implementations (already built):**
 
@@ -1001,10 +1001,10 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 1. On register/update: `GET {profile_url}` with 10s timeout (URL is already the profile document per [§6.1](../specification.md#61-business-registration---post-registrybusinesses)).
 2. Validate response is a valid profile for declared `deployment_mode`:
-  - `ucp_native`: parse UCP profile; require `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings` for demo merchants
+  - `ucp_native`: parse UCP profile; require `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings` for demo merchants
   - `standalone`: parse USP `/.well-known/usp` profile (not used in demo)
 3. Return `profile_unreachable` or `validation_error` per [USP §9.4](../specification.md#94-error-code-mapping) on failure.
-4. Registry response `usp` envelope describes **registry** capabilities (`dev.usp.discovery.registry`), not the business ([§6.1](../specification.md#61-business-registration---post-registrybusinesses)).
+4. Registry response `usp` envelope describes **registry** capabilities (`dev.usp-protocol.discovery.registry`), not the business ([§6.1](../specification.md#61-business-registration---post-registrybusinesses)).
 
 ---
 
@@ -1022,7 +1022,7 @@ In-scope gaps only. Excluded work (holds, Standalone, mixed cart, MCP, registry 
 
 **What:**
 
-1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp.services.paid_bookings`, and Stripe `payment_handlers`. (`signing_keys` publication is not required for demo; deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116).)
+1. Document and automate checks: Bookings installed, paid service exists, Stripe connected, UCP+USP demo flags on, `GET https://{demo-site}/.well-known/ucp` returns merged profile with `dev.ucp.shopping.checkout`, `dev.usp-protocol.services.paid_bookings`, and Stripe `payment_handlers`. (`signing_keys` publication is not required for demo; deferred to post-demo [#116](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/116).)
 2. Record the **exact** `profile_url` value to use in [#69](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/69) (full URL including `/.well-known/ucp` path).
 3. Script run by registry operator or Wix ops before `POST /registry/businesses`.
 4. **Link platform does not run this checklist.** Webhook URL wiring (`USP_DEMO_PLATFORM_WEBHOOK_URL`) is **not** required for demo; deferred with [#91](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/91) / [#92](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/92) post-demo.
@@ -1152,20 +1152,20 @@ def discover_service_via_registry(query: str) -> DiscoveredService:
 **What:**
 
 1. `GET {profile_url}` - `profile_url` from registry **is** the profile document URL ([§6.1](../specification.md#61-business-registration---post-registrybusinesses)); do not append `/.well-known/ucp`.
-2. Match required capabilities per [§7.2](../specification.md#72-profile-registration-in-well-knownucp): `dev.ucp.shopping.checkout`, `dev.usp.services.catalog`, `availability`, `bookings`, `paid_bookings`.
+2. Match required capabilities per [§7.2](../specification.md#72-profile-registration-in-well-knownucp): `dev.ucp.shopping.checkout`, `dev.usp-protocol.services.catalog`, `availability`, `bookings`, `paid_bookings`.
 3. **Verify extension relationship** per [§2.4](#24-what-paid_bookings-extends-checkout-means):
   - `paid_bookings` capability entry exists.
   - `paid_bookings[0]["extends"] == "dev.ucp.shopping.checkout"`.
   - Base `dev.ucp.shopping.checkout` is also declared (extension is not standalone).
 4. Read `payment_handlers` from profile (UCP); UCP-Native has **no** `checkout_systems` ([§7.1](../specification.md#71-overview-and-when-to-use)).
-5. Extract `dev.usp.services` and `dev.ucp.shopping` REST endpoints from `ucp.services`.
+5. Extract `dev.usp-protocol.services` and `dev.ucp.shopping` REST endpoints from `ucp.services`.
 6. Fail fast with structured error naming the failed check (missing capability, wrong `extends`, version mismatch).
 7. Set `UcpNativeContext.checkout_mode = "ucp_paid_bookings"` so downstream code uses UCP checkout + `booking` extension, not Standalone booking APIs.
 
 ```python
 CHECKOUT_CAP = "dev.ucp.shopping.checkout"
-PAID_BOOKINGS_CAP = "dev.usp.services.paid_bookings"
-REQUIRED_USP = ["dev.usp.services.catalog", "dev.usp.services.availability", "dev.usp.services.bookings"]
+PAID_BOOKINGS_CAP = "dev.usp-protocol.services.paid_bookings"
+REQUIRED_USP = ["dev.usp-protocol.services.catalog", "dev.usp-protocol.services.availability", "dev.usp-protocol.services.bookings"]
 
 def verify_paid_bookings_extends_checkout(caps: dict) -> None:
   if CHECKOUT_CAP not in caps:
@@ -1183,7 +1183,7 @@ def consume_profile(profile_url: str) -> UcpNativeContext:
   require_capability(caps, name)
   verify_paid_bookings_extends_checkout(caps)
   return UcpNativeContext(
-  usp_endpoint=doc.ucp.services["dev.usp.services"][0].endpoint,
+  usp_endpoint=doc.ucp.services["dev.usp-protocol.services"][0].endpoint,
   ucp_endpoint=doc.ucp.services["dev.ucp.shopping"][0].endpoint,
   payment_handlers=doc.ucp.payment_handlers,
   checkout_mode="ucp_paid_bookings",
@@ -1402,9 +1402,9 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 **What:**
 
-1. Extend `UcpCapabilities.scala`: add `dev.usp.services.catalog`, `availability`, `bookings`, `paid_bookings` (with `extends: dev.ucp.shopping.checkout` per [§7.2](../specification.md#72-profile-registration-in-well-knownucp)).
+1. Extend `UcpCapabilities.scala`: add `dev.usp-protocol.services.catalog`, `availability`, `bookings`, `paid_bookings` (with `extends: dev.ucp.shopping.checkout` per [§7.2](../specification.md#72-profile-registration-in-well-knownucp)).
 2. Ensure `dev.ucp.shopping.checkout` capability remains present (required for paid demo).
-3. Extend `UcpServices.scala`: add `dev.usp.services` endpoint (site-domain `/_api/usp-impl/v1` or gateway URL).
+3. Extend `UcpServices.scala`: add `dev.usp-protocol.services` endpoint (site-domain `/_api/usp-impl/v1` or gateway URL).
 4. Set `availability` capability config `{ "holds": false }` for demo scope.
 5. Merge `business` block (`name`, `timezone`, `currency`) from site properties per UCP profile shape.
 6. Emit only when Bookings app installed and demo flag on; **no** `checkout_systems` field.
@@ -1427,7 +1427,7 @@ PendingBooking createPending(CreatePendingBookingRequest req) {
 
 1. Extend `ucp_http_adapter.proto` / Jackson models with `BookingContext` on create/update/response.
 2. Add `BookingExtensionMutator.scala` for create/update field masks.
-3. Include `dev.usp.services.paid_bookings` in per-checkout `ucp.capabilities` when `booking` present.
+3. Include `dev.usp-protocol.services.paid_bookings` in per-checkout `ucp.capabilities` when `booking` present.
 
 ---
 

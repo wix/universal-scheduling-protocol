@@ -54,6 +54,9 @@ nav:
     - Getting Started: getting-started.md
     - Security: security.md
     - Extensions: extensions.md
+    - Namespace Registry: namespace.md
+    - Problem Types: errors/index.md
+    - Migration: migration.md
     - Roadmap: roadmap.md
   - Specification:
     - specification/index.md

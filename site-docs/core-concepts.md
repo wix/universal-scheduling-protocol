@@ -133,7 +133,7 @@ USP is built on three constructs:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.bookings` |
+| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
 | **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`). | Waitlist (extends bookings), Paid bookings (extends UCP checkout) |
 | **Transport Bindings** | Declarations of how USP traffic is carried. The profile maps service names to arrays of transport-specific bindings. | [REST](transport/rest.md), [MCP](transport/mcp.md), [A2A](transport/a2a.md), [ESP](transport/esp.md) |
 
@@ -149,18 +149,18 @@ USP uses reverse-domain notation for capability names:
 
 | Namespace | Authority | Governance |
 |-----------|-----------|------------|
-| `dev.usp.*` | usp.dev | USP governing body |
+| `dev.usp-protocol.*` | usp.dev | USP governing body |
 | `com.{vendor}.*` | {vendor}.com | Vendor organization |
 | `org.{org}.*` | {org}.org | Organization |
 
 The `spec` and `schema` URLs on each capability entry **MUST** use origins that
-match the reverse-domain namespace authority. For example, `dev.usp.*`
-capabilities must reference `https://usp.dev/...`.
+match the reverse-domain namespace authority. For example, `dev.usp-protocol.*`
+capabilities must reference `https://usp-protocol.dev/...`.
 
-Within the `dev.usp.*` namespace:
+Within the `dev.usp-protocol.*` namespace:
 
-- `dev.usp.services.*` — Business-facing capabilities (catalog, availability, bookings)
-- `dev.usp.platform.*` — Platform-scoped capabilities (e.g., calendar free/busy)
+- `dev.usp-protocol.services.*` — Business-facing capabilities (catalog, availability, bookings)
+- `dev.usp-protocol.platform.*` — Platform-scoped capabilities (e.g., calendar free/busy)
 
 ---
 
@@ -172,7 +172,7 @@ locations through a unified profile:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",

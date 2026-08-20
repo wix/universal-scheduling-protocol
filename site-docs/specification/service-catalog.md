@@ -5,7 +5,7 @@ description: USP service catalog specification - service discovery, schemas, pri
 
 # Service Catalog
 
-**Capability:** `dev.usp.services.catalog`
+**Capability:** `dev.usp-protocol.services.catalog`
 
 The catalog enables platforms to **discover what services a business offers** -- types, pricing, policies, resources, and delivery channels.
 
@@ -30,10 +30,10 @@ The feed returns a paginated, chronologically ordered list of service records, s
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.catalog": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.catalog": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -465,10 +465,10 @@ All specified filters combine with AND logic. Within `categories`, values combin
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.catalog": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.catalog": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -531,10 +531,10 @@ Returns the full service object for a single service.
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.catalog": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.catalog": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -585,10 +585,10 @@ Returns full service objects for a batch of service IDs in a single request. Des
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.catalog": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.catalog": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -623,7 +623,7 @@ Platforms and aggregators **MAY** register for push-based catalog change notific
 
 ## Conformance Requirements
 
-A conforming implementation of `dev.usp.services.catalog` **MUST**:
+A conforming implementation of `dev.usp-protocol.services.catalog` **MUST**:
 
 1. Implement `POST /services/list` returning a paginated list with the `usp` envelope, `services` array, and `pagination` object.
 2. Implement `GET /services/{service_id}` returning a single service with the `usp` envelope.

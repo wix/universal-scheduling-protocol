@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/booking.json",
+  "$id": "https://usp-protocol.dev/schemas/services/booking.json",
   "title": "USP Booking",
   "description": "Booking lifecycle schema for the Universal Scheduling Protocol. Defines Booking, Buyer, BookingPayment, PaymentContext, Action, Message, and Cancellation objects.",
   "$defs": {

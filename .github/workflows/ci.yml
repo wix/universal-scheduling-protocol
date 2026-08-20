@@ -54,4 +54,10 @@ jobs:
       - name: Build docs
         run: |
           pip install -r requirements.txt
-          python -m mkdocs build
+          npm run build
+
+      # The authority check runs after the site build so it can verify origin
+      # binding, namespace names, canonical artifact paths, problem pages,
+      # playground mirrors, and stale-identifier absence in one pass.
+      - name: Validate authority publication
+        run: python tools/usp_check.py authority

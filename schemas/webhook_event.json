@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/webhook_event.json",
+  "$id": "https://usp-protocol.dev/schemas/services/webhook_event.json",
   "title": "USP Webhook Events",
   "description": "Webhook payloads for USP booking, catalog, and waitlist lifecycle notifications. Businesses POST these to the platform webhook_url; payloads MUST be signed per Section 10.1.1.",
   "$defs": {
@@ -92,7 +92,7 @@
     "WaitlistEvent": {
       "type": "object",
       "title": "WaitlistEvent",
-      "description": "Waitlist lifecycle webhook payload (REST body or MCP usp_webhook params when the dev.usp.services.waitlist capability is in use).",
+      "description": "Waitlist lifecycle webhook payload (REST body or MCP usp_webhook params when the dev.usp-protocol.services.waitlist capability is in use).",
       "required": ["event", "event_id", "entry_id", "service_id", "timestamp"],
       "properties": {
         "event": {

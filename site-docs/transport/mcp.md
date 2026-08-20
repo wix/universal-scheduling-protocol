@@ -122,11 +122,11 @@ Responses use the **`structuredContent` / `content` dual-envelope** pattern:
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.availability": [
+          "dev.usp-protocol.services.availability": [
             {
-              "version": "2026-08-14"
+              "version": "2026-08-20"
             }
           ]
         }
@@ -167,7 +167,7 @@ Business outcome errors are returned inside the JSON-RPC `result` object within 
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-08-14"
+        "version": "2026-08-20"
       },
       "messages": [
         {

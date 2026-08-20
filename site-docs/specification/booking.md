@@ -5,7 +5,7 @@ description: USP booking lifecycle specification - status transitions, booking s
 
 # Booking Lifecycle
 
-**Capability:** `dev.usp.services.bookings`
+**Capability:** `dev.usp-protocol.services.bookings`
 
 The bookings capability defines the **lifecycle of a service booking** from creation through completion. For paid services, it also defines the `actions` array (including payment actions with `payment_context`) and the `confirm-payment` operation.
 
@@ -181,10 +181,10 @@ Creates a new booking for a service at a specific time slot. Resource selection 
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.bookings": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.bookings": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -262,10 +262,10 @@ Creates a new booking for a service at a specific time slot. Resource selection 
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.bookings": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.bookings": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -426,10 +426,10 @@ The universal callback the platform calls after payment succeeds. This completes
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.bookings": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.bookings": [
+            { "version": "2026-08-20" }
           ]
         }
       },

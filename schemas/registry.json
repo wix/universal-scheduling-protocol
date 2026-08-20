@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/registry.json",
+  "$id": "https://usp-protocol.dev/schemas/services/registry.json",
   "title": "USP Discovery Registry",
-  "description": "Discovery registry types for the optional dev.usp.discovery.registry capability. See specification Section 6.",
+  "description": "Discovery registry types for the optional dev.usp-protocol.discovery.registry capability. See specification Section 6.",
   "$defs": {
     "RegistryLocation": {
       "type": "object",

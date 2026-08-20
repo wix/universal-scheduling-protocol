@@ -12,7 +12,7 @@
     <div class="custom-banner-container">
       <img src="{{ 'assets/usp-logo.svg' | url }}" alt="USP Logo" class="custom-banner-icon">
       <div class="custom-banner-text">
-        <div class="banner-title">Draft specification v2026-08-14</div>
+        <div class="banner-title">Draft specification v2026-08-20</div>
         <div class="banner-subtitle">Open standard for agentic scheduling across REST, MCP, A2A, and ESP</div>
       </div>
     </div>
@@ -159,21 +159,21 @@ Accept: application/json</code></pre>
   "ucp": {
     "version": "2026-01-11",
     "services": {
-      "dev.usp.services": [{
-        "version": "2026-08-14",
+      "dev.usp-protocol.services": [{
+        "version": "2026-08-20",
         "transport": "rest",
         "endpoint": "https://salon.example.com/usp/v1"
       }]
     },
     "capabilities": {
-      "dev.usp.services.catalog": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.catalog": [
+        { "version": "2026-08-20" }
       ],
-      "dev.usp.services.availability": [
-        { "version": "2026-08-14", "holds": true }
+      "dev.usp-protocol.services.availability": [
+        { "version": "2026-08-20", "holds": true }
       ],
-      "dev.usp.services.paid_bookings": [
-        { "version": "2026-08-14",
+      "dev.usp-protocol.services.paid_bookings": [
+        { "version": "2026-08-20",
           "extends": "dev.ucp.shopping.checkout" }
       ]
     }
@@ -210,10 +210,10 @@ Content-Type: application/json
                 <div class="usp-code-block__header">Response</div>
 <pre><code>{
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.availability": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.availability": [
+        { "version": "2026-08-20" }
       ]
     }
   },
@@ -334,10 +334,10 @@ Content-Type: application/json
                 <div class="usp-code-block__header">Response</div>
 <pre><code>{
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.catalog": [
+        { "version": "2026-08-20" }
       ]
     }
   },
