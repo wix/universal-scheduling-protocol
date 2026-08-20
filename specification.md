@@ -168,6 +168,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [14.1 Normative References](#141-normative-references)
     - [14.2 Informative References](#142-informative-references)
 - [Appendix A. Future Vertical Considerations (Informative)](#appendix-a-future-vertical-considerations-informative)
+- [Appendix B. Namespace Authority Migration (Informative)](#appendix-b-namespace-authority-migration-informative)
 - [Authors' Addresses](#authors-addresses)
 
 ---
@@ -272,7 +273,7 @@ The following terms are used throughout this document:
 | **BusyBlock**       | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                                                                        |
 | **Buyer**           | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). The buyer is the primary contact for booking management, payment, and notifications. When no separate `recipient` is specified, the buyer is also the person receiving the service.                                               |
 | **BuyerFreeBusy**   | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                      |
-| **Capability**         | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
+| **Capability**         | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp-protocol.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
 | **Catalog Discovery**  | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Section 6](#6-discovery-registry-optional)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
 | **Action**             | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
 | **Checkout System**    | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
@@ -291,7 +292,7 @@ The three phases **Catalog Discovery**, **Profile Discovery**, and **Platform
 Onboarding** disambiguate activities that unqualified "discovery" can otherwise
 conflate. Implementors **MUST NOT** treat registry catalog search as platform
 onboarding, or profile fetch as credential exchange. The capability identifier
-`dev.usp.discovery.registry` and the section title Discovery Registry
+`dev.usp-protocol.discovery.registry` and the section title Discovery Registry
 ([Section 6](#6-discovery-registry-optional)) are retained for wire stability.
 OAuth Authorization Server Metadata Discovery
 ([Section 10.2.4](#1024-identity-linking)) retains the [RFC 8414] name.
@@ -378,9 +379,9 @@ availability, and booking lifecycle.
 If your platform supports UCP, follow these steps to add USP scheduling
 capabilities:
 
-1. **Register capabilities.** Declare `dev.usp.services.catalog`,
-   `dev.usp.services.availability`, `dev.usp.services.bookings`, and optionally
-   `dev.usp.services.paid_bookings` in your `/.well-known/ucp` profile.
+1. **Register capabilities.** Declare `dev.usp-protocol.services.catalog`,
+   `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings`, and optionally
+   `dev.usp-protocol.services.paid_bookings` in your `/.well-known/ucp` profile.
    See [Section 7.2](#72-profile-registration-in-well-knownucp).
 2. **Implement service catalog.** Expose the service catalog API (list services,
    get service, feed). See [Section 3](#3-service-catalog).
@@ -714,7 +715,7 @@ USP is built on three constructs:
 
 | Construct        | Description                                                                                                                                                                            | Examples                                                                                                                                                                                                             |
 |------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern (object keyed by capability name). Each capability has a namespace, schema, and version.                    | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.bookings`                                                                                                                             |
+| **Capabilities** | Standalone features a business supports, declared using a registry pattern (object keyed by capability name). Each capability has a namespace, schema, and version.                    | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings`                                                                                                                             |
 | **Extensions**   | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base capability schemas. | Waitlist management (extends bookings, [Section 11.1](#111-waitlist-extension)), paid bookings (extends UCP checkout, [Section 7.4](#74-paid-bookings-extension-schema)), vendor-specific loyalty (extends bookings) |
 | **Transport Bindings** | Declarations of how USP traffic is carried (REST, MCP, A2A, embedded). The profile `services` registry maps reverse-domain service names to arrays of transport-specific bindings, each with a `transport` discriminator. Not to be confused with the **Service** domain entity (bookable offerings) in [Section 3](#3-service-catalog). | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card). See [Section 9](#9-transport-bindings) and [`schemas/usp.json`](schemas/usp.json) (`$defs/ServiceBinding`). |
 
@@ -754,14 +755,14 @@ USP uses reverse-domain notation for capability names:
 {reverse-domain}.{service}.{capability}
 ```
 
-The `dev.usp.*` namespace is governed by the USP body. Vendors **MUST** use
+The `dev.usp-protocol.*` namespace is governed by the USP body. Vendors **MUST** use
 their own domain (e.g., `com.wix.services.courses`).
 
 #### Governance model
 
 | Namespace pattern | Authority   | Governance         |
 |-------------------|-------------|--------------------|
-| `dev.usp.*`       | usp.dev     | USP governing body |
+| `dev.usp-protocol.*`       | usp.dev     | USP governing body |
 | `com.{vendor}.*`  | {vendor}.com | Vendor organization |
 | `org.{org}.*`     | {org}.org   | Organization       |
 
@@ -774,21 +775,21 @@ capabilities where the origins do not match.
 
 | Namespace prefix   | Required URL origin (scheme + host)   |
 |--------------------|---------------------------------------|
-| `dev.usp.*`        | `https://usp.dev/...`                 |
+| `dev.usp-protocol.*`        | `https://usp-protocol.dev/...`                 |
 | `com.{vendor}.*`   | `https://{vendor}.com/...`            |
 | `org.{org}.*`      | `https://{org}.org/...`               |
 
 Field definitions are in [`schemas/usp.json`](schemas/usp.json) (`$defs/CapabilityEntry`,
 `$defs/ProfileCapabilityEntry`).
 
-Within the `dev.usp.*` namespace, capabilities are organized by scope:
+Within the `dev.usp-protocol.*` namespace, capabilities are organized by scope:
 
-- `dev.usp.services.*` — Business-facing capabilities that the business
-  declares and platforms consume (e.g., `dev.usp.services.catalog`,
-  `dev.usp.services.availability`).
-- `dev.usp.platform.*` — Platform-scoped capabilities that the platform
+- `dev.usp-protocol.services.*` — Business-facing capabilities that the business
+  declares and platforms consume (e.g., `dev.usp-protocol.services.catalog`,
+  `dev.usp-protocol.services.availability`).
+- `dev.usp-protocol.platform.*` — Platform-scoped capabilities that the platform
   declares and implements internally. These do not require business-side
-  support (e.g., `dev.usp.platform.calendar_freebusy`).
+  support (e.g., `dev.usp-protocol.platform.calendar_freebusy`).
 
 ### 2.6 Multi-Location Businesses
 
@@ -863,7 +864,7 @@ in MCP. Semantics and conflict behavior are defined in
 
 ## 3. Service Catalog
 
-**Capability:** `dev.usp.services.catalog`
+**Capability:** `dev.usp-protocol.services.catalog`
 
 The catalog enables platforms to **discover what services a business offers** -
 types, pricing, policies, resources, and delivery channels.
@@ -896,7 +897,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
@@ -1531,7 +1532,7 @@ are provided, the business **MUST** apply filters as hard constraints and use
 the query for relevance ranking within the filtered set.
 
 Businesses that support free-text search **SHOULD** advertise this by including
-`"search": true` in their `dev.usp.services.catalog` capability entry.
+`"search": true` in their `dev.usp-protocol.services.catalog` capability entry.
 Businesses that do not support search **MUST** ignore the `query` field and
 return results as if it were omitted (they **MUST NOT** return an error).
 
@@ -1622,7 +1623,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
@@ -1739,7 +1740,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
@@ -1787,7 +1788,7 @@ Response:
 | Cancel Subscription | `DELETE` | `/services/feed/subscriptions/{subscription_id}`        | Permanently cancel the subscription       |
 
 Businesses that support feed subscriptions **SHOULD** declare the
-`dev.usp.services.catalog.subscriptions` capability in their profile.
+`dev.usp-protocol.services.catalog.subscriptions` capability in their profile.
 
 #### 3.12.3 Get Service - `GET /services/{service_id}`
 
@@ -1809,7 +1810,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
@@ -1921,7 +1922,7 @@ Response (partial success):
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
@@ -1955,7 +1956,7 @@ Response (partial success):
 
 ### 3.13 Catalog Conformance Requirements
 
-A conforming implementation of the `dev.usp.services.catalog` capability
+A conforming implementation of the `dev.usp-protocol.services.catalog` capability
 **MUST** satisfy the following requirements:
 
 1. **MUST** implement `POST /services/list` returning a paginated list of
@@ -1985,7 +1986,7 @@ A conforming implementation of the `dev.usp.services.catalog` capability
 
 ## 4. Availability
 
-**Capability:** `dev.usp.services.availability`
+**Capability:** `dev.usp-protocol.services.availability`
 
 > **JSON Schema:** [/$defs/TimeSlot](schemas/availability.json) · [/$defs/Hold](schemas/availability.json)
 
@@ -2002,7 +2003,7 @@ flow.
 Businesses declare feature flags inside the capability entry in their profile:
 
 ```json
-"dev.usp.services.availability": [
+"dev.usp-protocol.services.availability": [
 {
 "version": "2026-08-20",
 "holds": true
@@ -2057,14 +2058,14 @@ resource calendars, and existing bookings.
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `available` | The slot has capacity for new bookings. For `appointment` types, this means the slot is open. For `group`/`reservation` types, this means `capacity.remaining > 0` with sufficient spots for a typical booking.                                                                                                                            |
 | `limited`   | The slot has low remaining capacity. Businesses **SHOULD** return `limited` when remaining capacity drops below 20% of total capacity or when fewer than 3 spots remain (whichever threshold the business defines). This signals to agents and platforms that the slot may fill soon.                                                      |
-| `waitlist`  | The slot is fully booked but the service has waitlist enabled (`capacity.waitlist: true`). The platform **MAY** allow the buyer to join the waitlist via the waitlist extension ([Section 11.1](#111-waitlist-extension)). Businesses **MUST NOT** return `waitlist` state unless the `dev.usp.services.waitlist` capability is supported. |
+| `waitlist`  | The slot is fully booked but the service has waitlist enabled (`capacity.waitlist: true`). The platform **MAY** allow the buyer to join the waitlist via the waitlist extension ([Section 11.1](#111-waitlist-extension)). Businesses **MUST NOT** return `waitlist` state unless the `dev.usp-protocol.services.waitlist` capability is supported. |
 
 ### 4.2 Hold
 
 > **JSON Schema:** [/$defs/Hold](schemas/availability.json)
 
 > **Feature flag:** This section applies only when the business advertises
-`"holds": true` in its `dev.usp.services.availability` capability entry.
+`"holds": true` in its `dev.usp-protocol.services.availability` capability entry.
 > See [Section 4](#4-availability) for the feature flag definition.
 
 A hold is a temporary reservation of a time slot that prevents double-booking
@@ -2155,7 +2156,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20"
         }
@@ -2254,7 +2255,7 @@ Slots are returned in ascending `start` order. For pagination behavior see [Sect
 
 > **JSON Schema:** Response — [/$defs/Hold](schemas/availability.json)
 
-> **Requires:** `"holds": true` on the `dev.usp.services.availability`
+> **Requires:** `"holds": true` on the `dev.usp-protocol.services.availability`
 > capability. Platforms **MUST NOT** call this endpoint unless the business
 > profile advertises hold support.
 
@@ -2278,7 +2279,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20"
         }
@@ -2318,7 +2319,7 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 
 #### 4.3.3 Release Slot - `DELETE /availability/holds/{hold_id}`
 
-> **Requires:** `"holds": true` on the `dev.usp.services.availability`
+> **Requires:** `"holds": true` on the `dev.usp-protocol.services.availability`
 > capability.
 
 Explicitly releases a hold before it expires. This frees the slot for other
@@ -2337,7 +2338,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20"
         }
@@ -2386,7 +2387,7 @@ graph TD
 
 ## 5. Booking Lifecycle
 
-**Capability:** `dev.usp.services.bookings`
+**Capability:** `dev.usp-protocol.services.bookings`
 
 The bookings capability defines the **lifecycle of a service booking** from
 creation through completion. For paid services, the bookings capability also
@@ -2622,7 +2623,7 @@ Response (paid service, `payment_timing: at_booking`):
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20"
         }
@@ -2709,7 +2710,7 @@ Response (free service, `requires_payment: false`):
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20"
         }
@@ -2918,7 +2919,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20"
         }
@@ -3210,7 +3211,7 @@ ignore the field there.
 
 ## 6. Discovery Registry (Optional)
 
-**Capability:** `dev.usp.discovery.registry` (optional extension)
+**Capability:** `dev.usp-protocol.discovery.registry` (optional extension)
 
 This section defines **catalog discovery** via an optional registry: how a
 platform finds USP-enabled businesses and services when it does not already
@@ -3289,7 +3290,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.discovery.registry": [
+      "dev.usp-protocol.discovery.registry": [
         {
           "version": "2026-08-20"
         }
@@ -3397,7 +3398,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.discovery.registry": [
+      "dev.usp-protocol.discovery.registry": [
         {
           "version": "2026-08-20"
         }
@@ -3536,7 +3537,7 @@ Response:
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.discovery.registry": [
+      "dev.usp-protocol.discovery.registry": [
         {
           "version": "2026-08-20"
         }
@@ -3743,7 +3744,7 @@ other UCP capabilities.
 Every entry under `ucp.capabilities` **MUST** include `version` and **MUST**
 include `spec` and `schema` URLs identifying the capability's specification and
 JSON Schema. This applies to `dev.ucp.shopping.checkout` and to every
-`dev.usp.services.*` capability. A profile that omits `spec` or `schema` on any
+`dev.usp-protocol.services.*` capability. A profile that omits `spec` or `schema` on any
 capability entry is not a valid UCP profile. A discovery registry
 ([Section 6](#6-discovery-registry-optional)) **MAY** warn when these URLs are
 unreachable, and booking-time capability negotiation **SHOULD** reject capability
@@ -3765,13 +3766,13 @@ An example profile:
           "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
         }
       ],
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json",
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json",
           "config": {
             "authorization": {
               "privileged_operations_require_authentication": true,
@@ -3792,33 +3793,33 @@ An example profile:
           "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20",
           "holds": true,
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ],
-      "dev.usp.services.paid_bookings": [
+      "dev.usp-protocol.services.paid_bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#7-ucp-native-mode",
-          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
         }
       ]
@@ -3849,20 +3850,20 @@ An example profile:
 ```
 
 **Free-service-only profile:** Businesses offering only free services omit
-`dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings`:
+`dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings`:
 
 ```json
 {
   "ucp": {
     "version": "2026-01-11",
     "services": {
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json",
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json",
           "config": {
             "authorization": {
               "privileged_operations_require_authentication": true,
@@ -3873,25 +3874,25 @@ An example profile:
       ]
     },
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
     }
@@ -3941,10 +3942,10 @@ not redefine these concerns:
 > booking-extension operations exactly as it does to Standalone Mode.
 >
 > In UCP-Native Mode the policy required by Section 10.1.6 is published as
-> `config.authorization` on the `dev.usp.services` service binding in
+> `config.authorization` on the `dev.usp-protocol.services` service binding in
 > `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)),
 > **not** as a top-level member of the UCP profile: USP declares only under its
-> own `dev.usp.*` namespace authority
+> own `dev.usp-protocol.*` namespace authority
 > ([Section 2.5](#25-namespace-governance)), and `config` is the member [UCP]
 > reserves for entity-specific settings.
 > Key publication and request signing likewise reuse UCP's own key array and
@@ -3955,7 +3956,7 @@ not redefine these concerns:
 
 > **JSON Schema:** [schemas/paid_bookings.json](schemas/paid_bookings.json)
 
-**Capability:** `dev.usp.services.paid_bookings` (extends
+**Capability:** `dev.usp-protocol.services.paid_bookings` (extends
 `dev.ucp.shopping.checkout`)
 
 The paid bookings extension adds a `booking` object to the UCP checkout. This
@@ -4035,11 +4036,11 @@ so it needs no governance rule beyond the one this extension already relies on.
           "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
-      "dev.usp.services.paid_bookings": [
+      "dev.usp-protocol.services.paid_bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#7-ucp-native-mode",
-          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
         }
       ]
@@ -4201,7 +4202,7 @@ Only the terminal UCP checkout statuses `completed` and `canceled` change
 `requires_escalation`, and `complete_in_progress`. See [UCP Status Values](https://ucp.dev/latest/specification/checkout/#status-values)
 for the authoritative list.*
 
-When the platform detects `dev.usp.services.paid_bookings` in the business's UCP
+When the platform detects `dev.usp-protocol.services.paid_bookings` in the business's UCP
 profile, it uses this flow:
 
 1. **[USP] Discover services** via `POST /services/list`.
@@ -4343,7 +4344,7 @@ financially.
 
 For businesses that only offer free services (no `requires_payment: true`
 services), the UCP-Native Mode profile omits `dev.ucp.shopping.checkout` and
-`dev.usp.services.paid_bookings` (
+`dev.usp-protocol.services.paid_bookings` (
 see [Section 7.2](#72-profile-registration-in-well-knownucp)). Bookings are
 created via `POST /bookings` and are immediately confirmed (for `auto`
 confirmation mode) without any checkout involvement.
@@ -4365,8 +4366,8 @@ business profile at [`/.well-known/ucp`](#72-profile-registration-in-well-knownu
 does not require UCP checkout for scheduling (no paid-bookings checkout path).
 
 > **Applies when:** Deployment mode: UCP-Native. Service: `requires_payment: false`.
-> Business UCP profile: includes `dev.usp.services.bookings` but **not**
-> `dev.ucp.shopping.checkout` / `dev.usp.services.paid_bookings` for free-only
+> Business UCP profile: includes `dev.usp-protocol.services.bookings` but **not**
+> `dev.ucp.shopping.checkout` / `dev.usp-protocol.services.paid_bookings` for free-only
 > merchants ([Section 7.2](#72-profile-registration-in-well-knownucp),
 > [Section 7.6](#76-free-services-in-ucp-native-mode)).
 
@@ -4417,7 +4418,7 @@ sequenceDiagram
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.bookings": [{ "version": "2026-08-20" }]
+      "dev.usp-protocol.services.bookings": [{ "version": "2026-08-20" }]
     }
   },
   "booking": {
@@ -4453,7 +4454,7 @@ and [Section 7.5](#75-checkout-flow-and-atomicity-guarantee).
 
 > **Applies when:** Deployment mode: UCP-Native. Service: `requires_payment: true`,
 > `payment_timing: at_booking`, `confirmation_mode: auto`. Business UCP profile:
-> `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings` registered
+> `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings` registered
 > at [`/.well-known/ucp`](#72-profile-registration-in-well-knownucp).
 
 > **JSON shapes:** Booking context in checkout — [schemas/paid_bookings.json](schemas/paid_bookings.json).
@@ -4656,44 +4657,44 @@ interactions.
   "usp": {
     "version": "2026-08-20",
     "services": {
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json"
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
         },
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
-          "schema": "https://usp.dev/services/mcp.openrpc.json"
+          "schema": "https://usp-protocol.dev/schemas/openrpc/usp-mcp.json"
         }
       ]
     },
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20",
           "holds": true,
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
     },
@@ -4741,15 +4742,15 @@ The business profile document has the following top-level fields:
 | `usp`          | object            | **Yes**     | The USP metadata object. Contains version, services, capabilities, checkout systems, business identity, and backward-compatibility declarations. |
 | `keys`         | Array[SigningKey] | Conditional | [UCP]-canonical public keys for webhook signature verification (top-level JWK Set [RFC 7517]). **MUST** be present when the business sends signed webhooks. Dual-publish with identical `signing_keys` is **RECOMMENDED** during transition. See [Section 10.1.1](#1011-webhook-security). |
 | `signing_keys` | Array[SigningKey] | No          | Transition alias for `keys`. **MAY** be published while consumers still read `signing_keys`. When both are present they **MUST** list the same keys; verifiers resolve against `keys` first. See [Section 10.1.1](#1011-webhook-security). |
-| `authorization`| AuthorizationPolicy | Conditional | How this business authenticates platforms for privileged operations. **MUST** be present when the business exposes privileged operations. In UCP-Native Mode this policy is published as `config.authorization` on the `dev.usp.services` service binding instead. See [Section 10.1.6](#1016-platform-authentication-for-privileged-operations). |
+| `authorization`| AuthorizationPolicy | Conditional | How this business authenticates platforms for privileged operations. **MUST** be present when the business exposes privileged operations. In UCP-Native Mode this policy is published as `config.authorization` on the `dev.usp-protocol.services` service binding instead. See [Section 10.1.6](#1016-platform-authentication-for-privileged-operations). |
 
 The `usp` object fields:
 
 | Field               | Type   | Required | Description                                                                                                                   |
 |---------------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------------|
 | `version`           | string | **Yes**  | USP protocol version implemented by this business (`YYYY-MM-DD`).                                                            |
-| `services`          | object | **Yes**  | Service endpoint registry. Keys are reverse-domain service names (e.g., `dev.usp.services`). Values are arrays of **ServiceBinding** objects, one per supported transport. |
-| `capabilities`      | object | **Yes**  | Capability registry. Keys are reverse-domain capability names (e.g., `dev.usp.services.catalog`). Values are arrays of **ProfileCapabilityEntry** objects. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`). |
+| `services`          | object | **Yes**  | Service endpoint registry. Keys are reverse-domain service names (e.g., `dev.usp-protocol.services`). Values are arrays of **ServiceBinding** objects, one per supported transport. |
+| `capabilities`      | object | **Yes**  | Capability registry. Keys are reverse-domain capability names (e.g., `dev.usp-protocol.services.catalog`). Values are arrays of **ProfileCapabilityEntry** objects. See [`schemas/usp.json`](schemas/usp.json) (`$defs/ProfileCapabilityEntry`). |
 | `checkout_systems`  | array  | No       | Checkout systems integrated for paid bookings: `acp`, `redirect`, `embedded`. Omit for free or pay-at-service services.       |
 | `business`          | object | **Yes**  | Business identity: `name` (string, required), `timezone` (IANA identifier, required), `currency` (ISO 4217, required), `locations` (array, optional). |
 | `supported_versions`| object | No       | Backward-compatibility map. Keys are older protocol versions (`YYYY-MM-DD`); values are URIs to version-specific profiles. See [Section 8.2.4](#824-backward-compatibility). |
@@ -4769,7 +4770,7 @@ Each **ServiceBinding** (an entry in a `services` value array) has:
 These requirements mirror [UCP]'s service definition, so the same binding
 object is conformant when it is published inside `/.well-known/ucp` in
 UCP-Native Mode. The `spec` and `schema` origins **MUST** match the namespace
-authority of the service key: `https://usp.dev/...` for `dev.usp.*`
+authority of the service key: `https://usp-protocol.dev/...` for `dev.usp-protocol.*`
 ([Section 2.5](#25-namespace-governance)).
 
 The `config` object carries binding-specific settings:
@@ -4801,7 +4802,7 @@ Each **ProfileCapabilityEntry** (an entry in a `capabilities` value array) has:
 
 The base [`$defs/CapabilityEntry`](schemas/usp.json) type omits required `spec`/`schema` for response metadata; profiles **MUST** use **ProfileCapabilityEntry** (see [Section 2.4](#24-core-constructs)).
 
-Capability keys **MUST** use reverse-domain notation. The `dev.usp.*` namespace
+Capability keys **MUST** use reverse-domain notation. The `dev.usp-protocol.*` namespace
 is reserved for the USP governing body. Vendor-defined capabilities **MUST**
 use the vendor's own reverse-domain prefix (e.g., `com.example.services.loyalty`).
 
@@ -4888,30 +4889,30 @@ round-trip negotiation handshake.
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
     },
     "services": {
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         { "transport": "rest" },
         { "transport": "mcp" }
       ]
@@ -5053,17 +5054,17 @@ standard scheduling request):
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
           "version": "2026-08-20"
         }
@@ -5075,7 +5076,7 @@ standard scheduling request):
 
 Businesses **SHOULD** include in the response `usp.capabilities` only the
 capabilities relevant to the specific operation type. For example, a response
-to `POST /availability/query` need not include `dev.usp.services.bookings` in
+to `POST /availability/query` need not include `dev.usp-protocol.services.bookings` in
 the `usp.capabilities` map.
 
 ### 8.4 Versioning
@@ -5101,7 +5102,7 @@ capabilities registry:
 
 ```json
 "capabilities": {
-"dev.usp.services.catalog": [
+"dev.usp-protocol.services.catalog": [
 {"version": "2026-08-20"},
 {"version": "2026-06-15"}
 ]
@@ -5306,7 +5307,7 @@ This section defines the integration with
 the [Agentic Commerce Protocol (ACP)](https://agenticcommerce.dev/) for
 businesses that declare `checkout_systems: ["acp"]`.
 
-USP defines `dev.usp.services.booking` as a proper ACP extension using ACP's
+USP defines `dev.usp-protocol.services.booking` as a proper ACP extension using ACP's
 native `capabilities.extensions` mechanism with JSONPath-based `extends`
 declarations. The extension adds a **`booking`** field to ACP's `CheckoutSession`
 response model (the same pattern as ACP's built-in extension fields such as
@@ -5319,10 +5320,10 @@ response model (the same pattern as ACP's built-in extension fields such as
   "capabilities": {
     "extensions": [
       {
-        "name": "dev.usp.services.booking",
+        "name": "dev.usp-protocol.services.booking",
         "extends": ["$.CheckoutSession.booking"],
-        "spec": "https://usp.dev/specification#856-acp-booking-extension",
-        "schema": "https://usp.dev/schemas/acp_booking_extension.json"
+        "spec": "https://usp-protocol.dev/specification#856-acp-booking-extension",
+        "schema": "https://usp-protocol.dev/schemas/acp_booking_extension.json"
       }
     ]
   }
@@ -5330,7 +5331,7 @@ response model (the same pattern as ACP's built-in extension fields such as
 ```
 
 Versioning MAY use the `name@YYYY-MM-DD` suffix form (e.g.
-`dev.usp.services.booking@2026-02-09`) per ACP extension conventions.
+`dev.usp-protocol.services.booking@2026-02-09`) per ACP extension conventions.
 
 **Fulfillment options:** Scheduling services do not involve physical shipping.
 Platforms SHOULD pass an empty `fulfillment_options: []` array when creating the
@@ -5369,7 +5370,7 @@ service bookings.
   "capabilities": {
     "extensions": [
       {
-        "name": "dev.usp.services.booking",
+        "name": "dev.usp-protocol.services.booking",
         "extends": ["$.CheckoutSession.booking"]
       }
     ]
@@ -5398,7 +5399,7 @@ range.
    payment action with `payment_context`.
 2. **[ACP] Create checkout session.** The platform maps the payment action's
    `payment_context` to an ACP checkout session create/update request, negotiates
-   the `dev.usp.services.booking` extension, and populates the session **`booking`**
+   the `dev.usp-protocol.services.booking` extension, and populates the session **`booking`**
    field from USP metadata.
 3. **[ACP] Process payment.** The platform runs ACP's agent-driven checkout flow:
    discovering payment handlers, optionally delegating payment credentials,
@@ -5705,7 +5706,7 @@ the payment action's `continue_url` is the business payment page per
 #### 8.6.4 ACP Payment Flow (Paid Service)
 
 When `checkout_systems` includes `acp`, the platform maps the USP payment action
-to an ACP checkout session (including `dev.usp.services.booking`), then confirms
+to an ACP checkout session (including `dev.usp-protocol.services.booking`), then confirms
 via USP `confirm-payment`. See [Section 8.5.6](#856-acp-booking-extension).
 
 > **Applies when:** Standalone Mode. `checkout_systems` includes `"acp"`.
@@ -5776,7 +5777,7 @@ sequenceDiagram
   "capabilities": {
     "extensions": [
       {
-        "name": "dev.usp.services.booking",
+        "name": "dev.usp-protocol.services.booking",
         "extends": ["$.CheckoutSession.booking"]
       }
     ]
@@ -6305,7 +6306,7 @@ Responses use the `structuredContent` / `content` dual-envelope pattern. The `st
       "usp": {
         "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.availability": [
+          "dev.usp-protocol.services.availability": [
             {
               "version": "2026-08-20"
             }
@@ -6643,10 +6644,10 @@ Business outcome errors are returned in the `messages[]` array of the response o
 | `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`                                                                                                                        | `200 OK`    | `requires_buyer_input`  |
 | `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `200 OK`    | `requires_buyer_input`  |
 | `price_mismatch`           | Line item price does not match the service's current catalog price (e.g., at UCP `create_checkout` / `update_checkout`).                                                          | `200 OK`    | `recoverable`           |
-| `waitlist_full`            | The waitlist has reached its maximum capacity. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                             | `200 OK`    | `recoverable`           |
-| `offer_expired`            | The offered slot's acceptance window has passed. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                           | `200 OK`    | `recoverable`           |
-| `entry_not_found`          | The waitlist entry ID does not exist. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                      | `200 OK`    | `recoverable`           |
-| `offer_already_accepted`   | The offer has already been accepted. Requires `dev.usp.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                       | `200 OK`    | `recoverable`           |
+| `waitlist_full`            | The waitlist has reached its maximum capacity. Requires `dev.usp-protocol.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                             | `200 OK`    | `recoverable`           |
+| `offer_expired`            | The offered slot's acceptance window has passed. Requires `dev.usp-protocol.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                           | `200 OK`    | `recoverable`           |
+| `entry_not_found`          | The waitlist entry ID does not exist. Requires `dev.usp-protocol.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                      | `200 OK`    | `recoverable`           |
+| `offer_already_accepted`   | The offer has already been accepted. Requires `dev.usp-protocol.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)).                                                       | `200 OK`    | `recoverable`           |
 
 **Protocol errors** (use standard HTTP status codes and JSON-RPC error codes):
 
@@ -7273,16 +7274,16 @@ defined once in [`schemas/profile.json`](schemas/profile.json)
 - **Standalone Mode:** as a top-level `authorization` member of the business
   profile at `/.well-known/usp` ([Section 8.2.1](#821-business-profile-fields)).
 - **UCP-Native Mode:** as `config.authorization` on the business's
-  `dev.usp.services` service binding inside the `ucp.services` registry of
+  `dev.usp-protocol.services` service binding inside the `ucp.services` registry of
   `/.well-known/ucp` ([Section 7.2](#72-profile-registration-in-well-knownucp)).
   USP **MUST NOT** add top-level members to a [UCP] profile document: under
   UCP's namespace governance ([Section 2.5](#25-namespace-governance)) a
   non-UCP declaration belongs under the reverse-domain key of its own
-  authority, which for USP is `dev.usp.*`. Within that key, `config` is the
+  authority, which for USP is `dev.usp-protocol.*`. Within that key, `config` is the
   member [UCP] defines for carrying entity-specific settings on a service or
   capability entry, so the policy travels in the slot UCP already reserves for
   it rather than as an invented sibling field. Publishing it on the
-  `dev.usp.services` binding also scopes it correctly, since it governs access
+  `dev.usp-protocol.services` binding also scopes it correctly, since it governs access
   to the USP endpoint that binding declares.
 
 A business **MUST** accept at least one mechanism for privileged operations,
@@ -7362,26 +7363,26 @@ different governance models are in play, and conflating them is what has made
 this question look unanswerable:
 
 - **On USP's own service endpoint** - the endpoint declared by the
-  `dev.usp.services` binding - USP defines the request headers in both modes.
+  `dev.usp-protocol.services` binding - USP defines the request headers in both modes.
   The credential and proof are carried exactly as in Standalone Mode.
 - **On a [UCP]-governed endpoint**, such as checkout, USP **MUST NOT** redefine
   the `Authorization` header, which UCP owns. The proof rides the `DPoP`
   request header, which [RFC 9449] defines independently of the `Authorization`
   authentication scheme and which is therefore additive rather than a
   redefinition. An issued credential is returned **in the response body, inside
-  the `dev.usp.services.paid_bookings` extension**, as a sibling of that
+  the `dev.usp-protocol.services.paid_bookings` extension**, as a sibling of that
   extension's `booking` object - never as an invented member of the [UCP]
   checkout root, and never *inside* `booking`, which carries scheduling context
   that platforms persist and re-display and so must never hold a secret.
 
 This resolves an open question that the namespace-governance rule above does not
 by itself answer. That rule governs **profile documents**: USP declares under
-`dev.usp.*` and adds no top-level member to `/.well-known/ucp`. **Response
+`dev.usp-protocol.*` and adds no top-level member to `/.well-known/ucp`. **Response
 bodies are governed by [UCP]'s extension-composition model instead** - an
 extension declares what it adds through a registered capability and an `allOf`
 composition over `$defs` keyed by the extended object
 ([Section 7.4](#74-paid-bookings-extension-schema)). That is already how
-`dev.usp.services.paid_bookings` contributes `booking` to a checkout. A
+`dev.usp-protocol.services.paid_bookings` contributes `booking` to a checkout. A
 credential added the same way is therefore a *declared* extension member, not an
 invented one, and requires no new governance rule.
 
@@ -7799,7 +7800,7 @@ Businesses **MAY** define additional custom scopes using their vendor namespace.
 
 > **UCP scope mapping:** In UCP-Native mode, USP scopes map to UCP's
 > reverse-DNS convention. Businesses **MAY** use resource-oriented naming (e.g.,
-> `dev.usp.scheduling.scopes.booking`) alongside or instead of the `usp:` prefix
+> `dev.usp-protocol.scheduling.scopes.booking`) alongside or instead of the `usp:` prefix
 > scopes.
 
 **Token Revocation:** Buyers **MUST** be able to revoke linked access at any
@@ -7830,7 +7831,7 @@ would be added in this section.
 
 ### 11.1 Waitlist Extension
 
-**Capability:** `dev.usp.services.waitlist` (extends `dev.usp.services.bookings`)
+**Capability:** `dev.usp-protocol.services.waitlist` (extends `dev.usp-protocol.services.bookings`)
 
 The waitlist extension enables buyers to join a queue when their desired time
 slot is fully booked. When a spot opens (due to cancellation or reschedule), the
@@ -8051,8 +8052,8 @@ as all USP business outcome errors (HTTP 200 with `messages[]`).
 
 ### 11.2 Buyer Calendar Free/Busy Extension
 
-**Capability:** `dev.usp.platform.calendar_freebusy` (extends
-`dev.usp.services.availability`)
+**Capability:** `dev.usp-protocol.platform.calendar_freebusy` (extends
+`dev.usp-protocol.services.availability`)
 
 This platform-scoped extension enables platforms to access a buyer's calendar
 for free/busy information only, then cross-reference that data with business
@@ -8157,12 +8158,12 @@ Platforms advertise this capability in their platform profile (see
   "usp": {
     "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [{ "version": "2026-08-20" }],
-      "dev.usp.services.availability": [{ "version": "2026-08-20" }],
-      "dev.usp.platform.calendar_freebusy": [
+      "dev.usp-protocol.services.catalog": [{ "version": "2026-08-20" }],
+      "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }],
+      "dev.usp-protocol.platform.calendar_freebusy": [
         {
           "version": "2026-08-20",
-          "extends": "dev.usp.services.availability",
+          "extends": "dev.usp-protocol.services.availability",
           "supported_providers": ["google", "microsoft", "apple"]
         }
       ]
@@ -8361,7 +8362,7 @@ This document has no IANA actions at this time.
 
 USP uses reverse-domain notation for namespace governance (
 see [Section 2.5](#25-namespace-governance)), which does not require IANA
-registry allocation. The `dev.usp.*` namespace is governed by the USP body.
+registry allocation. The `dev.usp-protocol.*` namespace is governed by the USP body.
 Vendor namespaces are self-allocated via domain ownership.
 
 If USP advances to Standards Track, future versions may request IANA
@@ -8534,6 +8535,27 @@ version of USP when:
    published specification.
 3. The scheduling semantics cannot be adequately modeled by one of the existing
    core verticals with category differentiation alone.
+
+---
+
+## Appendix B. Namespace Authority Migration (Informative)
+
+USP `2026-08-20` makes a breaking hard cutover to an authority controlled by
+the project. Implementations do not dual-accept the previous names. They must
+move capability keys and all advertised `spec`, `schema`, and problem `type`
+URIs in one coordinated release.
+
+| Before `2026-08-20` | From `2026-08-20` |
+|---|---|
+| `dev.usp.*` | `dev.usp-protocol.*` |
+| `https://usp.dev` | `https://usp-protocol.dev` |
+| `/services/rest.openapi.json` | `/schemas/openapi/usp-rest.json` |
+| `/services/mcp.openrpc.json` | `/schemas/openrpc/usp-mcp.json` |
+| `/problems/{slug}` | `/errors/{kebab-case-slug}` |
+| `/spec/{date}#{fragment}` | `/specification#{canonical-fragment}` |
+
+The old identifiers in this table are historical migration information only.
+They are not valid aliases in the `2026-08-20` protocol version.
 
 ---
 
