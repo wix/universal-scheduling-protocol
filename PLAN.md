@@ -86,7 +86,7 @@ with existing validation and build machinery.
 | U24 | Add canonical problem documentation | `site-docs/errors/*.md` | required-slug coverage | done |
 | U25 | Add feasible legacy path aliases | `site-docs/spec/index.md`, `site-docs/problems/*.md` | built alias coverage | done |
 | U26 | Wire canonical artifacts into site builds | `scripts/build-site.sh`, `package.json`, `scripts/publish-pages.sh` | local production build | done |
-| U27 | Use artifact-aware builds in workflows | `.github/workflows/ci.yml`, `.github/workflows/pages.yml` | workflow command scan | pending |
+| U27 | Use artifact-aware builds in workflows | `.github/workflows/ci.yml`, `.github/workflows/pages.yml` | workflow command scan | done |
 | U28 | Extend the existing conformance checker | `tools/usp_check.py` | all checker subcommands | pending |
 | U29 | Update deployment operations and residual steps | `docs/website-deployment.md` | path checklist review | pending |
 | U30 | Resolve migration-caused failures and stale identifiers | files implicated by verification | full local verification | pending |
