@@ -73,7 +73,7 @@ with existing validation and build machinery.
 | U11 | Synchronize core site explanations | `site-docs/core-concepts.md`, `site-docs/getting-started.md`, `site-docs/security.md` | stale scan | done |
 | U12 | Synchronize catalog and availability pages | `site-docs/specification/service-catalog.md`, `site-docs/specification/availability.md` | stale scan | done |
 | U13 | Synchronize booking and registry pages | `site-docs/specification/booking.md`, `site-docs/specification/discovery-registry.md`, `site-docs/specification/index.md` | stale scan | done |
-| U14 | Synchronize deployment mode pages | `site-docs/deployment-modes/index.md`, `site-docs/deployment-modes/standalone.md`, `site-docs/deployment-modes/ucp-native.md` | stale scan | pending |
+| U14 | Synchronize deployment mode pages | `site-docs/deployment-modes/index.md`, `site-docs/deployment-modes/standalone.md`, `site-docs/deployment-modes/ucp-native.md` | stale scan | done |
 | U15 | Synchronize extension and transport pages | `site-docs/extensions.md`, `site-docs/transport/rest.md`, `site-docs/transport/mcp.md` | stale scan | pending |
 | U16 | Update machine-readable site summaries | `site-docs/llms.txt`, `site-docs/llms-full.txt`, `site-docs/index.md` | stale scan | pending |
 | U17 | Migrate homepage and standalone examples | `overrides/home.html`, `docs/ucp-native-demo-merchant-profile.example.json`, `README.md` | JSON parse and stale scan | pending |
