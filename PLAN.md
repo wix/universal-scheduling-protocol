@@ -90,7 +90,7 @@ with existing validation and build machinery.
 | U28 | Extend the existing conformance checker | `tools/usp_check.py` | all checker subcommands | done |
 | U29 | Update deployment operations and residual steps | `docs/website-deployment.md` | path checklist review | done |
 | U30 | Resolve migration-caused failures and stale identifiers | files implicated by verification | full local verification | done |
-| U31 | Prepend the required change-log entry | `CHANGE_LOG.md` | newest entry format and fresh identity | pending |
+| U31 | Prepend the required change-log entry | `CHANGE_LOG.md` | newest entry format and fresh identity | done |
 | U32 | Final verification and local commits | no file changes expected | schemas, refs, vectors, site, stale scan, lints, live safe GETs | pending |
 
 ## Revisions
