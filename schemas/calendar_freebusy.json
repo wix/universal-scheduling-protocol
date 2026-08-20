@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/platform/calendar_freebusy.json",
+  "$id": "https://usp-protocol.dev/schemas/platform/calendar_freebusy.json",
   "title": "USP Calendar Free/Busy Extension",
-  "description": "Calendar free/busy extension schema for the Universal Scheduling Protocol. Enables platforms to access buyer calendar free/busy data for availability cross-referencing. Platform-scoped capability (dev.usp.platform.calendar_freebusy).",
+  "description": "Calendar free/busy extension schema for the Universal Scheduling Protocol. Enables platforms to access buyer calendar free/busy data for availability cross-referencing. Platform-scoped capability (dev.usp-protocol.platform.calendar_freebusy).",
   "$defs": {
     "BusyBlock": {
       "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/catalog.json",
+  "$id": "https://usp-protocol.dev/schemas/services/catalog.json",
   "title": "USP Service Catalog",
   "description": "Service catalog schema for the Universal Scheduling Protocol. Defines the Service object and related types for discoverable, bookable offerings.",
   "$defs": {
