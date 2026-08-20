@@ -26,11 +26,11 @@ Extensions follow three rules:
 
 ```json
 {
-  "name": "dev.usp.services.waitlist",
-  "version": "2026-08-14",
-  "extends": "dev.usp.services.bookings",
-  "spec": "https://usp.dev/specification#waitlist-extension",
-  "schema": "https://usp.dev/schemas/services/waitlist.json"
+  "name": "dev.usp-protocol.services.waitlist",
+  "version": "2026-08-20",
+  "extends": "dev.usp-protocol.services.bookings",
+  "spec": "https://usp-protocol.dev/specification#waitlist-extension",
+  "schema": "https://usp-protocol.dev/schemas/services/waitlist.json"
 }
 ```
 
@@ -42,11 +42,11 @@ minimum protocol and capability versions:
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/waitlist.json",
+  "$id": "https://usp-protocol.dev/schemas/services/waitlist.json",
   "requires": {
-    "protocol": { "min": "2026-08-14" },
+    "protocol": { "min": "2026-08-20" },
     "capabilities": {
-      "dev.usp.services.bookings": { "min": "2026-08-14" }
+      "dev.usp-protocol.services.bookings": { "min": "2026-08-20" }
     }
   }
 }
@@ -56,8 +56,8 @@ minimum protocol and capability versions:
 
 ## Waitlist Extension
 
-**Capability:** `dev.usp.services.waitlist`  
-**Extends:** `dev.usp.services.bookings`
+**Capability:** `dev.usp-protocol.services.waitlist`  
+**Extends:** `dev.usp-protocol.services.bookings`
 
 The waitlist extension enables platforms to join a waitlist when a desired
 time slot or service is fully booked, and receive notifications when spots
@@ -126,7 +126,7 @@ com.{vendor}.services.{capability_name}
 {
   "name": "com.wix.services.courses",
   "version": "2026-03-01",
-  "extends": "dev.usp.services.bookings",
+  "extends": "dev.usp-protocol.services.bookings",
   "spec": "https://wix.com/services/courses/spec",
   "schema": "https://wix.com/services/courses/schema.json"
 }
@@ -134,7 +134,7 @@ com.{vendor}.services.{capability_name}
 
 ### Requirements for Vendor Extensions
 
-1. **Must use vendor's reverse-domain namespace** — Never use `dev.usp.*`.
+1. **Must use vendor's reverse-domain namespace** — Never use `dev.usp-protocol.*`.
 2. **Must publish a specification** (`spec` URL) and schema (`schema` URL)
    that define the additional fields and semantics.
 3. **URLs must match namespace authority** — `com.wix.*` capabilities must
