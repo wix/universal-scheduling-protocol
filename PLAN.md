@@ -77,7 +77,7 @@ with existing validation and build machinery.
 | U15 | Synchronize extension and transport pages | `site-docs/extensions.md`, `site-docs/transport/rest.md`, `site-docs/transport/mcp.md` | stale scan | done |
 | U16 | Update machine-readable site summaries | `site-docs/llms.txt`, `site-docs/llms-full.txt`, `site-docs/index.md` | stale scan | done |
 | U17 | Migrate homepage and standalone examples | `overrides/home.html`, `docs/ucp-native-demo-merchant-profile.example.json`, `README.md` | JSON parse and stale scan | done |
-| U18 | Migrate playground services and profiles | root/site mirrored `services.json`, `business-profile.json`, `platform-profile.json` | mirror comparison and JSON parse | pending |
+| U18 | Migrate playground services and profiles | root/site mirrored `services.json`, `business-profile.json`, `platform-profile.json` | mirror comparison and JSON parse | done |
 | U19 | Migrate playground availability and holds | root/site mirrored `availability.json`, `holds.json` | mirror comparison and JSON parse | pending |
 | U20 | Migrate playground booking and management | root/site mirrored `bookings.json`, `manage.json` | mirror comparison and JSON parse | pending |
 | U21 | Migrate playground payment and waitlist | root/site mirrored `payment.json`, `waitlist.json` | mirror comparison and JSON parse | pending |
