@@ -67,7 +67,7 @@ with existing validation and build machinery.
 | U5 | Migrate catalog and availability schema identifiers | `schemas/catalog.json`, `schemas/availability.json`, `schemas/calendar_freebusy.json` | schema checker | done |
 | U6 | Migrate booking schema identifiers | `schemas/booking.json`, `schemas/paid_bookings.json`, `schemas/acp_booking_extension.json` | schema checker | done |
 | U7 | Migrate extension schema identifiers | `schemas/waitlist.json`, `schemas/registry.json`, `schemas/webhook_event.json` | schema checker | done |
-| U8 | Migrate and validate the REST binding | `openapi/usp-rest.json` | JSON parse and thin-ref check | pending |
+| U8 | Migrate and validate the REST binding | `openapi/usp-rest.json` | JSON parse and thin-ref check | done |
 | U9 | Migrate and validate the MCP binding | `openrpc/usp-mcp.json` | JSON parse and thin-ref check | pending |
 | U10 | Complete normative namespace and URI rewrite | `specification.md` | stale scan and anchor check | pending |
 | U11 | Synchronize core site explanations | `site-docs/core-concepts.md`, `site-docs/getting-started.md`, `site-docs/security.md` | stale scan | pending |
