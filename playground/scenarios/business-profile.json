@@ -117,7 +117,7 @@
           "dev.usp-protocol.services.waitlist": [
             {
               "version": "2026-08-20",
-              "spec": "https://usp-protocol.dev/specification#111-waitlist-extension",
+              "spec": "https://usp-protocol.dev/specification#waitlist-extension",
               "schema": "https://usp-protocol.dev/schemas/services/waitlist.json",
               "extends": "dev.usp-protocol.services.bookings"
             }

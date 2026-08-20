@@ -19,4 +19,4 @@ this namespace must use `https://usp-protocol.dev` for their `spec` and
 Names below this authority are assigned by the USP specification. Vendors must
 use a namespace derived from an origin they control, such as
 `com.example.services.courses`, and must follow the origin-binding rules in
-[Namespace Governance](specification/index.md#25-namespace-governance).
+[Namespace Governance](specification/index.md#namespace-governance).

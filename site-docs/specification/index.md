@@ -38,6 +38,36 @@ idempotency, webhook verification).
 | **Booking Lifecycle** | [booking.md](booking.md) | Booking status lifecycle, schema, CRUD operations, webhooks, post-booking events |
 | **Discovery Registry** | [discovery-registry.md](discovery-registry.md) | Optional registry for cold-start business discovery, search operations, governance |
 
+## Canonical specification fragments
+
+Profile `spec` values use the following stable fragments on this page. The
+linked topic pages contain the detailed implementation guidance.
+
+### Service Catalog {#3-service-catalog}
+
+See [Service Catalog](service-catalog.md).
+
+### Availability {#4-availability}
+
+See [Availability](availability.md).
+
+### Booking Lifecycle {#5-booking-lifecycle}
+
+See [Booking Lifecycle](booking.md).
+
+### UCP-Native Mode {#7-ucp-native-mode}
+
+See [UCP-Native Mode](../deployment-modes/ucp-native.md).
+
+### Waitlist Extension {#waitlist-extension}
+
+See [Waitlist](../extensions.md#waitlist-extension).
+
+### ACP Booking Extension {#856-acp-booking-extension}
+
+See the
+[ACP booking extension schema](https://usp-protocol.dev/schemas/acp_booking_extension.json).
+
 ---
 
 ## Conventions

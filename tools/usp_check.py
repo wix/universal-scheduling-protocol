@@ -606,8 +606,24 @@ def published_path(uri: str) -> Path:
 
 
 def check_authority(findings: Findings) -> None:
+    canonical_fragments = {
+        "3-service-catalog",
+        "4-availability",
+        "5-booking-lifecycle",
+        "7-ucp-native-mode",
+        "waitlist-extension",
+        "856-acp-booking-extension",
+    }
     historical = {
         REPO / "site-docs" / "migration.md",
+    }
+    legacy_path_docs = historical | {
+        SPEC,
+        REPO / "docs" / "website-deployment.md",
+        REPO / "scripts" / "build-site.sh",
+    }
+    external_host_docs = historical | {
+        REPO / "docs" / "website-deployment.md",
     }
     for path in iter_text_sources():
         text = path.read_text(errors="replace")
@@ -622,11 +638,28 @@ def check_authority(findings: Findings) -> None:
             if re.search(r"\bdev\.usp\.", stale_text):
                 findings.fail(f"STALE:{rel(path)}:namespace",
                               "contains the retired dev.usp.* namespace")
+        if path not in external_host_docs and re.search(r"\busp\.live\b", text):
+            findings.fail(f"STALE:{rel(path)}:docs-host",
+                          "contains the former docs host outside residual notes")
+        if path not in legacy_path_docs and re.search(
+                r"/services/(?:rest\.openapi|mcp\.openrpc)\.json", text):
+            findings.fail(f"STALE:{rel(path)}:binding-path",
+                          "contains a former binding path outside migration notes")
+        for short in re.findall(
+                r"https://usp-protocol\.dev/schemas/"
+                r"(?:catalog|availability|booking|waitlist)\.json", text):
+            findings.fail(f"LAYOUT:{rel(path)}:{short}",
+                          "uses a deleted short schema path")
 
         for uri in re.findall(r"https://usp-protocol\.dev/(?:problems|spec/\d{4}-\d{2}-\d{2})"
                               r"[^\s\"'`)<]*", text):
             findings.fail(f"LAYOUT:{rel(path)}:{uri}",
                           "uses a non-canonical problem or versioned-spec path")
+        for fragment in re.findall(
+                r"https://usp-protocol\.dev/specification#([a-z0-9-]+)", text):
+            if fragment not in canonical_fragments:
+                findings.fail(f"SPECFRAGMENT:{rel(path)}:{fragment}",
+                              "profile spec URI uses a non-canonical fragment")
         for slug in re.findall(r"https://usp-protocol\.dev/errors/([a-z0-9_-]+)", text):
             if "_" in slug or slug == "validation":
                 findings.fail(f"ERRORSLUG:{rel(path)}:{slug}",
@@ -654,6 +687,26 @@ def check_authority(findings: Findings) -> None:
                                   "published schema $id differs from source")
             except json.JSONDecodeError as exc:
                 findings.fail(f"PUBLISH:{schema_id}", f"published JSON is invalid: {exc}")
+
+    for path in iter_json_files():
+        doc = json.loads(path.read_text())
+        for pointer, node in walk(doc):
+            if not isinstance(node, dict):
+                continue
+            for name, entries in node.items():
+                if not name.startswith("dev.usp-protocol.") or not isinstance(entries, list):
+                    continue
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    for field in ("spec", "schema"):
+                        uri = entry.get(field)
+                        if uri is not None and (
+                                not isinstance(uri, str) or
+                                not uri.startswith(USP_ORIGIN + "/")):
+                            findings.fail(
+                                f"ORIGIN:{rel(path)}:{pointer}/{name}/{field}",
+                                f"{field} must use {USP_ORIGIN}")
 
     binding_targets = {
         OPENAPI: SITE / "schemas" / "openapi" / "usp-rest.json",
@@ -688,6 +741,15 @@ def check_authority(findings: Findings) -> None:
     cname = SITE / "CNAME"
     if cname.is_file() and cname.read_text().strip() != "usp-protocol.dev":
         findings.fail("PUBLISH:CNAME", "published CNAME does not bind usp-protocol.dev")
+
+    specification_html = SITE / "specification" / "index.html"
+    if specification_html.is_file():
+        html = specification_html.read_text()
+        for fragment in sorted(canonical_fragments):
+            escaped = re.escape(fragment)
+            if not re.search(rf'\bid=(?:"{escaped}"|{escaped})(?:\s|>)', html):
+                findings.fail(f"SPECFRAGMENT:{fragment}",
+                              "built specification page is missing canonical anchor")
 
     type_uris = set()
     for path in iter_text_sources():

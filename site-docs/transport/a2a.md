@@ -121,7 +121,7 @@ USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) obj
   "mimeType": "application/json",
   "metadata": {
     "usp": {
-      "version": "2026-08-14"
+      "version": "2026-08-20"
     }
   },
   "data": {

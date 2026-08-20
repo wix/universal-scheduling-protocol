@@ -5917,7 +5917,16 @@ The REST binding uses HTTP/1.1 (or higher) with JSON request/response bodies.
 All examples in this specification use the REST binding.
 
 - **Schema format:** OpenAPI 3.x (JSON)
-- **Authoritative data shapes:** Normative JSON Schema definitions for domain objects live under [`schemas/`](schemas/) (`$defs` per file). The machine-readable [`openapi/usp-rest.json`](openapi/usp-rest.json) references those documents with relative JSON Pointer URIs (for example `../schemas/catalog.json#/$defs/Service`) and is **not** self-contained unless **bundled**. Implementations and tools MUST resolve external `$ref`s against the repository layout (or use a pre-bundled copy). A single-file bundle can be produced with OpenAPI bundlers (for example [Redocly CLI](https://redocly.com/docs/cli/) `bundle` or `@apidevtools/swagger-cli`).
+- **Authoritative data shapes:** Normative JSON Schema definitions for domain
+  objects live under [`schemas/`](schemas/) (`$defs` per file). The
+  machine-readable [`openapi/usp-rest.json`](openapi/usp-rest.json) references
+  those documents by their absolute canonical `$id` URIs (for example
+  `https://usp-protocol.dev/schemas/services/catalog.json#/$defs/Service`) and
+  is **not** self-contained unless **bundled**. Implementations and tools MUST
+  resolve external `$ref`s from the authority origin (or use a pre-bundled
+  copy). A single-file bundle can be produced with OpenAPI bundlers (for
+  example [Redocly CLI](https://redocly.com/docs/cli/) `bundle` or
+  `@apidevtools/swagger-cli`).
 - **Content type:** `application/json`
 - **Capability negotiation:** Platform advertises its profile URI via the
   `USP-Agent` header using Dictionary Structured Field syntax ([RFC 8941]):
