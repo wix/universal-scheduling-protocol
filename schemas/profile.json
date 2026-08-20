@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/profile.json",
+  "$id": "https://usp-protocol.dev/schemas/profile.json",
   "title": "USP Profile",
   "description": "Defines the structure of USP profile documents. A profile is a machine-readable JSON document that declares a participant's USP capabilities and configuration. Businesses publish a BusinessProfile at /.well-known/usp; platforms publish a PlatformProfile at a stable URI they advertise via the USP-Agent header (REST) or _meta.usp.profile field (MCP). See $defs/BusinessProfile and $defs/PlatformProfile.",
   "$defs": {
@@ -76,7 +76,7 @@
         },
         "authorization": {
           "$ref": "#/$defs/AuthorizationPolicy",
-          "description": "CONDITIONAL. Declares how this business authenticates platforms for privileged operations. MUST be present when any capability under usp.capabilities includes a create/update/cancel/reschedule booking operation, an inventory hold operation, a waitlist operation, or any operation whose response can carry buyer personal data. This top-level placement is for Standalone Mode (/.well-known/usp). UCP-Native deployments publish the same policy as config.authorization on the dev.usp.services binding in /.well-known/ucp instead, because USP does not add top-level members to a UCP profile document and config is the slot UCP defines for entity-specific settings. See specification.md Section 10.1.6."
+          "description": "CONDITIONAL. Declares how this business authenticates platforms for privileged operations. MUST be present when any capability under usp.capabilities includes a create/update/cancel/reschedule booking operation, an inventory hold operation, a waitlist operation, or any operation whose response can carry buyer personal data. This top-level placement is for Standalone Mode (/.well-known/usp). UCP-Native deployments publish the same policy as config.authorization on the dev.usp-protocol.services binding in /.well-known/ucp instead, because USP does not add top-level members to a UCP profile document and config is the slot UCP defines for entity-specific settings. See specification.md Section 10.1.6."
         }
       },
       "additionalProperties": true
@@ -97,7 +97,7 @@
     "AuthorizationPolicy": {
       "type": "object",
       "title": "AuthorizationPolicy",
-      "description": "Declares how a business authenticates platforms for privileged USP operations, per specification.md Section 10.1.6 (Platform Authentication for Privileged Operations). Public operations (catalog, availability, profile discovery) are never gated by this policy. This is deliberately a business-declared, versioned policy rather than a single protocol-mandated mechanism: it lets a business accept HTTP Message Signatures (permissionless, suited to personal single-user agents) and/or booking-scoped capability credentials alongside pre-established mechanisms (OAuth, API key, mTLS) suited to known host platforms, and lets that mix evolve without a specification change. Placement: top-level member of the business profile in Standalone Mode (/.well-known/usp); config.authorization on the dev.usp.services service binding in UCP-Native Mode (/.well-known/ucp), since USP declares only under its own reverse-domain namespace authority and config is the member UCP defines for entity-specific settings. Defined once here and referenced by schemas/usp.json ServiceBinding, openapi/usp-rest.json, and openrpc/usp-mcp.json.",
+      "description": "Declares how a business authenticates platforms for privileged USP operations, per specification.md Section 10.1.6 (Platform Authentication for Privileged Operations). Public operations (catalog, availability, profile discovery) are never gated by this policy. This is deliberately a business-declared, versioned policy rather than a single protocol-mandated mechanism: it lets a business accept HTTP Message Signatures (permissionless, suited to personal single-user agents) and/or booking-scoped capability credentials alongside pre-established mechanisms (OAuth, API key, mTLS) suited to known host platforms, and lets that mix evolve without a specification change. Placement: top-level member of the business profile in Standalone Mode (/.well-known/usp); config.authorization on the dev.usp-protocol.services service binding in UCP-Native Mode (/.well-known/ucp), since USP declares only under its own reverse-domain namespace authority and config is the member UCP defines for entity-specific settings. Defined once here and referenced by schemas/usp.json ServiceBinding, openapi/usp-rest.json, and openrpc/usp-mcp.json.",
       "required": ["privileged_operations_require_authentication", "accepted_mechanisms"],
       "properties": {
         "privileged_operations_require_authentication": {
