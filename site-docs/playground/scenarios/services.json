@@ -12,11 +12,11 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.catalog": [
+            "dev.usp-protocol.services.catalog": [
               {
-                "version": "2026-08-14"
+                "version": "2026-08-20"
               }
             ]
           }
@@ -562,11 +562,11 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.catalog": [
+            "dev.usp-protocol.services.catalog": [
               {
-                "version": "2026-08-14"
+                "version": "2026-08-20"
               }
             ]
           }
@@ -647,11 +647,11 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.catalog": [
+            "dev.usp-protocol.services.catalog": [
               {
-                "version": "2026-08-14"
+                "version": "2026-08-20"
               }
             ]
           }
@@ -738,11 +738,11 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.catalog": [
+            "dev.usp-protocol.services.catalog": [
               {
-                "version": "2026-08-14"
+                "version": "2026-08-20"
               }
             ]
           }
@@ -768,11 +768,11 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.catalog": [
+            "dev.usp-protocol.services.catalog": [
               {
-                "version": "2026-08-14"
+                "version": "2026-08-20"
               }
             ]
           }

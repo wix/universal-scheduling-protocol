@@ -3,38 +3,38 @@
     "description": "Standard business profile with catalog, availability, and bookings capabilities",
     "response": {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "services": {
-          "dev.usp.services": [
+          "dev.usp-protocol.services": [
             {
-              "version": "2026-08-14",
+              "version": "2026-08-20",
               "transport": "rest",
               "endpoint": "https://api.downtownwellnessspa.com/usp",
-              "spec": "https://usp.dev/specification",
-              "schema": "https://usp.dev/services/rest.openapi.json"
+              "spec": "https://usp-protocol.dev/specification",
+              "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
             }
           ]
         },
         "capabilities": {
-          "dev.usp.services.catalog": [
+          "dev.usp-protocol.services.catalog": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#3-service-catalog",
-              "schema": "https://usp.dev/schemas/services/catalog.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+              "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
             }
           ],
-          "dev.usp.services.availability": [
+          "dev.usp-protocol.services.availability": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#4-availability",
-              "schema": "https://usp.dev/schemas/services/availability.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#4-availability",
+              "schema": "https://usp-protocol.dev/schemas/services/availability.json"
             }
           ],
-          "dev.usp.services.bookings": [
+          "dev.usp-protocol.services.bookings": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#5-booking-lifecycle",
-              "schema": "https://usp.dev/schemas/services/booking.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+              "schema": "https://usp-protocol.dev/schemas/services/booking.json"
             }
           ]
         },
@@ -72,54 +72,54 @@
     "description": "Full business profile with all capabilities including waitlist and holds",
     "response": {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "services": {
-          "dev.usp.services": [
+          "dev.usp-protocol.services": [
             {
-              "version": "2026-08-14",
+              "version": "2026-08-20",
               "transport": "rest",
               "endpoint": "https://api.downtownwellnessspa.com/usp",
-              "spec": "https://usp.dev/specification",
-              "schema": "https://usp.dev/services/rest.openapi.json"
+              "spec": "https://usp-protocol.dev/specification",
+              "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
             },
             {
-              "version": "2026-08-14",
+              "version": "2026-08-20",
               "transport": "mcp",
               "endpoint": "https://api.downtownwellnessspa.com/usp/mcp",
-              "spec": "https://usp.dev/specification",
-              "schema": "https://usp.dev/services/mcp.openrpc.json"
+              "spec": "https://usp-protocol.dev/specification",
+              "schema": "https://usp-protocol.dev/schemas/openrpc/usp-mcp.json"
             }
           ]
         },
         "capabilities": {
-          "dev.usp.services.catalog": [
+          "dev.usp-protocol.services.catalog": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#3-service-catalog",
-              "schema": "https://usp.dev/schemas/services/catalog.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+              "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
             }
           ],
-          "dev.usp.services.availability": [
+          "dev.usp-protocol.services.availability": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#4-availability",
-              "schema": "https://usp.dev/schemas/services/availability.json",
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#4-availability",
+              "schema": "https://usp-protocol.dev/schemas/services/availability.json",
               "holds": true
             }
           ],
-          "dev.usp.services.bookings": [
+          "dev.usp-protocol.services.bookings": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#5-booking-lifecycle",
-              "schema": "https://usp.dev/schemas/services/booking.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+              "schema": "https://usp-protocol.dev/schemas/services/booking.json"
             }
           ],
-          "dev.usp.services.waitlist": [
+          "dev.usp-protocol.services.waitlist": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#111-waitlist-extension",
-              "schema": "https://usp.dev/schemas/services/waitlist.json",
-              "extends": "dev.usp.services.bookings"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#111-waitlist-extension",
+              "schema": "https://usp-protocol.dev/schemas/services/waitlist.json",
+              "extends": "dev.usp-protocol.services.bookings"
             }
           ]
         },
@@ -179,38 +179,38 @@
     "description": "Minimal business profile with basic capabilities, no holds, appointment-only",
     "response": {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "services": {
-          "dev.usp.services": [
+          "dev.usp-protocol.services": [
             {
-              "version": "2026-08-14",
+              "version": "2026-08-20",
               "transport": "rest",
               "endpoint": "https://api.downtownwellnessspa.com/usp",
-              "spec": "https://usp.dev/specification",
-              "schema": "https://usp.dev/services/rest.openapi.json"
+              "spec": "https://usp-protocol.dev/specification",
+              "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
             }
           ]
         },
         "capabilities": {
-          "dev.usp.services.catalog": [
+          "dev.usp-protocol.services.catalog": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#3-service-catalog",
-              "schema": "https://usp.dev/schemas/services/catalog.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+              "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
             }
           ],
-          "dev.usp.services.availability": [
+          "dev.usp-protocol.services.availability": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#4-availability",
-              "schema": "https://usp.dev/schemas/services/availability.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#4-availability",
+              "schema": "https://usp-protocol.dev/schemas/services/availability.json"
             }
           ],
-          "dev.usp.services.bookings": [
+          "dev.usp-protocol.services.bookings": [
             {
-              "version": "2026-08-14",
-              "spec": "https://usp.dev/specification#5-booking-lifecycle",
-              "schema": "https://usp.dev/schemas/services/booking.json"
+              "version": "2026-08-20",
+              "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+              "schema": "https://usp-protocol.dev/schemas/services/booking.json"
             }
           ]
         },
