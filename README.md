@@ -102,12 +102,12 @@ USP defines three core scheduling capabilities, optional registry and payment mo
 
 | Capability | Namespace | Mode | Section |
 |------------|-----------|------|---------|
-| Service Catalog | `dev.usp.services.catalog` | Both | [Section 3](specification.md#3-service-catalog) |
-| Availability | `dev.usp.services.availability` | Both | [Section 4](specification.md#4-availability) |
-| Bookings | `dev.usp.services.bookings` | Both | [Section 5](specification.md#5-booking-lifecycle) |
-| Discovery Registry | `dev.usp.discovery.registry` | Both (optional) | [Section 6](specification.md#6-discovery-registry-optional) |
-| Paid Bookings | `dev.usp.services.paid_bookings` | UCP-Native only | [Section 7.4](specification.md#74-paid-bookings-extension-schema) |
-| Waitlist | `dev.usp.services.waitlist` | Both (extension) | [Section 11.1](specification.md#111-waitlist-extension) |
+| Service Catalog | `dev.usp-protocol.services.catalog` | Both | [Section 3](specification.md#3-service-catalog) |
+| Availability | `dev.usp-protocol.services.availability` | Both | [Section 4](specification.md#4-availability) |
+| Bookings | `dev.usp-protocol.services.bookings` | Both | [Section 5](specification.md#5-booking-lifecycle) |
+| Discovery Registry | `dev.usp-protocol.discovery.registry` | Both (optional) | [Section 6](specification.md#6-discovery-registry-optional) |
+| Paid Bookings | `dev.usp-protocol.services.paid_bookings` | UCP-Native only | [Section 7.4](specification.md#74-paid-bookings-extension-schema) |
+| Waitlist | `dev.usp-protocol.services.waitlist` | Both (extension) | [Section 11.1](specification.md#111-waitlist-extension) |
 
 **Core capabilities** (catalog, availability, bookings) handle the full scheduling lifecycle and are shared across both deployment modes.
 
@@ -132,7 +132,7 @@ USP's payment handling depends on the deployment mode:
 |------|-------------------|-----------|-----------|
 | **UCP-Native (paid)** | UCP atomic checkout (`create_checkout` + `complete_checkout`) | Atomic (single operation) | 3 USP + 2 UCP |
 | **Standalone (generic)** | `payment_context` + any checkout system + `confirm-payment` | Two-phase | 4 USP + checkout + confirm |
-| **Standalone (ACP)** | ACP checkout session with `dev.usp.services.booking` extension | Two-phase | 4 USP + ACP + confirm |
+| **Standalone (ACP)** | ACP checkout session with `dev.usp-protocol.services.booking` extension | Two-phase | 4 USP + ACP + confirm |
 | **Standalone (redirect)** | `payment_url` redirect to business payment page | Webhook-based | 4 USP + redirect + webhook |
 | **Free services** | No payment | N/A | 4 USP calls |
 

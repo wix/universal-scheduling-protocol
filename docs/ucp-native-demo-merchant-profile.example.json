@@ -11,13 +11,13 @@
           "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
         }
       ],
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json",
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json",
           "config": {
             "authorization": {
               "privileged_operations_require_authentication": true,
@@ -39,32 +39,32 @@
           "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ],
-      "dev.usp.services.paid_bookings": [
+      "dev.usp-protocol.services.paid_bookings": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#7-ucp-native-mode",
-          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
         }
       ]
