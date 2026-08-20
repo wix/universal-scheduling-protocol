@@ -80,7 +80,7 @@ with existing validation and build machinery.
 | U18 | Migrate playground services and profiles | root/site mirrored `services.json`, `business-profile.json`, `platform-profile.json` | mirror comparison and JSON parse | done |
 | U19 | Migrate playground availability and holds | root/site mirrored `availability.json`, `holds.json` | mirror comparison and JSON parse | done |
 | U20 | Migrate playground booking and management | root/site mirrored `bookings.json`, `manage.json` | mirror comparison and JSON parse | done |
-| U21 | Migrate playground payment and waitlist | root/site mirrored `payment.json`, `waitlist.json` | mirror comparison and JSON parse | pending |
+| U21 | Migrate playground payment and waitlist | root/site mirrored `payment.json`, `waitlist.json` | mirror comparison and JSON parse | done |
 | U22 | Migrate playground runtime source | `playground/src/playground.js`, site mirror, `site-docs/playground/src/playground-controller.js` | mirror comparison and stale scan | pending |
 | U23 | Update historical plans and remaining guidance | `plans/USP+UCP_implementation_plan.md`, `plans/V2_PRODUCTION_PLAN.md`, `plans/usp-registry-design-plan.md` | stale scan with historical allowlist | pending |
 | U24 | Add canonical problem documentation | `site-docs/errors/*.md` | required-slug coverage | pending |
