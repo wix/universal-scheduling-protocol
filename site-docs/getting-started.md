@@ -66,9 +66,9 @@ graph TD
 
 If your platform supports UCP, follow these steps:
 
-1. **Register capabilities.** Declare `dev.usp.services.catalog`,
-   `dev.usp.services.availability`, `dev.usp.services.bookings`, and optionally
-   `dev.usp.services.paid_bookings` in your `/.well-known/ucp` profile.
+1. **Register capabilities.** Declare `dev.usp-protocol.services.catalog`,
+   `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings`, and optionally
+   `dev.usp-protocol.services.paid_bookings` in your `/.well-known/ucp` profile.
 
 2. **Implement service catalog.** Expose the service catalog API (list services,
    get service, feed). See [Service Catalog](specification/service-catalog.md).
@@ -135,11 +135,11 @@ USP defines three core capabilities and optional extensions:
 
 | Capability | Namespace | Mode | Description |
 |------------|-----------|------|-------------|
-| Service Catalog | `dev.usp.services.catalog` | Both | [What services a business offers](specification/service-catalog.md) |
-| Availability | `dev.usp.services.availability` | Both | [When services are available](specification/availability.md) |
-| Bookings | `dev.usp.services.bookings` | Both | [Booking lifecycle management](specification/booking.md) |
-| Paid Bookings | `dev.usp.services.paid_bookings` | UCP-Native only | Booking context in UCP checkout |
-| Waitlist | `dev.usp.services.waitlist` | Both (extension) | [Waitlist management](extensions.md) |
+| Service Catalog | `dev.usp-protocol.services.catalog` | Both | [What services a business offers](specification/service-catalog.md) |
+| Availability | `dev.usp-protocol.services.availability` | Both | [When services are available](specification/availability.md) |
+| Bookings | `dev.usp-protocol.services.bookings` | Both | [Booking lifecycle management](specification/booking.md) |
+| Paid Bookings | `dev.usp-protocol.services.paid_bookings` | UCP-Native only | Booking context in UCP checkout |
+| Waitlist | `dev.usp-protocol.services.waitlist` | Both (extension) | [Waitlist management](extensions.md) |
 
 ---
 

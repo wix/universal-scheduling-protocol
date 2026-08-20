@@ -6,7 +6,7 @@ keywords: USP roadmap, scheduling protocol future, healthcare scheduling, educat
 
 # Roadmap
 
-USP is currently in **Draft** status (`v2026-08-14`). This page outlines
+USP is currently in **Draft** status (`v2026-08-20`). This page outlines
 what's implemented, what's planned, and how to contribute.
 
 ---
@@ -103,6 +103,7 @@ USP is open source under the [Apache License 2.0](https://www.apache.org/license
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|
-| `2026-08-14` | 2026-08-14 | Draft | Current version. Adds the platform_key_pop proof-of-possession mechanism and sender-constrained booking-scoped credentials; raises per-resource authorization on bookings and waitlist entries from SHOULD to MUST (breaking). |
+| `2026-08-20` | 2026-08-20 | Draft | Current version. Breaking hard cutover to the owned `usp-protocol.dev` authority, `dev.usp-protocol.*` capability namespace, canonical artifact paths, and published problem documentation. |
+| `2026-08-14` | 2026-08-14 | Superseded | Added the platform_key_pop proof-of-possession mechanism and sender-constrained booking-scoped credentials; raised per-resource authorization on bookings and waitlist entries from SHOULD to MUST (breaking). |
 | `2026-02-21` | 2026-02-21 | Superseded | Full domain core, two deployment modes, four transport bindings. |
 | `2026-02-09` | 2026-02-09 | Superseded | Initial draft. |

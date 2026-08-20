@@ -1,5 +1,14 @@
 # Change Log
 
+## 20/08/26 at 12:52:55 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Released the breaking `2026-08-20` hard cutover from the unowned `usp.dev` authority to `usp-protocol.dev`, including the `dev.usp-protocol.*` capability namespace, canonical specification fragments, migration guidance, reserved-name registry, and synchronized schemas, bindings, examples, playground fixtures, and site documentation
+- Published every schema at its `$id` path, both thin bindings under `/schemas`, and human-readable kebab-case problem types under `/errors`, because protocol identifiers must resolve from the authority origin instead of pointing at missing resources
+- Added artifact-aware local, CI, Pages, and fallback builds plus authority conformance checks for origin binding, namespace names, stale identifiers, canonical paths, binding references, problem pages, and playground mirrors so future releases cannot silently reintroduce identifier or publication drift
+- Documented GitHub Pages compatibility limits and the remaining owner-operated `usp.live` redirect and downstream same-release coordination, so repository-complete work is distinct from external cutover operations
+
+---
+
 ## 19/08/26 at 20:44:05 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added `site-docs/CNAME` to version control so future MkDocs publishes retain the live `usp-protocol.dev` GitHub Pages custom-domain binding instead of silently dropping it

@@ -122,9 +122,9 @@ for the full normative text and rationale.
   ([`schemas/profile.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/schemas/profile.json) `$defs/AuthorizationPolicy`
   / `$defs/AuthorizationMechanism`), published **top-level** in a Standalone
   `/.well-known/usp` profile and as **`config.authorization` on the
-  `dev.usp.services` service binding** in a UCP-Native `/.well-known/ucp`
+  `dev.usp-protocol.services` service binding** in a UCP-Native `/.well-known/ucp`
   profile. USP does not add top-level members to a UCP profile document; it
-  declares only under its own `dev.usp.*` namespace authority, and `config` is
+  declares only under its own `dev.usp-protocol.*` namespace authority, and `config` is
   the member UCP defines for entity-specific settings. The same mechanism set is expressed in
   [`openapi/usp-rest.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openapi/usp-rest.json) `components.securitySchemes`
   and [`openrpc/usp-mcp.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openrpc/usp-mcp.json)

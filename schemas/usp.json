@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/usp.json",
+  "$id": "https://usp-protocol.dev/schemas/usp.json",
   "title": "USP Metadata Object",
   "description": "Defines the usp metadata object used in USP business profiles, platform profiles, and API responses. Each context uses a different variant defined in $defs.",
   "$defs": {
     "ServiceBinding": {
       "type": "object",
       "title": "ServiceBinding",
-      "description": "A transport-specific binding for a USP service endpoint. Each entry in a services registry value array is a ServiceBinding. Field requirements match the UCP service definition so that the same binding object is conformant when published inside /.well-known/ucp in UCP-Native Mode: version, transport, and spec are always required; schema is required for rest, mcp, and embedded; endpoint is required for rest, mcp, and a2a. The spec and schema origins MUST match the namespace authority of the service key (https://usp.dev/... for dev.usp.* keys).",
+      "description": "A transport-specific binding for a USP service endpoint. Each entry in a services registry value array is a ServiceBinding. Field requirements match the UCP service definition so that the same binding object is conformant when published inside /.well-known/ucp in UCP-Native Mode: version, transport, and spec are always required; schema is required for rest, mcp, and embedded; endpoint is required for rest, mcp, and a2a. The spec and schema origins MUST match the namespace authority of the service key (https://usp-protocol.dev/... for dev.usp-protocol.* keys).",
       "required": ["version", "transport", "spec"],
       "properties": {
         "version": {
@@ -46,7 +46,7 @@
           "properties": {
             "authorization": {
               "$ref": "profile.json#/$defs/AuthorizationPolicy",
-              "description": "CONDITIONAL. Authentication policy governing privileged operations at this endpoint, per specification.md Section 10.1.6. This is where UCP-Native deployments publish the policy: under config on the dev.usp.services binding inside /.well-known/ucp. USP declares only under its own dev.usp.* namespace authority and MUST NOT add top-level members to a UCP profile document; config is the slot UCP defines for entity-specific settings. REQUIRED in UCP-Native Mode when the endpoint exposes privileged operations. Standalone Mode profiles MAY use it to override the profile-level policy per endpoint; the top-level BusinessProfile.authorization remains canonical there."
+              "description": "CONDITIONAL. Authentication policy governing privileged operations at this endpoint, per specification.md Section 10.1.6. This is where UCP-Native deployments publish the policy: under config on the dev.usp-protocol.services binding inside /.well-known/ucp. USP declares only under its own dev.usp-protocol.* namespace authority and MUST NOT add top-level members to a UCP profile document; config is the slot UCP defines for entity-specific settings. REQUIRED in UCP-Native Mode when the endpoint exposes privileged operations. Standalone Mode profiles MAY use it to override the profile-level policy per endpoint; the top-level BusinessProfile.authorization remains canonical there."
             }
           },
           "additionalProperties": true
@@ -126,7 +126,7 @@
             { "type": "string" },
             { "type": "array", "items": { "type": "string" } }
           ],
-          "description": "Base capability name(s) this capability extends, in reverse-domain format (e.g., dev.usp.services.bookings)."
+          "description": "Base capability name(s) this capability extends, in reverse-domain format (e.g., dev.usp-protocol.services.bookings)."
         }
       },
       "additionalProperties": true
@@ -227,7 +227,7 @@
         },
         "services": {
           "type": "object",
-          "description": "Service endpoint registry. Keys are reverse-domain service names (e.g., dev.usp.services). Values are arrays of ServiceBinding objects, one per supported transport. The dev.usp.* namespace is reserved for the USP governing body.",
+          "description": "Service endpoint registry. Keys are reverse-domain service names (e.g., dev.usp-protocol.services). Values are arrays of ServiceBinding objects, one per supported transport. The dev.usp-protocol.* namespace is reserved for the USP governing body.",
           "additionalProperties": {
             "type": "array",
             "items": { "$ref": "#/$defs/ServiceBinding" }
@@ -239,7 +239,7 @@
         },
         "capabilities": {
           "type": "object",
-          "description": "Capability registry. Keys are reverse-domain capability names (e.g., dev.usp.services.catalog). Values are arrays of ProfileCapabilityEntry objects, one per supported capability version. Multiple entries for the same key indicate multi-version support.",
+          "description": "Capability registry. Keys are reverse-domain capability names (e.g., dev.usp-protocol.services.catalog). Values are arrays of ProfileCapabilityEntry objects, one per supported capability version. Multiple entries for the same key indicate multi-version support.",
           "additionalProperties": {
             "type": "array",
             "items": { "$ref": "#/$defs/ProfileCapabilityEntry" }

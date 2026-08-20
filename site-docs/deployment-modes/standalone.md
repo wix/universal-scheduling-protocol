@@ -31,46 +31,46 @@ Businesses publish their USP profile at `/.well-known/usp`. This document is the
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "services": {
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json"
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
         },
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
-          "schema": "https://usp.dev/services/mcp.openrpc.json"
+          "schema": "https://usp-protocol.dev/schemas/openrpc/usp-mcp.json"
         }
       ]
     },
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "holds": true,
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
     },
@@ -201,16 +201,16 @@ sequenceDiagram
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.catalog": [
+        { "version": "2026-08-20" }
       ],
-      "dev.usp.services.availability": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.availability": [
+        { "version": "2026-08-20" }
       ],
-      "dev.usp.services.bookings": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.bookings": [
+        { "version": "2026-08-20" }
       ]
     }
   }
@@ -237,8 +237,8 @@ Capabilities are versioned independently. A business supporting multiple version
 
 ```json
 "capabilities": {
-  "dev.usp.services.catalog": [
-    { "version": "2026-08-14" },
+  "dev.usp-protocol.services.catalog": [
+    { "version": "2026-08-20" },
     { "version": "2026-06-15" }
   ]
 }
@@ -251,7 +251,7 @@ The optional `supported_versions` field enables businesses to continue serving o
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "supported_versions": {
       "2026-02-21": "https://business.example.com/.well-known/usp-2026-02-21"
     }
@@ -384,17 +384,17 @@ sequenceDiagram
 
 When `checkout_systems` includes `acp`, the platform maps the USP payment action to an [ACP](https://agenticcommerce.dev/) checkout session, then confirms via USP `confirm-payment`.
 
-USP defines `dev.usp.services.booking` as a proper ACP extension using ACP's `capabilities.extensions` mechanism:
+USP defines `dev.usp-protocol.services.booking` as a proper ACP extension using ACP's `capabilities.extensions` mechanism:
 
 ```json
 {
   "capabilities": {
     "extensions": [
       {
-        "name": "dev.usp.services.booking",
+        "name": "dev.usp-protocol.services.booking",
         "extends": ["$.CheckoutSession.booking"],
-        "spec": "https://usp.dev/specification#856-acp-booking-extension",
-        "schema": "https://usp.dev/schemas/acp_booking_extension.json"
+        "spec": "https://usp-protocol.dev/specification#856-acp-booking-extension",
+        "schema": "https://usp-protocol.dev/schemas/acp_booking_extension.json"
       }
     ]
   }
@@ -674,7 +674,7 @@ When `checkout_systems` includes `acp`, the platform maps the USP payment action
   "capabilities": {
     "extensions": [
       {
-        "name": "dev.usp.services.booking",
+        "name": "dev.usp-protocol.services.booking",
         "extends": ["$.CheckoutSession.booking"]
       }
     ]

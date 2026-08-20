@@ -103,8 +103,8 @@ function intersectProfiles(businessBody, platformBody, options) {
       negotiated[key] = JSON.parse(JSON.stringify(platCaps[key]));
     }
   });
-  if (options.stripHolds && negotiated['dev.usp.services.availability']) {
-    negotiated['dev.usp.services.availability'].forEach(function (entry) {
+  if (options.stripHolds && negotiated['dev.usp-protocol.services.availability']) {
+    negotiated['dev.usp-protocol.services.availability'].forEach(function (entry) {
       delete entry.holds;
     });
   }

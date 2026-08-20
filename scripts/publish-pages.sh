@@ -6,11 +6,13 @@
 # GitHub Actions. Do not run this after that path is live: it fights the
 # Actions deploy (gh-pages is not what Actions-sourced Pages serves).
 # mkdocs gh-deploy writes .nojekyll so a branch-sourced Pages setup can still
-# serve the tree without a Jekyll build.
+# serve the tree without a Jekyll build. --dirty preserves the authority
+# artifacts copied into site/ by build-site.sh.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-python3 -m mkdocs gh-deploy --remote-branch gh-pages --force
+./scripts/build-site.sh
+python3 -m mkdocs gh-deploy --dirty --remote-branch gh-pages --force
 
 echo "Published. Site: https://usp-protocol.dev (fallback: https://wix.github.io/universal-scheduling-protocol/)"
