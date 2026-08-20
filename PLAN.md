@@ -61,7 +61,7 @@ with existing validation and build machinery.
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
 | U1 | Plan and commit this PLAN.md | PLAN.md | test -f PLAN.md | done |
-| U2 | Version the breaking cutover and migration policy | `specification.md`, `README.md`, `site-docs/roadmap.md` | version identity scan | pending |
+| U2 | Version the breaking cutover and migration policy | `specification.md`, `README.md`, `site-docs/roadmap.md` | version identity scan | done |
 | U3 | Publish migration, namespace, and release navigation | `site-docs/migration.md`, `site-docs/namespace.md`, `mkdocs.yml` | MkDocs nav parse | pending |
 | U4 | Migrate core schema identifiers | `schemas/usp.json`, `schemas/profile.json`, `schemas/rest_common.json` | schema checker | pending |
 | U5 | Migrate catalog and availability schema identifiers | `schemas/catalog.json`, `schemas/availability.json`, `schemas/calendar_freebusy.json` | schema checker | pending |
