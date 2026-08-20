@@ -2,10 +2,10 @@
     "openrpc": "1.3.2",
     "info": {
         "title": "Universal Scheduling Protocol (USP) MCP API",
-        "version": "2026-08-14",
-        "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. MCP clients invoke USP operations via the standard MCP tools/call method, with params.name set to the method name defined here and params.arguments containing the operation parameters. Each method maps to a corresponding REST operation. Responses use the structuredContent/content dual-envelope pattern. Privileged vs public operation access follows specification.md Section 10.1.6 and mirrors openapi/usp-rest.json: public catalog/availability/registry-search methods MAY be anonymous; privileged methods (x-usp-access=privileged_platform|privileged_scoped) MUST authenticate with a mechanism declared in the business's AuthorizationPolicy (published top-level in a Standalone /.well-known/usp profile, or as config.authorization on the dev.usp.services binding in a UCP-Native /.well-known/ucp profile) and MUST bind to _meta.usp.profile. See components.x-usp-securitySchemes for the MCP expression of the documented mechanisms; that identifier set is open for forward compatibility with UCP, and unrecognized identifiers are ignored rather than treated as accepted.",
+        "version": "2026-08-20",
+        "description": "The Universal Scheduling Protocol (USP) MCP binding uses JSON-RPC 2.0 for AI agents that interact with USP via tool calls. MCP clients invoke USP operations via the standard MCP tools/call method, with params.name set to the method name defined here and params.arguments containing the operation parameters. Each method maps to a corresponding REST operation. Responses use the structuredContent/content dual-envelope pattern. Privileged vs public operation access follows specification.md Section 10.1.6 and mirrors openapi/usp-rest.json: public catalog/availability/registry-search methods MAY be anonymous; privileged methods (x-usp-access=privileged_platform|privileged_scoped) MUST authenticate with a mechanism declared in the business's AuthorizationPolicy (published top-level in a Standalone /.well-known/usp profile, or as config.authorization on the dev.usp-protocol.services binding in a UCP-Native /.well-known/ucp profile) and MUST bind to _meta.usp.profile. See components.x-usp-securitySchemes for the MCP expression of the documented mechanisms; that identifier set is open for forward compatibility with UCP, and unrecognized identifiers are ignored rather than treated as accepted.",
         "contact": {
-            "url": "https://usp.dev"
+            "url": "https://usp-protocol.dev"
         },
         "license": {
             "name": "Apache-2.0",
@@ -919,7 +919,7 @@
         {
             "name": "usp_availability_hold",
             "summary": "Hold Slot",
-            "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Creates a temporary hold on a time slot. Maps to POST /availability/holds. Requires the business to advertise holds: true in the dev.usp-protocol.services.availability capability. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -1023,7 +1023,7 @@
         {
             "name": "usp_availability_release",
             "summary": "Release Slot",
-            "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp.services.availability capability. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
+            "description": "Explicitly releases a hold. Maps to DELETE /availability/holds/{hold_id}. Requires the business to advertise holds: true in the dev.usp-protocol.services.availability capability. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
             "paramStructure": "by-name",
             "params": [
                 {
@@ -2413,7 +2413,7 @@
         {
             "name": "usp_registry_register",
             "summary": "Register Business (Discovery Registry)",
-            "description": "Register a USP-enabled business with an optional discovery registry. Maps to POST /registry/businesses. Requires dev.usp.discovery.registry. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
+            "description": "Register a USP-enabled business with an optional discovery registry. Maps to POST /registry/businesses. Requires dev.usp-protocol.discovery.registry. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy (http_message_signature recommended default; platform_key_pop for a permissionless caller proving possession of an ephemeral key it never transmits; oauth2_bearer / api_key / mtls when pre-established) and MUST include _meta.usp.profile bound to that credential.",
             "paramStructure": "by-name",
             "params": [
                 {
