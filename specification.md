@@ -1,8 +1,10 @@
 # Universal Scheduling Protocol (USP)
 
-**Version:** `2026-08-14`
+**Version:** `2026-08-20`
 
 **Status:** Draft
+
+**Compatibility:** Breaking hard cutover from the `2026-08-14` namespace authority
 
 ---
 
@@ -797,7 +799,7 @@ profile includes a `locations` array that enumerates the locations it manages:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "business": {
       "name": "Sunrise Wellness Studio",
       "timezone": "America/New_York",
@@ -892,11 +894,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -1618,11 +1620,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -1735,11 +1737,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -1805,11 +1807,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -1917,11 +1919,11 @@ Response (partial success):
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2002,7 +2004,7 @@ Businesses declare feature flags inside the capability entry in their profile:
 ```json
 "dev.usp.services.availability": [
 {
-"version": "2026-08-14",
+"version": "2026-08-20",
 "holds": true
 }
 ]
@@ -2151,11 +2153,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2274,11 +2276,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2300,7 +2302,7 @@ If the slot is no longer available, the business **MUST** return HTTP 200 with a
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {}
   },
   "messages": [
@@ -2333,11 +2335,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2618,11 +2620,11 @@ Response (paid service, `payment_timing: at_booking`):
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2705,11 +2707,11 @@ Response (free service, `requires_payment: false`):
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -2914,11 +2916,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -3285,11 +3287,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -3393,11 +3395,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -3532,11 +3534,11 @@ Response:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.discovery.registry": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -3765,7 +3767,7 @@ An example profile:
       ],
       "dev.usp.services": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3792,14 +3794,14 @@ An example profile:
       ],
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -3807,14 +3809,14 @@ An example profile:
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -3856,7 +3858,7 @@ An example profile:
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
@@ -3873,21 +3875,21 @@ An example profile:
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4035,7 +4037,7 @@ so it needs no governance rule beyond the one this extension already relies on.
       ],
       "dev.usp.services.paid_bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#7-ucp-native-mode",
           "schema": "https://usp.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
@@ -4413,9 +4415,9 @@ sequenceDiagram
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.bookings": [{ "version": "2026-08-14" }]
+      "dev.usp.services.bookings": [{ "version": "2026-08-20" }]
     }
   },
   "booking": {
@@ -4652,18 +4654,18 @@ interactions.
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "services": {
       "dev.usp.services": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
           "schema": "https://usp.dev/services/rest.openapi.json"
         },
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification",
           "transport": "mcp",
           "endpoint": "https://business.example.com/usp/mcp",
@@ -4674,14 +4676,14 @@ interactions.
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "holds": true,
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
@@ -4689,7 +4691,7 @@ interactions.
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4884,25 +4886,25 @@ round-trip negotiation handshake.
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#3-service-catalog",
           "schema": "https://usp.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#4-availability",
           "schema": "https://usp.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "spec": "https://usp.dev/specification#5-booking-lifecycle",
           "schema": "https://usp.dev/schemas/services/booking.json"
         }
@@ -4997,7 +4999,7 @@ platforms that only understand a prior protocol version:
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "supported_versions": {
       "2026-02-21": "https://business.example.com/.well-known/usp-2026-02-21"
     },
@@ -5049,21 +5051,21 @@ standard scheduling request):
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
       "dev.usp.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ],
       "dev.usp.services.availability": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ],
       "dev.usp.services.bookings": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -5100,7 +5102,7 @@ capabilities registry:
 ```json
 "capabilities": {
 "dev.usp.services.catalog": [
-{"version": "2026-08-14"},
+{"version": "2026-08-20"},
 {"version": "2026-06-15"}
 ]
 }
@@ -6301,11 +6303,11 @@ Responses use the `structuredContent` / `content` dual-envelope pattern. The `st
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
           "dev.usp.services.availability": [
             {
-              "version": "2026-08-14"
+              "version": "2026-08-20"
             }
           ]
         }
@@ -6344,7 +6346,7 @@ Business outcome errors (e.g., slot unavailable, hold expired) are returned insi
   "result": {
     "structuredContent": {
       "usp": {
-        "version": "2026-08-14"
+        "version": "2026-08-20"
       },
       "messages": [
         {
@@ -6557,7 +6559,7 @@ USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) obj
   "mimeType": "application/json",
   "metadata": {
     "usp": {
-      "version": "2026-08-14"
+      "version": "2026-08-20"
     }
   },
   "data": {
@@ -6723,7 +6725,7 @@ globals (native):
       "payment"
     ],
     "service_id": "svc_massage_001",
-    "version": "2026-08-14"
+    "version": "2026-08-20"
   }
 }
 ```
@@ -8153,13 +8155,13 @@ Platforms advertise this capability in their platform profile (see
 ```json
 {
   "usp": {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "capabilities": {
-      "dev.usp.services.catalog": [{ "version": "2026-08-14" }],
-      "dev.usp.services.availability": [{ "version": "2026-08-14" }],
+      "dev.usp.services.catalog": [{ "version": "2026-08-20" }],
+      "dev.usp.services.availability": [{ "version": "2026-08-20" }],
       "dev.usp.platform.calendar_freebusy": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "extends": "dev.usp.services.availability",
           "supported_providers": ["google", "microsoft", "apple"]
         }
