@@ -2,10 +2,10 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Universal Scheduling Protocol (USP) REST API",
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "description": "The Universal Scheduling Protocol (USP) enables consumer platforms and AI agents to discover, check availability of, and book time-based services from businesses. This OpenAPI specification defines the REST binding for all USP operations.",
     "contact": {
-      "url": "https://usp.dev"
+      "url": "https://usp-protocol.dev"
     },
     "license": {
       "name": "Apache-2.0",
@@ -25,7 +25,7 @@
     },
     {
       "name": "Availability",
-      "description": "Availability query and optional hold operations. Hold and release endpoints require the business to advertise holds: true in the dev.usp.services.availability capability."
+      "description": "Availability query and optional hold operations. Hold and release endpoints require the business to advertise holds: true in the dev.usp-protocol.services.availability capability."
     },
     {
       "name": "Bookings",
@@ -192,7 +192,7 @@
               "invalid_request": {
                 "summary": "Malformed request",
                 "value": {
-                  "type": "https://usp.dev/errors/invalid_request",
+                  "type": "https://usp-protocol.dev/errors/invalid-request",
                   "title": "Bad Request",
                   "status": 400,
                   "detail": "Malformed JSON or missing required fields"
@@ -201,7 +201,7 @@
               "algorithm_unsupported": {
                 "summary": "Signature algorithm not supported by the verifier",
                 "value": {
-                  "type": "https://usp.dev/errors/algorithm_unsupported",
+                  "type": "https://usp-protocol.dev/errors/algorithm-unsupported",
                   "title": "Algorithm Unsupported",
                   "status": 400,
                   "detail": "The algorithm of the resolved signing key is not supported; ES256 is the baseline every verifier supports"
@@ -210,7 +210,7 @@
               "digest_mismatch": {
                 "summary": "Content-Digest does not match body",
                 "value": {
-                  "type": "https://usp.dev/errors/digest_mismatch",
+                  "type": "https://usp-protocol.dev/errors/digest-mismatch",
                   "title": "Digest Mismatch",
                   "status": 400,
                   "detail": "Content-Digest header does not match the computed digest of the request body"
@@ -241,7 +241,7 @@
               "authentication_required": {
                 "summary": "Missing or invalid credentials",
                 "value": {
-                  "type": "https://usp.dev/errors/authentication_required",
+                  "type": "https://usp-protocol.dev/errors/authentication-required",
                   "title": "Unauthorized",
                   "status": 401,
                   "detail": "Authentication credentials are missing or invalid"
@@ -250,7 +250,7 @@
               "signature_missing": {
                 "summary": "Missing Signature/Signature-Input headers",
                 "value": {
-                  "type": "https://usp.dev/errors/signature_missing",
+                  "type": "https://usp-protocol.dev/errors/signature-missing",
                   "title": "Signature Missing",
                   "status": 401,
                   "detail": "Request does not include required Signature and Signature-Input headers"
@@ -259,7 +259,7 @@
               "signature_invalid": {
                 "summary": "Signature verification failed",
                 "value": {
-                  "type": "https://usp.dev/errors/signature_invalid",
+                  "type": "https://usp-protocol.dev/errors/signature-invalid",
                   "title": "Signature Invalid",
                   "status": 401,
                   "detail": "Signature verification failed"
@@ -268,7 +268,7 @@
               "key_not_found": {
                 "summary": "Signing key not found in profile",
                 "value": {
-                  "type": "https://usp.dev/errors/key_not_found",
+                  "type": "https://usp-protocol.dev/errors/key-not-found",
                   "title": "Key Not Found",
                   "status": 401,
                   "detail": "The keyid in Signature-Input does not match any key in the signer's profile"
@@ -277,7 +277,7 @@
               "signature_expired": {
                 "summary": "Signature 'created' parameter outside the verifier's freshness window",
                 "value": {
-                  "type": "https://usp.dev/errors/signature_expired",
+                  "type": "https://usp-protocol.dev/errors/signature-expired",
                   "title": "Signature Expired",
                   "status": 401,
                   "detail": "The 'created' signature parameter is outside the acceptable window"
@@ -286,7 +286,7 @@
               "pop_proof_missing": {
                 "summary": "Proof of possession missing",
                 "value": {
-                  "type": "https://usp.dev/errors/pop_proof_missing",
+                  "type": "https://usp-protocol.dev/errors/pop-proof-missing",
                   "title": "Proof of possession missing",
                   "status": 401,
                   "detail": "The presented booking_scoped_credential carries a cnf confirmation key and is sender-constrained. Present it as 'Authorization: DPoP <credential>' together with a DPoP proof header over the bound key; it MUST NOT be sent as a bearer token."
@@ -295,7 +295,7 @@
               "pop_key_mismatch": {
                 "summary": "Proof key does not match the credential binding",
                 "value": {
-                  "type": "https://usp.dev/errors/pop_key_mismatch",
+                  "type": "https://usp-protocol.dev/errors/pop-key-mismatch",
                   "title": "Proof key does not match the credential binding",
                   "status": 401,
                   "detail": "The RFC 7638 thumbprint of the jwk in the DPoP proof header does not match the cnf.jkt this credential was issued against. The credential is bound to a different key."
@@ -304,7 +304,7 @@
               "pop_proof_replayed": {
                 "summary": "Proof replayed",
                 "value": {
-                  "type": "https://usp.dev/errors/pop_proof_replayed",
+                  "type": "https://usp-protocol.dev/errors/pop-proof-replayed",
                   "title": "Proof replayed",
                   "status": 401,
                   "detail": "The jti in the DPoP proof has already been seen within the freshness window. Build a fresh proof for each request."
@@ -322,7 +322,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/booking_not_found",
+              "type": "https://usp-protocol.dev/errors/booking-not-found",
               "title": "Not Found",
               "status": 404,
               "detail": "The requested resource does not exist"
@@ -338,7 +338,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/idempotency_conflict",
+              "type": "https://usp-protocol.dev/errors/idempotency-conflict",
               "title": "Conflict",
               "status": 409,
               "detail": "Idempotency key was previously used with different parameters"
@@ -354,7 +354,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/validation_error",
+              "type": "https://usp-protocol.dev/errors/validation-error",
               "title": "Unprocessable Entity",
               "status": 422,
               "detail": "Request fields are invalid"
@@ -370,7 +370,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/profile_not_trusted",
+              "type": "https://usp-protocol.dev/errors/profile-not-trusted",
               "title": "Forbidden",
               "status": 403,
               "detail": "The platform profile URL is not in the business's pre-approved allowlist"
@@ -386,7 +386,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/profile_unreachable",
+              "type": "https://usp-protocol.dev/errors/profile-unreachable",
               "title": "Failed Dependency",
               "status": 424,
               "detail": "Business profile could not be fetched"
@@ -409,7 +409,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/rate_limited",
+              "type": "https://usp-protocol.dev/errors/rate-limited",
               "title": "Too Many Requests",
               "status": 429,
               "detail": "Rate limit exceeded"
@@ -425,7 +425,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/server_error",
+              "type": "https://usp-protocol.dev/errors/server-error",
               "title": "Internal Server Error",
               "status": 500,
               "detail": "An unexpected error occurred"
@@ -459,7 +459,7 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "example": {
-              "type": "https://usp.dev/errors/revision_mismatch",
+              "type": "https://usp-protocol.dev/errors/revision-mismatch",
               "title": "Precondition Failed",
               "status": 412,
               "detail": "The If-Match revision is stale; the booking changed since it was read. Re-read the booking and retry with the current revision."
@@ -1798,7 +1798,7 @@
           "Availability"
         ],
         "summary": "Hold Slot",
-        "description": "Creates a temporary hold on a time slot. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
+        "description": "Creates a temporary hold on a time slot. Requires the business to advertise holds: true in the dev.usp-protocol.services.availability capability.",
         "operationId": "holdSlot",
         "parameters": [
           {
@@ -1920,7 +1920,7 @@
           "Availability"
         ],
         "summary": "Release Slot",
-        "description": "Explicitly releases a hold before it expires. Requires the business to advertise holds: true in the dev.usp.services.availability capability.",
+        "description": "Explicitly releases a hold before it expires. Requires the business to advertise holds: true in the dev.usp-protocol.services.availability capability.",
         "operationId": "releaseSlot",
         "parameters": [
           {
@@ -4204,38 +4204,38 @@
                 },
                 "example": {
                   "usp": {
-                    "version": "2026-08-14",
+                    "version": "2026-08-20",
                     "services": {
-                      "dev.usp.services": [
+                      "dev.usp-protocol.services": [
                         {
-                          "version": "2026-08-14",
+                          "version": "2026-08-20",
                           "transport": "rest",
                           "endpoint": "https://business.example.com/usp/v1",
-                          "spec": "https://usp.dev/specification",
-                          "schema": "https://usp.dev/services/rest.openapi.json"
+                          "spec": "https://usp-protocol.dev/specification",
+                          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json"
                         }
                       ]
                     },
                     "capabilities": {
-                      "dev.usp.services.catalog": [
+                      "dev.usp-protocol.services.catalog": [
                         {
-                          "version": "2026-08-14",
-                          "spec": "https://usp.dev/specification#3-service-catalog",
-                          "schema": "https://usp.dev/schemas/services/catalog.json"
+                          "version": "2026-08-20",
+                          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+                          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
                         }
                       ],
-                      "dev.usp.services.availability": [
+                      "dev.usp-protocol.services.availability": [
                         {
-                          "version": "2026-08-14",
-                          "spec": "https://usp.dev/specification#4-availability",
-                          "schema": "https://usp.dev/schemas/services/availability.json"
+                          "version": "2026-08-20",
+                          "spec": "https://usp-protocol.dev/specification#4-availability",
+                          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
                         }
                       ],
-                      "dev.usp.services.bookings": [
+                      "dev.usp-protocol.services.bookings": [
                         {
-                          "version": "2026-08-14",
-                          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-                          "schema": "https://usp.dev/schemas/services/booking.json"
+                          "version": "2026-08-20",
+                          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+                          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
                         }
                       ]
                     },
@@ -4332,7 +4332,7 @@
       "post": {
         "operationId": "usp_waitlist_webhook",
         "summary": "Waitlist lifecycle webhook",
-        "description": "The business POSTs waitlist lifecycle events to the platform's registered webhook_url (Section 8.2.3) when the dev.usp.services.waitlist capability is in use. Payloads MUST be signed per Section 10.1.1. Not an endpoint the business exposes for inbound client calls — describes the shape of outbound POST requests from business to platform.",
+        "description": "The business POSTs waitlist lifecycle events to the platform's registered webhook_url (Section 8.2.3) when the dev.usp-protocol.services.waitlist capability is in use. Payloads MUST be signed per Section 10.1.1. Not an endpoint the business exposes for inbound client calls — describes the shape of outbound POST requests from business to platform.",
         "requestBody": {
           "required": true,
           "content": {
