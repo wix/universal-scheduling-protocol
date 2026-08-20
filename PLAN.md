@@ -69,7 +69,7 @@ with existing validation and build machinery.
 | U7 | Migrate extension schema identifiers | `schemas/waitlist.json`, `schemas/registry.json`, `schemas/webhook_event.json` | schema checker | done |
 | U8 | Migrate and validate the REST binding | `openapi/usp-rest.json` | JSON parse and thin-ref check | done |
 | U9 | Migrate and validate the MCP binding | `openrpc/usp-mcp.json` | JSON parse and thin-ref check | done |
-| U10 | Complete normative namespace and URI rewrite | `specification.md` | stale scan and anchor check | pending |
+| U10 | Complete normative namespace and URI rewrite | `specification.md` | stale scan and anchor check | done |
 | U11 | Synchronize core site explanations | `site-docs/core-concepts.md`, `site-docs/getting-started.md`, `site-docs/security.md` | stale scan | pending |
 | U12 | Synchronize catalog and availability pages | `site-docs/specification/service-catalog.md`, `site-docs/specification/availability.md` | stale scan | pending |
 | U13 | Synchronize booking and registry pages | `site-docs/specification/booking.md`, `site-docs/specification/discovery-registry.md`, `site-docs/specification/index.md` | stale scan | pending |
