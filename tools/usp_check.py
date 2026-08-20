@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Conformance checks for the USP specification repository.
 
-Three subcommands, each useful on its own:
+Four subcommands, each useful on its own:
 
   schemas   Parse every JSON artefact, compile every file under schemas/ as a
             JSON Schema, and assert the protocol version literal agrees across
@@ -18,6 +18,10 @@ Three subcommands, each useful on its own:
   vectors   Validate tests/vectors/ against the schemas, recompute every
             published JCS digest, and assert each vector's reject_code and id
             are actually reachable from the normative text.
+
+  authority Enforce the owned origin and capability namespace, canonical URL
+            layout, published artifact coverage, playground mirrors, problem
+            pages, and stale-identifier absence.
 
 Accepted pre-existing failures live one per line in tools/known-issues.txt.
 That file is an explicit, reviewable debt ledger - not a suppression flag - and
@@ -45,6 +49,8 @@ OPENRPC = REPO / "openrpc" / "usp-mcp.json"
 SPEC = REPO / "specification.md"
 README = REPO / "README.md"
 ROADMAP = REPO / "site-docs" / "roadmap.md"
+SITE = REPO / "site"
+USP_ORIGIN = "https://usp-protocol.dev"
 
 # JSON trees that must parse. Globs are relative to the repository root.
 PARSE_GLOBS = [
@@ -78,7 +84,7 @@ INFORMATIVE_DEFS = {
 # $refs pointing outside this repository are recorded, never resolved.
 EXTERNAL_REF_PREFIXES = ("https://ucp.dev/", "http://ucp.dev/")
 
-USP_SCHEMA_BASE = "https://usp.dev/schemas/"
+USP_SCHEMA_BASE = f"{USP_ORIGIN}/schemas/"
 
 
 class Findings:
@@ -163,7 +169,7 @@ def resolve_pointer(doc, pointer: str):
 
 
 def usp_uri_to_paths(uri: str) -> list[Path]:
-    """Map a https://usp.dev/schemas/... URI onto candidate on-disk files.
+    """Map a canonical USP schema URI onto candidate on-disk files.
 
     The published $id values carry directory segments (services/, platform/)
     that the flat schemas/ directory does not have, so both forms are tried.
@@ -452,12 +458,12 @@ def check_vectors(findings: Findings) -> None:
     profile = json.loads((SCHEMA_DIR / "profile.json").read_text())
     usp = json.loads((SCHEMA_DIR / "usp.json").read_text())
     registry = {
-        "https://usp.dev/schemas/profile.json": profile,
-        "https://usp.dev/schemas/usp.json": usp,
+        f"{USP_SCHEMA_BASE}profile.json": profile,
+        f"{USP_SCHEMA_BASE}usp.json": usp,
     }
     credential_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$ref": "https://usp.dev/schemas/profile.json#/$defs/BookingScopedCredential",
+        "$ref": f"{USP_SCHEMA_BASE}profile.json#/$defs/BookingScopedCredential",
     }
 
     def validator_for(schema):
@@ -573,8 +579,224 @@ def check_vectors(findings: Findings) -> None:
 
 
 # --------------------------------------------------------------------------
+# check: authority publication
+# --------------------------------------------------------------------------
 
-CHECKS = {"schemas": check_schemas, "refs": check_refs, "vectors": check_vectors}
+def iter_text_sources() -> list[Path]:
+    """Tracked-style text sources relevant to identifier migration."""
+    suffixes = {".html", ".js", ".json", ".md", ".py", ".sh", ".txt", ".yml", ".yaml"}
+    excluded_names = {"CHANGE_LOG.md", "PLAN.md"}
+    out = []
+    for path in REPO.rglob("*"):
+        if not path.is_file() or path.name in excluded_names:
+            continue
+        if path.resolve() == Path(__file__).resolve():
+            continue
+        if any(part in {".git", "site", "node_modules"} for part in path.parts):
+            continue
+        if path.suffix in suffixes or path.name in {"CNAME"}:
+            out.append(path)
+    return sorted(out)
+
+
+def published_path(uri: str) -> Path:
+    """Return the built-site path for a canonical authority URI."""
+    path = uri.removeprefix(USP_ORIGIN).split("#", 1)[0].split("?", 1)[0]
+    return SITE / path.lstrip("/")
+
+
+def check_authority(findings: Findings) -> None:
+    canonical_fragments = {
+        "3-service-catalog",
+        "4-availability",
+        "5-booking-lifecycle",
+        "7-ucp-native-mode",
+        "waitlist-extension",
+        "856-acp-booking-extension",
+    }
+    historical = {
+        REPO / "site-docs" / "migration.md",
+    }
+    legacy_path_docs = historical | {
+        SPEC,
+        REPO / "docs" / "website-deployment.md",
+        REPO / "scripts" / "build-site.sh",
+    }
+    external_host_docs = historical | {
+        REPO / "docs" / "website-deployment.md",
+    }
+    for path in iter_text_sources():
+        text = path.read_text(errors="replace")
+        stale_text = text
+        if path == SPEC:
+            stale_text = text.split(
+                "## Appendix B. Namespace Authority Migration (Informative)", 1)[0]
+        if path not in historical:
+            if "https://usp.dev" in stale_text:
+                findings.fail(f"STALE:{rel(path)}:origin",
+                              "contains the retired https://usp.dev origin")
+            if re.search(r"\bdev\.usp\.", stale_text):
+                findings.fail(f"STALE:{rel(path)}:namespace",
+                              "contains the retired dev.usp.* namespace")
+        if path not in external_host_docs and re.search(r"\busp\.live\b", text):
+            findings.fail(f"STALE:{rel(path)}:docs-host",
+                          "contains the former docs host outside residual notes")
+        if path not in legacy_path_docs and re.search(
+                r"/services/(?:rest\.openapi|mcp\.openrpc)\.json", text):
+            findings.fail(f"STALE:{rel(path)}:binding-path",
+                          "contains a former binding path outside migration notes")
+        for short in re.findall(
+                r"https://usp-protocol\.dev/schemas/"
+                r"(?:catalog|availability|booking|waitlist)\.json", text):
+            findings.fail(f"LAYOUT:{rel(path)}:{short}",
+                          "uses a deleted short schema path")
+
+        for uri in re.findall(r"https://usp-protocol\.dev/(?:problems|spec/\d{4}-\d{2}-\d{2})"
+                              r"[^\s\"'`)<]*", text):
+            findings.fail(f"LAYOUT:{rel(path)}:{uri}",
+                          "uses a non-canonical problem or versioned-spec path")
+        for fragment in re.findall(
+                r"https://usp-protocol\.dev/specification#([a-z0-9-]+)", text):
+            if fragment not in canonical_fragments:
+                findings.fail(f"SPECFRAGMENT:{rel(path)}:{fragment}",
+                              "profile spec URI uses a non-canonical fragment")
+        for slug in re.findall(r"https://usp-protocol\.dev/errors/([a-z0-9_-]+)", text):
+            if "_" in slug or slug == "validation":
+                findings.fail(f"ERRORSLUG:{rel(path)}:{slug}",
+                              "problem type must use its canonical kebab-case slug")
+
+    schema_ids = {}
+    for path in sorted(SCHEMA_DIR.glob("*.json")):
+        schema_id = json.loads(path.read_text()).get("$id")
+        if not isinstance(schema_id, str) or not schema_id.startswith(USP_SCHEMA_BASE):
+            findings.fail(f"ORIGIN:{rel(path)}",
+                          f"$id must start with {USP_SCHEMA_BASE}")
+            continue
+        if schema_id in schema_ids:
+            findings.fail(f"SCHEMAID:{rel(path)}",
+                          f"duplicates $id from {rel(schema_ids[schema_id])}")
+        schema_ids[schema_id] = path
+        target = published_path(schema_id)
+        if not target.is_file():
+            findings.fail(f"PUBLISH:{schema_id}",
+                          f"built site is missing {rel(target)}")
+        else:
+            try:
+                if json.loads(target.read_text()).get("$id") != schema_id:
+                    findings.fail(f"PUBLISH:{schema_id}",
+                                  "published schema $id differs from source")
+            except json.JSONDecodeError as exc:
+                findings.fail(f"PUBLISH:{schema_id}", f"published JSON is invalid: {exc}")
+
+    for path in iter_json_files():
+        doc = json.loads(path.read_text())
+        for pointer, node in walk(doc):
+            if not isinstance(node, dict):
+                continue
+            for name, entries in node.items():
+                if not name.startswith("dev.usp-protocol.") or not isinstance(entries, list):
+                    continue
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    for field in ("spec", "schema"):
+                        uri = entry.get(field)
+                        if uri is not None and (
+                                not isinstance(uri, str) or
+                                not uri.startswith(USP_ORIGIN + "/")):
+                            findings.fail(
+                                f"ORIGIN:{rel(path)}:{pointer}/{name}/{field}",
+                                f"{field} must use {USP_ORIGIN}")
+
+    binding_targets = {
+        OPENAPI: SITE / "schemas" / "openapi" / "usp-rest.json",
+        OPENRPC: SITE / "schemas" / "openrpc" / "usp-mcp.json",
+    }
+    for source, target in binding_targets.items():
+        if not target.is_file():
+            findings.fail(f"PUBLISH:{rel(source)}", f"missing {rel(target)}")
+            continue
+        if json.loads(source.read_text()) != json.loads(target.read_text()):
+            findings.fail(f"PUBLISH:{rel(source)}", "published binding differs from source")
+        for pointer, node in walk(json.loads(source.read_text())):
+            if not isinstance(node, dict) or not isinstance(node.get("$ref"), str):
+                continue
+            ref = node["$ref"]
+            if ref.startswith(("https://ucp.dev/", "#")):
+                continue
+            if not ref.startswith(USP_SCHEMA_BASE):
+                findings.fail(f"BINDINGREF:{rel(source)}:{pointer}",
+                              "external binding $ref is not a canonical schema URI")
+
+    required_files = [
+        SITE / "specification" / "index.html",
+        SITE / "services" / "rest.openapi.json",
+        SITE / "services" / "mcp.openrpc.json",
+        SITE / "spec" / "index.html",
+        SITE / "CNAME",
+    ]
+    for path in required_files:
+        if not path.is_file():
+            findings.fail(f"PUBLISH:{rel(path)}", "required published path is missing")
+    cname = SITE / "CNAME"
+    if cname.is_file() and cname.read_text().strip() != "usp-protocol.dev":
+        findings.fail("PUBLISH:CNAME", "published CNAME does not bind usp-protocol.dev")
+
+    specification_html = SITE / "specification" / "index.html"
+    if specification_html.is_file():
+        html = specification_html.read_text()
+        for fragment in sorted(canonical_fragments):
+            escaped = re.escape(fragment)
+            if not re.search(rf'\bid=(?:"{escaped}"|{escaped})(?:\s|>)', html):
+                findings.fail(f"SPECFRAGMENT:{fragment}",
+                              "built specification page is missing canonical anchor")
+
+    type_uris = set()
+    for path in iter_text_sources():
+        type_uris.update(re.findall(
+            r"https://usp-protocol\.dev/errors/[a-z0-9-]+", path.read_text(errors="replace")))
+    for uri in sorted(type_uris):
+        slug = uri.rsplit("/", 1)[1]
+        if not (SITE / "errors" / slug / "index.html").is_file():
+            findings.fail(f"PROBLEM:{uri}", "built site has no canonical problem page")
+
+    for source in sorted((REPO / "playground" / "scenarios").glob("*.json")):
+        mirror = REPO / "site-docs" / "playground" / "scenarios" / source.name
+        if not mirror.is_file() or source.read_bytes() != mirror.read_bytes():
+            findings.fail(f"MIRROR:{rel(source)}", "site-docs scenario mirror differs")
+    source_js = REPO / "playground" / "src" / "playground.js"
+    mirror_js = REPO / "site-docs" / "playground" / "src" / "playground.js"
+    identifier_pattern = re.compile(
+        r"(?:https://usp-protocol\.dev/[a-z0-9_./#-]+|dev\.usp-protocol\.[a-z0-9_.-]+)")
+    source_identifiers = set(identifier_pattern.findall(source_js.read_text()))
+    mirror_identifiers = set(identifier_pattern.findall(mirror_js.read_text()))
+    if source_identifiers != mirror_identifiers:
+        findings.fail("MIRROR:playground.js",
+                      "site-docs runtime advertises different protocol identifiers")
+
+    registry = (REPO / "site-docs" / "namespace.md").read_text()
+    required_names = {
+        "dev.usp-protocol.services",
+        "dev.usp-protocol.services.catalog",
+        "dev.usp-protocol.services.catalog.subscriptions",
+        "dev.usp-protocol.services.availability",
+        "dev.usp-protocol.services.bookings",
+        "dev.usp-protocol.services.paid_bookings",
+        "dev.usp-protocol.services.waitlist",
+        "dev.usp-protocol.discovery.registry",
+        "dev.usp-protocol.platform.calendar_freebusy",
+    }
+    for name in sorted(required_names):
+        if f"`{name}`" not in registry:
+            findings.fail(f"NAMESPACE:{name}", "missing from namespace registry")
+
+
+CHECKS = {
+    "schemas": check_schemas,
+    "refs": check_refs,
+    "vectors": check_vectors,
+    "authority": check_authority,
+}
 
 
 def main() -> int:

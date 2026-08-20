@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/rest_common.json",
+  "$id": "https://usp-protocol.dev/schemas/rest_common.json",
   "title": "USP REST binding shared types",
   "description": "Types used by the REST binding and referenced from OpenAPI; single source of truth for problem details and catalog feed subscriptions.",
   "$defs": {

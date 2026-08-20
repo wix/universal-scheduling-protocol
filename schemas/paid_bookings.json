@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/services/paid_bookings.json",
+  "$id": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
   "title": "USP Paid Bookings Extension",
   "description": "Extends dev.ucp.shopping.checkout with booking context. UCP assimilation artifact for integrating USP scheduling with UCP checkout. When complete_checkout succeeds, payment and booking are atomically finalized.",
   "requires": {
     "dev.ucp.shopping.checkout": ">=2026-01-11",
-    "dev.usp.services.bookings": ">=2026-08-14"
+    "dev.usp-protocol.services.bookings": ">=2026-08-20"
   },
   "allOf": [
     {
@@ -25,8 +25,8 @@
           "description": "USP booking context embedded in the checkout. Created when checkout is created; confirmed when complete_checkout succeeds."
         },
         "booking_scoped_credential": {
-          "$ref": "https://usp.dev/schemas/profile.json#/$defs/BookingScopedCredential",
-          "description": "CONDITIONAL, response-only. Sender-constrained capability credential authorizing continuation operations on the booking this checkout created, returned when the business accepts the booking_scoped_credential mechanism. This is where the credential rides in UCP-Native Mode. It is a SIBLING of booking rather than a member of it: BookingContext is scheduling data that platforms persist and re-display, and a credential must never flow there. It is also declared here, inside USP's own registered dev.usp.services.paid_bookings extension, rather than being added as an invented member of the UCP checkout root - the same composition by which this extension already contributes booking. A platform MUST NOT send this on a request, and a business MUST ignore it if received. See specification.md Section 10.1.6."
+          "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/BookingScopedCredential",
+          "description": "CONDITIONAL, response-only. Sender-constrained capability credential authorizing continuation operations on the booking this checkout created, returned when the business accepts the booking_scoped_credential mechanism. This is where the credential rides in UCP-Native Mode. It is a SIBLING of booking rather than a member of it: BookingContext is scheduling data that platforms persist and re-display, and a credential must never flow there. It is also declared here, inside USP's own registered dev.usp-protocol.services.paid_bookings extension, rather than being added as an invented member of the UCP checkout root - the same composition by which this extension already contributes booking. A platform MUST NOT send this on a request, and a business MUST ignore it if received. See specification.md Section 10.1.6."
         }
       }
     },

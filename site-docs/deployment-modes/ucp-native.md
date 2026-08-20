@@ -44,13 +44,13 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
         }
       ],
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json",
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json",
           "config": {
             "authorization": {
               "privileged_operations_require_authentication": true,
@@ -69,33 +69,33 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "version": "2026-01-11"
         }
       ],
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#3-service-catalog",
-          "schema": "https://usp.dev/schemas/services/catalog.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "holds": true,
-          "spec": "https://usp.dev/specification#4-availability",
-          "schema": "https://usp.dev/schemas/services/availability.json"
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#5-booking-lifecycle",
-          "schema": "https://usp.dev/schemas/services/booking.json"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ],
-      "dev.usp.services.paid_bookings": [
+      "dev.usp-protocol.services.paid_bookings": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification#7-ucp-native-mode",
-          "schema": "https://usp.dev/schemas/services/paid_bookings.json",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
+          "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
         }
       ]
@@ -111,20 +111,20 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
 
 ### Free-Service-Only Profile
 
-Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings`:
+Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings`:
 
 ```json
 {
   "ucp": {
     "version": "2026-01-11",
     "services": {
-      "dev.usp.services": [
+      "dev.usp-protocol.services": [
         {
-          "version": "2026-08-14",
-          "spec": "https://usp.dev/specification",
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification",
           "transport": "rest",
           "endpoint": "https://business.example.com/usp/v1",
-          "schema": "https://usp.dev/services/rest.openapi.json",
+          "schema": "https://usp-protocol.dev/schemas/openapi/usp-rest.json",
           "config": {
             "authorization": {
               "privileged_operations_require_authentication": true,
@@ -135,19 +135,19 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
       ]
     },
     "capabilities": {
-      "dev.usp.services.catalog": [
+      "dev.usp-protocol.services.catalog": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ],
-      "dev.usp.services.availability": [
+      "dev.usp-protocol.services.availability": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ],
-      "dev.usp.services.bookings": [
+      "dev.usp-protocol.services.bookings": [
         {
-          "version": "2026-08-14"
+          "version": "2026-08-20"
         }
       ]
     }
@@ -189,7 +189,7 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 
     UCP supplies transport mechanics -- how a token or signature is carried -- but USP's requirement that privileged operations **MUST** be authenticated is a USP-level floor layered on top of UCP, not something UCP-Native Mode provides on its own: UCP's own posture on platform authentication is optional (`SHOULD`). Section 10.1.6 applies to UCP-Native checkout and booking-extension operations exactly as it does in Standalone Mode.
 
-    In UCP-Native Mode the authorization policy is published as **`config.authorization` on the `dev.usp.services` service binding** in `/.well-known/ucp`, **not** as a top-level member of the UCP profile: USP declares only under its own `dev.usp.*` namespace authority, and `config` is the member UCP reserves for entity-specific settings.
+    In UCP-Native Mode the authorization policy is published as **`config.authorization` on the `dev.usp-protocol.services` service binding** in `/.well-known/ucp`, **not** as a top-level member of the UCP profile: USP declares only under its own `dev.usp-protocol.*` namespace authority, and `config` is the member UCP reserves for entity-specific settings.
 
     See [Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations).
 
@@ -197,7 +197,7 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 
 ## Paid Bookings Extension Schema
 
-**Capability:** `dev.usp.services.paid_bookings` (extends `dev.ucp.shopping.checkout`)
+**Capability:** `dev.usp-protocol.services.paid_bookings` (extends `dev.ucp.shopping.checkout`)
 
 The paid bookings extension adds a `booking` object to the UCP checkout. This object carries the scheduling context -- the slot, service, hold, resources, and booking status -- as a first-class, schema-validated extension field.
 
@@ -258,8 +258,8 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
       "dev.ucp.shopping.checkout": [
         { "version": "2026-01-11" }
       ],
-      "dev.usp.services.paid_bookings": [
-        { "version": "2026-08-14" }
+      "dev.usp-protocol.services.paid_bookings": [
+        { "version": "2026-08-20" }
       ]
     },
     "payment_handlers": {
@@ -372,7 +372,7 @@ It is derived from the UCP checkout status:
 
 ### Checkout Steps
 
-When the platform detects `dev.usp.services.paid_bookings` in the UCP profile, it uses this flow:
+When the platform detects `dev.usp-protocol.services.paid_bookings` in the UCP profile, it uses this flow:
 
 1. **[USP] Discover services** via `POST /services/list`
 2. **[USP] Query availability** via `POST /availability/query`
@@ -409,7 +409,7 @@ The business **MAY** reject `complete_checkout` if non-payment actions are still
 
 ## Free Services in UCP-Native Mode
 
-For businesses that only offer free services (`requires_payment: false`), the UCP profile omits `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings`. Bookings are created via `POST /bookings` and are immediately confirmed (for `auto` confirmation mode) without any checkout involvement.
+For businesses that only offer free services (`requires_payment: false`), the UCP profile omits `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings`. Bookings are created via `POST /bookings` and are immediately confirmed (for `auto` confirmation mode) without any checkout involvement.
 
 ---
 
@@ -460,9 +460,9 @@ sequenceDiagram
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.bookings": [{ "version": "2026-08-14" }]
+          "dev.usp-protocol.services.bookings": [{ "version": "2026-08-20" }]
         }
       },
       "booking": {
@@ -497,7 +497,7 @@ This flow applies when the business advertises UCP checkout with the paid bookin
 
     - Deployment mode: **UCP-Native**
     - Service: `requires_payment: true`, `payment_timing: at_booking`, `confirmation_mode: auto`
-    - Business UCP profile includes `dev.ucp.shopping.checkout` and `dev.usp.services.paid_bookings`
+    - Business UCP profile includes `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings`
 
 ```mermaid
 sequenceDiagram

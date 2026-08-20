@@ -13,9 +13,9 @@
       "status": 201,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.availability": [{ "version": "2026-08-14" }]
+            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
         "hold": {
@@ -42,7 +42,7 @@
     "response": {
       "status": 409,
       "body": {
-        "type": "https://usp.dev/problems/slot-unavailable",
+        "type": "https://usp-protocol.dev/errors/slot-unavailable",
         "title": "Slot Unavailable",
         "status": 409,
         "detail": "The requested slot is no longer available. It may have been booked by another buyer."
@@ -62,7 +62,7 @@
     "response": {
       "status": 429,
       "body": {
-        "type": "https://usp.dev/problems/hold-limit-exceeded",
+        "type": "https://usp-protocol.dev/errors/hold-limit-exceeded",
         "title": "Hold Limit Exceeded",
         "status": 429,
         "detail": "Maximum of 5 concurrent holds per platform has been reached. Release an existing hold before creating a new one."
@@ -79,9 +79,9 @@
       "status": 200,
       "body": {
         "usp": {
-          "version": "2026-08-14",
+          "version": "2026-08-20",
           "capabilities": {
-            "dev.usp.services.availability": [{ "version": "2026-08-14" }]
+            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
         "hold": {

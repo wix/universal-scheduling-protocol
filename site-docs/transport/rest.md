@@ -16,7 +16,13 @@ The REST binding uses HTTP/1.1 (or higher) with JSON request/response bodies. Al
 
 !!! info "Schema resolution"
 
-    The machine-readable `openapi/usp-rest.json` references schema documents with relative JSON Pointer URIs (e.g., `../schemas/catalog.json#/$defs/Service`) and is **not** self-contained unless bundled. Implementations and tools MUST resolve external `$ref`s against the repository layout or use a pre-bundled copy.
+    The canonical machine-readable binding at
+    `https://usp-protocol.dev/schemas/openapi/usp-rest.json` references schema
+    documents by absolute `$id` URIs, such as
+    `https://usp-protocol.dev/schemas/services/catalog.json#/$defs/Service`.
+    It is **not** self-contained unless bundled. Implementations and tools MUST
+    resolve external `$ref`s from the authority origin or use a pre-bundled
+    copy.
 
 ## Capability Negotiation
 

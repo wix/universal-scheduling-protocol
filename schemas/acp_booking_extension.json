@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://usp.dev/schemas/acp_booking_extension.json",
+  "$id": "https://usp-protocol.dev/schemas/acp_booking_extension.json",
   "title": "USP ACP Booking Extension",
-  "description": "Schema for the dev.usp.services.booking ACP extension. Adds a `booking` field to CheckoutSession carrying scheduling context from USP. See specification Section 8.5.6.",
+  "description": "Schema for the dev.usp-protocol.services.booking ACP extension. Adds a `booking` field to CheckoutSession carrying scheduling context from USP. See specification Section 8.5.6.",
   "$defs": {
     "BookingExtension": {
       "type": "object",

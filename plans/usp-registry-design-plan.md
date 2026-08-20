@@ -72,7 +72,7 @@ What it takes to be a conformant USP discovery registry, independent of any tech
 
 ## 1.1 What a USP registry is
 
-The optional **discovery registry** capability (`[dev.usp.discovery.registry](../specification.md#6-discovery-registry-optional)`, [USP §6](../specification.md#6-discovery-registry-optional)). It solves the
+The optional **discovery registry** capability (`[dev.usp-protocol.discovery.registry](../specification.md#6-discovery-registry-optional)`, [USP §6](../specification.md#6-discovery-registry-optional)). It solves the
 **business cold-start problem**: how an AI platform/agent discovers a USP business it has never heard of,
 by location / vertical / category / keyword — and optionally searches across businesses' services directly.
 
@@ -108,7 +108,7 @@ registry exposes the same surface.
 | Delete            | `DELETE /registry/businesses/{id}` | `usp_registry_delete`          |
 
 
-Cross-cutting (fixed by spec): the `usp` [response envelope](../schemas/usp.json) advertising `dev.usp.discovery.registry`;
+Cross-cutting (fixed by spec): the `usp` [response envelope](../schemas/usp.json) advertising `dev.usp-protocol.discovery.registry`;
 business-outcome errors in `messages[]` at HTTP 200 vs protocol errors as [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details ([USP §9.4](../specification.md#94-error-code-mapping));
 opaque cursor pagination ([USP §9.1.2](../specification.md#912-pagination)); `Idempotency-Key` on writes ([USP §9.1.1](../specification.md#911-idempotency)).
 

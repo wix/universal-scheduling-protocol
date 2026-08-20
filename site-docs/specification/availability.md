@@ -5,7 +5,7 @@ description: USP availability specification - time slots, holds, availability qu
 
 # Availability
 
-**Capability:** `dev.usp.services.availability`
+**Capability:** `dev.usp-protocol.services.availability`
 
 The availability capability lets platforms **query when services are available** and, optionally, **hold slots** to prevent double-booking during the booking flow.
 
@@ -18,9 +18,9 @@ The availability capability lets platforms **query when services are available**
 Businesses declare feature flags inside the capability entry in their profile:
 
 ```json
-"dev.usp.services.availability": [
+"dev.usp-protocol.services.availability": [
   {
-    "version": "2026-08-14",
+    "version": "2026-08-20",
     "holds": true
   }
 ]
@@ -61,14 +61,14 @@ A time slot represents a specific, bookable combination of a time window and ass
 |-------|-------------|
 | `available` | The slot has capacity for new bookings. For `appointment` types, the slot is open. For `group`/`reservation` types, `capacity.remaining > 0`. |
 | `limited` | Low remaining capacity. Businesses **SHOULD** return `limited` when remaining capacity drops below 20% of total or fewer than 3 spots remain. |
-| `waitlist` | Fully booked but waitlist is enabled. Platform **MAY** allow the buyer to join the waitlist. Businesses **MUST NOT** return `waitlist` unless the `dev.usp.services.waitlist` capability is supported. |
+| `waitlist` | Fully booked but waitlist is enabled. Platform **MAY** allow the buyer to join the waitlist. Businesses **MUST NOT** return `waitlist` unless the `dev.usp-protocol.services.waitlist` capability is supported. |
 
 ---
 
 ## Hold
 
 !!! note "Feature Flag Required"
-    This section applies only when the business advertises `"holds": true` in its `dev.usp.services.availability` capability entry.
+    This section applies only when the business advertises `"holds": true` in its `dev.usp-protocol.services.availability` capability entry.
 
 A hold is a temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released when they expire, are explicitly released, or are converted to a booking.
 
@@ -140,10 +140,10 @@ Returns available time slots for a service within a date range. Use the [Availab
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.availability": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.availability": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -234,10 +234,10 @@ Creates a temporary hold on a time slot to prevent double-booking while the buye
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.availability": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.availability": [
+            { "version": "2026-08-20" }
           ]
         }
       },
@@ -257,7 +257,7 @@ Creates a temporary hold on a time slot to prevent double-booking while the buye
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {}
       },
       "messages": [
@@ -276,7 +276,7 @@ Creates a temporary hold on a time slot to prevent double-booking while the buye
 ### Release Slot -- `DELETE /availability/holds/{hold_id}`
 
 !!! warning "Requires Feature Flag"
-    Requires `"holds": true` on the `dev.usp.services.availability` capability.
+    Requires `"holds": true` on the `dev.usp-protocol.services.availability` capability.
 
 Explicitly releases a hold before it expires, freeing the slot for other buyers.
 
@@ -291,10 +291,10 @@ Explicitly releases a hold before it expires, freeing the slot for other buyers.
     ```json
     {
       "usp": {
-        "version": "2026-08-14",
+        "version": "2026-08-20",
         "capabilities": {
-          "dev.usp.services.availability": [
-            { "version": "2026-08-14" }
+          "dev.usp-protocol.services.availability": [
+            { "version": "2026-08-20" }
           ]
         }
       },

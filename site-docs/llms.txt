@@ -4,7 +4,7 @@
 
 USP defines the complete scheduling domain — service catalog, availability, holds, and bookings — with support for appointments, group sessions, reservations, and rentals. It offers two deployment modes: UCP-Native Mode (for platforms using the Universal Commerce Protocol) and Standalone Mode (for self-contained deployments). USP supports REST, MCP, A2A, and ESP transport bindings.
 
-Version: 2026-08-14
+Version: 2026-08-20
 Status: Draft
 License: Apache 2.0
 
@@ -38,8 +38,8 @@ License: Apache 2.0
 
 ## Machine-Readable Artifacts
 
-- OpenAPI 3.1.0: https://github.com/wix/universal-scheduling-protocol/blob/master/openapi/usp-rest.json
-- OpenRPC: https://github.com/wix/universal-scheduling-protocol/blob/master/openrpc/usp-mcp.json
+- OpenAPI 3.1.0: https://github.com/wix/universal-scheduling-protocol/blob/master/https://usp-protocol.dev/schemas/openapi/usp-rest.json
+- OpenRPC: https://github.com/wix/universal-scheduling-protocol/blob/master/https://usp-protocol.dev/schemas/openrpc/usp-mcp.json
 - JSON Schemas: https://github.com/wix/universal-scheduling-protocol/tree/master/schemas
 
 ## Service Verticals

@@ -5,7 +5,7 @@ description: USP specification overview, conventions, terminology, and reading g
 
 # Specification Overview
 
-**Protocol Version:** `2026-08-14` | **Status:** Draft
+**Protocol Version:** `2026-08-20` | **Status:** Draft
 
 The Universal Scheduling Protocol (USP) is an open standard that enables
 consumer platforms and AI agents to discover, check availability of, and book
@@ -38,6 +38,36 @@ idempotency, webhook verification).
 | **Booking Lifecycle** | [booking.md](booking.md) | Booking status lifecycle, schema, CRUD operations, webhooks, post-booking events |
 | **Discovery Registry** | [discovery-registry.md](discovery-registry.md) | Optional registry for cold-start business discovery, search operations, governance |
 
+## Canonical specification fragments
+
+Profile `spec` values use the following stable fragments on this page. The
+linked topic pages contain the detailed implementation guidance.
+
+### Service Catalog {#3-service-catalog}
+
+See [Service Catalog](service-catalog.md).
+
+### Availability {#4-availability}
+
+See [Availability](availability.md).
+
+### Booking Lifecycle {#5-booking-lifecycle}
+
+See [Booking Lifecycle](booking.md).
+
+### UCP-Native Mode {#7-ucp-native-mode}
+
+See [UCP-Native Mode](../deployment-modes/ucp-native.md).
+
+### Waitlist Extension {#waitlist-extension}
+
+See [Waitlist](../extensions.md#waitlist-extension).
+
+### ACP Booking Extension {#856-acp-booking-extension}
+
+See the
+[ACP booking extension schema](https://usp-protocol.dev/schemas/acp_booking_extension.json).
+
 ---
 
 ## Conventions
@@ -62,7 +92,7 @@ keywords only carry their special meaning when they appear in all capitals.
 | **Booking** | A confirmed or pending reservation of a specific service at a specific time for a specific buyer. A booking has a lifecycle (create, confirm, reschedule, cancel, complete). |
 | **Business** | The entity offering time-based services. The business owns the schedule, resources, and booking policies. For payment purposes, the business is the Merchant of Record. |
 | **Buyer** | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). When no separate `recipient` is specified, the buyer is also the person receiving the service. |
-| **Capability** | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp.services.catalog`). Each capability has a version, schema, and specification URL. |
+| **Capability** | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp-protocol.services.catalog`). Each capability has a version, schema, and specification URL. |
 | **Catalog Discovery** | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Discovery Registry](discovery-registry.md)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
 | **Action** | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. |
@@ -79,7 +109,7 @@ keywords only carry their special meaning when they appear in all capitals.
 | **BusyBlock** | An opaque time block (`{start, end}`) from a buyer's calendar indicating the buyer is unavailable. Contains no event details. |
 | **BuyerFreeBusy** | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. |
 
-The three phases **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding** disambiguate activities that unqualified "discovery" can otherwise conflate. Implementors **MUST NOT** treat registry catalog search as platform onboarding, or profile fetch as credential exchange. The capability identifier `dev.usp.discovery.registry` and the Discovery Registry section title are retained for wire stability. OAuth Authorization Server Metadata Discovery retains the RFC 8414 name.
+The three phases **Catalog Discovery**, **Profile Discovery**, and **Platform Onboarding** disambiguate activities that unqualified "discovery" can otherwise conflate. Implementors **MUST NOT** treat registry catalog search as platform onboarding, or profile fetch as credential exchange. The capability identifier `dev.usp-protocol.discovery.registry` and the Discovery Registry section title are retained for wire stability. OAuth Authorization Server Metadata Discovery retains the RFC 8414 name.
 
 Typical lifecycle (catalog discovery is optional when the business is already known; platform onboarding is skipped when a relationship already exists):
 
@@ -203,7 +233,7 @@ USP is built on three constructs:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp.services.catalog`, `dev.usp.services.availability`, `dev.usp.services.bookings` |
+| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
 | **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base schemas. | Waitlist management, paid bookings, vendor-specific loyalty |
 | **Transport Bindings** | Declarations of how USP traffic is carried (REST, MCP, A2A, embedded). | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card) |
 
@@ -213,7 +243,7 @@ USP uses reverse-domain notation for capability names: `{reverse-domain}.{servic
 
 | Namespace pattern | Authority | Governance |
 |-------------------|-----------|------------|
-| `dev.usp.*` | usp.dev | USP governing body |
+| `dev.usp-protocol.*` | usp.dev | USP governing body |
 | `com.{vendor}.*` | {vendor}.com | Vendor organization |
 | `org.{org}.*` | {org}.org | Organization |
 

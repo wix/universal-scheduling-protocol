@@ -1,6 +1,6 @@
 # USP Booking Form Profile
 
-**Version:** 1.1 (for USP 2026-08-14)  
+**Version:** 1.1 (for USP 2026-08-20)
 **Status:** Draft
 
 ---
@@ -203,7 +203,7 @@ Service with one selectable staff resource (stylist). Slot already selected.
 
 ## 6. Versioning & USP Compatibility
 
-- **Profile version** is tied to the USP specification version it targets (e.g. "Profile 1.1 for USP 2026-08-14").
+- **Profile version** is tied to the USP specification version it targets (e.g. "Profile 1.1 for USP 2026-08-20").
 - **A2UI catalog** is explicitly referenced (v0.8). Future profile versions may target newer A2UI catalogs.
 
 ---
