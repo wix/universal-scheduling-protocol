@@ -72,112 +72,112 @@
     },
     "schemas": {
       "USPEnvelope": {
-        "$ref": "../schemas/usp.json#/$defs/USPEnvelope"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/USPEnvelope"
       },
       "BookingScopedCredential": {
-        "$ref": "../schemas/profile.json#/$defs/BookingScopedCredential"
+        "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/BookingScopedCredential"
       },
       "ConfirmationKey": {
-        "$ref": "../schemas/usp.json#/$defs/ConfirmationKey"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/ConfirmationKey"
       },
       "PopProofJwt": {
-        "$ref": "../schemas/usp.json#/$defs/PopProofJwt"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/PopProofJwt"
       },
       "PaginationRequest": {
-        "$ref": "../schemas/usp.json#/$defs/PaginationRequest"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/PaginationRequest"
       },
       "Pagination": {
-        "$ref": "../schemas/usp.json#/$defs/Pagination"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/Pagination"
       },
       "Service": {
-        "$ref": "../schemas/catalog.json#/$defs/Service"
+        "$ref": "https://usp-protocol.dev/schemas/services/catalog.json#/$defs/Service"
       },
       "FeedSubscription": {
-        "$ref": "../schemas/rest_common.json#/$defs/FeedSubscription"
+        "$ref": "https://usp-protocol.dev/schemas/rest_common.json#/$defs/FeedSubscription"
       },
       "TimeSlot": {
-        "$ref": "../schemas/availability.json#/$defs/TimeSlot"
+        "$ref": "https://usp-protocol.dev/schemas/services/availability.json#/$defs/TimeSlot"
       },
       "Hold": {
-        "$ref": "../schemas/availability.json#/$defs/Hold"
+        "$ref": "https://usp-protocol.dev/schemas/services/availability.json#/$defs/Hold"
       },
       "Buyer": {
-        "$ref": "../schemas/booking.json#/$defs/Buyer"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/Buyer"
       },
       "BuyerConsent": {
-        "$ref": "../schemas/booking.json#/$defs/BuyerConsent"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/BuyerConsent"
       },
       "DeliveryAddress": {
-        "$ref": "../schemas/booking.json#/$defs/DeliveryAddress"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/DeliveryAddress"
       },
       "Booking": {
-        "$ref": "../schemas/booking.json#/$defs/Booking"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/Booking"
       },
       "BookingPayment": {
-        "$ref": "../schemas/booking.json#/$defs/BookingPayment"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/BookingPayment"
       },
       "Action": {
-        "$ref": "../schemas/booking.json#/$defs/Action"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/Action"
       },
       "Dispute": {
-        "$ref": "../schemas/booking.json#/$defs/Dispute"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/Dispute"
       },
       "Message": {
-        "$ref": "../schemas/booking.json#/$defs/Message"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/Message"
       },
       "PaymentContext": {
-        "$ref": "../schemas/booking.json#/$defs/PaymentContext"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/PaymentContext"
       },
       "PostPaymentReturnRequest": {
-        "$ref": "../schemas/booking.json#/$defs/PostPaymentReturnRequest"
+        "$ref": "https://usp-protocol.dev/schemas/services/booking.json#/$defs/PostPaymentReturnRequest"
       },
       "WaitlistEntry": {
-        "$ref": "../schemas/waitlist.json#/$defs/WaitlistEntry"
+        "$ref": "https://usp-protocol.dev/schemas/services/waitlist.json#/$defs/WaitlistEntry"
       },
       "ProblemDetails": {
-        "$ref": "../schemas/rest_common.json#/$defs/ProblemDetails"
+        "$ref": "https://usp-protocol.dev/schemas/rest_common.json#/$defs/ProblemDetails"
       },
       "SigningKey": {
-        "$ref": "../schemas/profile.json#/$defs/SigningKey"
+        "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/SigningKey"
       },
       "ServiceBinding": {
-        "$ref": "../schemas/usp.json#/$defs/ServiceBinding"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/ServiceBinding"
       },
       "CapabilityEntry": {
-        "$ref": "../schemas/usp.json#/$defs/CapabilityEntry"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/CapabilityEntry"
       },
       "ProfileCapabilityEntry": {
-        "$ref": "../schemas/usp.json#/$defs/ProfileCapabilityEntry"
+        "$ref": "https://usp-protocol.dev/schemas/usp.json#/$defs/ProfileCapabilityEntry"
       },
       "BusinessProfile": {
-        "$ref": "../schemas/profile.json#/$defs/BusinessProfile"
+        "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/BusinessProfile"
       },
       "PlatformProfile": {
-        "$ref": "../schemas/profile.json#/$defs/PlatformProfile"
+        "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/PlatformProfile"
       },
       "RegistryContext": {
-        "$ref": "../schemas/registry.json#/$defs/RegistryContext"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryContext"
       },
       "RegistryEntry": {
-        "$ref": "../schemas/registry.json#/$defs/RegistryEntry"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryEntry"
       },
       "BusinessSearchRequest": {
-        "$ref": "../schemas/registry.json#/$defs/BusinessSearchRequest"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/BusinessSearchRequest"
       },
       "ServiceSearchRequest": {
-        "$ref": "../schemas/registry.json#/$defs/ServiceSearchRequest"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/ServiceSearchRequest"
       },
       "ServiceSearchResult": {
-        "$ref": "../schemas/registry.json#/$defs/ServiceSearchResult"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/ServiceSearchResult"
       },
       "BusyBlock": {
-        "$ref": "../schemas/calendar_freebusy.json#/$defs/BusyBlock"
+        "$ref": "https://usp-protocol.dev/schemas/platform/calendar_freebusy.json#/$defs/BusyBlock"
       },
       "BuyerFreeBusy": {
-        "$ref": "../schemas/calendar_freebusy.json#/$defs/BuyerFreeBusy"
+        "$ref": "https://usp-protocol.dev/schemas/platform/calendar_freebusy.json#/$defs/BuyerFreeBusy"
       },
       "RegistrationRequest": {
-        "$ref": "../schemas/registry.json#/$defs/RegistrationRequest"
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistrationRequest"
       }
     },
     "responses": {
@@ -4294,7 +4294,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "../schemas/webhook_event.json#/$defs/BookingEvent"
+                "$ref": "https://usp-protocol.dev/schemas/services/webhook_event.json#/$defs/BookingEvent"
               }
             }
           }
@@ -4316,7 +4316,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "../schemas/webhook_event.json#/$defs/CatalogEvent"
+                "$ref": "https://usp-protocol.dev/schemas/services/webhook_event.json#/$defs/CatalogEvent"
               }
             }
           }
@@ -4338,7 +4338,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "../schemas/webhook_event.json#/$defs/WaitlistEvent"
+                "$ref": "https://usp-protocol.dev/schemas/services/webhook_event.json#/$defs/WaitlistEvent"
               }
             }
           }

@@ -1054,7 +1054,7 @@ export class USPPlayground {
         },
         'validation-error': {
           _status: 422,
-          type: 'https://usp-protocol.dev/errors/validation',
+          type: 'https://usp-protocol.dev/errors/validation-error',
           title: 'Validation Error',
           status: 422,
           detail: 'Missing required buyer fields.',
