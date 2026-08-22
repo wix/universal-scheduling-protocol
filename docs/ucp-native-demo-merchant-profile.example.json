@@ -23,7 +23,6 @@
               "privileged_operations_require_authentication": true,
               "accepted_mechanisms": [
                 "http_message_signature",
-                "platform_key_pop",
                 "booking_scoped_credential"
               ]
             }
@@ -49,6 +48,7 @@
       "dev.usp-protocol.services.availability": [
         {
           "version": "2026-08-20",
+          "holds": true,
           "spec": "https://usp-protocol.dev/specification#4-availability",
           "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }

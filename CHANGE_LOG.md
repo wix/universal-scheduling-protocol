@@ -1,5 +1,15 @@
 # Change Log
 
+## 23/08/26 at 02:28:29 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `plans/`, `docs/website-deployment.md`, `render.yaml`, and `.github/workflows/mirror-to-public.yml` from the public tree so the published repo is protocol material rather than private sprint plans, private Render preview config, a dormant private-to-public force-push job, or Pages DNS operator notes
+- Updated `docs/ucp-native-demo-merchant-profile.example.json` to match specification §7.2 (including `holds: true` on availability and the §7.2 `accepted_mechanisms` set) while keeping `ucp.keys` dual-published with the `signing_keys` transition alias, because that file is the copyable paid UCP-Native profile and had drifted from the normative example
+- Aligned the site-docs UCP-Native full and free-service profile examples with §7.2 (`spec`/`schema` on every capability, plus `payment_handlers` on the paid profile) so the website does not publish a thinner or invalid profile than the specification
+- Dropped the `website-deployment.md` exception from `tools/usp_check.py` authority allowlists because that file no longer exists
+- Switched `.github/workflows/ci.yml` to GitHub-hosted `ubuntu-latest` and removed the repository-name skip, so public pull requests get the same schema, ref, vector, site-build, and authority checks without naming a private repository or requesting self-hosted runners
+
+---
+
 ## 20/08/26 at 12:52:55 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Released the breaking `2026-08-20` hard cutover from the unowned `usp.dev` authority to `usp-protocol.dev`, including the `dev.usp-protocol.*` capability namespace, canonical specification fragments, migration guidance, reserved-name registry, and synchronized schemas, bindings, examples, playground fixtures, and site documentation

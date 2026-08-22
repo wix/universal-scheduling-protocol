@@ -66,7 +66,9 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
     "capabilities": {
       "dev.ucp.shopping.checkout": [
         {
-          "version": "2026-01-11"
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/latest/specification/checkout/",
+          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
         }
       ],
       "dev.usp-protocol.services.catalog": [
@@ -97,6 +99,24 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
           "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
           "extends": "dev.ucp.shopping.checkout"
+        }
+      ]
+    },
+    "payment_handlers": {
+      "com.stripe.agentic_commerce.shared_payment_token": [
+        {
+          "id": "stripe_spt_demo_h1",
+          "version": "2026-01-11",
+          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
+          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "available_instruments": [
+            {
+              "type": "shared_payment_token"
+            }
+          ],
+          "config": {
+            "publishable_key": "pk_test_ExampleNotForProduction"
+          }
         }
       ]
     },
@@ -137,17 +157,23 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
     "capabilities": {
       "dev.usp-protocol.services.catalog": [
         {
-          "version": "2026-08-20"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#3-service-catalog",
+          "schema": "https://usp-protocol.dev/schemas/services/catalog.json"
         }
       ],
       "dev.usp-protocol.services.availability": [
         {
-          "version": "2026-08-20"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#4-availability",
+          "schema": "https://usp-protocol.dev/schemas/services/availability.json"
         }
       ],
       "dev.usp-protocol.services.bookings": [
         {
-          "version": "2026-08-20"
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#5-booking-lifecycle",
+          "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
     }

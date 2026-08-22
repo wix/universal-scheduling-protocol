@@ -1,4 +1,4 @@
-# Build MkDocs and deploy to GitHub Pages from the public mirror.
+# Build MkDocs and deploy to GitHub Pages.
 # Pages Settings Source must be GitHub Actions (not Deploy from branch gh-pages)
 # so this workflow can publish. Org policy requires every uses: to be pinned
 # to a full-length commit SHA, including nested uses inside composite actions.
