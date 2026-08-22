@@ -619,12 +619,9 @@ def check_authority(findings: Findings) -> None:
     }
     legacy_path_docs = historical | {
         SPEC,
-        REPO / "docs" / "website-deployment.md",
         REPO / "scripts" / "build-site.sh",
     }
-    external_host_docs = historical | {
-        REPO / "docs" / "website-deployment.md",
-    }
+    external_host_docs = historical
     for path in iter_text_sources():
         text = path.read_text(errors="replace")
         stale_text = text

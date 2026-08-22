@@ -1107,8 +1107,6 @@ Normative rules:
 | `phone`        | Service is delivered via phone call.                                                                                         | `instructions`: optional call-in details.                                                                                            |
 | `hybrid`       | Service can be delivered via more than one of the above channels, at the buyer's choice. The buyer selects the channel during booking. | `virtual_provider`, `instructions`, `service_area`. The booking request **SHOULD** include the buyer's channel preference.            |
 
-> **Note:** `at_business_location` was named `in_person` prior to [#40](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/40); implementations **MUST** treat `in_person` as an unrecognized/removed value once this rename is adopted, not as a synonym.
-
 #### 3.3.1 Media Schema
 
 The `media` array contains typed media items for the service. Each entry
@@ -8530,8 +8528,6 @@ operations, as described in [Section 1.3.2](#132-custom-verticals).
 | `course`       | A multi-session educational or training program spanning multiple dates with enrollment, progression, and completion.         | University courses, certification programs, multi-week workshops | Series management, enrollment caps, session progression            |
 | `healthcare`   | A clinical appointment with domain-specific requirements such as insurance verification, referrals, and intake forms.         | Doctor visits, telehealth, lab work, dental procedures           | Insurance, referrals, HIPAA compliance, intake workflows           |
 | `tour`         | A time-bound guided experience combining group capacity with location, route, and potentially weather-dependent availability. | City tours, wine tastings, adventure activities, museum tours    | Route/location, equipment, weather dependencies                    |
-
-> `home_service` was promoted to the core `field_service` vertical ([Section 1.3.1](#131-core-verticals)); see [#40](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/40).
 
 ### A.2 Promotion Criteria
 
