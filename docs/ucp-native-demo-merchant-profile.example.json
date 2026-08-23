@@ -70,19 +70,24 @@
       ]
     },
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
-          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
-          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
+          "spec": "https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler",
+          "schema": "https://ucp.stripe.com/payments/2026-06-25/schema.json",
           "available_instruments": [
             {
-              "type": "shared_payment_token"
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
             }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production",
+            "publishable_key": "pk_test_demo_not_for_production"
           }
         }
       ]
