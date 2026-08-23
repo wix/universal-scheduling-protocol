@@ -273,3 +273,7 @@ A conforming REST binding implementation **SHOULD:**
 1. Support the `Idempotency-Key` header on state-modifying operations.
 2. Sign state-modifying requests using HTTP Message Signatures (RFC 9421).
 3. Support cursor-based pagination.
+
+!!! info "Observability join"
+
+    The optional money-path correlation join in [Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation) is outside this conformance checklist. On REST, participating clients and servers carry it via the `USP-Correlation-Id` header. Omitting it is conformant USP.

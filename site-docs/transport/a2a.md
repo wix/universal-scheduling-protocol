@@ -73,6 +73,10 @@ sequenceDiagram
 
 Each task in the chain carries the A2A conversation context, enabling the business agent to maintain state across the multi-step flow.
 
+## Observability Join
+
+Participating A2A agents carry the optional money-path join id via the `USP-Correlation-Id` HTTP header. See [Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation). Omitting it is conformant USP.
+
 ## Agent Card
 
 A USP-enabled business agent **MUST** publish an [Agent Card](https://a2a-protocol.org/latest/#agent-card) advertising its USP capabilities. The Agent Card SHOULD include the supported USP task types and authentication requirements.

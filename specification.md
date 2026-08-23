@@ -151,6 +151,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
         - [9.5.5 Error Handling and Timeouts](#955-error-handling-and-timeouts)
         - [9.5.6 ESP Conformance](#956-esp-conformance)
     - [9.6 Transport Infrastructure for Standalone Mode](#96-transport-infrastructure-for-standalone-mode)
+    - [9.7 Observability Join (Non-Normative Recommendation)](#97-observability-join-non-normative-recommendation)
 - [10. Security](#10-security)
     - [10.1 USP Security Requirements](#101-usp-security-requirements)
     - [10.2 Security Infrastructure for Standalone Mode](#102-security-infrastructure-for-standalone-mode)
@@ -4130,16 +4131,14 @@ UCP-Native paid bookings reuse UCP `payment_handlers` as defined in the
 [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture).
 
 **Wire shape:** `ucp.payment_handlers` is an object whose property names are
-**reverse-domain handler identifiers** (for example
-`com.stripe.payments`). Each property value is an
+**reverse-domain handler identifiers**. Each property value is an
 **array** of **handler instance** objects. Each instance **MUST** include an `id`
 (string) and `version` (string), and **MAY** include `spec`, `schema`, `config`,
-and `available_instruments` as required by that handler's specification. For
-Stripe, the published handler definition is
-[`com.stripe.payments`](https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler)
-(version `2026-06-25`; JSON Schema at
-`https://ucp.stripe.com/payments/2026-06-25/schema.json`). Stripe documents
-this handler as private preview; access may be gated by Stripe.
+and `available_instruments` as required by that handler's specification.
+Processor-specific identifiers, instrument types, config fields, and credential
+types are defined by the handler specification in use. The examples in this
+section illustrate one published handler; they are not additional USP
+requirements.
 
 **Profile vs checkout:** The business UCP profile **MAY** include
 `payment_handlers` so platforms can discover integrations early. At payment
@@ -4150,34 +4149,17 @@ checkout. Platforms **MUST** treat `available_instruments` on the **checkout
 response** as authoritative when present and **MUST** acquire credentials only
 for instruments the checkout allows. Profile `payment_handlers` alone **MUST
 NOT** override or replace checkout-time `available_instruments` resolution.
-
-**`network_id` acquisition (UCP-Native):** For Stripe Link and Link Agent
-Wallet flows (including Shared Payment Token spend requests), platforms **MUST**
-read `network_id` from the checkout response: the `com.stripe.payments` handler
-instance whose `available_instruments` includes an entry with `type: "link"` and
-`config.network_id`. `network_id` is **not** a handler-level `config` field; it
-lives on the **Link instrument** configuration inside `available_instruments`.
-Profile `payment_handlers` remain indicative only.
-
-**Link Agent Wallet:** For on-Stripe Shared Payment Token flows, the platform
-acquires a shared payment token (for example via [`link-cli`](https://github.com/stripe/link-cli))
-and submits it in `complete_checkout` as `credential.type: "stripe_payment_token"`
-on instrument `type: "link"`. That path does **not** require initializing Link
-UI or reading `publishable_key` from the checkout response. `publishable_key`
-remains on **profile** handler `config` because Stripe's business handler schema
-requires it (for card tokenization and Link UI flows).
-
-**Legacy / fallback:** `link-cli mpp decode` and merchant HTTP `402` /
-`WWW-Authenticate` probing **MUST NOT** be described as the default UCP-Native
-`network_id` path. Platforms **MAY** use those techniques only as fallback when
-checkout (and profile) omit `network_id`, or in Standalone Mode contexts outside
-UCP checkout. 
+When a handler's specification places acquisition inputs on an instrument
+`config` object, platforms **MUST** read those inputs from the checkout
+`available_instruments` entry, not from profile-only handler `config`.
 
 **`complete_checkout`:** The request body follows UCP [Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
 Each object in `payment.instruments[]` includes a `handler_id` that **MUST**
 equal the `id` of one of the handler **instances** returned on the checkout the
 platform is completing (the same checkout object from `create_checkout` or the
 latest `get_checkout`), not the reverse-domain key under `payment_handlers`.
+Credential `type` and token fields **MUST** match the selected instrument as
+defined by that handler's specification.
 
 The `totals` field follows the [UCP Total](https://ucp.dev/latest/specification/checkout/#total)
 shape and [UCP checkout](https://ucp.dev/schemas/shopping/checkout.json) schema.
@@ -6221,6 +6203,8 @@ A conforming REST binding implementation **SHOULD:**
 2. Sign state-modifying requests using HTTP Message Signatures [RFC 9421] ([Section 9.1.4](#914-request-signing)).
 3. Support cursor-based pagination per [Section 9.1.2](#912-pagination).
 
+> **Observability join:** The optional money-path correlation join recommended in [Section 9.7](#97-observability-join-non-normative-recommendation) is outside this conformance checklist. On REST, participating clients and servers carry it via the `USP-Correlation-Id` header.
+
 > **Schema reference:** [`openapi/usp-rest.json`](openapi/usp-rest.json)
 
 ### 9.2 MCP Binding
@@ -6342,6 +6326,8 @@ so an intermediary cannot alter the call. REST covers nothing equivalent unless
 [RFC 9421] signing with `Content-Digest` is also in use.
 
 For state-modifying operations (booking creation, cancellation, rescheduling, hold creation, confirm-payment, and other methods that declare `idempotency_key` on `_meta.usp`), the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header (see [Section 9.1.1](#911-idempotency)).
+
+> **Observability join:** Participating MCP clients and servers carry the optional join id in `_meta.usp.correlation_id` on both stdio and HTTP-SSE transports per [Section 9.7](#97-observability-join-non-normative-recommendation). When MCP runs over HTTP, participants **MAY** also send `USP-Correlation-Id`; when both are present they **SHOULD** be the same value.
 
 > **Schema reference:** The MCP binding schema is defined in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json). Shared authorization policy and mechanism enums live in [`schemas/profile.json`](schemas/profile.json) (`$defs/AuthorizationPolicy`, `$defs/AuthorizationMechanism`) and **MUST NOT** be re-defined inline in either binding.
 
@@ -6702,6 +6688,8 @@ A conforming A2A binding implementation **SHOULD:**
 1. Maintain session context (`sessionId`) across multi-step booking flows ([Section 9.3.5](#935-session-management)).
 2. Include the `usp_profile` field in the Agent Card pointing to `/.well-known/usp`.
 
+> **Observability join:** Participating A2A agents carry the optional join id via the `USP-Correlation-Id` HTTP header per [Section 9.7](#97-observability-join-non-normative-recommendation).
+
 ### 9.4 Error Code Mapping
 
 USP defines the following error codes, which are transport-independent.
@@ -6982,6 +6970,8 @@ A conforming ESP implementation **SHOULD:**
 2. Implement a session timeout of at least 30 minutes.
 3. Support the `esp.cancel` message from the host.
 
+> **Observability join:** Participating ESP hosts and businesses **MAY** carry an optional `correlation_id` on `esp.start`, `esp.complete`, and `esp.error` per [Section 9.7](#97-observability-join-non-normative-recommendation).
+
 ### 9.6 Transport Infrastructure for Standalone Mode
 
 > *This subsection is not relevant for UCP-Native deployments. UCP-Native
@@ -7008,6 +6998,67 @@ infrastructure:
 - The `X-Content-Type-Options: nosniff` header **SHOULD** be set on all
   responses.
 - HTTP Strict Transport Security (HSTS) **SHOULD** be enabled.
+
+### 9.7 Observability Join (Non-Normative Recommendation)
+
+> This subsection is a **non-normative recommendation**. Implementers **MAY** ignore it entirely without failing USP conformance. The keywords below apply only within this subsection and do not modify any binding conformance checklist.
+
+USP does not require any metric system, log product, or alert route. For implementers who choose to join money-path logs across vendors, this subsection recommends a single correlation identifier and consistent propagation rules so independently operated hops are likely to remain joinable. **Not implementing any of the recommendation below is conformant USP.**
+
+**Join key.** One opaque, non-PII token per booking flow identifies related requests across hops. A UUID is sufficient. The value **SHOULD NOT** contain buyer identity or other personally identifiable information.
+
+**Participation.** Generate, propagate, and echo **SHOULD**s apply only to parties that choose to participate in this join convention.
+
+- Clients that participate **SHOULD** send the join id on money-path operations: registry search, booking creation or mutation that completes payment, and checkout completion. On Standalone deployments checkout completion is `POST /bookings/{booking_id}/confirm-payment`; on UCP-Native deployments it is UCP `complete` at the checkout boundary.
+- Recipients that participate **SHOULD** propagate the inbound value on outbound calls for that booking flow, including when the outbound call uses a different USP binding (copy the REST header into MCP `_meta.usp.correlation_id` or the reverse). Recipients that participate **SHOULD** generate an id when none arrived and **SHOULD NOT** overwrite an inbound id.
+- All recipients **SHOULD NOT** fail an otherwise-conformant request because the join id is absent, empty, or unrecognized (equivalent to ignoring an unknown HTTP header, `_meta` member, or ESP field).
+- Recipients that participate **SHOULD** echo the id on error responses as a caller-safe reference, via the same binding's carriage mechanism. Echo is not a substitute for [RFC 9457] Problem Details `type` or `code`. Recipients **MAY** echo on success responses as well.
+
+The join id is not a substitute for `booking_id`, payment identifiers, or order references.
+
+On HTTP hops, senders **MAY** include W3C `traceparent` in addition to the USP join id. `traceparent` is compatible extra distributed-tracing context; it is not a second USP join key.
+
+**Carriage by binding:**
+
+| Binding | Request carriage | Error echo |
+|---------|------------------|------------|
+| REST ([Section 9.1](#91-rest-binding)) | `USP-Correlation-Id` request header | same response header |
+| MCP ([Section 9.2](#92-mcp-binding)) | `_meta.usp.correlation_id`; when MCP runs over HTTP participants **MAY** also send `USP-Correlation-Id` | same field on the error result; when MCP runs over HTTP the response header **MAY** be used as well |
+| A2A ([Section 9.3](#93-a2a-binding)) | `USP-Correlation-Id` on the A2A HTTP message | same response header |
+| ESP ([Section 9.5](#95-embedded-scheduling-protocol-esp)) | optional `correlation_id` on `esp.start`, `esp.complete`, and `esp.error` | `esp.error` carries the same value |
+
+**REST example:**
+
+```http
+POST /bookings HTTP/1.1
+Host: business.example.com
+USP-Agent: profile="https://agent.example/profiles/scheduling-agent.json"
+USP-Correlation-Id: 7f3c2b1a-9e4d-4a8b-8c1f-2d5e6f7a8b9c
+Content-Type: application/json
+
+{"service_id": "svc_haircut_001", "slot_id": "slot_20260315_0900", ...}
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+USP-Correlation-Id: 7f3c2b1a-9e4d-4a8b-8c1f-2d5e6f7a8b9c
+
+{"type": "https://usp-protocol.dev/errors/authentication-required", ...}
+```
+
+**MCP example (same join id):**
+
+```json
+"_meta": {
+  "usp": {
+    "profile": "https://agent.example/profiles/scheduling-agent.json",
+    "correlation_id": "7f3c2b1a-9e4d-4a8b-8c1f-2d5e6f7a8b9c"
+  }
+}
+```
+
+Participants who sign REST requests **MAY** include `usp-correlation-id` in covered components when the header is present. When `_meta.usp.correlation_id` is present on MCP, existing `usp_p` digest rules include it (only `_meta.usp.authorization` is stripped).
 
 ---
 
@@ -8471,6 +8522,7 @@ registration of:
 
 - The `/.well-known/usp` well-known URI (per [RFC 8615])
 - The `USP-Agent` HTTP header field
+- The `USP-Correlation-Id` HTTP header field
 - A USP capability namespace registry
 
 ---

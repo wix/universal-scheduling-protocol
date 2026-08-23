@@ -1,5 +1,19 @@
 # Change Log
 
+## 23/08/26 at 14:19:48 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added non-normative §9.7 Observability join recommending optional `USP-Correlation-Id` / `_meta.usp.correlation_id` propagation across money-path hops, because Track S (#160) needs a single vendor-neutral join convention without making observability a USP conformance gate
+- Placed the recommendation once under Transport Bindings with per-binding carriage (REST/A2A HTTP header, MCP `_meta`, ESP `correlation_id`) and explicit "omitting this is conformant" language, matching how idempotency and profile already pair REST headers with MCP fields
+- Documented optional overlays in `openapi/usp-rest.json` and `openrpc/usp-mcp.json`, mirrored the join on `site-docs/transport/` pages, and listed `USP-Correlation-Id` under future IANA registration so machine-readable bindings stay aligned with the advisory spec text
+
+---
+
+## 23/08/26 at 14:10:26 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Rewrote UCP-Native payment-handler prose in `specification.md` and `site-docs/deployment-modes/ucp-native.md` as protocol rules only (checkout `available_instruments` authority, `handler_id` matching), and removed the site-docs GitHub issue link plus Stripe/CLI/402 probing from normative text, because those were implementation details and tracker references rather than USP requirements. Stripe handler JSON remains in examples only
+
+---
+
 ## 23/08/26 at 12:11:15 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added a human-confirmation requirement to `specification.md` §8.5: an agent MAY facilitate a paid Standalone booking, but the buyer MUST authorize the charge on a trusted, deterministic surface unless a negotiated mechanism supplies AP2-equivalent cryptographic proof of authorization. Standalone Mode previously had no such rule, so a conforming implementation could charge a buyer with no human confirmation, while UCP-Native inherits UCP checkout's trusted-UI rule through the capability `dev.usp-protocol.services.paid_bookings` extends. The addition is parity with UCP, states no vendor or product, adds no wire field, and leaves §7 unchanged

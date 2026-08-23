@@ -67,3 +67,29 @@ The published website is built from [`site-docs/`](site-docs/) (MkDocs). Agents 
 2. **No site-only drift** - Do not leave `site-docs/` describing old field names, section numbers, MUST/SHOULD levels, or examples that no longer match `specification.md` or the schemas.
 3. **If unsure which page** - Prefer updating the closest topical page under `site-docs/specification/`, `site-docs/deployment-modes/`, `site-docs/transport/`, or the overview pages (`core-concepts.md`, `getting-started.md`, `security.md`, `extensions.md`, `roadmap.md`) rather than skipping the site update.
 4. **CLAUDE.md** - This file is the same document as [`AGENTS.md`](AGENTS.md) (symlink). The site-docs sync rule applies whenever either name is used.
+
+## No GitHub issue cross-references
+
+This repository's published protocol material MUST stand alone. Do **not** cite GitHub issues, pull requests, issue numbers (`#123`, `owner/repo#123`), or `github.com/.../issues/` / `github.com/.../pull/` URLs in `specification.md`, `site-docs/`, examples, schemas, bindings, README files, or other protocol/documentation sources.
+
+Work tracking stays on GitHub. Readers of the spec and site MUST NOT need a GitHub issue to understand a requirement.
+
+### Rules
+
+1. **Do not add** GitHub issue or PR links, numbers, or shorthand (`#N`) to specification, site-docs, examples, or schemas.
+2. **Remove** any such reference when you touch a file that still has one.
+3. **CHANGE_LOG.md** - Do not rewrite historical entries (see Change Log Policy). New CHANGE_LOG bullets MUST NOT include GitHub issue or PR citations.
+4. **Exception** - `.github/` workflow comments may mention GitHub Actions features; they MUST NOT point at product GitHub issues as protocol authority.
+
+## Implementation details only in examples
+
+Normative specification text describes **protocol** rules only: wire shapes, invariants, and RFC 2119 requirements at the USP (and, where reused, UCP) layer.
+
+Vendor, PSP, CLI, SDK, merchant-probe, credential-product, and other **implementation** details MUST appear **only** in labeled examples (fenced code/JSON blocks and their immediate captions). They MUST NOT appear in normative prose in [`specification.md`](specification.md) or in site-docs pages that restate specification requirements.
+
+### Rules
+
+1. **Specification prose** - Handler product names, specific PSP reverse-domain keys, CLI commands, HTTP status probing recipes, and processor-specific field placement belong in examples, not in MUST/SHOULD/MAY paragraphs.
+2. **Examples** - JSON and other examples MAY use a real published handler so implementers can see a concrete wire shape.
+3. **Site-docs** - Pages that paraphrase the spec follow the same split: protocol in prose, implementation in example blocks.
+4. If a sentence would be false for a different conforming PSP or client, it is implementation detail and MUST NOT be written as specification.

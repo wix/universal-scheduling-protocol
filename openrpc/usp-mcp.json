@@ -3296,6 +3296,10 @@
             "type": "string",
             "format": "uri",
             "description": "Platform profile URI for capability negotiation and identity binding (MCP equivalent of the REST USP-Agent / UCP-Agent header). REQUIRED on privileged operations. The business fetches this URI over HTTPS with no redirects and caches by URI (minimum 60s TTL floor). See specification.md Sections 8.2.2 and 10.1.6."
+          },
+          "correlation_id": {
+            "type": "string",
+            "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; equivalent to the REST USP-Correlation-Id header. Recipients that do not participate ignore this field without failing the request. Not a substitute for booking_id or payment identifiers."
           }
         },
         "additionalProperties": false
@@ -3317,6 +3321,10 @@
             "format": "uuid",
             "description": "Idempotency key for state-modifying operations (UUID v4). Equivalent to the REST Idempotency-Key header."
           },
+          "correlation_id": {
+            "type": "string",
+            "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; equivalent to the REST USP-Correlation-Id header. Recipients that do not participate ignore this field without failing the request. Not a substitute for booking_id or payment identifiers."
+          },
           "authorization": {
             "$ref": "#/components/schemas/McpAuthorization",
             "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
@@ -3335,6 +3343,10 @@
             "type": "string",
             "format": "uri",
             "description": "Platform profile URI for capability negotiation and identity binding (MCP equivalent of the REST USP-Agent / UCP-Agent header). REQUIRED on privileged operations. The business fetches this URI over HTTPS with no redirects and caches by URI (minimum 60s TTL floor). See specification.md Sections 8.2.2 and 10.1.6."
+          },
+          "correlation_id": {
+            "type": "string",
+            "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; equivalent to the REST USP-Correlation-Id header. Recipients that do not participate ignore this field without failing the request. Not a substitute for booking_id or payment identifiers."
           },
           "authorization": {
             "$ref": "#/components/schemas/McpAuthorization",
@@ -3364,6 +3376,10 @@
             "type": "string",
             "description": "OPTIONAL conditional-write precondition, carrying the opaque `revision` the platform last observed for the addressed resource. MCP equivalent of the REST If-Match header. When present, the business MUST apply the write only if the resource's current revision matches, and MUST reject with revision_mismatch otherwise rather than applying it - this is what stops two agents holding the same booking_scoped_credential from silently clobbering each other. Omit it to write unconditionally. Defined for bookings and waitlist entries, which carry `revision`; usp_availability_release shares this wrapper but a hold has no revision and no update operation, so a business MUST ignore if_match there. Interaction with idempotency_key: an idempotent REPLAY returns the stored original response WITHOUT re-evaluating this precondition, since re-checking would fail a retry of an already-successful call. Note this field falls INSIDE the usp_p proof digest, which strips only _meta.usp.authorization, so on MCP the precondition is covered against tampering by an intermediary - REST has no equivalent protection for its If-Match header."
           },
+          "correlation_id": {
+            "type": "string",
+            "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; equivalent to the REST USP-Correlation-Id header. Recipients that do not participate ignore this field without failing the request. Not a substitute for booking_id or payment identifiers."
+          },
           "authorization": {
             "$ref": "#/components/schemas/McpAuthorization",
             "description": "Privileged-operation authentication when not already established by the MCP HTTP/TLS transport. For privileged_scoped methods, prefer a retained booking_scoped_credential when the business accepts that mechanism (see AuthorizationPolicy); when that credential carries cnf, the accompanying proof is MANDATORY and the credential MUST NOT be presented without it. For privileged_platform methods a platform_key_pop caller sends proof alone, with no credential."
@@ -3382,6 +3398,10 @@
             "type": "string",
             "format": "uri",
             "description": "Platform profile URI for capability negotiation and identity binding (MCP equivalent of the REST USP-Agent / UCP-Agent header). REQUIRED on privileged operations. The business fetches this URI over HTTPS with no redirects and caches by URI (minimum 60s TTL floor). See specification.md Sections 8.2.2 and 10.1.6."
+          },
+          "correlation_id": {
+            "type": "string",
+            "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; equivalent to the REST USP-Correlation-Id header. Recipients that do not participate ignore this field without failing the request. Not a substitute for booking_id or payment identifiers."
           },
           "authorization": {
             "$ref": "#/components/schemas/McpAuthorization",
