@@ -3823,17 +3823,24 @@ An example profile:
       ]
     },
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
-          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
-          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
+          "spec": "https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler",
+          "schema": "https://ucp.stripe.com/payments/2026-06-25/schema.json",
           "available_instruments": [
-            { "type": "shared_payment_token" }
+            {
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
+            }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production",
+            "publishable_key": "pk_test_demo_not_for_production"
           }
         }
       ]
@@ -4044,17 +4051,23 @@ so it needs no governance rule beyond the one this extension already relies on.
       ]
     },
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
-          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
-          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
+          "spec": "https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler",
+          "schema": "https://ucp.stripe.com/payments/2026-06-25/schema.json",
           "available_instruments": [
-            { "type": "shared_payment_token" }
+            {
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
+            }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production"
           }
         }
       ]
@@ -4118,10 +4131,15 @@ UCP-Native paid bookings reuse UCP `payment_handlers` as defined in the
 
 **Wire shape:** `ucp.payment_handlers` is an object whose property names are
 **reverse-domain handler identifiers** (for example
-`com.stripe.agentic_commerce.shared_payment_token`). Each property value is an
+`com.stripe.payments`). Each property value is an
 **array** of **handler instance** objects. Each instance **MUST** include an `id`
 (string) and `version` (string), and **MAY** include `spec`, `schema`, `config`,
-and `available_instruments` as required by that handler's specification.
+and `available_instruments` as required by that handler's specification. For
+Stripe, the published handler definition is
+[`com.stripe.payments`](https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler)
+(version `2026-06-25`; JSON Schema at
+`https://ucp.stripe.com/payments/2026-06-25/schema.json`). Stripe documents
+this handler as private preview; access may be gated by Stripe.
 
 **Profile vs checkout:** The business UCP profile **MAY** include
 `payment_handlers` so platforms can discover integrations early. At payment
@@ -4132,6 +4150,29 @@ checkout. Platforms **MUST** treat `available_instruments` on the **checkout
 response** as authoritative when present and **MUST** acquire credentials only
 for instruments the checkout allows. Profile `payment_handlers` alone **MUST
 NOT** override or replace checkout-time `available_instruments` resolution.
+
+**`network_id` acquisition (UCP-Native):** For Stripe Link and Link Agent
+Wallet flows (including Shared Payment Token spend requests), platforms **MUST**
+read `network_id` from the checkout response: the `com.stripe.payments` handler
+instance whose `available_instruments` includes an entry with `type: "link"` and
+`config.network_id`. `network_id` is **not** a handler-level `config` field; it
+lives on the **Link instrument** configuration inside `available_instruments`.
+Profile `payment_handlers` remain indicative only.
+
+**Link Agent Wallet:** For on-Stripe Shared Payment Token flows, the platform
+acquires a shared payment token (for example via [`link-cli`](https://github.com/stripe/link-cli))
+and submits it in `complete_checkout` as `credential.type: "stripe_payment_token"`
+on instrument `type: "link"`. That path does **not** require initializing Link
+UI or reading `publishable_key` from the checkout response. `publishable_key`
+remains on **profile** handler `config` because Stripe's business handler schema
+requires it (for card tokenization and Link UI flows).
+
+**Legacy / fallback:** `link-cli mpp decode` and merchant HTTP `402` /
+`WWW-Authenticate` probing **MUST NOT** be described as the default UCP-Native
+`network_id` path. Platforms **MAY** use those techniques only as fallback when
+checkout (and profile) omit `network_id`, or in Standalone Mode contexts outside
+UCP checkout. See [linkusp-cli#25](https://github.com/yahalomran/linkusp-cli/issues/25)
+for the Stripe handler schema delivery tracker.
 
 **`complete_checkout`:** The request body follows UCP [Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
 Each object in `payment.instruments[]` includes a `handler_id` that **MUST**
@@ -4553,15 +4594,21 @@ The full shape matches [Section 7.4](#74-paid-bookings-extension-schema). Exampl
   },
   "ucp": {
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
           "available_instruments": [
-            { "type": "shared_payment_token" }
+            {
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
+            }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production"
           }
         }
       ]
@@ -4581,10 +4628,13 @@ from the checkout response (see [Section 7.4](#74-paid-bookings-extension-schema
   "payment": {
     "instruments": [
       {
-        "handler_id": "stripe_spt_demo_h1",
+        "id": "instr_1",
+        "handler_id": "stripe_payments",
+        "type": "link",
+        "selected": true,
         "credential": {
-          "type": "shared_payment_token",
-          "token": "spt_ExampleOpaqueTokenNotForProduction"
+          "type": "stripe_payment_token",
+          "token": "spt_demo_not_for_production"
         }
       }
     ]
