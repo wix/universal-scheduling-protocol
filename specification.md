@@ -4171,8 +4171,7 @@ requires it (for card tokenization and Link UI flows).
 `WWW-Authenticate` probing **MUST NOT** be described as the default UCP-Native
 `network_id` path. Platforms **MAY** use those techniques only as fallback when
 checkout (and profile) omit `network_id`, or in Standalone Mode contexts outside
-UCP checkout. See [linkusp-cli#25](https://github.com/yahalomran/linkusp-cli/issues/25)
-for the Stripe handler schema delivery tracker.
+UCP checkout. 
 
 **`complete_checkout`:** The request body follows UCP [Complete Checkout](https://ucp.dev/latest/specification/checkout/#complete-checkout).
 Each object in `payment.instruments[]` includes a `handler_id` that **MUST**
@@ -5164,6 +5163,45 @@ payment is required and provides a universal payment handoff mechanism. This
 section applies only when `requires_payment` is `true` and `payment_timing` is
 `at_booking` or `deposit_required`.
 
+**Human confirmation of payment.** A platform **MAY** use an agent to facilitate a
+paid booking: browsing the catalog, querying availability, holding a slot, and
+calling `create_booking`. Finalizing payment is different. The buyer **MUST**
+authorize the charge on a trusted, deterministic surface, and the platform **MUST**
+hand the buyer over to that surface to review the amount, the service, the date and
+time, and the business before the charge is authorized. An agent **MUST NOT**
+authorize a charge on the buyer's behalf, and conversational assent **MUST NOT** be
+treated as authorization. This applies on every payment path in this section,
+including the programmatic ones.
+
+A trusted, deterministic surface is one whose content and behavior are fixed by the
+party that renders it rather than composed per interaction by an agent. Any of the
+following qualifies: the business-hosted page at a payment action's `continue_url`
+([Section 8.5.5](#855-redirect-flow-and-post-payment-return)); a buyer-facing
+confirmation surface presented by the checkout system or payment provider that
+processes the `payment_context`; or a deterministic component of the platform
+itself. USP does not prescribe which party provides it.
+
+This requirement is waived only when the platform and business have negotiated an
+authorization mechanism that carries cryptographic proof of the buyer's
+authorization for that specific transaction, equivalent to [UCP]'s AP2 Mandates
+extension (`dev.ucp.shopping.ap2_mandate`). This version of USP defines no such
+mechanism for Standalone Mode, so in practice a Standalone deployment satisfies
+this requirement with a surface.
+
+> **Why this is stated here and not for both modes.** UCP-Native Mode already
+> inherits this rule from the checkout capability that
+> `dev.usp-protocol.services.paid_bookings` extends
+> ([Section 7.4](#74-paid-bookings-extension-schema)): [UCP] specifies that a
+> checkout "has to be finalized manually by the user through a trusted UI unless
+> the AP2 Mandates extension is supported", and that a platform using an agent
+> "must hand over the checkout session to a trusted and deterministic UI for the
+> user to review the checkout details and place the order"
+> ([UCP Checkout Capability](https://ucp.dev/latest/specification/checkout/)).
+> Standalone Mode inherits nothing from [UCP] and defines its own payment action
+> and `confirm-payment` flow, so the same trust level is stated here. This is
+> parity with [UCP], not an additional USP requirement, and
+> [Section 7](#7-ucp-native-mode) is unchanged by it.
+
 #### 8.5.1 Booking Payment Schema
 
 > **JSON Schema:** [/$defs/BookingPayment](schemas/booking.json) · [/$defs/PaymentContext](schemas/booking.json)
@@ -5235,6 +5273,11 @@ When `checkout_systems` includes `embedded`, the platform processes payment
 browser redirect to the business for payment, and no ACP session). This is the
 same `payment_context` + `confirm-payment` pattern as other Standalone paths;
 see [Section 8.6.2](#862-embedded-payment-flow-paid-service).
+
+"Programmatically" describes the credential and charge mechanics, not the buyer's
+authorization. The human confirmation required by [Section 8.5](#85-payment-integration)
+still applies on this path; here the trusted surface is the one the platform or the
+checkout system presents, rather than a business-hosted page.
 
 The **generic** payment diagram below applies to embedded checkout and to any
 custom checkout integration that consumes `payment_context` off the USP payment
@@ -5687,8 +5730,9 @@ example; the booking has `actions[]` with `type: payment`, `payment_context`, an
 
 #### 8.6.3 Redirect Payment Flow (Paid Service)
 
-When `checkout_systems` includes `redirect`, the buyer **MAY** complete payment on
-the business-hosted page at the payment action's `continue_url`. The platform
+When `checkout_systems` includes `redirect`, the buyer completes payment on the
+business-hosted page at the payment action's `continue_url`, which is the trusted
+surface for this path ([Section 8.5](#85-payment-integration)). The platform
 **SHOULD** send `post_payment_return_request` on `POST /bookings` so the business
 can return the buyer to the platform after pay, cancel, or abandon.
 

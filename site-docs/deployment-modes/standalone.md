@@ -269,6 +269,16 @@ The optional `supported_versions` field enables businesses to continue serving o
 
 USP defines **when** payment is required and provides a universal payment handoff mechanism. This section applies when `requires_payment: true` and `payment_timing` is `at_booking` or `deposit_required`.
 
+!!! warning "Human confirmation of payment"
+
+    A platform **MAY** use an agent to facilitate a paid booking: browsing the catalog, querying availability, holding a slot, and calling `create_booking`. Finalizing payment is different. The buyer **MUST** authorize the charge on a trusted, deterministic surface, and the platform **MUST** hand the buyer over to that surface to review the amount, service, date and time, and business before the charge is authorized. An agent **MUST NOT** authorize a charge on the buyer's behalf, and conversational assent **MUST NOT** be treated as authorization. This holds on every payment path below, including the programmatic ones.
+
+    A trusted, deterministic surface is one whose content and behavior are fixed by the party that renders it rather than composed per interaction by an agent: the business-hosted page at a payment action's `continue_url`, a buyer-facing confirmation surface presented by the checkout system or payment provider, or a deterministic component of the platform itself. USP does not prescribe which party provides it.
+
+    The requirement is waived only when the platform and business have negotiated an authorization mechanism carrying cryptographic proof of the buyer's authorization for that specific transaction, equivalent to UCP's AP2 Mandates extension (`dev.ucp.shopping.ap2_mandate`). This version of USP defines no such mechanism for Standalone Mode.
+
+    [UCP-Native Mode](ucp-native.md) needs no equivalent statement: it inherits the rule from the UCP checkout capability that `dev.usp-protocol.services.paid_bookings` extends. Standalone Mode inherits nothing from UCP, so the same trust level is stated for it. The normative text is §8.5 Payment Integration in the specification.
+
 ### Payment Schema
 
 The `payment` object on the booking tracks the lifecycle of payment:
@@ -308,7 +318,7 @@ The `POST /bookings/{booking_id}/confirm-payment` endpoint is called by the plat
 
 ### Embedded / Generic Payment Flow
 
-When `checkout_systems` includes `embedded`, the platform processes payment **programmatically** using the `payment_context` from the payment action.
+When `checkout_systems` includes `embedded`, the platform processes payment **programmatically** using the `payment_context` from the payment action. "Programmatically" describes the credential and charge mechanics, not the buyer's authorization: the human confirmation above still applies, on the surface the platform or checkout system presents rather than a business-hosted page.
 
 ```mermaid
 sequenceDiagram
@@ -341,7 +351,7 @@ sequenceDiagram
 
 ### Redirect Payment Flow
 
-When `checkout_systems` includes `redirect`, the buyer completes payment on the business-hosted page at the payment action's `continue_url`. The platform sends `post_payment_return_request` so the business can return the buyer afterward.
+When `checkout_systems` includes `redirect`, the buyer completes payment on the business-hosted page at the payment action's `continue_url`, which is the trusted surface for this path. The platform sends `post_payment_return_request` so the business can return the buyer afterward.
 
 ```mermaid
 sequenceDiagram

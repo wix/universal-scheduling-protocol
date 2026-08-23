@@ -1,5 +1,14 @@
 # Change Log
 
+## 23/08/26 at 12:11:15 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added a human-confirmation requirement to `specification.md` §8.5: an agent MAY facilitate a paid Standalone booking, but the buyer MUST authorize the charge on a trusted, deterministic surface unless a negotiated mechanism supplies AP2-equivalent cryptographic proof of authorization. Standalone Mode previously had no such rule, so a conforming implementation could charge a buyer with no human confirmation, while UCP-Native inherits UCP checkout's trusted-UI rule through the capability `dev.usp-protocol.services.paid_bookings` extends. The addition is parity with UCP, states no vendor or product, adds no wire field, and leaves §7 unchanged
+- Defined what counts as a trusted, deterministic surface (business-hosted `continue_url` page, a checkout system or payment provider confirmation surface, or a deterministic platform component) so the requirement is testable without USP prescribing which party renders it
+- Clarified §8.5.4 that "programmatically" describes charge mechanics rather than buyer authorization, and changed §8.6.3 from "the buyer **MAY** complete payment on the business-hosted page" to a statement that the page is the trusted surface for the redirect path, because both readings otherwise contradicted the new §8.5 rule
+- Mirrored the rule in `site-docs/deployment-modes/standalone.md` (Payment Integration, embedded flow, redirect flow) and added a Standalone security-checklist row in `site-docs/security.md` marked inherited for UCP-Native, so the site does not describe agent-completable payment after the spec forbids it
+
+---
+
 ## 23/08/26 at 03:37:56 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Replaced placeholder Stripe UCP handler examples (`com.stripe.agentic_commerce.shared_payment_token`, `stripe_spt_demo_h1`, `shared_payment_token` instrument) with the published `com.stripe.payments` handler (`2026-06-25`) in `specification.md` §7.2, §7.4, and §7.7.2, because Stripe's handler schema is now available and issue [#108](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/108) requires real wire shapes instead of pre-schema placeholders
