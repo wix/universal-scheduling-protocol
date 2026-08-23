@@ -26,7 +26,7 @@ The REST binding uses HTTP/1.1 (or higher) with JSON request/response bodies. Al
 
 ## Capability Negotiation
 
-The platform advertises its profile URI via the `USP-Agent` header using Dictionary Structured Field syntax (RFC 8941):
+The platform advertises its profile URI via the `USP-Agent` header using Dictionary Structured Field syntax (RFC 8941). For privileged operations that URI is the identity-binding input from Section 10.1.6: binding is trust-on-first-use keyed by principal, so a later request from the same principal with a different URI **MUST** be rejected, while many principals sharing one platform profile URI is expected.
 
 ```http
 POST /services/list HTTP/1.1

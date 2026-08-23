@@ -6254,7 +6254,7 @@ Each USP REST operation maps to a JSON-RPC method:
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the authenticated *principal* against this URI on first contact and rejects a later mismatch. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the pairing of principal to profile URI on first contact and **MUST** reject a later request where *that principal* presents a different profile URI. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself, and **MUST NOT** reject other principals that present the same URI. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
@@ -7403,12 +7403,22 @@ The requirement is therefore satisfied as follows:
 - **The profile URI carries branding, capabilities, and contact details.** It is
   descriptive metadata, and a business **MUST NOT** treat it as an
   authentication factor or as evidence of who is calling.
-- **Binding is trust-on-first-use.** On first contact a business records the
-  pairing of principal to profile URI, and on subsequent requests **MUST**
-  reject a request whose principal does not match the one recorded for that
-  URI. A business **MAY** flag or rate-limit the case where a different key
-  claims a profile URI already bound to another, which is the signal that
-  something is being impersonated.
+- **Binding is trust-on-first-use, and it is keyed by principal, not by URI.**
+  On first contact a business records the pairing of principal to profile URI.
+  On subsequent requests it **MUST** reject a request where *that principal*
+  presents a **different** profile URI than the one recorded for it: one key
+  asserting two identities is the impersonation signal. A business **MAY** flag
+  or rate-limit the converse case, where a different key claims a profile URI
+  already bound to another key.
+
+  **The direction matters, and only one of the two is implementable.** Because a
+  single profile document is deliberately shared by every instance of a platform
+  (see above), many distinct principals legitimately present the *same* profile
+  URI - that is the normal case for a population of personal agents, not an
+  attack. A business that instead bound URI to principal and rejected
+  mismatches would admit the first agent instance to contact it and reject every
+  other instance of the same platform, permanently. Hence the converse case is a
+  soft signal a business **MAY** act on, and never a required rejection.
 - **One credential is enough.** A key-bound credential satisfies this MUST on
   its own: the `cnf` binding *is* the proof that the caller is the principal the
   business recorded. A business **MUST NOT** additionally require a separate

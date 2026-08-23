@@ -1,5 +1,13 @@
 # Change Log
 
+## 23/08/26 at 16:20:16 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed §10.1.6 identity binding so trust-on-first-use is **keyed by principal**, not by profile URI, because the previous MUST rejected any principal that did not match the one recorded for a URI and would lock out every later instance of a shared platform profile after the first caller
+- Left the converse case (a different key presenting an already-seen URI) as optional flag-or-rate-limit only, because a single keyless profile document is deliberately shared across a population of personal agents and that presentation is the normal case, not impersonation
+- Aligned the §9.2.2 MCP restatement and `site-docs/security.md` plus REST/MCP transport pages with the same direction so the site and the MCP "bound to" sentence cannot be read as URI-to-principal rejection
+
+---
+
 ## 23/08/26 at 14:19:48 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added non-normative §9.7 Observability join recommending optional `USP-Correlation-Id` / `_meta.usp.correlation_id` propagation across money-path hops, because Track S (#160) needs a single vendor-neutral join convention without making observability a USP conformance gate

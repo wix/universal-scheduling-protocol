@@ -53,7 +53,7 @@ MCP clients invoke USP operations via the standard MCP `tools/call` method, with
 
 ### Platform Identification
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. For privileged methods it is the identity-binding input from Section 10.1.6: the business records principal-to-URI on first contact and **MUST** reject a later request where that principal presents a different URI. A shared platform profile URI presented by many principals is the normal case, not a required rejection.
 
 For state-modifying operations, the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header.
 

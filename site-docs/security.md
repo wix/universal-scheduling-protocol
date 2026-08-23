@@ -101,6 +101,12 @@ for the full normative text and rationale.
 - Every request to a privileged operation **MUST** carry a `USP-Agent` (or
   `UCP-Agent`) header on REST, or `_meta.usp.profile` on MCP, that resolves to
   a profile fetchable over HTTPS with no redirects, cached by URI.
+- Identity binding is trust-on-first-use **keyed by principal**, not by profile
+  URI. On first contact a business records the pairing of principal to profile
+  URI. On later requests it **MUST** reject a request where *that principal*
+  presents a different profile URI. Many distinct principals legitimately
+  present the same shared platform profile URI; a business **MAY** flag or
+  rate-limit that case and **MUST NOT** treat it as a required rejection.
 - A business **MUST** accept at least one of: HTTP Message Signatures
   (RFC 9421, **recommended default**, permissionless, works the same for one
   platform or a million distinct personal-agent instances), platform key
