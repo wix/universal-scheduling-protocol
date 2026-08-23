@@ -103,19 +103,24 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
       ]
     },
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
-          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
-          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
+          "spec": "https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler",
+          "schema": "https://ucp.stripe.com/payments/2026-06-25/schema.json",
           "available_instruments": [
             {
-              "type": "shared_payment_token"
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
             }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production",
+            "publishable_key": "pk_test_demo_not_for_production"
           }
         }
       ]
@@ -289,17 +294,23 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
       ]
     },
     "payment_handlers": {
-      "com.stripe.agentic_commerce.shared_payment_token": [
+      "com.stripe.payments": [
         {
-          "id": "stripe_spt_demo_h1",
-          "version": "2026-01-11",
-          "spec": "https://docs.stripe.com/agentic-commerce/protocol",
-          "schema": "https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens",
+          "id": "stripe_payments",
+          "version": "2026-06-25",
+          "spec": "https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler",
+          "schema": "https://ucp.stripe.com/payments/2026-06-25/schema.json",
           "available_instruments": [
-            { "type": "shared_payment_token" }
+            {
+              "type": "link",
+              "config": {
+                "network_id": "profile_demo_not_for_production"
+              }
+            }
           ],
           "config": {
-            "publishable_key": "pk_test_ExampleNotForProduction"
+            "environment": "sandbox",
+            "merchant_id": "acct_demo_not_for_production"
           }
         }
       ]
@@ -378,7 +389,11 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 
 ### Payment handlers (UCP)
 
-`ucp.payment_handlers` uses **reverse-domain keys** mapping to **arrays** of handler instances (`id`, `version`, optional `spec`, `schema`, `config`, `available_instruments`) per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture). Profile handlers are indicative; **`available_instruments` on the checkout response is authoritative** when present. On `complete_checkout`, each `payment.instruments[].handler_id` **MUST** match the handler instance `id` from that checkout (see [Paid Bookings Extension Schema](#paid-bookings-extension-schema) on this page).
+`ucp.payment_handlers` uses **reverse-domain keys** mapping to **arrays** of handler instances (`id`, `version`, optional `spec`, `schema`, `config`, `available_instruments`) per the [UCP payment architecture](https://ucp.dev/latest/specification/overview/#payment-architecture). For Stripe, the published handler is [`com.stripe.payments`](https://docs.stripe.com/agentic-commerce/ucp/stripe-payments-handler) (version `2026-06-25`; JSON Schema at `https://ucp.stripe.com/payments/2026-06-25/schema.json`). Profile handlers are indicative; **`available_instruments` on the checkout response is authoritative** when present. On `complete_checkout`, each `payment.instruments[].handler_id` **MUST** match the handler instance `id` from that checkout (see [Paid Bookings Extension Schema](#paid-bookings-extension-schema) on this page).
+
+For UCP-Native paid bookings, platforms **MUST** read `network_id` from the checkout response: the `com.stripe.payments` handler instance whose `available_instruments` includes `type: "link"` and `config.network_id`. `network_id` lives on the **Link instrument** configuration, not on handler-level `config`. For Link Agent Wallet / Shared Payment Token flows, the platform acquires a token (for example via [`link-cli`](https://github.com/stripe/link-cli)) and submits `credential.type: "stripe_payment_token"` on instrument `type: "link"` in `complete_checkout`. That path does not require Link UI or `publishable_key` from the checkout response.
+
+`link-cli mpp decode` and merchant HTTP `402` / `WWW-Authenticate` probing are **not** the default UCP-Native `network_id` path. Use them only as fallback when checkout (and profile) omit `network_id`, or in Standalone contexts. See [linkusp-cli#25](https://github.com/yahalomran/linkusp-cli/issues/25).
 
 ---
 
@@ -615,15 +630,21 @@ sequenceDiagram
       },
       "ucp": {
         "payment_handlers": {
-          "com.stripe.agentic_commerce.shared_payment_token": [
+          "com.stripe.payments": [
             {
-              "id": "stripe_spt_demo_h1",
-              "version": "2026-01-11",
+              "id": "stripe_payments",
+              "version": "2026-06-25",
               "available_instruments": [
-                { "type": "shared_payment_token" }
+                {
+                  "type": "link",
+                  "config": {
+                    "network_id": "profile_demo_not_for_production"
+                  }
+                }
               ],
               "config": {
-                "publishable_key": "pk_test_ExampleNotForProduction"
+                "environment": "sandbox",
+                "merchant_id": "acct_demo_not_for_production"
               }
             }
           ]
@@ -639,10 +660,13 @@ sequenceDiagram
       "payment": {
         "instruments": [
           {
-            "handler_id": "stripe_spt_demo_h1",
+            "id": "instr_1",
+            "handler_id": "stripe_payments",
+            "type": "link",
+            "selected": true,
             "credential": {
-              "type": "shared_payment_token",
-              "token": "spt_ExampleOpaqueTokenNotForProduction"
+              "type": "stripe_payment_token",
+              "token": "spt_demo_not_for_production"
             }
           }
         ]

@@ -1,5 +1,13 @@
 # Change Log
 
+## 23/08/26 at 03:37:56 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Replaced placeholder Stripe UCP handler examples (`com.stripe.agentic_commerce.shared_payment_token`, `stripe_spt_demo_h1`, `shared_payment_token` instrument) with the published `com.stripe.payments` handler (`2026-06-25`) in `specification.md` §7.2, §7.4, and §7.7.2, because Stripe's handler schema is now available and issue [#108](https://github.com/wix-private/universal-scheduling-protocol-spec/issues/108) requires real wire shapes instead of pre-schema placeholders
+- Added normative prose that UCP-Native platforms **MUST** read `network_id` from checkout `available_instruments` (`type: "link"`, `config.network_id`) and that Link Agent Wallet submits `stripe_payment_token` on instrument `type: "link"`, demoting `link-cli mpp decode` and merchant HTTP 402 probing to fallback/Standalone-only paths so agent docs stop treating merchant probe as the default SPT acquisition route
+- Mirrored the same handler mapping and payment-handler guidance in `site-docs/deployment-modes/ucp-native.md` and `docs/ucp-native-demo-merchant-profile.example.json` so the published site and copyable demo profile stay aligned with the normative spec
+
+---
+
 ## 23/08/26 at 02:28:29 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed `plans/`, `docs/website-deployment.md`, `render.yaml`, and `.github/workflows/mirror-to-public.yml` from the public tree so the published repo is protocol material rather than private sprint plans, private Render preview config, a dormant private-to-public force-push job, or Pages DNS operator notes
