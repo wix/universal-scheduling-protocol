@@ -231,6 +231,7 @@ USP is designed to minimize PCI-DSS scope for implementations:
 | Request signing (recommended privileged-op mechanism) | Recommended | Recommended | RFC 9421 |
 | Idempotency keys | Recommended | Recommended | draft-ietf-httpapi-idempotency-key-header |
 | Hold abuse prevention | Recommended | Recommended | USP spec |
+| Buyer authorizes the charge on a trusted, deterministic surface | Inherited from UCP checkout | Required | USP spec §8.5 |
 | Privileged-op authentication (some accepted mechanism) | Required | Required | USP spec §10.1.6 |
 | HTTP Message Signatures (recommended default mechanism) | Available | Available | RFC 9421 |
 | Booking-scoped capability credential | Available (#134, #162) | Available (#134, #162) | USP spec §10.1.6 |
