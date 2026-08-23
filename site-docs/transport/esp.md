@@ -241,6 +241,10 @@ stateDiagram-v2
     TimedOut --> [*]
 ```
 
+## Observability Join
+
+Participating ESP hosts and businesses **MAY** carry an optional `correlation_id` on `esp.start`, `esp.complete`, and `esp.error`. See [Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation). Omitting it is conformant USP.
+
 ## Conformance Requirements
 
 ### MUST

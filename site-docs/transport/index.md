@@ -133,6 +133,27 @@ graph LR
     end
 ```
 
+| `payment_failed` | Payment processing failed | `-32001` |
+
+## Observability Join (Non-Normative Recommendation)
+
+USP does not require any metric system, log product, or alert route. For implementers who choose to join money-path logs across vendors, the specification recommends a single opaque correlation id per booking flow. **Not implementing this recommendation is conformant USP.**
+
+- **Join key:** one opaque, non-PII token per booking flow (a UUID is sufficient).
+- **Clients (if participating):** **SHOULD** send on money-path operations: registry search, booking, and checkout complete.
+- **Recipients (if participating):** **SHOULD** propagate on outbound calls (including across bindings), generate when absent, **SHOULD NOT** overwrite inbound, and **SHOULD** echo on errors via the binding's carriage mechanism.
+- **All recipients:** **SHOULD NOT** fail a conformant request because the join id is absent or unrecognized.
+- **`traceparent`:** **MAY** be sent on HTTP hops in addition; it is not a second USP join key.
+
+| Binding | Carriage | Details |
+|---------|----------|---------|
+| [REST](rest.md) | `USP-Correlation-Id` header | Request and error response header |
+| [MCP](mcp.md) | `_meta.usp.correlation_id` | **MAY** also send `USP-Correlation-Id` when MCP runs over HTTP |
+| [A2A](a2a.md) | `USP-Correlation-Id` header | On A2A HTTP messages |
+| [ESP](esp.md) | `correlation_id` field | Optional on `esp.start`, `esp.complete`, `esp.error` |
+
+See [specification.md Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation) for the full recommendation.
+
 ## Binding Pages
 
 <div class="grid cards" markdown>

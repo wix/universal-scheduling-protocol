@@ -68,6 +68,24 @@
         "schema": {
           "type": "string"
         }
+      },
+      "USPCorrelationId": {
+        "name": "USP-Correlation-Id",
+        "in": "header",
+        "description": "OPTIONAL non-normative money-path correlation join id (specification.md Section 9.7). Opaque, non-PII token; a UUID is sufficient. Recipients that do not participate ignore this header without failing the request. Not a substitute for booking_id or payment identifiers.",
+        "schema": {
+          "type": "string",
+          "example": "7f3c2b1a-9e4d-4a8b-8c1f-2d5e6f7a8b9c"
+        }
+      }
+    },
+    "headers": {
+      "USPCorrelationId": {
+        "description": "OPTIONAL non-normative money-path correlation join id echoed on error (and optionally success) responses per specification.md Section 9.7. Caller-safe reference; not a substitute for Problem Details type or code.",
+        "schema": {
+          "type": "string",
+          "example": "7f3c2b1a-9e4d-4a8b-8c1f-2d5e6f7a8b9c"
+        }
       }
     },
     "schemas": {
@@ -2031,6 +2049,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/USPCorrelationId"
           }
         ],
         "requestBody": {
@@ -2427,6 +2448,9 @@
             "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
+            "$ref": "#/components/parameters/USPCorrelationId"
+          },
+          {
             "name": "booking_id",
             "in": "path",
             "required": true,
@@ -2802,6 +2826,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/USPCorrelationId"
           },
           {
             "name": "booking_id",
@@ -3758,6 +3785,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/USPCorrelationId"
           }
         ],
         "requestBody": {
@@ -3838,6 +3868,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "$ref": "#/components/parameters/USPCorrelationId"
           }
         ],
         "requestBody": {

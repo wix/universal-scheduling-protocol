@@ -57,6 +57,8 @@ The `_meta.usp.profile` field inside `arguments` carries the platform's profile 
 
 For state-modifying operations, the platform **SHOULD** include `_meta.usp.idempotency_key` (UUID v4), equivalent to the REST `Idempotency-Key` header.
 
+Participating MCP clients and servers carry the optional join id in `_meta.usp.correlation_id` on both stdio and HTTP-SSE transports. When MCP runs over HTTP, participants **MAY** also send `USP-Correlation-Id`; when both are present they **SHOULD** be the same value. See [Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation). Omitting it is conformant USP.
+
 ### Request Examples
 
 **Availability query:**
