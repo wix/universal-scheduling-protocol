@@ -284,7 +284,7 @@ Webhook callback URLs are registered via:
 - The platform profile's `webhook_url` field, or
 - Per-subscription via `POST /services/feed/subscriptions`
 
-All webhook payloads MUST be signed. Platforms MUST verify signatures before processing events.
+When webhook payloads are emitted, they **MUST** be signed. Platforms **MUST** verify signatures before processing events. Implementations that neither emit webhooks nor advertise outbound webhook delivery have no payloads to sign.
 
 ```mermaid
 sequenceDiagram
@@ -311,9 +311,11 @@ A conforming MCP binding implementation **MUST:**
 1. Use the `tools/call` envelope with `params.name` set to the method name and `params.arguments` containing operation parameters.
 2. Wrap results in the `structuredContent` / `content` dual-envelope pattern.
 3. Return business outcome errors in `result.structuredContent.messages[]`, not as JSON-RPC `error`.
-4. Use JSON-RPC `error` only for protocol errors.
-5. Include `_meta.usp.profile` in Standalone Mode for capability negotiation.
-6. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#94-error-code-mapping)).
+5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations).
+6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
+7. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
+8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations)).
 
 ### SHOULD
 
@@ -321,3 +323,6 @@ A conforming MCP binding implementation **SHOULD:**
 
 1. Include `_meta.usp.idempotency_key` on state-modifying operations.
 2. Provide a human-readable text summary in `result.content[]`.
+3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
+4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
+5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.

@@ -1076,8 +1076,9 @@ Normative rules:
 1. An entry **MUST** carry at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`.
 2. Exactly one entry is canonical (primary). If exactly one entry has `primary: true`, that is the primary. If no entry sets `primary`, and exactly one entry has `taxonomy: "merchant"`, that entry is the primary. If neither disambiguates, the first entry in array order is the primary. Never more than one `primary: true`.
 3. The primary entry is the source for display, localization (`localized.category_name` overrides the primary entry's `name`), and registry projection of `ServiceSearchResult.category`.
-4. Catalog filters (`category_id`, and `categories` filter parameters that carry IDs) **MUST** match against the primary entry's `id`, and **MAY** match any entry's `id`. Filter parameters remain flat ID strings.
-5. Registry projection: `ServiceSearchResult.category` (flat string) is derived from the primary entry with pick order: primary `name`, else primary `value`, else primary `id`, else the first entry's `value`, else the service `type`.
+4. Category filter parameters that carry IDs, including catalog `category_id` and `categories` and registry `categories`, **MUST** use flat ID strings, not display labels. Catalog filters **MUST** match the primary entry's `id` and **MAY** match any entry's `id`. Registry service filters match the IDs projected in `ServiceSearchResult.category_ids` as defined in [Section 6.3.1](#631-filter-matching-semantics).
+5. Registry display projection: `ServiceSearchResult.category` (flat string) is derived from the primary entry with pick order: primary `name`, else primary `value`, else primary `id`, else the first entry's `value`, else the service `type`. This display string is not a registry category filter token.
+6. Registry ID projection: `ServiceSearchResult.category_ids` contains the indexed `categories[].id` values that the registry exposes as filter tokens. Each emitted ID **MUST** round-trip through the registry service `categories` filter and match the same service when all other filters are unchanged.
 
 **Example (multi-taxonomy):**
 
@@ -1448,7 +1449,7 @@ booking lifecycle and **MUST** be enforced by the business.
 | `rescheduling`      | object  | **Yes**     | Rescheduling policy. `allowed`: boolean. `free_reschedule_until`: ISO 8601 duration before start time for free rescheduling. `max_reschedules`: integer, maximum number of times a booking can be rescheduled (prevents abuse). `fee`: integer, fee in minor currency units for rescheduling outside the free window.                                                                                                                                                                                                                 |
 | `no_show`           | object  | No          | No-show policy. `fee`: integer, fixed fee in minor currency units. `fee_percentage`: integer (0-100), percentage of the service price charged as a no-show fee. Only one of `fee` or `fee_percentage` **SHOULD** be set. `grace_period`: ISO 8601 duration after the scheduled start time before the booking is marked as a no-show (e.g., `PT15M` = 15-minute grace period).                                                                                                                                                         |
 | `booking_window`    | object  | **Yes**     | Booking window constraints. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
-| `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the business does not confirm within the `expires_at` time on the booking, the booking transitions to `canceled`.                                                                                                                                                                                              |
+| `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the booking advertises `expires_at` and the business does not confirm before that deadline, the booking transitions to `canceled` per [Section 5.2](#52-booking-schema).                                                                                                                                                         |
 | `requires_payment`  | boolean | **Yes**     | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services).                                                                                                                                                                                                                                                                                                                                             |
 | `payment_timing`    | string  | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time).                                                                                                                                                                      |
 
@@ -2459,19 +2460,21 @@ at a specific time.
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `expires_at`        | string          | No          | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include `expires_at`. Advertising the field is a claim the business **MUST** honour (see Booking Expiry).                                                                                                                                                                                                                         |
 | `revision`          | string          | No          | Opaque concurrency token for the booking's current state, used for conditional writes ([Section 5.6](#56-conditional-writes-and-concurrency)). Changes on every modification. Treat as opaque: do not parse it or infer recency from it. |
 
 **Booking Expiry**
 
-When a `pending` or `requires_action` booking reaches its `expires_at` deadline without being resolved:
+`expires_at` on Booking is an advertised deadline. Omitting it is conformant when the business does not hold slot capacity for that unconfirmed booking. The numbered rules below apply **only** when `expires_at` is present. A business that advertises `expires_at` **MUST** honour it.
+
+When a `pending` or `requires_action` booking that includes `expires_at` reaches that deadline without being resolved:
 
 1. The business **MUST** transition the booking to `status: canceled`.
 2. The business **SHOULD** send a `booking.canceled` webhook so the platform can update its state.
-3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled` — platforms and businesses need this for audit and reconciliation purposes.
-4. The business **MUST** release the underlying slot hold when the booking expires, making the slot available for new bookings.
+3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled`. Platforms and businesses need this for audit and reconciliation.
+4. The business **MUST** release any underlying slot hold when the booking expires, making the slot available for new bookings.
 
-For hold-backed bookings, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
+For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
 ### 5.3 Operations
 
@@ -3254,9 +3257,9 @@ Request:
     "group"
   ],
   "categories": [
-    "wellness",
-    "beauty",
-    "fitness"
+    "cat_wellness",
+    "cat_beauty",
+    "cat_fitness"
   ],
   "location": {
     "address": "123 Main St, New York, NY 10001",
@@ -3276,11 +3279,17 @@ Request:
 | `name`            | string          | **Yes**     | Human-readable business name.                                                                                                                                  |
 | `description`     | string          | No          | Brief human-readable description of the business (e.g., for discovery cards and search snippets).                                                              |
 | `verticals`       | Array\[string\] | **Yes**     | Service verticals offered by the business (e.g., `appointment`, `group`).                                                                                      |
-| `categories`      | Array\[string\] | **Yes**     | Business categories for search and filtering.                                                                                                                  |
+| `categories`      | Array\[string\] | **Yes**     | Opaque business category IDs for search and filtering. Values are IDs, not display labels.                                                                      |
 | `location`        | object          | Conditional | Physical location with `address` (string) and `coordinates` (`{lat, lng}`). **REQUIRED** when the business offers any `at_business_location` or `hybrid` channel services. **MAY** be omitted for businesses offering only `at_buyer_location`, `virtual`, or `phone` services. |
 | `timezone`        | string          | **Yes**     | IANA timezone identifier (e.g., `America/New_York`).                                                                                                           |
 
 Registries indexing virtual-only businesses (no `location`) **MUST** exclude them from location-filtered search results and **SHOULD** return them only when no geographic filter is applied.
+
+Business category IDs are registry filter tokens, not a universal taxonomy. A
+registry **MUST** preserve the registered `categories[]` values in
+`RegistryEntry.categories`. Every ID returned there **MUST** be accepted by the
+business-search `categories[]` filter and match that entry when all other
+filters are unchanged.
 
 Response:
 
@@ -3307,9 +3316,9 @@ Response:
       "group"
     ],
     "categories": [
-      "wellness",
-      "beauty",
-      "fitness"
+      "cat_wellness",
+      "cat_beauty",
+      "cat_fitness"
     ],
     "location": {
       "address": "123 Main St, New York, NY 10001",
@@ -3352,7 +3361,7 @@ Request:
     "appointment"
   ],
   "categories": [
-    "wellness"
+    "cat_wellness"
   ],
   "query": "massage",
   "deployment_mode": "standalone",
@@ -3371,7 +3380,7 @@ Request:
 |-------------------|-----------------|----------|-----------------------------------------------------------------------------|
 | `location`        | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `verticals`       | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
-| `categories`      | Array\[string\] | No       | Filter by business categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`      | Array\[string\] | No       | Business category IDs, not display labels (OR within field, exact case-sensitive matching). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`           | string          | No       | Free-text search across business names and categories.                      |
 | `deployment_mode` | string          | No       | Filter by `standalone` or `ucp_native`. When omitted, returns both modes. |
 | `context`         | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See below. |
@@ -3416,9 +3425,9 @@ Response:
         "group"
       ],
       "categories": [
-        "wellness",
-        "beauty",
-        "fitness"
+        "cat_wellness",
+        "cat_beauty",
+        "cat_fitness"
       ],
       "location": {
         "address": "123 Main St, New York, NY 10001",
@@ -3441,8 +3450,8 @@ Response:
         "appointment"
       ],
       "categories": [
-        "wellness",
-        "beauty"
+        "cat_wellness",
+        "cat_beauty"
       ],
       "location": {
         "address": "456 Oak Ave, New York, NY 10002",
@@ -3487,7 +3496,7 @@ Request:
     "appointment"
   ],
   "categories": [
-    "wellness"
+    "cat_wellness"
   ],
   "query": "deep tissue massage",
   "price_range": {
@@ -3516,7 +3525,7 @@ Request:
 |------------------|-----------------|----------|-------------------------------------------------------------------------------|
 | `location`       | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `verticals`      | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
-| `categories`     | Array\[string\] | No       | Filter by service categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`     | Array\[string\] | No       | Service category IDs, not display labels (OR within field, exact case-sensitive matching against `ServiceSearchResult.category_ids`). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
 | `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
@@ -3553,7 +3562,10 @@ Response:
         "deployment_mode": "standalone",
         "name": "Sunrise Wellness Studio"
       },
-      "category": "wellness",
+      "category": "Wellness",
+      "category_ids": [
+        "cat_wellness"
+      ],
       "duration_minutes": 60,
       "pricing": {
         "model": "fixed",
@@ -3584,7 +3596,10 @@ Response:
         "deployment_mode": "standalone",
         "name": "Serenity Spa & Massage"
       },
-      "category": "wellness",
+      "category": "Wellness",
+      "category_ids": [
+        "cat_wellness"
+      ],
       "duration_minutes": 90,
       "pricing": {
         "model": "variable",
@@ -3615,11 +3630,16 @@ Response:
 The `query` field performs a full-text search across service names, descriptions,
 and categories.
 
-`ServiceSearchResult.category` is a flat string projected from the catalog
+`ServiceSearchResult.category` is display text projected from the catalog
 service's primary `categories[]` entry. Pick order: primary `name`, else primary
 `value`, else primary `id`, else the first entry's `value`, else the service
-`type`. The registry wire model keeps this flat string; it does not expand the
-catalog category object.
+`type`. It is not a category filter token.
+
+Every service search result **MUST** include `category_ids`, projected from the
+indexed catalog `categories[].id` values that the registry exposes for
+filtering. The array **MAY** be empty when the service has no category IDs.
+Every emitted ID **MUST** be accepted by the service-search `categories[]`
+filter and match the same service when all other filters are unchanged.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 
@@ -3632,6 +3652,13 @@ Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **M
 - Distinct filter fields combine with **AND**.
 - `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
 - Zero matches **MUST** return HTTP 200 with an empty result array (never an error for "no hits"). Requests with no real search filter **MUST** return `validation_error` ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 6.3](#63-service-search---post-registrysearch_services)).
+
+**Category IDs (`categories`)**
+
+- Both registry search operations use opaque category IDs, not display labels. Matching is exact and case-sensitive.
+- Business search matches against `RegistryEntry.categories`.
+- Service search matches against `ServiceSearchResult.category_ids`. `ServiceSearchResult.category` is display text and **MUST NOT** be interpreted as a filter token.
+- Every category ID emitted by a search result **MUST** round-trip through that operation's `categories[]` filter and match the same result when all other filters are unchanged.
 
 **Geographic (`location`)**
 
@@ -5308,12 +5335,13 @@ then resume with `confirm-payment` after success. This aligns with UCP's
 **Payment action expiry:** When a payment action's `expires_at` passes without
 `confirm-payment`, the business **SHOULD** set the action's `status` to
 `expired`. If no other pending actions remain, the booking **MUST** transition
-to `canceled` per [Section 5.2](#52-booking-schema) (booking expiry). The
+to `canceled`. This payment-action clock is independent of whether the booking
+advertises `expires_at` ([Section 5.2](#52-booking-schema)). The
 business **SHOULD** release any hold and **SHOULD** send `booking.canceled`. A
 late `confirm-payment` **MUST** return the canceled booking with `messages[]`
 code `payment_expired`. The payment action's `expires_at` **SHOULD** be no later
-than the booking's `expires_at` and no later than the slot hold's `expires_at`
-when a hold exists.
+than the booking's `expires_at` when the booking advertises that field, and no
+later than the slot hold's `expires_at` when a hold exists.
 
 **Payment abandonment:** If the buyer abandons payment, the platform **SHOULD**
 call `POST /bookings/{booking_id}/cancel`. Otherwise the booking expires as
@@ -6195,7 +6223,7 @@ A conforming REST binding implementation **MUST:**
 4. Return business outcome errors as HTTP 200 with a `messages[]` array on the response object.
 5. Support the `USP-Agent` header on all requests ([Section 9.1.3](#913-discovery)).
 6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
-7. Implement webhook signing per [Section 10.1.1](#1011-webhook-security).
+7. When the implementation emits webhook payloads or advertises outbound webhook delivery, implement webhook signing per [Section 10.1.1](#1011-webhook-security). Implementations that do neither satisfy this item without implementing webhook signing.
 
 A conforming REST binding implementation **SHOULD:**
 
@@ -6488,7 +6516,7 @@ Booking, catalog, and (when the waitlist extension is supported) waitlist lifecy
 
 **URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-operations)).
 
-**Signature verification:** All webhook payloads **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events.
+**Signature verification:** When webhook payloads are emitted, they **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events. Implementations that neither emit webhooks nor advertise outbound webhook delivery have no payloads to sign.
 
 **Event ordering:** Events for the same booking are delivered in causal order. Events across different bookings have no ordering guarantee.
 
@@ -6539,7 +6567,7 @@ A conforming MCP binding implementation **MUST:**
 4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](#94-error-code-mapping)).
 5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
 6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
-7. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+7. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
 8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 A conforming MCP binding implementation **SHOULD:**

@@ -80,19 +80,21 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `cancellation` | object | No | `{reason, canceled_by, fee, refund_amount, canceled_at}` -- present when canceled. |
 | `created_at` | string | **Yes** | RFC 3339 timestamp of creation. |
 | `updated_at` | string | **Yes** | RFC 3339 timestamp of last modification. |
-| `expires_at` | string | No | RFC 3339 expiration time for `pending` and `requires_action` bookings. |
+| `expires_at` | string | No | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include it. Advertising the field is a claim the business **MUST** honour (see Booking Expiry). |
 
 ### Booking Expiry
 
-When a `pending` or `requires_action` booking reaches its `expires_at` deadline:
+`expires_at` on Booking is an advertised deadline. Omitting it is conformant when the business does not hold slot capacity for that unconfirmed booking. The numbered rules below apply **only** when `expires_at` is present. A business that advertises `expires_at` **MUST** honour it.
+
+When a `pending` or `requires_action` booking that includes `expires_at` reaches that deadline without being resolved:
 
 1. The business **MUST** transition the booking to `status: canceled`.
 2. The business **SHOULD** send a `booking.canceled` webhook.
 3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled`.
-4. The business **MUST** release the underlying slot hold.
+4. The business **MUST** release any underlying slot hold.
 
 !!! warning "Hold Alignment"
-    For hold-backed bookings, the hold's `expires_at` **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
+    For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
 ---
 

@@ -264,7 +264,7 @@ A conforming REST binding implementation **MUST:**
 4. Return business outcome errors as HTTP 200 with a `messages[]` array on the response object.
 5. Support the `USP-Agent` header on all requests.
 6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
-7. Implement webhook signing per the security specification.
+7. When the implementation emits webhook payloads or advertises outbound webhook delivery, implement webhook signing per the security specification. Implementations that do neither satisfy this item without implementing webhook signing.
 
 ### SHOULD
 

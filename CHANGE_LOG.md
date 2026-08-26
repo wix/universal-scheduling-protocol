@@ -1,5 +1,37 @@
 # Change Log
 
+## 26/08/26 at 09:22:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned §9.2.3 signature verification on emitted webhook payloads so that section cannot be read as requiring outbound webhooks after the REST and MCP checklists became outbound-only MUSTs
+- Restated `confirmation_mode` on the service-catalog site page with the advertised `expires_at` cancellation rule, because the shortened "approval within 24 hours" line no longer matched the booking-expiry advertisement condition
+- Restated standalone payment-action expiry to match §8.5.4: the payment clock is independent of Booking `expires_at`, and a payment action deadline SHOULD not outlive an advertised booking deadline or an existing hold
+
+---
+
+## 26/08/26 at 08:24:38 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned §5.2 booking-expiry MUSTs on advertising `expires_at`, because those rules exist to release inventory held for unconfirmed bookings and a business that does not hold capacity has nothing to release
+- Documented omitting `expires_at` as a conformant wire shape when nothing is held, while a business that holds unconfirmed slot capacity MUST include the field and any advertised deadline remains a hard MUST (cancel, remain retrievable, release any hold)
+- Aligned §3.10 confirmation_mode and §8.5.4 payment-action alignment with that advertisement rule, left payment-action expiry independent of Booking `expires_at`, updated `schemas/booking.json` plus `site-docs/specification/booking.md`, and left OpenAPI/OpenRPC as thin `$ref`s
+
+---
+
+## 26/08/26 at 08:22:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Defined registry business and service category filters as exact category-ID matches, because display-label ambiguity made equivalent searches behave differently across operations
+- Added round-trippable category IDs to registry results while preserving service category display text separately, so callers can reuse emitted tokens without guessing
+- Reused the canonical registry category-ID schema from both REST and MCP bindings, preventing transport descriptions from drifting
+
+---
+
+## 26/08/26 at 08:21:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned REST §9.1.5 item 7 and MCP §9.2.4 item 7 so webhook signing (and MCP JSON-RPC webhook notifications) are required only when the implementation emits webhooks or advertises outbound webhook delivery, because an otherwise valid binding that does not send webhooks could not satisfy those checklist MUSTs as previously written
+- Left §10.1.1 signing rules unchanged so payloads that are emitted remain mandatory to sign
+- Mirrored the same conditions on `site-docs/transport/rest.md` and `site-docs/transport/mcp.md`, and aligned the MCP page's MUST/SHOULD lists with current §9.2.4, so the published site matches the normative checklists
+
+---
+
 ## 24/08/26 at 12:00:00 by [Daniel Jaffe](mailto:danielja@wix.com)
 
 - Widened the four `propertyNames` patterns on `business_schema` and `platform_schema` (`services` and `capabilities` on each) in `schemas/usp.json`, because `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` admits no hyphen and therefore rejected `dev.usp-protocol.services.catalog` — the §7.2 example profile did not validate against the specification's own canonical schema, and per `AGENTS.md` authority order (`schemas/*.json` over prose) a conforming validator rejected the profile the specification tells implementers to publish
