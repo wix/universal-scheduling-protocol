@@ -32,6 +32,15 @@
 
 ---
 
+## 24/08/26 at 12:00:00 by [Daniel Jaffe](mailto:danielja@wix.com)
+
+- Widened the four `propertyNames` patterns on `business_schema` and `platform_schema` (`services` and `capabilities` on each) in `schemas/usp.json`, because `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` admits no hyphen and therefore rejected `dev.usp-protocol.services.catalog` — the §7.2 example profile did not validate against the specification's own canonical schema, and per `AGENTS.md` authority order (`schemas/*.json` over prose) a conforming validator rejected the profile the specification tells implementers to publish
+- Fixed the underscore as well, which was never rename fallout: the old pattern also rejected `dev.usp-protocol.services.paid_bookings` and `dev.ucp.common.identity_linking`, so it had been narrower than the namespace it describes since before the `2026-08-20` cutover
+- Added `check_namespace_key_patterns` to `tools/usp_check.py schemas`, asserting that every reserved `dev.usp-protocol.*` name and the third-party names the specification's examples carry satisfy every `propertyNames` pattern gating a capability or service key map, so the next namespace change cannot silently leave a pattern behind; the reserved-name list moved to a module constant now that the authority and schemas checks both read it
+- Kept the patterns otherwise unchanged: two labels minimum, lowercase first character per label, no leading or trailing hyphen or underscore in a label, and no empty label
+
+---
+
 ## 23/08/26 at 16:20:16 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed §10.1.6 identity binding so trust-on-first-use is **keyed by principal**, not by profile URI, because the previous MUST rejected any principal that did not match the one recorded for a URI and would lock out every later instance of a shared platform profile after the first caller
