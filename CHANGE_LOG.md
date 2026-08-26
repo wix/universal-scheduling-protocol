@@ -1,5 +1,13 @@
 # Change Log
 
+## 26/08/26 at 13:35:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Completed the §7.2 free-service-only UCP profile example with the same `business` identity object as the paid example, because `business_schema` requires `business` and the published free-service fence could not be copied as a valid document
+- Added a `usp_check.py schemas` instance check that extracts §7.2 `ucp` documents, validates them against `business_schema`, and requires the UCP-Native site-docs profile examples to match, so those published examples cannot drift from the canonical schema or from each other
+
+---
+
+
 ## 26/08/26 at 09:22:12 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Conditioned §9.2.3 signature verification on emitted webhook payloads so that section cannot be read as requiring outbound webhooks after the REST and MCP checklists became outbound-only MUSTs

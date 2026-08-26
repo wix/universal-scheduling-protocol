@@ -4,8 +4,10 @@
 Four subcommands, each useful on its own:
 
   schemas   Parse every JSON artefact, compile every file under schemas/ as a
-            JSON Schema, and assert the protocol version literal agrees across
-            the five places that assert this repository's version identity.
+            JSON Schema, assert the protocol version literal agrees across
+            the five places that assert this repository's version identity,
+            and instance-validate the §7.2 UCP profile examples against
+            business_schema.
 
   refs      Resolve every $ref two ways - by JSON Schema $id base-URI rules and
             by filesystem path - and fail when the two disagree. Every $id under
@@ -274,6 +276,7 @@ def check_schemas(findings: Findings) -> None:
                       f"version identity disagrees across artefacts: {detail}")
 
     check_namespace_key_patterns(findings)
+    check_section_72_profile_examples(findings)
 
 
 def check_namespace_key_patterns(findings: Findings) -> None:
@@ -306,6 +309,130 @@ def check_namespace_key_patterns(findings: Findings) -> None:
         findings.fail("NAMEPATTERN:coverage",
                       "no capability or service propertyNames constraint found in usp.json; "
                       "this check silently stopped covering anything")
+
+
+JSON_FENCE = re.compile(r"```json\n(.*?)```", re.S)
+SITE_UCP_NATIVE = REPO / "site-docs" / "deployment-modes" / "ucp-native.md"
+
+
+def markdown_slice(text: str, start_pattern: str, end_pattern: str) -> str | None:
+    """Return the body after a heading match, up to the next heading match."""
+    start = re.search(start_pattern, text, re.M)
+    if not start:
+        return None
+    rest = text[start.end():]
+    end = re.search(end_pattern, rest, re.M)
+    return rest[:end.start()] if end else rest
+
+
+def parsed_json_fences(markdown: str) -> list[tuple[int, object | None, str | None]]:
+    """Each ```json fence as (1-based index, parsed value or None, error)."""
+    out = []
+    for index, body in enumerate(JSON_FENCE.findall(markdown), start=1):
+        try:
+            out.append((index, json.loads(body), None))
+        except json.JSONDecodeError as exc:
+            out.append((index, None, str(exc)))
+    return out
+
+
+def ucp_profile_instances(fences: list[tuple[int, object | None, str | None]]) -> list[tuple[int, dict]]:
+    docs = []
+    for index, parsed, _error in fences:
+        if isinstance(parsed, dict) and isinstance(parsed.get("ucp"), dict):
+            docs.append((index, parsed))
+    return docs
+
+
+def business_schema_validator():
+    """Draft 2020-12 validator for usp.json business_schema, with $id registry."""
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+
+    profile = json.loads((SCHEMA_DIR / "profile.json").read_text())
+    usp = json.loads((SCHEMA_DIR / "usp.json").read_text())
+    registry = Registry().with_resources(
+        (uri, Resource.from_contents(doc))
+        for uri, doc in (
+            (f"{USP_SCHEMA_BASE}profile.json", profile),
+            (f"{USP_SCHEMA_BASE}usp.json", usp),
+        )
+    )
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}usp.json#/$defs/business_schema",
+    }
+    return Draft202012Validator(schema, registry=registry)
+
+
+def check_section_72_profile_examples(findings: Findings) -> None:
+    """The published §7.2 UCP profiles must instance-validate as business_schema."""
+    spec = SPEC.read_text()
+    section = markdown_slice(spec, r"^### 7\.2\b", r"^### ")
+    if section is None:
+        findings.fail("EXAMPLE72:section",
+                      "specification.md has no ### 7.2 heading; cannot validate profile examples")
+        return
+
+    fences = parsed_json_fences(section)
+    for index, _parsed, error in fences:
+        if error is not None:
+            findings.fail(f"EXAMPLE72:parse:{index}",
+                          f"§7.2 json fence {index} is not valid JSON: {error}")
+            return
+
+    profiles = ucp_profile_instances(fences)
+    if len(profiles) < 2:
+        findings.fail("EXAMPLE72:count",
+                      f"§7.2 must contain at least two json documents with a top-level ucp object "
+                      f"(paid and free-service profiles); found {len(profiles)}")
+        return
+
+    try:
+        validator = business_schema_validator()
+    except ImportError as exc:
+        findings.fail("EXAMPLE72:dependency",
+                      f"jsonschema/referencing is required to validate §7.2 profiles: {exc}")
+        return
+
+    for index, doc in profiles:
+        errors = sorted(validator.iter_errors(doc["ucp"]), key=lambda e: list(e.path))
+        if errors:
+            err = errors[0]
+            path = "/".join(str(p) for p in err.absolute_path) or "<root>"
+            findings.fail(f"EXAMPLE72:schema:{index}",
+                          f"§7.2 json fence {index} ucp object fails business_schema at {path}: "
+                          f"{err.message}")
+
+    if not SITE_UCP_NATIVE.is_file():
+        findings.fail("EXAMPLE72:site-docs",
+                      f"{rel(SITE_UCP_NATIVE)} is missing; the published site would drift from §7.2")
+        return
+
+    site_section = markdown_slice(
+        SITE_UCP_NATIVE.read_text(),
+        r"^## Profile Registration",
+        r"^## Inherited Infrastructure",
+    )
+    if site_section is None:
+        findings.fail("EXAMPLE72:site-docs",
+                      "ucp-native.md is missing the Profile Registration section that mirrors §7.2")
+        return
+
+    site_fences = parsed_json_fences(site_section)
+    for index, _parsed, error in site_fences:
+        if error is not None:
+            findings.fail(f"EXAMPLE72:site-parse:{index}",
+                          f"ucp-native.md profile json fence {index} is not valid JSON: {error}")
+            return
+
+    site_profiles = ucp_profile_instances(site_fences)
+    spec_ucp = [doc["ucp"] for _index, doc in profiles]
+    site_ucp = [doc["ucp"] for _index, doc in site_profiles]
+    if spec_ucp != site_ucp:
+        findings.fail("EXAMPLE72:site-docs",
+                      "site-docs/deployment-modes/ucp-native.md profile examples do not match "
+                      "the §7.2 ucp objects in specification.md")
 
 
 # --------------------------------------------------------------------------
