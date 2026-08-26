@@ -451,6 +451,43 @@ The business **MAY** reject `complete_checkout` if non-payment actions are still
 
 ---
 
+## Merchant Policy Parity and Eligibility (UCP Overlay)
+
+When a business requires policy display, mandatory notices, or affirmative
+acceptance before confirmation, UCP-Native deployments **SHOULD** use
+[UCP checkout](https://ucp.dev/latest/specification/checkout/) and
+[UCP overview](https://ucp.dev/latest/specification/overview/) mechanisms rather
+than parallel USP fields. USP does not define merchant-mandated checkboxes,
+minimum age, audience tiers, or recurring enrollment in this version.
+
+**Mandatory acceptance (paid path):**
+
+1. Policy URLs on checkout `links[]` (and service `links[]`, including `waiver`).
+2. Structured terms in UCP `policies[]` when needed.
+3. Must-show notices via warning `messages[]` with `presentation: "disclosure"`.
+4. Affirmative acceptance the API cannot collect: keep checkout out of
+   `ready_for_complete`; use `requires_escalation` with
+   `requires_buyer_review` or `requires_buyer_input` plus `continue_url`, or an
+   outstanding checkout `actions` entry. Platforms **MUST NOT** accept on the
+   buyer's behalf.
+5. Fail closed: reject create/complete if acceptance was skipped; no trusted
+   in-band `"accepted": true` flag.
+
+**Standalone / free paths:** use booking `requires_action` and
+`actions[].continue_url` per the [booking schema](../specification/booking.md).
+
+**Not Buyer Consent:** privacy categories only; not merchant checkboxes or waivers.
+See [Security](../security.md) for privacy consent transmission.
+
+**Eligibility:** no `min_age` or audience catalog fields. Enforce at
+booking/checkout; use `locations[]` / `service_area` for geography. Platforms
+**MUST NOT** fabricate eligibility.
+
+**Recurring enrollment:** out of scope for this version; one-shot bookings and
+`cancel_booking` only. See [Roadmap](../roadmap.md).
+
+---
+
 ## Free Services in UCP-Native Mode
 
 For businesses that only offer free services (`requires_payment: false`), the UCP profile omits `dev.ucp.shopping.checkout` and `dev.usp-protocol.services.paid_bookings`. Bookings are created via `POST /bookings` and are immediately confirmed (for `auto` confirmation mode) without any checkout involvement.

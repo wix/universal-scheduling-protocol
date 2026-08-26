@@ -66,7 +66,10 @@ standardization as either core verticals or standard extensions:
 
 ### Protocol Enhancements
 
-- **Recurring bookings** — Series creation and management
+- **Recurring bookings** — Series creation and management (out of scope for the
+  current `2026-08-20` release, which covers one-shot bookings and
+  `cancel_booking` only; auto-renewing enrollment and cancel-as-easy-as-enroll
+  flows require a future extension and/or UCP subscription support)
 - **Package/bundle support** — Multi-session packages with shared policies
 - **Calendar sync** — iCalendar export/import for confirmed bookings
 - **Buyer calendar free/busy** — Cross-reference buyer availability with
