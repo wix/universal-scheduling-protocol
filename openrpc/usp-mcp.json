@@ -2596,10 +2596,7 @@
           "name": "categories",
           "required": false,
           "schema": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "$ref": "#/components/schemas/RegistryCategoryIds"
           }
         },
         {
@@ -2741,10 +2738,7 @@
           "name": "categories",
           "required": false,
           "schema": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "$ref": "#/components/schemas/RegistryCategoryIds"
           }
         },
         {
@@ -3185,6 +3179,9 @@
       },
       "RegistryContext": {
         "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryContext"
+      },
+      "RegistryCategoryIds": {
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryCategoryIds"
       },
       "RegistryLocation": {
         "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryLocation"

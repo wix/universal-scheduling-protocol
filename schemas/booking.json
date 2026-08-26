@@ -152,7 +152,7 @@
         "expires_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 expiration time. Present for pending and requires_action bookings."
+          "description": "RFC 3339 expiration deadline. OPTIONAL. A business that does not hold slot capacity for a pending or requires_action booking MAY omit this field. A business that holds slot capacity for an unconfirmed booking MUST include it. When present, the business MUST honour it: transition the booking to canceled, keep it retrievable, and release any underlying slot hold."
         },
         "revision": {
           "type": "string",
