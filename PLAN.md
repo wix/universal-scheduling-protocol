@@ -34,7 +34,7 @@ Define one ID-based value space for `categories[]` across business and service r
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
 | U1 | Converge and commit the implementation plan | PLAN.md | `test -f PLAN.md` | done |
-| U2 | Define canonical ID arrays and synchronized normative/site behavior | schemas/registry.json, specification.md, site-docs/specification/discovery-registry.md | Parse schema JSON and search changed prose/examples for consistent ID and round-trip terminology | pending |
+| U2 | Define canonical ID arrays and synchronized normative/site behavior | schemas/registry.json, specification.md, site-docs/specification/discovery-registry.md | Parse schema JSON and search changed prose/examples for consistent ID and round-trip terminology | done |
 | U3 | Point MCP category filter parameters at the canonical schema | openrpc/usp-mcp.json | Parse OpenRPC JSON and confirm OpenAPI/OpenRPC search filters resolve through schema `$ref`s | pending |
 | U4 | Add the required change log entry and run repository verification | CHANGE_LOG.md | Run schema/binding validation and the documentation build available in the repository | pending |
 
