@@ -181,6 +181,11 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
           "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
+    },
+    "business": {
+      "name": "Sunrise Wellness Studio",
+      "timezone": "America/New_York",
+      "currency": "USD"
     }
   }
 }

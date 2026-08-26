@@ -3928,6 +3928,11 @@ An example profile:
           "schema": "https://usp-protocol.dev/schemas/services/booking.json"
         }
       ]
+    },
+    "business": {
+      "name": "Sunrise Wellness Studio",
+      "timezone": "America/New_York",
+      "currency": "USD"
     }
   }
 }
