@@ -106,6 +106,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [7.3 Inherited Infrastructure](#73-inherited-infrastructure)
     - [7.4 Paid Bookings Extension Schema](#74-paid-bookings-extension-schema)
     - [7.5 Checkout Flow and Atomicity Guarantee](#75-checkout-flow-and-atomicity-guarantee)
+    - [7.5.1 Merchant Policy Parity and Eligibility (UCP Overlay)](#751-merchant-policy-parity-and-eligibility-ucp-overlay)
     - [7.6 Free Services in UCP-Native Mode](#76-free-services-in-ucp-native-mode)
     - [7.7 End-to-End Flows](#77-end-to-end-flows)
 - [8. Standalone Mode](#8-standalone-mode)
@@ -1453,6 +1454,12 @@ booking lifecycle and **MUST** be enforced by the business.
 | `requires_payment`  | boolean | **Yes**     | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services).                                                                                                                                                                                                                                                                                                                                             |
 | `payment_timing`    | string  | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time).                                                                                                                                                                      |
 
+`ServicePolicies` governs booking lifecycle timing (cancellation windows,
+confirmation mode, payment timing). It **does not** declare minimum age, audience
+tiers, or merchant-mandated checkboxes. For how businesses surface mandatory
+acceptances and enforce eligibility without new catalog fields, see
+[Section 7.5.1](#751-merchant-policy-parity-and-eligibility-ucp-overlay).
+
 ### 3.10 Resource Requirement
 
 The resource requirement defines what staff, rooms, or equipment are needed for
@@ -2427,15 +2434,18 @@ and the `confirm-payment` operation for payment confirmation.
 The booking object represents a scheduled service instance for a specific buyer
 at a specific time.
 
-> **Deployment Mode Note:** In **UCP-Native Mode
-** ([Section 7](#7-ucp-native-mode)), the `payment` field is not present on the
+> **Deployment Mode Note:** In **UCP-Native Mode**
+> ([Section 7](#7-ucp-native-mode)), the `payment` field is not present on the
 > booking object (payment state is managed by the UCP checkout object). The
-`actions` array, if present, will not contain `payment`-type actions.
+> `actions` array, if present, will not contain `payment`-type actions.
 > Non-payment actions (e.g., waivers, intake forms) may still appear and follow
-> the same status-actions invariant. In **Standalone Mode
-** ([Section 8](#8-standalone-mode)), the `payment` field is present as defined
-> in [Section 8.5](#85-payment-integration), and `actions` may contain both
-> payment and non-payment action types.
+> the same status-actions invariant. Mandatory acceptances that cannot be
+> collected in-band **SHOULD** use `requires_action` and `actions[].continue_url`
+> (Standalone) or UCP checkout escalation (UCP-Native paid path); see
+> [Section 7.5.1](#751-merchant-policy-parity-and-eligibility-ucp-overlay). In
+> **Standalone Mode** ([Section 8](#8-standalone-mode)), the `payment` field is
+> present as defined in [Section 8.5](#85-payment-integration), and `actions` may
+> contain both payment and non-payment action types.
 
 | Field               | Type            | Required    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 |---------------------|-----------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -4391,6 +4401,81 @@ comfortable with the risks, they should be able to walk away without having
 already paid. Placing non-payment actions before payment ensures the buyer has
 full information and has consented to all requirements before committing
 financially.
+
+#### 7.5.1 Merchant Policy Parity and Eligibility (UCP Overlay)
+
+When a business requires the buyer to see merchant policies, mandatory notices,
+or affirmative acceptance before a booking is confirmed, UCP-Native deployments
+**SHOULD** rely on the [UCP checkout](https://ucp.dev/latest/specification/checkout/)
+and [UCP overview](https://ucp.dev/latest/specification/overview/) mechanisms
+below rather than adding parallel USP fields. USP does not define a dedicated
+schema for merchant-mandated checkboxes, minimum age, audience tiers, or
+recurring enrollment in this version.
+
+**Merchant-mandated acceptance (UCP-Native money path):**
+
+1. Publish policy documents on checkout [`links[]`](https://ucp.dev/latest/specification/checkout/)
+   (well-known types include `privacy_policy`, `terms_of_service`, and
+   `refund_policy`; custom types are allowed). Service and provider
+   [`links[]`](#33-service-schema) (including `waiver`) **SHOULD** be surfaced
+   before the buyer commits.
+2. When terms are structured, emit UCP core [`policies[]`](https://ucp.dev/latest/specification/overview/#policies)
+   (open reverse-DNS `type`, human-readable `description`, optional
+   `applies_to`). Custom policy types are allowed.
+3. When a notice **MUST** be shown and cannot be hidden, emit a checkout warning
+   with `presentation: "disclosure"` (see [UCP Warning Presentation](https://ucp.dev/latest/specification/checkout/)).
+   Disclosure controls rendering only; it does not by itself collect a checkbox.
+4. When the buyer must **affirmatively accept** (required checkbox, signed
+   waiver, or other input the checkout API cannot collect programmatically),
+   the business **MUST NOT** return checkout `status: ready_for_complete` until
+   acceptance is satisfied. The business **SHOULD** use checkout
+   `status: requires_escalation` with a message whose `severity` is
+   `requires_buyer_review` or `requires_buyer_input`, together with a live
+   [`continue_url`](https://ucp.dev/latest/specification/checkout/#continue-url),
+   or an outstanding checkout [`actions`](https://ucp.dev/latest/specification/checkout/#actions)
+   entry declared by an active extension. Platforms **MUST NOT** accept on the
+   buyer's behalf (see [UCP checkout trusted UI](https://ucp.dev/latest/specification/checkout/)).
+5. If a platform skips a mandatory acceptance, the business **MUST** reject
+   booking creation or checkout completion rather than treat the requirement as
+   satisfied. The protocol **MUST NOT** carry a buyer-supplied "accepted: true"
+   flag that the business would have to trust without verification.
+
+**Merchant-mandated acceptance (Standalone and free UCP-Native paths):**
+When acceptance must occur before payment or before a free booking is confirmed,
+the business **MAY** use booking `status: requires_action` with non-payment
+entries in [`actions[]`](#52-booking-schema) (each with a `continue_url`). The
+same fail-closed rule applies: the business **MUST NOT** confirm the booking
+while a mandatory acceptance remains unsatisfied.
+
+**Not covered by [Section 10.1.4](#1014-buyer-consent):** Buyer consent
+categories (`analytics`, `marketing`, `preferences`, `sale_of_data`,
+`health_data`) communicate privacy choices. They are **not** merchant-mandated
+acceptance artifacts and **MUST NOT** be used as a substitute for the UCP or
+USP mechanisms above.
+
+**Eligibility (minimum age, audience, geography):**
+
+- USP **does not** define catalog fields such as `min_age` or audience tiers.
+  Discovery and catalog responses are not authorization to book.
+- **Geographic availability** uses existing service and business location data
+  (`locations[]`, `channel.service_area`; registry geo filters in
+  [Section 6.3.1](#631-filter-matching-semantics)). The business **MUST NOT**
+  confirm a booking outside the area where the service is offered.
+- **Minimum age and audience restrictions** are enforced at booking or checkout
+  time. The business **MAY** omit a service from catalog or registry responses
+  when it already knows the buyer is ineligible. When age or membership proof is
+  required, the business **SHOULD** use the same escalation path as mandatory
+  acceptance (`continue_url` / `requires_action`). Platforms **MUST NOT**
+  fabricate eligibility or acceptance on the buyer's behalf.
+
+**Recurring and auto-renewing arrangements:** This version of USP covers
+one-shot bookings only. [`cancel_booking`](#531-create-booking---post-bookings)
+applies to a single confirmed booking. Recurring enrollment, subscription
+renewal terms, and cancel-as-easy-as-enroll flows are out of scope for this
+version (see [Section 11](#11-extensions) and the roadmap). Businesses that
+sell auto-renewing arrangements through other channels **MUST NOT** expose them
+through USP as ordinary one-shot services unless the business can honor the
+same terms on the agent path.
 
 ### 7.6 Free Services in UCP-Native Mode
 
@@ -7310,6 +7395,12 @@ safeguards against hold abuse:
 For service bookings that involve personal data (contact information, health
 details, location data), businesses **MUST** provide a mechanism for capturing
 and transmitting buyer consent.
+
+> **Scope:** This section covers **privacy** consent categories aligned with UCP
+> `buyer_consent`. It **does not** define merchant-mandated acceptance
+> (required checkboxes, waivers, or policy acknowledgments before booking). Those
+> use the UCP checkout overlay or USP `requires_action` paths in
+> [Section 7.5.1](#751-merchant-policy-parity-and-eligibility-ucp-overlay).
 
 **Consent categories** (aligned with UCP Buyer Consent extension):
 

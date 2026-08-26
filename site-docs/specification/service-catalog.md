@@ -355,6 +355,30 @@ Machine-readable policies that enable agents to make informed decisions. These p
 | `requires_payment` | boolean | **Yes** | Whether this service requires any payment. |
 | `payment_timing` | string | Conditional | **REQUIRED** when `requires_payment` is `true`. One of: `at_booking`, `at_service`, `deposit_required`. |
 
+`ServicePolicies` covers booking lifecycle timing only. It does not declare
+minimum age, audience tiers, or merchant-mandated checkboxes. For mandatory
+acceptances, policy links, and eligibility enforcement, see
+[UCP-Native merchant policy parity](../deployment-modes/ucp-native.md#merchant-policy-parity-and-eligibility-ucp-overlay)
+and service [`links`](#links).
+
+---
+
+## Links
+
+Typed links to policy and information pages. Platforms **SHOULD** surface these
+before the buyer confirms.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | **Yes** | Well-known values include `cancellation_policy`, `rescheduling_policy`, `terms_of_service`, `privacy_policy`, `waiver`, `faq`. |
+| `url` | string | **Yes** | URL to the linked page. |
+| `title` | string | No | Optional display text. |
+
+Service `links[]` complement provider-level links. They are hints for display;
+mandatory acceptance and waivers that require affirmative buyer action are
+enforced through UCP checkout escalation or booking `requires_action`, not
+through a separate acceptance field on the service object.
+
 ---
 
 ## Resource Requirement

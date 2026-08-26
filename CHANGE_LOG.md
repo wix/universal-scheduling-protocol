@@ -1,5 +1,13 @@
 # Change Log
 
+## 26/08/26 at 16:04:32 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added specification §7.5.1 (merchant policy parity and eligibility, UCP overlay), because Track S required a UCP-first decision on mandatory acceptances, eligibility, and recurring scope without inventing parallel USP wire types
+- Clarified that §10.1.4 buyer consent is privacy-only and that mandatory checkboxes use UCP checkout escalation or USP `requires_action`, so implementers do not overload consent categories for merchant policy gates
+- Mirrored the overlay in `site-docs/deployment-modes/ucp-native.md`, `site-docs/specification/service-catalog.md` (service policies, links), and `site-docs/roadmap.md` (recurring enrollment out of the current release), keeping the published site aligned with the normative text
+
+---
+
 ## 26/08/26 at 13:35:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Completed the §7.2 free-service-only UCP profile example with the same `business` identity object as the paid example, because `business_schema` requires `business` and the published free-service fence could not be copied as a valid document
