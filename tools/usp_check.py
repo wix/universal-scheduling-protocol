@@ -86,6 +86,33 @@ EXTERNAL_REF_PREFIXES = ("https://ucp.dev/", "http://ucp.dev/")
 
 USP_SCHEMA_BASE = f"{USP_ORIGIN}/schemas/"
 
+# The reserved dev.usp-protocol.* names. Checked two ways: they must appear in the
+# published namespace registry (authority), and they must satisfy every propertyNames
+# pattern that governs a capability or service key map (schemas). The second is what a
+# namespace rename breaks silently -- the 2026-08-20 cutover to dev.usp-protocol.* left
+# these patterns hyphen-hostile, so the profile the specification tells implementers to
+# publish did not validate against the specification's own schema.
+RESERVED_NAMESPACE_NAMES = {
+    "dev.usp-protocol.services",
+    "dev.usp-protocol.services.catalog",
+    "dev.usp-protocol.services.catalog.subscriptions",
+    "dev.usp-protocol.services.availability",
+    "dev.usp-protocol.services.bookings",
+    "dev.usp-protocol.services.paid_bookings",
+    "dev.usp-protocol.services.waitlist",
+    "dev.usp-protocol.discovery.registry",
+    "dev.usp-protocol.platform.calendar_freebusy",
+}
+
+# Third-party namespaces the specification's own examples use, which the same patterns
+# govern whenever a profile carries them alongside ours.
+FOREIGN_NAMESPACE_NAMES = {
+    "dev.ucp.shopping",
+    "dev.ucp.shopping.checkout",
+    "dev.ucp.common.identity_linking",
+    "com.stripe.payments",
+}
+
 
 class Findings:
     """Collects failures, filtering those listed in tools/known-issues.txt."""
@@ -245,6 +272,40 @@ def check_schemas(findings: Findings) -> None:
         detail = ", ".join(f"{k}={v}" for k, v in versions.items())
         findings.fail("VERSION:mismatch",
                       f"version identity disagrees across artefacts: {detail}")
+
+    check_namespace_key_patterns(findings)
+
+
+def check_namespace_key_patterns(findings: Findings) -> None:
+    """Every reserved capability/service name satisfies the patterns that gate it.
+
+    A propertyNames pattern on a capability or service map is a wire contract: a name it
+    rejects cannot appear as a key in a conforming profile, whatever the prose says.
+    """
+    usp = json.loads((SCHEMA_DIR / "usp.json").read_text())
+    names = sorted(RESERVED_NAMESPACE_NAMES | FOREIGN_NAMESPACE_NAMES)
+
+    sites = 0
+    for pointer, node in walk(usp):
+        if not isinstance(node, dict):
+            continue
+        constraint = node.get("propertyNames")
+        if not isinstance(constraint, dict) or "pattern" not in constraint:
+            continue
+        if not pointer.endswith(("/services", "/capabilities")):
+            continue
+        sites += 1
+        pattern = re.compile(constraint["pattern"])
+        for name in names:
+            if not pattern.fullmatch(name):
+                findings.fail(f"NAMEPATTERN:{pointer}",
+                              f"propertyNames pattern {constraint['pattern']!r} rejects "
+                              f"the reserved name {name!r}")
+
+    if not sites:
+        findings.fail("NAMEPATTERN:coverage",
+                      "no capability or service propertyNames constraint found in usp.json; "
+                      "this check silently stopped covering anything")
 
 
 # --------------------------------------------------------------------------
@@ -772,18 +833,7 @@ def check_authority(findings: Findings) -> None:
                       "site-docs runtime advertises different protocol identifiers")
 
     registry = (REPO / "site-docs" / "namespace.md").read_text()
-    required_names = {
-        "dev.usp-protocol.services",
-        "dev.usp-protocol.services.catalog",
-        "dev.usp-protocol.services.catalog.subscriptions",
-        "dev.usp-protocol.services.availability",
-        "dev.usp-protocol.services.bookings",
-        "dev.usp-protocol.services.paid_bookings",
-        "dev.usp-protocol.services.waitlist",
-        "dev.usp-protocol.discovery.registry",
-        "dev.usp-protocol.platform.calendar_freebusy",
-    }
-    for name in sorted(required_names):
+    for name in sorted(RESERVED_NAMESPACE_NAMES):
         if f"`{name}`" not in registry:
             findings.fail(f"NAMESPACE:{name}", "missing from namespace registry")
 
