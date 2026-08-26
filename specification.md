@@ -1448,7 +1448,7 @@ booking lifecycle and **MUST** be enforced by the business.
 | `rescheduling`      | object  | **Yes**     | Rescheduling policy. `allowed`: boolean. `free_reschedule_until`: ISO 8601 duration before start time for free rescheduling. `max_reschedules`: integer, maximum number of times a booking can be rescheduled (prevents abuse). `fee`: integer, fee in minor currency units for rescheduling outside the free window.                                                                                                                                                                                                                 |
 | `no_show`           | object  | No          | No-show policy. `fee`: integer, fixed fee in minor currency units. `fee_percentage`: integer (0-100), percentage of the service price charged as a no-show fee. Only one of `fee` or `fee_percentage` **SHOULD** be set. `grace_period`: ISO 8601 duration after the scheduled start time before the booking is marked as a no-show (e.g., `PT15M` = 15-minute grace period).                                                                                                                                                         |
 | `booking_window`    | object  | **Yes**     | Booking window constraints. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
-| `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the business does not confirm within the `expires_at` time on the booking, the booking transitions to `canceled`.                                                                                                                                                                                              |
+| `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the booking advertises `expires_at` and the business does not confirm before that deadline, the booking transitions to `canceled` per [Section 5.2](#52-booking-schema).                                                                                                                                                         |
 | `requires_payment`  | boolean | **Yes**     | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services).                                                                                                                                                                                                                                                                                                                                             |
 | `payment_timing`    | string  | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time).                                                                                                                                                                      |
 
@@ -2459,19 +2459,21 @@ at a specific time.
 | `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `expires_at`        | string          | No          | RFC 3339 expiration time. Present for `pending` and `requires_action` bookings. See expiry behavior below.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `expires_at`        | string          | No          | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include `expires_at`. Advertising the field is a claim the business **MUST** honour (see Booking Expiry).                                                                                                                                                                                                                         |
 | `revision`          | string          | No          | Opaque concurrency token for the booking's current state, used for conditional writes ([Section 5.6](#56-conditional-writes-and-concurrency)). Changes on every modification. Treat as opaque: do not parse it or infer recency from it. |
 
 **Booking Expiry**
 
-When a `pending` or `requires_action` booking reaches its `expires_at` deadline without being resolved:
+`expires_at` on Booking is an advertised deadline. Omitting it is conformant when the business does not hold slot capacity for that unconfirmed booking. The numbered rules below apply **only** when `expires_at` is present. A business that advertises `expires_at` **MUST** honour it.
+
+When a `pending` or `requires_action` booking that includes `expires_at` reaches that deadline without being resolved:
 
 1. The business **MUST** transition the booking to `status: canceled`.
 2. The business **SHOULD** send a `booking.canceled` webhook so the platform can update its state.
-3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled` — platforms and businesses need this for audit and reconciliation purposes.
-4. The business **MUST** release the underlying slot hold when the booking expires, making the slot available for new bookings.
+3. The expired booking **MUST** remain retrievable via `GET /bookings/{booking_id}` with `status: canceled`. Platforms and businesses need this for audit and reconciliation.
+4. The business **MUST** release any underlying slot hold when the booking expires, making the slot available for new bookings.
 
-For hold-backed bookings, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
+For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
 ### 5.3 Operations
 
@@ -5308,12 +5310,13 @@ then resume with `confirm-payment` after success. This aligns with UCP's
 **Payment action expiry:** When a payment action's `expires_at` passes without
 `confirm-payment`, the business **SHOULD** set the action's `status` to
 `expired`. If no other pending actions remain, the booking **MUST** transition
-to `canceled` per [Section 5.2](#52-booking-schema) (booking expiry). The
+to `canceled`. This payment-action clock is independent of whether the booking
+advertises `expires_at` ([Section 5.2](#52-booking-schema)). The
 business **SHOULD** release any hold and **SHOULD** send `booking.canceled`. A
 late `confirm-payment` **MUST** return the canceled booking with `messages[]`
 code `payment_expired`. The payment action's `expires_at` **SHOULD** be no later
-than the booking's `expires_at` and no later than the slot hold's `expires_at`
-when a hold exists.
+than the booking's `expires_at` when the booking advertises that field, and no
+later than the slot hold's `expires_at` when a hold exists.
 
 **Payment abandonment:** If the buyer abandons payment, the platform **SHOULD**
 call `POST /bookings/{booking_id}/cancel`. Otherwise the booking expires as
