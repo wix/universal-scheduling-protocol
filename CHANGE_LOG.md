@@ -1,5 +1,14 @@
 # Change Log
 
+## 26/08/26 at 15:46:01 by [danielja](mailto:danielja@wix.com)
+
+- Added §6.3.2 to pin down what an absent `next_available_date` means to a consumer that ranks on the hint. §3.6 makes the field optional but never says what its absence signifies, and the natural numeric reading inverts it: a producer sampling a bounded horizon omits the date precisely when nothing in that horizon is open, so resolving the absent field to zero and measuring from now awards the largest boost to the services a buyer is least able to book
+- Tied §6.3's "MUST NOT use the hint as a hard availability filter" to matching specifically, and pointed registries at a re-ranking phase over the already-matched set so the prohibition holds structurally. Stated the converse too, because the natural over-reading is unsatisfiable: a registry pages a bounded window, so ordinary ranking effects inside it are not exclusion - every ranking signal is bounded the same way, and the hint is not special
+- Left ranking otherwise registry-defined per §6.3.1, and kept scoring formulas and weights out of the specification: they are not observable from the wire, so they belong in registry implementation guidance rather than in normative prose
+
+---
+
+
 ## 26/08/26 at 13:35:53 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Completed the §7.2 free-service-only UCP profile example with the same `business` identity object as the paid example, because `business_schema` requires `business` and the published free-service fence could not be copied as a valid document

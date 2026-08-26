@@ -248,7 +248,7 @@ The optional `provider` object carries inline business metadata so platforms can
 
 ### Availability Hint
 
-An optional, lightweight summary of a service's near-term availability. Designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before calling the real-time [availability API](availability.md).
+An optional, lightweight summary of a service's near-term availability. Designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before calling the real-time [availability API](availability.md). Discovery registries that index the hint **MAY** let it influence service-search result order, subject to [Availability-Hint Ranking](discovery-registry.md#availability-hint-ranking).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
