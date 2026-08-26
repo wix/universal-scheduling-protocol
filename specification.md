@@ -6195,7 +6195,7 @@ A conforming REST binding implementation **MUST:**
 4. Return business outcome errors as HTTP 200 with a `messages[]` array on the response object.
 5. Support the `USP-Agent` header on all requests ([Section 9.1.3](#913-discovery)).
 6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
-7. Implement webhook signing per [Section 10.1.1](#1011-webhook-security).
+7. When the implementation emits webhook payloads or advertises outbound webhook delivery, implement webhook signing per [Section 10.1.1](#1011-webhook-security). Implementations that do neither satisfy this item without implementing webhook signing.
 
 A conforming REST binding implementation **SHOULD:**
 
@@ -6539,7 +6539,7 @@ A conforming MCP binding implementation **MUST:**
 4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](#94-error-code-mapping)).
 5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
 6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
-7. Deliver webhook notifications as JSON-RPC notifications (no `id` field).
+7. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
 8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 A conforming MCP binding implementation **SHOULD:**

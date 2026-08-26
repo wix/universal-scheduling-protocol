@@ -1,5 +1,13 @@
 # Change Log
 
+## 26/08/26 at 08:21:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned REST §9.1.5 item 7 and MCP §9.2.4 item 7 so webhook signing (and MCP JSON-RPC webhook notifications) are required only when the implementation emits webhooks or advertises outbound webhook delivery, because an otherwise valid binding that does not send webhooks could not satisfy those checklist MUSTs as previously written
+- Left §10.1.1 signing rules unchanged so payloads that are emitted remain mandatory to sign
+- Mirrored the same conditions on `site-docs/transport/rest.md` and `site-docs/transport/mcp.md`, and aligned the MCP page's MUST/SHOULD lists with current §9.2.4, so the published site matches the normative checklists
+
+---
+
 ## 23/08/26 at 16:20:16 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed §10.1.6 identity binding so trust-on-first-use is **keyed by principal**, not by profile URI, because the previous MUST rejected any principal that did not match the one recorded for a URI and would lock out every later instance of a shared platform profile after the first caller
