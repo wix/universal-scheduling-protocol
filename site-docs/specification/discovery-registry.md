@@ -296,7 +296,7 @@ Search the registry for specific **services** offered by registered businesses. 
     ```
 
 !!! tip "Indexing Strategy"
-    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter. `ServiceSearchResult.category` is display text projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`) and is not a filter token.
+    Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter. Registries that let the hint influence result order **MUST** follow [Availability-Hint Ranking](#availability-hint-ranking). `ServiceSearchResult.category` is display text projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`) and is not a filter token.
 
 Every service search result **MUST** include `category_ids`, projected from indexed catalog `categories[].id` values. The array **MAY** be empty when the service has no category IDs. Every emitted ID **MUST** be accepted by the service-search `categories[]` filter and match that service when all other filters are unchanged.
 
@@ -352,6 +352,16 @@ Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }`
 - Matching is **within-currency only** (no FX).
 - Resolved match currency: `price_range.currency` if present; else `context.currency`; else `validation_error`. When both differ, `price_range.currency` wins for matching.
 - `pricing.model: free` → amount **0**. Fixed amount → `[amount, amount]`. Published variable `price_range` → that interval. No indexable price → exclude when a price filter is present.
+
+---
+
+## Availability-Hint Ranking
+
+Ranking is registry-defined ([Filter Matching Semantics](#filter-matching-semantics)), and a registry **MAY** let a passed-through `availability_hint` influence the order of service-search results. Two constraints apply.
+
+**An absent `next_available_date` is neutral, never maximal.** When the field is absent, its ranking contribution **MUST** be identical to that of a service carrying no hint at all, and **MUST NOT** be read as availability today or as the nearest possible date. The field is optional, and a producer that samples a bounded horizon has no date to publish precisely when nothing in that horizon is open -- that is, when the service is fully booked. Resolving the absent field to a numeric zero and measuring the distance from now therefore awards the largest boost to the services a buyer is least able to book.
+
+**The hint is not an input to matching.** The hint **MUST NOT** be used as a hard availability filter, and that prohibition governs matching: a hint's value **MUST NOT** cause a service to fail the request's filters or otherwise leave the matched set. Registries **SHOULD** apply the signal in a scoring or re-ranking phase over the already-matched set, so the prohibition holds structurally rather than by convention. Ordinary ranking effects within a bounded result window are not exclusion -- a registry that truncates deep results bounds every ranking signal alike.
 
 ---
 

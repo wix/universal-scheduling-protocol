@@ -93,6 +93,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [6.2 Business Search](#62-business-search---post-registrysearch_business)
     - [6.3 Service Search](#63-service-search---post-registrysearch_services)
     - [6.3.1 Filter Matching Semantics](#631-filter-matching-semantics)
+    - [6.3.2 Availability-Hint Ranking](#632-availability-hint-ranking)
     - [6.4 Get Registration](#64-get-registration---get-registrybusinessesid)
     - [6.5 Update Registration](#65-update-registration---put-registrybusinessesid)
     - [6.6 Delete Registration](#66-delete-registration---delete-registrybusinessesid)
@@ -1324,7 +1325,10 @@ NOT** use it as a substitute for real-time availability queries. It is strictly
 
 The availability hint is particularly valuable for AI agents that orchestrate
 scheduling on behalf of users. The following table summarizes the key use cases
-and how the hint helps in each:
+and how the hint helps in each. Where a discovery registry indexes hints, it
+**MAY** apply cases 1 and 5 on the platform's behalf by letting the hint
+influence result order, subject to [Section
+6.3.2](#632-availability-hint-ranking).
 
 | #  | Use Case                               | Agent Scenario                                          | How the Hint Helps                                                                                                                                                                                                    |
 |----|----------------------------------------|---------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -3641,7 +3645,7 @@ filtering. The array **MAY** be empty when the service has no category IDs.
 Every emitted ID **MUST** be accepted by the service-search `categories[]`
 filter and match the same service when all other filters are unchanged.
 
-Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
+Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only. Registries that let the hint influence result order **MUST** follow [Section 6.3.2](#632-availability-hint-ranking).
 
 ### 6.3.1 Filter Matching Semantics
 
@@ -3694,6 +3698,32 @@ Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }`
 - Resolved match currency: `price_range.currency` if present; else `context.currency` if present; else registries **MUST** reject with `validation_error` (omitting both is ambiguous). When both are present and differ, `price_range.currency` is authoritative for matching; `context.currency` remains a display/ranking hint.
 - `pricing.model: free` → treat as amount **0** (degenerate `[0, 0]` in the service currency). Free services match filters that include 0 under the selected `match` mode, and are excluded when `min > 0` under `overlap`/`contained`/`equals` as the intervals dictate.
 - Fixed amount → `[amount, amount]`. Variable / hourly / per_person with published `price_range` → that interval. Services with no indexable price interval **MUST** be excluded when a `price_range` filter is present.
+
+### 6.3.2 Availability-Hint Ranking
+
+Ranking is registry-defined ([Section 6.3.1](#631-filter-matching-semantics)),
+and a registry **MAY** let a passed-through `availability_hint` ([Section
+6.3](#63-service-search---post-registrysearch_services)) influence the order of
+service-search results. Two constraints apply.
+
+**An absent `next_available_date` is neutral, never maximal.** When the field is
+absent, its ranking contribution **MUST** be identical to that of a service
+carrying no hint at all, and **MUST NOT** be read as availability today or as
+the nearest possible date. The field is optional, and a producer that samples a
+bounded horizon has no date to publish precisely when nothing in that horizon is
+open -- that is, when the service is fully booked. Resolving the absent field to
+a numeric zero and measuring the distance from now therefore awards the largest
+boost to the services a buyer is least able to book.
+
+**The hint is not an input to matching.** [Section
+6.3](#63-service-search---post-registrysearch_services) forbids using the hint
+as a hard availability filter, and that prohibition governs matching: a hint's
+value **MUST NOT** cause a service to fail the request's filters or otherwise
+leave the matched set. Registries **SHOULD** apply the signal in a scoring or
+re-ranking phase over the already-matched set, so the prohibition holds
+structurally rather than by convention. Ordinary ranking effects within a
+bounded result window are not exclusion -- a registry that truncates deep
+results bounds every ranking signal alike, and this one is no different.
 
 ### 6.4 Get Registration - `GET /registry/businesses/{id}`
 
