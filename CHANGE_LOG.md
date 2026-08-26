@@ -1,5 +1,13 @@
 # Change Log
 
+## 26/08/26 at 09:22:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned §9.2.3 signature verification on emitted webhook payloads so that section cannot be read as requiring outbound webhooks after the REST and MCP checklists became outbound-only MUSTs
+- Restated `confirmation_mode` on the service-catalog site page with the advertised `expires_at` cancellation rule, because the shortened "approval within 24 hours" line no longer matched the booking-expiry advertisement condition
+- Restated standalone payment-action expiry to match §8.5.4: the payment clock is independent of Booking `expires_at`, and a payment action deadline SHOULD not outlive an advertised booking deadline or an existing hold
+
+---
+
 ## 26/08/26 at 08:24:38 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Conditioned §5.2 booking-expiry MUSTs on advertising `expires_at`, because those rules exist to release inventory held for unconfirmed bookings and a business that does not hold capacity has nothing to release

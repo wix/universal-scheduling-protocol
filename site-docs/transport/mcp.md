@@ -284,7 +284,7 @@ Webhook callback URLs are registered via:
 - The platform profile's `webhook_url` field, or
 - Per-subscription via `POST /services/feed/subscriptions`
 
-All webhook payloads MUST be signed. Platforms MUST verify signatures before processing events.
+When webhook payloads are emitted, they **MUST** be signed. Platforms **MUST** verify signatures before processing events. Implementations that neither emit webhooks nor advertise outbound webhook delivery have no payloads to sign.
 
 ```mermaid
 sequenceDiagram

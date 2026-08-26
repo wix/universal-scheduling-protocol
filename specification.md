@@ -6516,7 +6516,7 @@ Booking, catalog, and (when the waitlist extension is supported) waitlist lifecy
 
 **URL registration:** Webhook callback URLs are registered via the platform profile's `webhook_url` field ([Section 8.2.3](#823-platform-profile)) or per-subscription via `POST /services/feed/subscriptions` ([Section 3.12](#312-operations)).
 
-**Signature verification:** All webhook payloads **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events.
+**Signature verification:** When webhook payloads are emitted, they **MUST** be signed per [Section 10.1.1](#1011-webhook-security). Platforms **MUST** verify signatures before processing events. Implementations that neither emit webhooks nor advertise outbound webhook delivery have no payloads to sign.
 
 **Event ordering:** Events for the same booking are delivered in causal order. Events across different bookings have no ordering guarantee.
 
