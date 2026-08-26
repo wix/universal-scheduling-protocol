@@ -8,6 +8,14 @@
 
 ---
 
+## 26/08/26 at 08:22:05 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Defined registry business and service category filters as exact category-ID matches, because display-label ambiguity made equivalent searches behave differently across operations
+- Added round-trippable category IDs to registry results while preserving service category display text separately, so callers can reuse emitted tokens without guessing
+- Reused the canonical registry category-ID schema from both REST and MCP bindings, preventing transport descriptions from drifting
+
+---
+
 ## 26/08/26 at 08:21:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Conditioned REST §9.1.5 item 7 and MCP §9.2.4 item 7 so webhook signing (and MCP JSON-RPC webhook notifications) are required only when the implementation emits webhooks or advertises outbound webhook delivery, because an otherwise valid binding that does not send webhooks could not satisfy those checklist MUSTs as previously written
