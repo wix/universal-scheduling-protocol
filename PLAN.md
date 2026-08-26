@@ -36,7 +36,7 @@ Condition §5.2 booking-expiry MUSTs on advertising `expires_at` on Booking, so 
 | ID | Description | Files | Verification | Status |
 |----|-------------|-------|--------------|--------|
 | U1 | Plan and commit this PLAN.md | PLAN.md | test -f PLAN.md | done |
-| U2 | Condition Booking expiry in specification.md (§5.2, §3.10, §8.5.4 alignment only) | specification.md | grep -n "Present for" specification.md; grep Booking Expiry block for "when" / omit | pending |
+| U2 | Condition Booking expiry in specification.md (§5.2, §3.10, §8.5.4 alignment only) | specification.md | grep -n "Present for" specification.md; grep Booking Expiry block for "when" / omit | done |
 | U3 | Align schemas/booking.json Booking.expires_at description | schemas/booking.json | python3 -m json.tool schemas/booking.json >/dev/null; grep expires_at description | pending |
 | U4 | Mirror the rule in site-docs/specification/booking.md | site-docs/specification/booking.md | grep -n "Present for\\|MAY omit\\|advertis" site-docs/specification/booking.md | pending |
 | U5 | Append CHANGE_LOG.md entry (real date/git identity, no GitHub citations) | CHANGE_LOG.md | test -f CHANGE_LOG.md | pending |
