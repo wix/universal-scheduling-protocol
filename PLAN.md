@@ -40,7 +40,7 @@ Make REST §9.1.5 item 7 and MCP §9.2.4 item 7 conditional MUSTs so a binding t
 | U1 | Plan and commit PLAN.md | PLAN.md | test -f PLAN.md | done |
 | U2 | Condition REST §9.1.5 item 7 and MCP §9.2.4 item 7 in specification.md | specification.md | grep both items for outbound/emit condition; confirm §10.1.1 opening signing sentence unchanged | done |
 | U3 | Sync site-docs REST and MCP conformance lists | site-docs/transport/rest.md, site-docs/transport/mcp.md | grep site-docs lists match the new conditional wording; MCP MUST/SHOULD count matches §9.2.4 | done |
-| U4 | CHANGE_LOG entry and repo checks | CHANGE_LOG.md | date/git identity on new entry; `python3 tools/usp_check.py schemas`; confirm no GitHub issue citations in new entry | pending |
+| U4 | CHANGE_LOG entry and repo checks | CHANGE_LOG.md | date/git identity on new entry; `python3 tools/usp_check.py schemas`; confirm no GitHub issue citations in new entry | done |
 
 ### U2 wording (normative)
 
