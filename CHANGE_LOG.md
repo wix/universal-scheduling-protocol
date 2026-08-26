@@ -1,5 +1,13 @@
 # Change Log
 
+## 26/08/26 at 08:24:38 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Conditioned §5.2 booking-expiry MUSTs on advertising `expires_at`, because those rules exist to release inventory held for unconfirmed bookings and a business that does not hold capacity has nothing to release
+- Documented omitting `expires_at` as a conformant wire shape when nothing is held, while a business that holds unconfirmed slot capacity MUST include the field and any advertised deadline remains a hard MUST (cancel, remain retrievable, release any hold)
+- Aligned §3.10 confirmation_mode and §8.5.4 payment-action alignment with that advertisement rule, left payment-action expiry independent of Booking `expires_at`, updated `schemas/booking.json` plus `site-docs/specification/booking.md`, and left OpenAPI/OpenRPC as thin `$ref`s
+
+---
+
 ## 26/08/26 at 08:21:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Conditioned REST §9.1.5 item 7 and MCP §9.2.4 item 7 so webhook signing (and MCP JSON-RPC webhook notifications) are required only when the implementation emits webhooks or advertises outbound webhook delivery, because an otherwise valid binding that does not send webhooks could not satisfy those checklist MUSTs as previously written
