@@ -1076,8 +1076,9 @@ Normative rules:
 1. An entry **MUST** carry at least one of `id`, `name`, or `value`. External (non-`merchant`) taxonomies **MUST** carry `value`.
 2. Exactly one entry is canonical (primary). If exactly one entry has `primary: true`, that is the primary. If no entry sets `primary`, and exactly one entry has `taxonomy: "merchant"`, that entry is the primary. If neither disambiguates, the first entry in array order is the primary. Never more than one `primary: true`.
 3. The primary entry is the source for display, localization (`localized.category_name` overrides the primary entry's `name`), and registry projection of `ServiceSearchResult.category`.
-4. Catalog filters (`category_id`, and `categories` filter parameters that carry IDs) **MUST** match against the primary entry's `id`, and **MAY** match any entry's `id`. Filter parameters remain flat ID strings.
-5. Registry projection: `ServiceSearchResult.category` (flat string) is derived from the primary entry with pick order: primary `name`, else primary `value`, else primary `id`, else the first entry's `value`, else the service `type`.
+4. Category filter parameters that carry IDs, including catalog `category_id` and `categories` and registry `categories`, **MUST** use flat ID strings, not display labels. Catalog filters **MUST** match the primary entry's `id` and **MAY** match any entry's `id`. Registry service filters match the IDs projected in `ServiceSearchResult.category_ids` as defined in [Section 6.3.1](#631-filter-matching-semantics).
+5. Registry display projection: `ServiceSearchResult.category` (flat string) is derived from the primary entry with pick order: primary `name`, else primary `value`, else primary `id`, else the first entry's `value`, else the service `type`. This display string is not a registry category filter token.
+6. Registry ID projection: `ServiceSearchResult.category_ids` contains the indexed `categories[].id` values that the registry exposes as filter tokens. Each emitted ID **MUST** round-trip through the registry service `categories` filter and match the same service when all other filters are unchanged.
 
 **Example (multi-taxonomy):**
 
@@ -3256,9 +3257,9 @@ Request:
     "group"
   ],
   "categories": [
-    "wellness",
-    "beauty",
-    "fitness"
+    "cat_wellness",
+    "cat_beauty",
+    "cat_fitness"
   ],
   "location": {
     "address": "123 Main St, New York, NY 10001",
@@ -3278,11 +3279,17 @@ Request:
 | `name`            | string          | **Yes**     | Human-readable business name.                                                                                                                                  |
 | `description`     | string          | No          | Brief human-readable description of the business (e.g., for discovery cards and search snippets).                                                              |
 | `verticals`       | Array\[string\] | **Yes**     | Service verticals offered by the business (e.g., `appointment`, `group`).                                                                                      |
-| `categories`      | Array\[string\] | **Yes**     | Business categories for search and filtering.                                                                                                                  |
+| `categories`      | Array\[string\] | **Yes**     | Opaque business category IDs for search and filtering. Values are IDs, not display labels.                                                                      |
 | `location`        | object          | Conditional | Physical location with `address` (string) and `coordinates` (`{lat, lng}`). **REQUIRED** when the business offers any `at_business_location` or `hybrid` channel services. **MAY** be omitted for businesses offering only `at_buyer_location`, `virtual`, or `phone` services. |
 | `timezone`        | string          | **Yes**     | IANA timezone identifier (e.g., `America/New_York`).                                                                                                           |
 
 Registries indexing virtual-only businesses (no `location`) **MUST** exclude them from location-filtered search results and **SHOULD** return them only when no geographic filter is applied.
+
+Business category IDs are registry filter tokens, not a universal taxonomy. A
+registry **MUST** preserve the registered `categories[]` values in
+`RegistryEntry.categories`. Every ID returned there **MUST** be accepted by the
+business-search `categories[]` filter and match that entry when all other
+filters are unchanged.
 
 Response:
 
@@ -3309,9 +3316,9 @@ Response:
       "group"
     ],
     "categories": [
-      "wellness",
-      "beauty",
-      "fitness"
+      "cat_wellness",
+      "cat_beauty",
+      "cat_fitness"
     ],
     "location": {
       "address": "123 Main St, New York, NY 10001",
@@ -3354,7 +3361,7 @@ Request:
     "appointment"
   ],
   "categories": [
-    "wellness"
+    "cat_wellness"
   ],
   "query": "massage",
   "deployment_mode": "standalone",
@@ -3373,7 +3380,7 @@ Request:
 |-------------------|-----------------|----------|-----------------------------------------------------------------------------|
 | `location`        | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `verticals`       | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
-| `categories`      | Array\[string\] | No       | Filter by business categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`      | Array\[string\] | No       | Business category IDs, not display labels (OR within field, exact case-sensitive matching). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`           | string          | No       | Free-text search across business names and categories.                      |
 | `deployment_mode` | string          | No       | Filter by `standalone` or `ucp_native`. When omitted, returns both modes. |
 | `context`         | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See below. |
@@ -3418,9 +3425,9 @@ Response:
         "group"
       ],
       "categories": [
-        "wellness",
-        "beauty",
-        "fitness"
+        "cat_wellness",
+        "cat_beauty",
+        "cat_fitness"
       ],
       "location": {
         "address": "123 Main St, New York, NY 10001",
@@ -3443,8 +3450,8 @@ Response:
         "appointment"
       ],
       "categories": [
-        "wellness",
-        "beauty"
+        "cat_wellness",
+        "cat_beauty"
       ],
       "location": {
         "address": "456 Oak Ave, New York, NY 10002",
@@ -3489,7 +3496,7 @@ Request:
     "appointment"
   ],
   "categories": [
-    "wellness"
+    "cat_wellness"
   ],
   "query": "deep tissue massage",
   "price_range": {
@@ -3518,7 +3525,7 @@ Request:
 |------------------|-----------------|----------|-------------------------------------------------------------------------------|
 | `location`       | object          | No       | Geographic filter: `coordinates` (`{lat, lng}`) and `radius_km` (kilometers). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `verticals`      | Array\[string\] | No       | Filter by service verticals (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
-| `categories`     | Array\[string\] | No       | Filter by service categories (OR within field). See [Section 6.3.1](#631-filter-matching-semantics). |
+| `categories`     | Array\[string\] | No       | Service category IDs, not display labels (OR within field, exact case-sensitive matching against `ServiceSearchResult.category_ids`). See [Section 6.3.1](#631-filter-matching-semantics). |
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
 | `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
@@ -3555,7 +3562,10 @@ Response:
         "deployment_mode": "standalone",
         "name": "Sunrise Wellness Studio"
       },
-      "category": "wellness",
+      "category": "Wellness",
+      "category_ids": [
+        "cat_wellness"
+      ],
       "duration_minutes": 60,
       "pricing": {
         "model": "fixed",
@@ -3586,7 +3596,10 @@ Response:
         "deployment_mode": "standalone",
         "name": "Serenity Spa & Massage"
       },
-      "category": "wellness",
+      "category": "Wellness",
+      "category_ids": [
+        "cat_wellness"
+      ],
       "duration_minutes": 90,
       "pricing": {
         "model": "variable",
@@ -3617,11 +3630,16 @@ Response:
 The `query` field performs a full-text search across service names, descriptions,
 and categories.
 
-`ServiceSearchResult.category` is a flat string projected from the catalog
+`ServiceSearchResult.category` is display text projected from the catalog
 service's primary `categories[]` entry. Pick order: primary `name`, else primary
 `value`, else primary `id`, else the first entry's `value`, else the service
-`type`. The registry wire model keeps this flat string; it does not expand the
-catalog category object.
+`type`. It is not a category filter token.
+
+Every service search result **MUST** include `category_ids`, projected from the
+indexed catalog `categories[].id` values that the registry exposes for
+filtering. The array **MAY** be empty when the service has no category IDs.
+Every emitted ID **MUST** be accepted by the service-search `categories[]`
+filter and match the same service when all other filters are unchanged.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 
@@ -3634,6 +3652,13 @@ Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **M
 - Distinct filter fields combine with **AND**.
 - `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
 - Zero matches **MUST** return HTTP 200 with an empty result array (never an error for "no hits"). Requests with no real search filter **MUST** return `validation_error` ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 6.3](#63-service-search---post-registrysearch_services)).
+
+**Category IDs (`categories`)**
+
+- Both registry search operations use opaque category IDs, not display labels. Matching is exact and case-sensitive.
+- Business search matches against `RegistryEntry.categories`.
+- Service search matches against `ServiceSearchResult.category_ids`. `ServiceSearchResult.category` is display text and **MUST NOT** be interpreted as a filter token.
+- Every category ID emitted by a search result **MUST** round-trip through that operation's `categories[]` filter and match the same result when all other filters are unchanged.
 
 **Geographic (`location`)**
 

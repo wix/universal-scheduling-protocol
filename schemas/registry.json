@@ -58,6 +58,16 @@
         }
       }
     },
+    "RegistryCategoryIds": {
+      "type": "array",
+      "title": "RegistryCategoryIds",
+      "description": "Opaque category ID strings used by registry registration, search filters, and results. Values are IDs, not display labels. Matching is exact and case-sensitive. Every ID emitted in a RegistryEntry categories array or ServiceSearchResult category_ids array MUST be accepted by the corresponding categories filter and match that result when all other filters are unchanged.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
     "RangeMatchMode": {
       "type": "string",
       "title": "RangeMatchMode",
@@ -133,9 +143,8 @@
           "description": "Service verticals offered by the business."
         },
         "categories": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Business categories for search and filtering."
+          "$ref": "#/$defs/RegistryCategoryIds",
+          "description": "Business category IDs published for exact-match search and returned unchanged in RegistryEntry for round-trip filtering."
         },
         "location": {
           "$ref": "#/$defs/RegistryLocation",
@@ -185,8 +194,8 @@
           "items": { "type": "string" }
         },
         "categories": {
-          "type": "array",
-          "items": { "type": "string" }
+          "$ref": "#/$defs/RegistryCategoryIds",
+          "description": "Business category IDs copied from registration. Every emitted ID MUST round-trip through BusinessSearchRequest categories and match this entry when other filters are unchanged."
         },
         "location": {
           "$ref": "#/$defs/RegistryLocation"
@@ -216,9 +225,8 @@
           "description": "OR within field: match if the business offers any listed vertical."
         },
         "categories": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "OR within field: match if the business has any listed category."
+          "$ref": "#/$defs/RegistryCategoryIds",
+          "description": "Category IDs, not display labels. OR within field: exact, case-sensitive match if RegistryEntry.categories contains any listed ID."
         },
         "query": {
           "type": "string",
@@ -252,9 +260,8 @@
           "description": "OR within field: match if the service vertical is any listed value."
         },
         "categories": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "OR within field: match if any listed category ID matches the catalog primary categories[].id, and MAY match any entry id."
+          "$ref": "#/$defs/RegistryCategoryIds",
+          "description": "Category IDs, not display labels. OR within field: exact, case-sensitive match if any listed ID is present in ServiceSearchResult.category_ids."
         },
         "query": {
           "type": "string",
@@ -297,6 +304,7 @@
         "service_name",
         "business",
         "category",
+        "category_ids",
         "pricing",
         "timezone"
       ],
@@ -307,6 +315,10 @@
         "category": {
           "type": "string",
           "description": "Flat category string projected from the catalog service's primary categories[] entry. Pick order: primary name, else primary value, else primary id, else the first entry's value, else the service type."
+        },
+        "category_ids": {
+          "$ref": "#/$defs/RegistryCategoryIds",
+          "description": "Category IDs projected from indexed catalog categories[].id values. The array MAY be empty when the service has no category IDs. Every emitted ID MUST round-trip through ServiceSearchRequest categories and match this service when other filters are unchanged."
         },
         "duration_minutes": { "type": "integer", "minimum": 0 },
         "pricing": {
