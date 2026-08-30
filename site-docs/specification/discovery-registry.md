@@ -200,11 +200,13 @@ Search the registry for specific **services** offered by registered businesses. 
 | `query` | string | No | Free-text search across service names, descriptions, and categories. |
 | `price_range` | object | No | `{min, max, currency, match?}` -- amounts in minor currency units. See [Filter Matching Semantics](#filter-matching-semantics). |
 | `duration_range` | object | No | `{min_minutes, max_minutes, match?}`. See [Filter Matching Semantics](#filter-matching-semantics). |
+| `desired_service_time_ranges` | Array[object] | No | Buyer time preferences for **availability ranking only** (not a hard filter). See [Availability ranking](#availability-ranking). |
+| `prefer_sooner_availability_slots` | boolean | No | When true (default), earlier acceptable openings rank above later ones within the availability signal. When false, the registry default ordering does not apply soonness. See [Availability ranking](#availability-ranking). |
 | `context` | object | No | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). |
 | `pagination` | object | No | Cursor-based pagination. |
 
 !!! warning "At Least One Filter Required"
-    The request **MUST** contain at least one search filter. A request containing only `pagination` and/or `context` is invalid.
+    The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` are ranking context only and do **not** satisfy this rule. A request containing only those fields plus `pagination` and/or `context` **MUST** be rejected with `validation_error`.
 
 === "Request"
 
@@ -263,7 +265,25 @@ Search the registry for specific **services** offered by registered businesses. 
           "availability_hint": {
             "summary": "Good availability this week, especially Tuesday and Wednesday afternoons.",
             "generated_at": "2026-03-14T07:00:00Z",
-            "next_available_date": "2026-03-15"
+            "valid_until": "2026-03-15T07:00:00Z",
+            "next_available_date": "2026-03-15",
+            "slot_bitmaps": [
+              {
+                "duration": "PT60M",
+                "starts_at": "2026-03-15T09:00:00-05:00",
+                "start_interval": "PT30M",
+                "slot_count": 17,
+                "encoding": "roaring32-portable-base64",
+                "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+              }
+            ]
+          },
+          "rank_signals": {
+            "relevance": 0.91,
+            "coverage": null,
+            "density": 0.47,
+            "soonness": 0.86,
+            "hint_usable": true
           }
         },
         {
@@ -288,7 +308,14 @@ Search the registry for specific **services** offered by registered businesses. 
             "coordinates": { "lat": 40.7521, "lng": -73.9812 }
           },
           "timezone": "America/New_York",
-          "last_indexed_at": "2026-03-14T07:30:00Z"
+          "last_indexed_at": "2026-03-14T07:30:00Z",
+          "rank_signals": {
+            "relevance": 0.78,
+            "coverage": null,
+            "density": null,
+            "soonness": null,
+            "hint_usable": false
+          }
         }
       ],
       "pagination": { "cursor": "cursor_svc_xyz", "has_more": true }
@@ -299,6 +326,82 @@ Search the registry for specific **services** offered by registered businesses. 
     Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via [feed subscriptions](service-catalog.md#feed-subscriptions-post-servicesfeedsubscriptions) where the business supports them. For businesses without feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots** -- platforms **MUST** fetch the business's live profile and [catalog](service-catalog.md) for booking-time decisions. When present on the indexed catalog service, registries **SHOULD** pass through `availability_hint` ([Availability Hint](service-catalog.md#availability-hint)) on each result; platforms **MUST NOT** treat it as authoritative or use it as a hard availability filter. `ServiceSearchResult.category` is display text projected from the catalog primary `categories[]` entry (pick order: primary `name`, else primary `value`, else primary `id`, else first entry `value`, else service `type`) and is not a filter token.
 
 Every service search result **MUST** include `category_ids`, projected from indexed catalog `categories[].id` values. The array **MAY** be empty when the service has no category IDs. Every emitted ID **MUST** be accepted by the service-search `categories[]` filter and match that service when all other filters are unchanged.
+
+When the registry applies availability ranking, or when the request carries time preferences, every `ServiceSearchResult` **MUST** include `rank_signals` so agents can inspect or re-order the returned page, including hits with no hint or a summary-only hint. See [Availability ranking](#availability-ranking).
+
+---
+
+## Availability ranking
+
+Registries **MAY** use `availability_hint` from indexed catalog services as a bounded secondary ranking signal after hard-filter recall. Baseline relevance (text, geography, and other registry-specific signals) **MUST** remain dominant.
+
+USP does not standardize how a registry derives an availability ranking key. Projection details, formulas, horizons, weights, duration selection, and score composition are registry-specific. What is standardized is the request shape, the observable guarantees, and the response signals below.
+
+### Request fields
+
+A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter and does **not** satisfy the at-least-one-filter rule.
+
+The request **MAY** include `prefer_sooner_availability_slots` (boolean, default `true`). When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
+
+Each element **MUST** be exactly one of:
+
+```json
+{ "at": "2026-03-14T10:00:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:30:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T16:00:00-04:00" }
+```
+
+- `at` is a moment: the first candidate start at or after that instant.
+- `start` and `end` is a bounded range (inclusive bounds; `end` is the latest acceptable **start**, not the latest acceptable occupancy).
+- `start` alone is open-ended, bounded by what the service actually published.
+
+All bounds are instants (RFC 3339), and equal instants with different offsets **MUST** compare equal. Agents **SHOULD** use a bounded range rather than a moment when the buyer named a strict latest acceptable start, because a moment resolves to the next candidate start and can fall after that limit. Date-only intent **SHOULD** be normalized in the service timezone. An open-ended preference **MUST NOT** be read as a claim of availability beyond the horizon a producer published.
+
+### Observable guarantees
+
+- Availability data is non-authoritative ranking context only. A hint that is missing, summary-only, expired, malformed, internally inconsistent, or non-overlapping **MUST NOT** remove a hit that hard-filter recall admitted, and **MUST NOT** be used as a hard time filter. Platforms **MUST** confirm live [availability](availability.md) before claiming that a time can or cannot be booked.
+- Unusable or absent availability data is neutral, never favorable. Registries **MUST NOT** convert unknown availability into maximum soonness or into an earliest-opening claim, and **MUST NOT** parse a missing or empty `next_available_date` as epoch 0.
+- Freshness decides usability, not quality. A hint is usable before a producer-declared `valid_until`, or under a registry-documented fallback validity policy when `valid_until` is absent. While a hint remains usable, its `generated_at` age **MUST NOT** continuously decay its availability contribution or the hit's final rank.
+- Registries **MUST NOT** order results by raw counts of hinted openings, because raw counts reward a longer published horizon, a finer `start_interval`, or more duration variants without proving a better buyer match.
+- Ranking **MUST** run before pagination. The scoring instant and index snapshot **MUST** stay frozen across a cursor sequence, and remaining ties **MUST** break deterministically, for example by ascending `service_id`.
+- A registry that advertises availability ranking **SHOULD** document its availability inputs, normalization ranges, the maximum contribution availability can make relative to baseline relevance, and its refresh cadence. A registry **SHOULD NOT** advertise availability ranking unless it refreshes hints inside their validity policy; the conforming alternative is neutral availability ranking, not ranking from stale snapshots.
+
+### Rank signals on each result
+
+When a registry applies availability ranking, or when the request carries `desired_service_time_ranges` and/or `prefer_sooner_availability_slots`, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. When present, `rank_signals` **MUST** contain all five members:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `relevance` | number in `[0, 1]` | Match apart from availability, including text, categories, geography, and registry signals. Registry-specific scale; compare only within this response. |
+| `coverage` | number in `[0, 1]` or `null` | How much of the requested time has a hinted opening. `1` is full coverage, `0` is known non-overlap in the structured snapshot, and `null` is not computed: no time preference, no usable structured hint, or requested time outside what the service published. |
+| `density` | number in `[0, 1]` or `null` | Share of all represented candidate starts that are open. `0` is a sampled empty grid; `null` is unknown. It does not express soonness or requested-window fit. |
+| `soonness` | number in `[0, 1]` or `null` | Normalized delay to the earliest acceptable opening, relative to the request anchor and the registry's documented horizon. `0` includes no acceptable opening inside the horizon; `null` is unknown. It remains populated when `prefer_sooner_availability_slots` is `false`. |
+| `hint_usable` | boolean | Whether the structured snapshot passed validity and consistency checks. `false` means availability was unknown for ranking (omitted hint, summary-only hint, expired snapshot, malformed bitmap, or invariant failure), not a worse service. |
+
+`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Agents that need expiry data read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`. Values **MUST NOT** be compared across registries, requests, snapshots, or scoring instants.
+
+### Response-state semantics
+
+An agent that sent time preferences **MUST NOT** treat a missing or summary-only hint as proof that the requested time cannot be satisfied. That state means the registry had no structured evidence; live availability remains the authority.
+
+| Response state | Meaning | Required client handling |
+| --- | --- | --- |
+| `rank_signals` omitted | The registry did not apply availability ranking on this response. | Do not infer availability from the response ordering. |
+| `hint_usable: false`, with `coverage`, `density`, and `soonness` all `null` | Unknown: omitted hint, summary-only hint, expired or malformed structured hint, or invariant failure. | Keep the hit. **MUST NOT** be treated as unavailable, as maximum soonness, or as a failed time match. |
+| `hint_usable: true` and `coverage: null` | Coverage was not computed even though the snapshot was usable: no time preference was sent, or the requested time falls outside what this service published. `density` and `soonness` **MAY** still be populated. | Do not read this as a time match or a time mismatch. |
+| `hint_usable: true` and `coverage: 0` | Known non-overlap on this registry's structured snapshot. | Not a hard exclusion. Confirm with live availability before telling a user the time cannot be booked. |
+| `hint_usable: true` and `coverage` in `(0, 1]` | Structured evidence that the requested time overlaps hinted openings. | Still confirm with live availability before booking. |
+| Mixed states within one page | Some hits had usable structured evidence and others did not. | Time preferences remain ranking context only; comparing a known value against a `null` is not a ranking or exclusion decision. |
+
+`null` means unknown. `0` means known empty or known non-overlap. Agents **MUST NOT** collapse those states when re-sorting, and `summary` **MUST NOT** be turned into `coverage`, `density`, or `soonness`.
+
+Agents **MAY** re-order the current page using these fields but **SHOULD** keep `hint_usable: false` hits. Page-local shuffling is not a global rerank: later pages were selected under the registry's original order, so a different global policy requires a new search.
 
 ---
 
@@ -337,9 +440,9 @@ Optional `match` compares service interval **S** to filter interval **F**:
 
 Omitted bounds on F are unbounded on that side. Point intervals (min = max) are valid.
 
-Worked duration example: service offered **30–90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+Worked duration example: service offered **30-90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` results in `overlap` yes, `contained` no, `contains` yes, `equals` no.
 
-Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }` (minor units) → `overlap` yes, `contained` no, `contains` yes, `equals` no.
+Worked price example: service **$50-$150**, filter `{ min: 8000, max: 10000 }` (minor units) results in `overlap` yes, `contained` no, `contains` yes, `equals` no.
 
 **Building S (duration)**
 

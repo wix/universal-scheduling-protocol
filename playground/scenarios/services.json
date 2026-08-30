@@ -29,7 +29,7 @@
               "name": "Downtown Wellness Spa",
               "url": "https://www.downtownwellnessspa.com"
             },
-            "name": "Swedish Massage",
+            "name": "Back Massage",
             "description": {
               "plain": "A classic full-body Swedish massage using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils.",
               "markdown": "A classic full-body **Swedish massage** using long, flowing strokes to promote deep relaxation and improve circulation. Includes aromatherapy oils."
@@ -43,9 +43,11 @@
               }
             ],
             "duration": {
-              "fixed": "PT60M",
-              "buffer_before": "PT5M",
-              "buffer_after": "PT10M"
+              "range": {
+                "min": "PT60M",
+                "max": "PT90M",
+                "step": "PT30M"
+              }
             },
             "pricing": {
               "model": "fixed",
@@ -145,9 +147,20 @@
               "aromatherapy"
             ],
             "availability_hint": {
-              "summary": "Available this week with morning and afternoon slots on most days.",
-              "generated_at": "2026-03-14T08:00:00-05:00",
-              "next_available_date": "2026-03-15"
+              "summary": "Good availability this morning and late afternoon. Midday is mostly booked.",
+              "generated_at": "2026-03-14T07:30:00-04:00",
+              "valid_until": "2026-03-14T19:30:00-04:00",
+              "next_available_date": "2026-03-14",
+              "slot_bitmaps": [
+                {
+                  "duration": "PT60M",
+                  "starts_at": "2026-03-14T09:00:00-04:00",
+                  "start_interval": "PT30M",
+                  "slot_count": 17,
+                  "encoding": "roaring32-portable-base64",
+                  "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+                }
+              ]
             }
           },
           {
@@ -260,9 +273,9 @@
               "group-class"
             ],
             "availability_hint": {
-              "summary": "Classes held daily at 7:00 AM and 9:00 AM. Spots fill quickly on weekends.",
-              "generated_at": "2026-03-14T08:00:00-05:00",
-              "next_available_date": "2026-03-15"
+              "summary": "Classes run every weekday morning. This week is close to full; next week is open.",
+              "generated_at": "2026-03-14T07:30:00-04:00",
+              "valid_until": "2026-03-14T19:30:00-04:00"
             }
           },
           {
@@ -404,12 +417,7 @@
               "couples",
               "private",
               "hot-tub"
-            ],
-            "availability_hint": {
-              "summary": "Limited weekend availability. Weekday suites available with 48-hour advance booking.",
-              "generated_at": "2026-03-14T08:00:00-05:00",
-              "next_available_date": "2026-03-16"
-            }
+            ]
           },
           {
             "id": "svc_kayak_001",
@@ -533,12 +541,7 @@
               "outdoor",
               "waterfront",
               "adventure"
-            ],
-            "availability_hint": {
-              "summary": "Weather permitting. All 5 kayaks available most weekday mornings.",
-              "generated_at": "2026-03-14T08:00:00-05:00",
-              "next_available_date": "2026-03-15"
-            }
+            ]
           }
         ],
         "pagination": {

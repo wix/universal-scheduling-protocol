@@ -3,6 +3,8 @@
 # a validator it never runs.
 jsonschema>=4.21
 referencing>=0.33
+# Optional: enables Roaring32 portable bitmap decoding for availability ranking checks.
+pyroaring>=0.4
 # Optional: enables real signature verification of the proof test vectors.
 # Without it the vectors still round-trip their JCS digests, but the signatures
 # are taken on trust - which is the one thing review cannot catch.

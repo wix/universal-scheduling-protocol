@@ -248,29 +248,179 @@ The optional `provider` object carries inline business metadata so platforms can
 
 ### Availability Hint
 
-An optional, lightweight summary of a service's near-term availability. Designed for AI agents and platforms that need to make smart decisions about **what date ranges to query** before calling the real-time [availability API](availability.md).
+An optional snapshot of near-term availability for agent-assisted discovery and registry ranking. It carries a natural-language `summary`, and **MAY** add structured `slot_bitmaps`, so platforms can narrow [availability query](availability.md) date ranges and registries can rank search results without treating the hint as a live slot feed.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `summary` | string | **Yes** | Natural-language description of near-term availability for AI agents. |
-| `generated_at` | string | **Yes** | RFC 3339 timestamp. A hint older than 6 hours **SHOULD** be treated with lower confidence. |
-| `next_available_date` | string | No | `YYYY-MM-DD` date of the next day with known availability. |
+| `generated_at` | string | **Yes** | RFC 3339 timestamp when the snapshot was produced. Freshness timestamp only; not bit 0 on any ruler. |
+| `valid_until` | string | No | RFC 3339 instant after `generated_at` when the snapshot stops being usable for availability ranking. |
+| `next_available_date` | string | Conditional | Service-local `YYYY-MM-DD` date of the earliest available start across all duration bitmaps. **Required** when any bitmap has a set bit; **MUST** be omitted when every bitmap is all-zero or when `slot_bitmaps` is absent. |
+| `slot_bitmaps` | Array[AvailabilitySlotBitmap] | No | Optional duration-specific availability rulers. A summary-only hint is valid; when present the array **MUST** be non-empty. See [Structured slot bitmaps](#structured-slot-bitmaps) below. |
+
+Each `AvailabilitySlotBitmap` entry:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `duration` | string | **Yes** | ISO 8601 duration of the booking this bitmap describes (for example `PT60M`). |
+| `starts_at` | string | **Yes** | RFC 3339 instant of bit 0 (first candidate start on this ruler, not hint generation time). |
+| `start_interval` | string | **Yes** | ISO 8601 duration between consecutive candidate starts. Independent of `duration`. |
+| `slot_count` | integer | **Yes** | Number of candidate starts on this ruler (1 through 4294967296). Every decoded index **MUST** be strictly less than `slot_count`. |
+| `encoding` | string | **Yes** | **MUST** be `roaring32-portable-base64`. |
+| `bitmap` | string | **Yes** | Standard Base64 of a 32-bit Roaring portable serialization. Set bits are candidate starts with at least one approximately bookable unit. |
 
 !!! warning "Not a Substitute for Real-time Queries"
-    The availability hint is an **approximation**. Platforms **MUST NOT** use it as a substitute for real-time availability queries. It is strictly a guide for narrowing the date range.
+    The availability hint is an **approximation**. Platforms **MUST NOT** use it as a substitute for real-time availability queries. Registries **MAY** use structured bitmaps for bounded secondary ranking only ([Discovery Registry - Availability ranking](discovery-registry.md#availability-ranking)).
+
+A producer that did not sample a structured availability grid **MAY** publish a summary-only hint, and **MUST** omit `slot_bitmaps` rather than publishing an empty array or a dummy all-zero ruler to mean unknown.
+
+#### Structured slot bitmaps
+
+##### Why a bitmap
+
+The hint answers a discovery question, not a booking question: **which candidate
+start times were approximately bookable when the catalog snapshot was made?**
+`summary` answers it in prose. `slot_bitmaps` answers it as a finite set of
+integer indices on a time ruler, so a consumer can reason about it mechanically.
+One bit records one candidate start without repeating a timestamp or slot object.
+
+USP uses the 32-bit Roaring portable format because availability can be sparse
+or dense, and Roaring stays compact in both cases while supporting set
+intersection, cardinality, and minimum directly. Standard Base64 is only the
+JSON transport wrapper around the portable Roaring bytes; consumers decode the
+bytes to an integer set before interpreting them.
+
+A bit represents a candidate booking start for one duration. It is not an
+occupied minute, capacity count, live slot, or score.
+
+`availability_hint` is optional on a service, and `slot_bitmaps` is optional
+within the hint. A producer that did not sample a structured availability grid
+**MAY** publish a summary-only hint, and **MUST** omit `slot_bitmaps` rather
+than publishing an empty array or a dummy all-zero ruler to mean unknown.
+
+`slot_bitmaps` is an array because one service can have more than one bookable duration. Each entry is one duration-specific ruler with its own `duration`, time origin, tick spacing, length, encoding, and bitmap. A duration **MUST** appear at most once. Shared snapshot metadata (`summary`, `generated_at`, optional `valid_until`, and conditional `next_available_date`) lives on the hint; per-duration grid metadata lives on each entry.
+
+`generated_at` **MUST NOT** be treated as bit 0. `starts_at` **MAY** be later than `generated_at` (for example, the hint is generated at 07:30 and the shop opens at 09:00).
+
+The producer **MAY** publish `valid_until` as an RFC 3339 instant after `generated_at`. When `valid_until` is absent, a registry **MAY** apply a documented validity policy. While a hint is usable, its age **MUST NOT** continuously reduce its score.
+
+If any duration bitmap contains a set bit, `next_available_date` **MUST** be present and **MUST** equal the service-local calendar date of the earliest available start across all duration entries. If every duration bitmap is all-zero, `next_available_date` **MUST** be omitted. An all-zero bitmap means sampled and known empty; an omitted hint or a summary-only hint means unknown.
+
+Producers **MUST NOT** encode unknown values as `0`, `""`, a zero-length blob, an empty array, or a dummy all-zero ruler. Consumers **MUST** map absent data to a neutral availability signal, never to maximum soonness, and malformed, unsupported, expired, or out-of-range bitmap data **MUST NOT** exclude the service from search results.
 
 ```json
 {
-  "id": "svc_haircut_001",
-  "business_id": "biz_glamour_salon_nyc",
-  "name": "Women's Haircut & Style",
+  "id": "svc_back_massage_001",
+  "business_id": "biz_downtown_spa",
+  "name": "Back Massage",
+  "type": "appointment",
+  "duration": {
+    "range": {
+      "min": "PT60M",
+      "max": "PT90M",
+      "step": "PT30M"
+    }
+  },
   "availability_hint": {
-    "summary": "Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning. Thursday is filling up fast.",
-    "generated_at": "2026-03-11T08:00:00-04:00",
-    "next_available_date": "2026-03-17"
+    "summary": "Good availability this morning and late afternoon. Midday is mostly booked, and 90-minute sessions are limited to 9:00-9:30 and after 16:00.",
+    "generated_at": "2026-03-14T07:30:00-04:00",
+    "valid_until": "2026-03-14T19:30:00-04:00",
+    "next_available_date": "2026-03-14",
+    "slot_bitmaps": [
+      {
+        "duration": "PT60M",
+        "starts_at": "2026-03-14T09:00:00-04:00",
+        "start_interval": "PT30M",
+        "slot_count": 17,
+        "encoding": "roaring32-portable-base64",
+        "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+      },
+      {
+        "duration": "PT90M",
+        "starts_at": "2026-03-14T09:00:00-04:00",
+        "start_interval": "PT30M",
+        "slot_count": 16,
+        "encoding": "roaring32-portable-base64",
+        "bitmap": "OjAAAAEAAAAAAAMAEAAAAAAAAQAOAA8A"
+      }
+    ]
   }
 }
 ```
+
+The two `slot_bitmaps` entries share the same `starts_at` and `start_interval` in this example, but their 1-bits differ because a longer booking fits fewer starts. Consumers **MUST** read each duration ruler independently and **MUST NOT** derive one duration's bitmap from another's.
+
+Roaring can serialize the same set with different container layouts. Consumers
+**MUST** compare decoded integer sets, not Base64 text. Cache keys **MUST NOT**
+assume byte-stable re-indexing.
+
+#### What `start_interval` is
+
+`start_interval` is the spacing of the grid of candidate start times that the bits sit on. It answers "how far apart are consecutive bits?", which is different from "how long is the booking?" (`duration`).
+
+This restates, on the bitmap, the existing service policy `booking_window.slot_interval` ([Service Policies](#service-policies)): the interval at which slots are generated (for example `PT30M` means slots may start every 30 minutes). Publishing `start_interval` on the bitmap lets a consumer turn a bit index into a wall-clock start without fetching service policies.
+
+| Field | Meaning | Example |
+| --- | --- | --- |
+| `duration` | How long the booking occupies | `PT60M` or `PT90M` |
+| `start_interval` | Gap between consecutive bits | `PT30M` |
+
+When `start_interval` is smaller than `duration`, consecutive 1-bits describe overlapping windows. That is normal. A 90-minute booking starting at 09:00 and another starting at 09:30 are two legitimate options that cannot both be taken.
+
+Both fields are required on every entry. The bits do not mean "occupied
+30-minute blocks." They mean "a booking of this entry's `duration` can start at
+this tick."
+
+#### How one bitmap maps onto time
+
+Think of a ruler whose tick marks are candidate **start times**, not occupied minutes.
+
+```text
+generated_at  07:30-04:00     (freshness only; not a slot start)
+
+starts_at     09:00-04:00     bit 0
+              09:30-04:00     bit 1
+              10:00-04:00     bit 2
+              10:30-04:00     bit 3
+              11:00-04:00     bit 4
+              ...
+              last tick       bit (slot_count - 1)
+
+Each 1-bit means: a booking of this entry's duration can start at that tick.
+Each 0-bit means: no known availability for that start.
+```
+
+The mapping **MUST** be:
+
+```text
+start(i) = starts_at + i * start_interval
+end(i)   = start(i) + duration
+i in [0, slot_count)
+```
+
+All arithmetic **MUST** use instants (RFC 3339), not local clock labels. Equal
+instants with different offsets **MUST** compare equal.
+
+A 1-bit **MUST** mean at least one approximately bookable unit exists for that start and duration at hint generation time. It **MUST NOT** be interpreted as a resource count, remaining capacity, or a live availability guarantee. Platforms **MUST NOT** treat the bitmap as a substitute for real-time slot queries ([Availability](availability.md)).
+
+With `duration` `PT60M` and `start_interval` `PT30M`, bits 2 and 3 both being
+1 means two overlapping candidate windows, 10:00-11:00 and 10:30-11:30.
+
+```text
+09:00  09:30  10:00  10:30  11:00  11:30  12:00  12:30
+  1      0      1      1      0      0      1      0
+  |------60m------|
+         (taken)
+                |------60m------|
+                       |------60m------|
+                                      (taken)
+                                             |------60m------|
+```
+
+`slot_count` is the length of the ruler. It is required because Roaring32
+indices stop at 4294967295 and because an open buyer preference must stop at
+the end of represented data. Consumers **MUST** clip intent projection to
+`[0, slot_count)`.
 
 ---
 
@@ -530,9 +680,20 @@ All specified filters combine with AND logic. Within `categories`, values combin
             "payment_timing": "at_service"
           },
           "availability_hint": {
-            "summary": "Fully booked this week. Next week we have good availability Tuesday afternoon and all day Wednesday.",
+            "summary": "Good availability next week on Tuesday afternoon and Wednesday morning.",
             "generated_at": "2026-03-11T08:00:00-04:00",
-            "next_available_date": "2026-03-17"
+            "valid_until": "2026-03-18T08:00:00-04:00",
+            "next_available_date": "2026-03-17",
+            "slot_bitmaps": [
+              {
+                "duration": "PT60M",
+                "starts_at": "2026-03-17T09:00:00-04:00",
+                "start_interval": "PT30M",
+                "slot_count": 17,
+                "encoding": "roaring32-portable-base64",
+                "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+              }
+            ]
           }
         }
       ],

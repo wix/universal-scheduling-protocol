@@ -534,10 +534,53 @@
         }
       }
     },
+    "AvailabilitySlotBitmap": {
+      "type": "object",
+      "title": "AvailabilitySlotBitmap",
+      "description": "One duration-specific start-time ruler for an availability hint. Bit i represents a candidate start at starts_at + i * start_interval lasting duration.",
+      "required": [
+        "duration",
+        "starts_at",
+        "start_interval",
+        "slot_count",
+        "encoding",
+        "bitmap"
+      ],
+      "properties": {
+        "duration": {
+          "type": "string",
+          "description": "ISO 8601 duration of the booking this bitmap describes (for example PT60M)."
+        },
+        "starts_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 instant of bit 0. First candidate start on this ruler, not hint generation time."
+        },
+        "start_interval": {
+          "type": "string",
+          "description": "ISO 8601 duration between consecutive candidate starts. Independent of duration."
+        },
+        "slot_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967296,
+          "description": "Number of candidate starts on this ruler. Every decoded bitmap index MUST be strictly less than slot_count."
+        },
+        "encoding": {
+          "type": "string",
+          "const": "roaring32-portable-base64",
+          "description": "Wire encoding for bitmap. MUST be roaring32-portable-base64."
+        },
+        "bitmap": {
+          "type": "string",
+          "description": "Standard Base64 of a 32-bit Roaring portable serialization. Set bits are bookable candidate starts."
+        }
+      }
+    },
     "AvailabilityHint": {
       "type": "object",
       "title": "AvailabilityHint",
-      "description": "Approximate availability summary for agent-assisted discovery. Cached alongside catalog data.",
+      "description": "Approximate, non-authoritative availability summary for agent-assisted discovery. Structured slot_bitmaps are optional: a summary-only hint is valid, and a producer that did not sample a grid omits slot_bitmaps rather than publishing an empty array or a dummy all-zero ruler.",
       "required": ["summary", "generated_at"],
       "properties": {
         "summary": {
@@ -547,12 +590,23 @@
         "generated_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 timestamp of when this hint was generated."
+          "description": "RFC 3339 timestamp of when this hint was generated. Freshness timestamp only; not bit 0 of any ruler."
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional RFC 3339 instant after generated_at when this snapshot stops being usable for availability ranking."
         },
         "next_available_date": {
           "type": "string",
           "format": "date",
-          "description": "YYYY-MM-DD date of the next day with known availability."
+          "description": "YYYY-MM-DD service-local date of the earliest available start across all duration entries. Required when any bitmap contains a set bit; omitted when every bitmap is all-zero or when slot_bitmaps is absent. MUST NOT be sent as an empty string to mean unknown."
+        },
+        "slot_bitmaps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/AvailabilitySlotBitmap" },
+          "description": "Optional array of duration-specific availability rulers. When present it MUST be non-empty and each duration MUST appear at most once. Consumers read each duration ruler independently and MUST NOT derive one duration's bitmap from another's."
         }
       }
     }

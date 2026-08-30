@@ -1,5 +1,48 @@
 # Change Log
 
+## 30/08/26 at 12:58:11 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Trimmed availability-hint and registry-ranking prose to the interoperability boundary: sections 3.6 and 6.3 now carry wire shapes, semantic guarantees, and response-state rules only, because projection procedures, scoring formulas, horizons, weights, dominance arithmetic, and worked ranking walkthroughs are registry-specific implementation detail that does not belong in normative protocol text
+- Consolidated the former 6.3.2-6.3.4 subsections into one "Availability Ranking Context and Response Signals" section that states the advisory request shapes, the observable guarantees a client can rely on, and a response-state table separating unknown (`hint_usable: false` with null values) from known non-overlap (`coverage: 0`), so agents stop inferring unavailability from a registry that simply had no structured evidence
+- Made `slot_bitmaps` optional inside `AvailabilityHint` in `schemas/catalog.json` and the prose, since a producer that never sampled a grid previously had to drop the natural-language summary as well; a summary-only hint is now valid and yields the unknown response state
+- Required all five `RankSignals` members whenever the object is emitted in `schemas/registry.json`, because a partially populated object made unknown and known-empty indistinguishable for clients re-ordering a page
+- Mirrored the same boundary in `site-docs/specification/service-catalog.md` and `site-docs/specification/discovery-registry.md` so the published site does not describe an algorithm the specification no longer states
+- Simplified the playground availability fixture to one structured hint and added a summary-only hint, so the fixtures exercise both hint forms now that structured rulers are optional
+- Rewrote `tools/availability_ranking_checks.py` and the availability check in `tools/usp_check.py` to assert the public contract (bitmap decoding and index bounds, index-to-time mapping across offsets, the exclusive `valid_until` cutout, age-neutral usability, and every response state) and to fail if registry-specific ranking material reappears in public sources
+- Aligned the section 4 caching tier with the validity model instead of a fixed 1-6 hour window, which contradicted the producer-declared `valid_until` cutout
+
+---
+
+## 29/08/26 at 21:13:04 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added approved design and implementation plans plus a bitmap mental model and end-to-end data flow, because registry implementers need to understand why Roaring sets are used and how their operations produce coverage, density, and soonness
+- Expanded intent projection into complete worked groups for grid boundaries, unions, occupancy, duration selection, invalid hints, flag modes, freshness, horizon arithmetic, and pagination, correcting the before-origin soonness calculation and making every intermediate ranking value derivable
+- Restored the service-catalog and discovery-registry site pages as full implementer-facing mirrors, because the previous summaries omitted wire decoding details, ranking rationale, dominance and refresh rules, and most planned edge cases
+- Added data-driven projection vectors, known-empty and all-open checks, validity-boundary assertions, and tutorial coverage sentinels, so calculations and public documentation cannot silently regress or become abbreviated again
+- Reordered the implementation tutorial from bitmap construction through ranking output and corrected its links to targets that will exist after publication, so producer, registry, and agent owners can follow one verified reading path
+
+---
+
+## 29/08/26 at 17:17:50 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added `AvailabilitySlotBitmap`, non-empty `slot_bitmaps`, optional `valid_until`, and registry `DesiredServiceTimePreference`, `RankSignals`, `desired_service_time_ranges`, and `prefer_sooner_availability_slots` in canonical schemas, because discovery ranking needs one portable bitmap contract and disclosed rank ingredients without duplicating shapes in bindings
+- Wrote normative specification sections 3.6.2-3.6.6 and 6.3.2-6.3.4 (projection, scoring, freshness cutout, dominance invariant, edge-case matrix) and fixed the `AvailabilitySlotBitmap` anchor slug, so implementers can derive the same coverage, density, and soonness results from the prose
+- Extended OpenRPC `usp_registry_search_services` with the new request parameters and thin `DesiredServiceTimePreference` / `RankSignals` component references, because MCP callers need the same ranking inputs as REST without inline schema duplication
+- Adapted the playground Swedish massage fixture to Back Massage with the verified two-duration Roaring32 hint, removed summary-only hints elsewhere, and added `tools/availability_ranking_checks.py` plus `usp_check.py` schema, projection, scoring, rejection, and dominance assertions (with `pyroaring` in `requirements-dev.txt`), so fixtures and CI enforce the bitmap ranking contract
+- Removed the dead `site-docs/migration.md` allowlist entry from `check_authority`, because the migration page is already gone and v2 has no published predecessor on the site
+
+---
+
+## 29/08/26 at 17:14:49 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Expanded `site-docs/specification/service-catalog.md` with availability bitmap subsections (what gets published through The JSON), updated field tables, removed 6-hour decay language, and replaced summary-only hint examples with `slot_bitmaps`, so the published catalog docs match the normative bitmap ranking model
+- Added availability ranking sections to `site-docs/specification/discovery-registry.md` (search request usage, reading it back, intent projection edge cases), plus `desired_service_time_ranges`, `prefer_sooner_availability_slots`, and `rank_signals` on search examples, so registry discovery docs stay aligned with bitmap-based reranking
+- Updated `site-docs/specification/availability.md` caching tier text to reference `valid_until` instead of 1-6 hour hint TTL, because freshness is now a usability cutout rather than continuous score decay
+- Removed invalid summary-only `availability_hint` objects from `site-docs/playground/scenarios/services.json` (unknown availability is omitted), pending the main playground fixture update with the back-massage bitmap example
+- Deleted `site-docs/migration.md` and removed its MkDocs nav entry, because v2 has no published predecessor to migrate from on the site
+
+---
+
 ## 26/08/26 at 16:04:32 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added specification §7.5.1 (merchant policy parity and eligibility, UCP overlay), because Track S required a UCP-first decision on mandatory acceptances, eligibility, and recurring scope without inventing parallel USP wire types

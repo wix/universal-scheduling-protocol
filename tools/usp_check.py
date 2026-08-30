@@ -277,6 +277,7 @@ def check_schemas(findings: Findings) -> None:
 
     check_namespace_key_patterns(findings)
     check_section_72_profile_examples(findings)
+    check_availability_ranking(findings)
 
 
 def check_namespace_key_patterns(findings: Findings) -> None:
@@ -767,6 +768,265 @@ def check_vectors(findings: Findings) -> None:
 
 
 # --------------------------------------------------------------------------
+# check: availability bitmap ranking
+# --------------------------------------------------------------------------
+
+def availability_schema_validators():
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+
+    catalog = json.loads((SCHEMA_DIR / "catalog.json").read_text())
+    registry = json.loads((SCHEMA_DIR / "registry.json").read_text())
+    reg = Registry().with_resources(
+        (uri, Resource.from_contents(doc))
+        for uri, doc in (
+            (f"{USP_SCHEMA_BASE}catalog.json", catalog),
+            (f"{USP_SCHEMA_BASE}registry.json", registry),
+        )
+    )
+    hint_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}catalog.json#/$defs/AvailabilityHint",
+    }
+    rank_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}registry.json#/$defs/RankSignals",
+    }
+    pref_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}registry.json#/$defs/DesiredServiceTimePreference",
+    }
+    return (
+        Draft202012Validator(hint_schema, registry=reg),
+        Draft202012Validator(rank_schema, registry=reg),
+        Draft202012Validator(pref_schema, registry=reg),
+    )
+
+
+def schema_errors(validator, instance) -> list[str]:
+    return sorted(
+        f"{'/'.join(str(p) for p in err.absolute_path) or '<root>'}: {err.message}"
+        for err in validator.iter_errors(instance)
+    )
+
+
+def check_availability_ranking(findings: Findings) -> None:
+    """Public wire and response-state checks for §3.6 / §6.3."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from availability_ranking_checks import (
+        RESPONSE_STATE_CASES,
+        STRUCTURED_HINT,
+        SUMMARY_ONLY_HINT,
+        UNKNOWN,
+        classify_rank_signals,
+        decode_roaring32_bitmap,
+        decoded_indices_in_range,
+        hint_is_usable,
+        parse_instant,
+        start_instant,
+    )
+
+    try:
+        hint_validator, rank_validator, pref_validator = availability_schema_validators()
+    except ImportError as exc:
+        findings.fail("AVAIL:dependency",
+                      f"jsonschema/referencing required for availability checks: {exc}")
+        return
+
+    for label, hint in (("structured", STRUCTURED_HINT), ("summary-only", SUMMARY_ONLY_HINT)):
+        if schema_errors(hint_validator, hint):
+            findings.fail(f"AVAIL:fixture:{label}",
+                          f"{label} hint fixture fails AvailabilityHint schema")
+            return
+
+    pt60, pt90 = STRUCTURED_HINT["slot_bitmaps"]
+
+    # Wire contract: consumers compare decoded sets, and every index is in range.
+    for label, entry in (("pt60", pt60), ("pt90", pt90)):
+        try:
+            if not decoded_indices_in_range(entry):
+                findings.fail(f"AVAIL:range:{label}",
+                              "decoded bitmap index is outside [0, slot_count)")
+        except Exception as exc:  # noqa: BLE001
+            findings.fail(f"AVAIL:decode:{label}", f"bitmap failed to decode: {exc}")
+    if decode_roaring32_bitmap(pt60["bitmap"]) == decode_roaring32_bitmap(pt90["bitmap"]):
+        findings.fail("AVAIL:per-duration",
+                      "duration rulers must be read independently, not derived from each other")
+
+    # Index-to-time mapping: start(i) = starts_at + i * start_interval, on instants.
+    if start_instant(pt60, 0) != parse_instant(pt60["starts_at"]):
+        findings.fail("AVAIL:mapping:bit0", "bit 0 must map to starts_at")
+    if start_instant(pt60, 2) != parse_instant("2026-03-14T10:00:00-04:00"):
+        findings.fail("AVAIL:mapping:step", "index mapping must advance by start_interval")
+    if start_instant(pt60, 2) != parse_instant("2026-03-14T14:00:00Z"):
+        findings.fail("AVAIL:mapping:offset",
+                      "equal instants with different offsets must compare equal")
+    if start_instant(pt60, 0) <= parse_instant(STRUCTURED_HINT["generated_at"]):
+        findings.fail("AVAIL:mapping:generated-at",
+                      "generated_at must not be treated as bit 0 of a ruler")
+
+    # Usability is a cutout, not an age decay, and a summary-only hint is not usable
+    # for structured ranking.
+    before = parse_instant("2026-03-14T08:00:00-04:00")
+    if not hint_is_usable(STRUCTURED_HINT, before):
+        findings.fail("AVAIL:validity", "structured hint should be usable before valid_until")
+    if hint_is_usable(STRUCTURED_HINT, parse_instant("2026-03-14T19:30:00-04:00")):
+        findings.fail("AVAIL:validity-cutout", "hint must be unusable at valid_until")
+    if hint_is_usable(STRUCTURED_HINT, parse_instant("2026-03-14T20:00:00-04:00")):
+        findings.fail("AVAIL:validity-expired", "hint must be unusable after valid_until")
+    if hint_is_usable(SUMMARY_ONLY_HINT, before):
+        findings.fail("AVAIL:validity-summary-only",
+                      "summary-only hint carries no usable structured ranking data")
+    older = {**STRUCTURED_HINT, "generated_at": "2026-03-13T07:30:00-04:00"}
+    if hint_is_usable(older, before) != hint_is_usable(STRUCTURED_HINT, before):
+        findings.fail("AVAIL:validity-no-age-decay",
+                      "generated_at age changed usability before the shared cutout")
+
+    # Response-state semantics: unknown, coverage-not-computed, known-empty, overlap.
+    for case in RESPONSE_STATE_CASES:
+        signals = case["rank_signals"]
+        if signals is not None and schema_errors(rank_validator, signals):
+            findings.fail(f"AVAIL:rank:{case['name']}",
+                          "rank_signals fixture fails RankSignals schema")
+        state = classify_rank_signals(signals)
+        if state != case["expected"]:
+            findings.fail(f"AVAIL:state:{case['name']}",
+                          f"expected response state {case['expected']}, got {state}")
+        if state == UNKNOWN and signals is not None:
+            if any(signals[field] is not None for field in ("coverage", "density", "soonness")):
+                findings.fail(f"AVAIL:state:{case['name']}:null",
+                              "unknown availability must report null coverage, density, soonness")
+
+    usable_rank = {
+        "relevance": 0.82,
+        "coverage": 1.0,
+        "density": 0.25,
+        "soonness": 1.0,
+        "hint_usable": True,
+    }
+    bad_rank = {**usable_rank, "freshness_decay": 0.5}
+    if not schema_errors(rank_validator, bad_rank):
+        findings.fail("AVAIL:rank:reject-decay",
+                      "rank_signals must reject freshness_decay additional property")
+    for missing in ("relevance", "coverage", "density", "soonness", "hint_usable"):
+        partial = {k: v for k, v in usable_rank.items() if k != missing}
+        if not schema_errors(rank_validator, partial):
+            findings.fail(f"AVAIL:rank:require-{missing}",
+                          "rank_signals must require all five members when emitted")
+
+    for label, pref in (
+        ("moment", {"at": "2026-03-14T10:00:00-04:00"}),
+        ("bounded", {
+            "start": "2026-03-14T10:00:00-04:00",
+            "end": "2026-03-14T11:30:00-04:00",
+        }),
+        ("open", {"start": "2026-03-14T16:00:00-04:00"}),
+    ):
+        if schema_errors(pref_validator, pref):
+            findings.fail(f"AVAIL:pref:{label}", "intent preference fixture fails schema")
+
+    reject_cases = {
+        "empty-bitmaps": {
+            "summary": "empty",
+            "generated_at": "2026-03-14T07:30:00-04:00",
+            "slot_bitmaps": [],
+        },
+        "missing-encoding": {
+            "summary": "bad",
+            "generated_at": "2026-03-14T07:30:00-04:00",
+            "slot_bitmaps": [{
+                "duration": "PT60M",
+                "starts_at": "2026-03-14T09:00:00-04:00",
+                "start_interval": "PT30M",
+                "slot_count": 4,
+                "bitmap": pt60["bitmap"],
+            }],
+        },
+        "bad-discriminator": {"at": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:00:00-04:00"},
+    }
+    for label, doc in reject_cases.items():
+        validator = pref_validator if label == "bad-discriminator" else hint_validator
+        if not schema_errors(validator, doc):
+            findings.fail(f"AVAIL:reject:{label}", "invalid fixture unexpectedly passed schema")
+
+    try:
+        decode_roaring32_bitmap(base64.b64encode(b"BAD!").decode())
+        findings.fail("AVAIL:reject:bad-b64", "invalid base64 should raise")
+    except Exception:
+        pass
+
+    bad_cookie = base64.b64encode((99999).to_bytes(4, "little") + b"rest").decode()
+    try:
+        decode_roaring32_bitmap(bad_cookie)
+        findings.fail("AVAIL:reject:bad-cookie", "invalid Roaring cookie should raise")
+    except ValueError:
+        pass
+
+    playground = REPO / "playground" / "scenarios" / "services.json"
+    if playground.is_file():
+        services = json.loads(playground.read_text())["happy_path"]["response"]["body"]["services"]
+        hints = 0
+        for svc in services:
+            hint = svc.get("availability_hint")
+            if hint is None:
+                continue
+            hints += 1
+            if schema_errors(hint_validator, hint):
+                findings.fail(f"AVAIL:playground:{svc['id']}",
+                              "playground availability_hint fails AvailabilityHint schema")
+        if not hints:
+            findings.fail("AVAIL:playground", "playground fixture lost its availability_hint example")
+
+    contract_sources = {
+        "specification": SPEC,
+        "service-catalog": REPO / "site-docs" / "specification" / "service-catalog.md",
+        "discovery-registry": REPO / "site-docs" / "specification" / "discovery-registry.md",
+    }
+    required_by_source = {
+        "specification": (
+            "Structured slot bitmaps",
+            "Response-state semantics",
+            "Observable guarantees",
+            "`null` means unknown",
+        ),
+        "service-catalog": (
+            "Structured slot bitmaps",
+            "summary-only hint is valid",
+        ),
+        "discovery-registry": (
+            "Observable guarantees",
+            "Response-state semantics",
+            "Rank signals on each result",
+        ),
+    }
+    # Private ranking-algorithm material must not reappear in public sources.
+    forbidden = (
+        "match_score",
+        "coverage * soonness",
+        "availability_weight",
+        "dominance check",
+        "Recommended intent mapping",
+    )
+    for source, required_fragments in required_by_source.items():
+        text = contract_sources[source].read_text()
+        for fragment in required_fragments:
+            if fragment not in text:
+                findings.fail(
+                    f"AVAIL:contract:{source}:{fragment.lower().replace(' ', '-')}",
+                    f"{source} is missing required public contract fragment {fragment!r}",
+                )
+        for fragment in forbidden:
+            if fragment in text:
+                findings.fail(
+                    f"AVAIL:leak:{source}:{fragment.lower().replace(' ', '-')}",
+                    f"{source} contains registry-specific ranking material {fragment!r}",
+                )
+
+
+
+# --------------------------------------------------------------------------
 # check: authority publication
 # --------------------------------------------------------------------------
 
@@ -802,9 +1062,7 @@ def check_authority(findings: Findings) -> None:
         "waitlist-extension",
         "856-acp-booking-extension",
     }
-    historical = {
-        REPO / "site-docs" / "migration.md",
-    }
+    historical: set[Path] = set()
     legacy_path_docs = historical | {
         SPEC,
         REPO / "scripts" / "build-site.sh",

@@ -71,6 +71,10 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [3.4 Business ID and Cross-Business Discovery](#34-business-id-and-cross-business-discovery)
     - [3.5 Localization](#35-localization)
     - [3.6 Availability Hint](#36-availability-hint)
+        - [3.6.1 Agent Use Cases](#361-agent-use-cases)
+        - [3.6.2 Structured slot bitmaps](#362-structured-slot-bitmaps)
+        - [3.6.3 What `start_interval` is](#363-what-start_interval-is)
+        - [3.6.4 How one bitmap maps onto time](#364-how-one-bitmap-maps-onto-time)
     - [3.7 Duration](#37-duration)
     - [3.8 Pricing](#38-pricing)
     - [3.9 Service Policies](#39-service-policies)
@@ -92,7 +96,8 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [6.1 Business Registration](#61-business-registration---post-registrybusinesses)
     - [6.2 Business Search](#62-business-search---post-registrysearch_business)
     - [6.3 Service Search](#63-service-search---post-registrysearch_services)
-    - [6.3.1 Filter Matching Semantics](#631-filter-matching-semantics)
+        - [6.3.1 Filter Matching Semantics](#631-filter-matching-semantics)
+        - [6.3.2 Availability Ranking Context and Response Signals](#632-availability-ranking-context-and-response-signals)
     - [6.4 Get Registration](#64-get-registration---get-registrybusinessesid)
     - [6.5 Update Registration](#65-update-registration---put-registrybusinessesid)
     - [6.6 Delete Registration](#66-delete-registration---delete-registrybusinessesid)
@@ -1318,8 +1323,10 @@ NOT** use it as a substitute for real-time availability queries. It is strictly
 | Field                 | Type   | Required | Description                                                                                                                                                                                                                               |
 |-----------------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `summary`             | string | **Yes**  | Natural-language description of near-term availability. Aimed at AI agents for reasoning about which dates to query. Example: *"Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning."* |
-| `generated_at`        | string | **Yes**  | RFC 3339 timestamp of when this hint was generated. Platforms can use this to assess freshness and decide how much weight to give the hint. A hint older than 6 hours **SHOULD** be treated with lower confidence.                        |
-| `next_available_date` | string | No       | `YYYY-MM-DD` date of the next day with known availability. This single structured field is usable by both AI agents and traditional programmatic platforms to skip fully booked date ranges.                                              |
+| `generated_at`        | string | **Yes**  | RFC 3339 timestamp of when this hint was generated. Records snapshot creation time; while a hint remains usable its age **MUST NOT** continuously reduce availability rank (see [Section 6.3.2](#632-availability-ranking-context-and-response-signals)). |
+| `valid_until`         | string | No       | Optional RFC 3339 instant after `generated_at` when this snapshot stops being usable for availability ranking.                                                                                                                          |
+| `next_available_date` | string | No       | `YYYY-MM-DD` service-local date of the earliest available start across all duration entries. **Required** when any bitmap contains a set bit; **MUST** be omitted when every bitmap is all-zero or when `slot_bitmaps` is absent.        |
+| `slot_bitmaps`        | array  | No       | Optional array of [AvailabilitySlotBitmap](#362-structured-slot-bitmaps) entries, one per represented bookable duration. When present it **MUST** be non-empty. A hint that carries only `summary` and `generated_at` is valid.            |
 
 #### 3.6.1 Agent Use Cases
 
@@ -1340,18 +1347,164 @@ and how the hint helps in each:
 | 9  | **Off-peak targeting**                 | "When is the cheapest time to book?"                    | The hint identifies low-demand windows (e.g., midweek mornings), which the agent can infer as likely off-peak pricing for services with `variable` pricing models.                                                    |
 | 10 | **Background pre-qualification**       | Agent compiles a daily briefing of scheduling options.  | Hints from the user's preferred businesses are read entirely from the cached catalog - zero availability API calls - to produce a summary like "Your salon has openings Tuesday; your dentist is booked until April." |
 
+#### 3.6.2 Structured slot bitmaps
+
+##### Why a bitmap
+
+The hint answers a discovery question, not a booking question: **which candidate
+start times were approximately bookable when the catalog snapshot was made?**
+`summary` answers it in prose. `slot_bitmaps` answers it as a finite set of
+integer indices on a time ruler, so a consumer can reason about it mechanically.
+One bit records one candidate start without repeating a timestamp or slot
+object, which keeps many possible starts compact.
+
+USP uses the 32-bit Roaring portable format because availability can be sparse
+on a nearly full calendar or dense on a quiet calendar, and Roaring stays
+compact in both cases while supporting set intersection, cardinality, and
+minimum directly. Standard Base64 is only the JSON transport wrapper around the
+portable Roaring bytes; consumers decode the bytes to an integer set before
+interpreting them.
+
+A 1-bit says that at least one unit was approximately bookable for one start and
+duration when sampled. It is not a capacity count, a live slot, or permission to
+skip the real-time availability query.
+
+`availability_hint` is optional on a service, and `slot_bitmaps` is optional
+within the hint. A producer that did not sample a structured availability grid
+**MAY** publish a summary-only hint, and **MUST** omit `slot_bitmaps` rather
+than publishing an empty array or a dummy all-zero ruler to mean unknown. When
+`slot_bitmaps` is present it **MUST** be non-empty and every entry **MUST**
+conform to the wire contract below.
+
+`slot_bitmaps` is an array because JSON cannot carry two properties with the same name, and one service can have more than one bookable duration. Each array entry is one duration-specific ruler: its own `duration`, time origin, tick spacing, length, encoding, and bitmap. A duration **MUST** appear at most once in the array. Shared snapshot metadata (`summary`, `generated_at`, optional `valid_until`, and conditional `next_available_date`) lives on the hint. Per-duration time-grid metadata lives on the entry.
+
+Each `AvailabilitySlotBitmap` object **MUST** contain:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `duration` | string | **Yes** | ISO 8601 duration of the booking that this bitmap describes (for example `PT60M`). |
+| `starts_at` | string | **Yes** | RFC 3339 instant of bit 0. This is the first candidate start time on this ruler, not the hint generation time. |
+| `start_interval` | string | **Yes** | ISO 8601 duration between consecutive candidate starts. Independent of `duration`. |
+| `slot_count` | integer | **Yes** | Number of candidate starts on this ruler. **MUST** be in the range 1 through 4294967296. Every decoded bitmap index **MUST** be strictly less than `slot_count`. |
+| `encoding` | string | **Yes** | **MUST** be `roaring32-portable-base64`. |
+| `bitmap` | string | **Yes** | Standard Base64 of a 32-bit Roaring portable serialization (RoaringFormatSpec). Set bits are candidate starts with at least one approximately bookable unit. |
+
+`generated_at` **MUST NOT** be treated as bit 0. It is a freshness timestamp. `starts_at` **MAY** be later than `generated_at` (for example, the hint is generated at 07:30 and the shop opens at 09:00).
+
+The producer **MAY** publish `valid_until` as an RFC 3339 instant after `generated_at`. It states when the snapshot stops being usable for availability ranking. When `valid_until` is absent, a registry **MAY** apply a documented validity policy appropriate to the service or vertical. Freshness is about whether the hint is usable, not about how good the service is. While a hint is usable, its age **MUST NOT** continuously reduce its score.
+
+If any duration bitmap contains a set bit, `next_available_date` **MUST** be present and **MUST** equal the service-local calendar date of the earliest available start across all duration entries. If every duration bitmap is all-zero, `next_available_date` **MUST** be omitted. An all-zero bitmap means sampled and known empty; an omitted `availability_hint` means unknown.
+
+Producers **MUST NOT** encode unknown values as `0`, `""`, a zero-length blob, an empty array, or a dummy all-zero ruler. In particular, `next_available_date` **MUST** be omitted rather than sent as `""` when there is no sampled opening. Consumers **MUST** map absent data to a neutral availability signal, never to maximum soonness. Malformed, unsupported, expired, or out-of-range bitmap data **MUST** be treated as absent ranking data and **MUST NOT** cause the service to be excluded from search results.
+
+The following fragment shows a service whose catalog duration is a range, with one bitmap per selectable duration.
+
 ```json
 {
-  "id": "svc_haircut_001",
-  "business_id": "biz_glamour_salon_nyc",
-  "name": "Women's Haircut & Style",
+  "id": "svc_back_massage_001",
+  "business_id": "biz_downtown_spa",
+  "name": "Back Massage",
+  "type": "appointment",
+  "duration": {
+    "range": {
+      "min": "PT60M",
+      "max": "PT90M",
+      "step": "PT30M"
+    }
+  },
   "availability_hint": {
-    "summary": "Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning. Thursday is filling up fast.",
-    "generated_at": "2026-03-11T08:00:00-04:00",
-    "next_available_date": "2026-03-17"
+    "summary": "Good availability this morning and late afternoon. Midday is mostly booked, and 90-minute sessions are limited to 9:00-9:30 and after 16:00.",
+    "generated_at": "2026-03-14T07:30:00-04:00",
+    "valid_until": "2026-03-14T19:30:00-04:00",
+    "next_available_date": "2026-03-14",
+    "slot_bitmaps": [
+      {
+        "duration": "PT60M",
+        "starts_at": "2026-03-14T09:00:00-04:00",
+        "start_interval": "PT30M",
+        "slot_count": 17,
+        "encoding": "roaring32-portable-base64",
+        "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+      },
+      {
+        "duration": "PT90M",
+        "starts_at": "2026-03-14T09:00:00-04:00",
+        "start_interval": "PT30M",
+        "slot_count": 16,
+        "encoding": "roaring32-portable-base64",
+        "bitmap": "OjAAAAEAAAAAAAMAEAAAAAAAAQAOAA8A"
+      }
+    ]
   }
 }
 ```
+
+The two `slot_bitmaps` entries share the same `starts_at` and `start_interval` in this example, but their 1-bits differ because a longer booking fits fewer starts. Consumers **MUST** read each duration ruler independently and **MUST NOT** derive one duration's bitmap from another's.
+
+The Roaring format allows the same set to serialize in more than one valid byte layout (for example run containers versus an array container). Consumers **MUST** compare decoded integer sets. Consumers **MUST NOT** treat Base64 string equality as set equality, and cache keys **MUST NOT** assume byte-stable re-indexing.
+
+#### 3.6.3 What `start_interval` is
+
+`start_interval` is the spacing of the grid of candidate start times that the bits sit on. It answers "how far apart are consecutive bits?", which is a different question from "how long is the booking?" (`duration`).
+
+This is not a new concept. It restates, on the bitmap, the existing service policy `booking_window.slot_interval` ([Section 3.9](#39-service-policies)): the interval at which slots are generated (for example `PT30M` means slots may start every 30 minutes). Publishing `start_interval` on the bitmap lets a consumer turn a bit index into a wall-clock start without fetching service policies.
+
+The two fields are independent, and both are required on each bitmap entry:
+
+| Field | Meaning | Example |
+| --- | --- | --- |
+| `duration` | How long the booking occupies | `PT60M` or `PT90M` |
+| `start_interval` | Gap between consecutive bits | `PT30M` |
+
+When `start_interval` is smaller than `duration`, consecutive 1-bits describe overlapping windows. That is normal and intentional. A 90-minute booking starting at 09:00 and another starting at 09:30 are two legitimate options that cannot both be taken.
+
+The bits do not mean "occupied minutes." They mean "a booking of this `duration` can start at this tick."
+
+#### 3.6.4 How one bitmap maps onto time
+
+Think of a ruler whose tick marks are candidate **start times**, not occupied minutes.
+
+```text
+generated_at  07:30-04:00     (freshness only; not a slot start)
+
+starts_at     09:00-04:00     bit 0
+              09:30-04:00     bit 1
+              10:00-04:00     bit 2
+              10:30-04:00     bit 3
+              11:00-04:00     bit 4
+              ...
+              last tick       bit (slot_count - 1)
+
+Each 1-bit means: a booking of this entry's duration can start at that tick.
+Each 0-bit means: no known availability for that start.
+```
+
+The mapping **MUST** be:
+
+```text
+start(i) = starts_at + i * start_interval
+end(i)   = start(i) + duration
+i in [0, slot_count)
+```
+
+All arithmetic **MUST** use instants (RFC 3339), not local clock labels. Equal instants with different offsets **MUST** compare equal.
+
+A 1-bit **MUST** mean at least one approximately bookable unit exists for that start and duration at hint generation time. It **MUST NOT** be interpreted as a resource count, remaining capacity, or a live availability guarantee. Platforms **MUST NOT** treat the bitmap as a substitute for real-time slot queries ([Section 4](#4-availability)).
+
+With `duration` `PT60M` and `start_interval` `PT30M`, bits 2 and 3 both being 1 means two overlapping 60-minute windows (10:00-11:00 and 10:30-11:30).
+
+```text
+09:00  09:30  10:00  10:30  11:00  11:30  12:00  12:30
+  1      0      1      1      0      0      1      0
+  |------60m------|
+         (taken)
+                |------60m------|
+                       |------60m------|
+                                      (taken)
+                                             |------60m------|
+```
+
+`slot_count` is the length of the ruler. It is required because 32-bit Roaring indices only go from 0 through 4294967295, and because an open-ended buyer preference ("anytime after Tuesday") has to stop somewhere. Consumers **MUST** clip intent projection to `[0, slot_count)`.
 
 ### 3.7 Duration
 
@@ -1695,11 +1848,6 @@ Response:
         "confirmation_mode": "auto",
         "requires_payment": true,
         "payment_timing": "at_service"
-      },
-      "availability_hint": {
-        "summary": "Fully booked this week. Next week we have good availability Tuesday afternoon and all day Wednesday. Thursday is filling up.",
-        "generated_at": "2026-03-11T08:00:00-04:00",
-        "next_available_date": "2026-03-17"
       },
       "localized": {
         "name": {
@@ -2372,7 +2520,7 @@ tiered caching strategy:
 
 | Tier                    | Source              | Date Range          | Recommended TTL                 | Use Case                                                                                               |
 |-------------------------|---------------------|---------------------|---------------------------------|--------------------------------------------------------------------------------------------------------|
-| **Hint**                | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
+| **Hint**                | `availability_hint` (including `slot_bitmaps` when published) | General / near-term | Cached with the catalog; honor producer `valid_until` or a documented validity policy | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
 | **Select**              | `slot` query        | 1-2 specific days   | 30-60 seconds                   | Time picker: "what times are available on Tuesday?"                                                    |
 | **Commit** *(optional)* | Hold                | Single slot         | Real-time (no cache)            | Slot hold before booking. Only available when business advertises `"holds": true`.                     |
 
@@ -3539,10 +3687,12 @@ Request:
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
 | `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
+| `desired_service_time_ranges` | array | No | Ranking context only: buyer time preferences (`moment`, bounded `range`, or open `from`). Not a hard filter. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
+| `prefer_sooner_availability_slots` | boolean | No | Default `true`. When `false`, registry default ordering ignores soonness. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
 | `context`        | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See [Section 6.2](#62-business-search---post-registrysearch_business). |
 | `pagination`     | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                     |
 
-The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
+The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` do not satisfy this rule. Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
 
 Search operations that match no results **MUST** return HTTP 200 with an empty `services[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
 
@@ -3594,7 +3744,25 @@ Response:
       "availability_hint": {
         "summary": "Good availability this week, especially Tuesday and Wednesday afternoons.",
         "generated_at": "2026-03-14T07:00:00Z",
-        "next_available_date": "2026-03-15"
+        "valid_until": "2026-03-15T07:00:00Z",
+        "next_available_date": "2026-03-15",
+        "slot_bitmaps": [
+          {
+            "duration": "PT60M",
+            "starts_at": "2026-03-14T09:00:00-04:00",
+            "start_interval": "PT30M",
+            "slot_count": 17,
+            "encoding": "roaring32-portable-base64",
+            "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
+          }
+        ]
+      },
+      "rank_signals": {
+        "relevance": 0.78,
+        "coverage": null,
+        "density": 0.47,
+        "soonness": 0.92,
+        "hint_usable": true
       }
     },
     {
@@ -3627,7 +3795,14 @@ Response:
         }
       },
       "timezone": "America/New_York",
-      "last_indexed_at": "2026-03-14T07:30:00Z"
+      "last_indexed_at": "2026-03-14T07:30:00Z",
+      "rank_signals": {
+        "relevance": 0.78,
+        "coverage": null,
+        "density": null,
+        "soonness": null,
+        "hint_usable": false
+      }
     }
   ],
   "pagination": {
@@ -3653,7 +3828,7 @@ filter and match the same service when all other filters are unchanged.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 
-### 6.3.1 Filter Matching Semantics
+#### 6.3.1 Filter Matching Semantics
 
 Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section so federated registries return the same inclusion set for identical filters. Canonical schema descriptions (including worked examples) live in [`schemas/registry.json`](schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
 
@@ -3704,6 +3879,72 @@ Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }`
 - Resolved match currency: `price_range.currency` if present; else `context.currency` if present; else registries **MUST** reject with `validation_error` (omitting both is ambiguous). When both are present and differ, `price_range.currency` is authoritative for matching; `context.currency` remains a display/ranking hint.
 - `pricing.model: free` → treat as amount **0** (degenerate `[0, 0]` in the service currency). Free services match filters that include 0 under the selected `match` mode, and are excluded when `min > 0` under `overlap`/`contained`/`equals` as the intervals dictate.
 - Fixed amount → `[amount, amount]`. Variable / hourly / per_person with published `price_range` → that interval. Services with no indexable price interval **MUST** be excluded when a `price_range` filter is present.
+
+#### 6.3.2 Availability Ranking Context and Response Signals
+
+A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter. It does **not** satisfy the requirement that a search request contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). A request that contains only `desired_service_time_ranges`, `prefer_sooner_availability_slots`, `pagination`, and/or `context` **MUST** be rejected with `validation_error`.
+
+The request **MAY** include `prefer_sooner_availability_slots`, a boolean whose default is `true`. When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
+
+**Request shapes.** Each element of `desired_service_time_ranges` **MUST** be exactly one of the following shapes. JSON has no infinity sentinel, and `null` as "this is a moment" is ambiguous, so the three cases are distinct objects:
+
+```json
+{ "at": "2026-03-14T10:00:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:30:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T16:00:00-04:00" }
+```
+
+- `at` is a moment: the first candidate start at or after that instant.
+- `start` and `end` is a bounded range. Both bounds are inclusive. `end` is the latest acceptable **start**, not the latest acceptable occupancy.
+- `start` alone is open-ended: every candidate start at or after that instant, bounded by what the service actually published.
+
+All bounds are instants (RFC 3339). Equal instants with different offsets **MUST** compare equal. Agents **SHOULD** express a strict latest acceptable start as a bounded range rather than a moment, because a moment resolves to the next candidate start and can therefore fall after the buyer's limit. Agents **SHOULD** normalize date-only intents in the service timezone. An open-ended preference **MUST NOT** be read as a claim of availability beyond the horizon a producer published.
+
+**Observable guarantees (normative).** USP does not standardize how a registry derives an availability ranking key. Projection details, formulas, horizons, weights, duration selection, and score composition are registry-specific. The following properties are observable to clients and **MUST** hold in any conforming registry:
+
+- Availability data is non-authoritative ranking context only. A hint that is missing, summary-only, expired, malformed, internally inconsistent, or non-overlapping **MUST NOT** remove a hit that hard-filter recall admitted, and **MUST NOT** be used as a hard time filter. Platforms **MUST** confirm live availability ([Section 4](#4-availability)) before claiming that a time can or cannot be booked.
+- Unusable or absent availability data is neutral, never favorable. Registries **MUST NOT** convert unknown availability into maximum soonness or into an earliest-opening claim, and **MUST NOT** parse a missing or empty `next_available_date` as epoch 0.
+- Freshness decides usability, not quality. A hint is usable before a producer-declared `valid_until`, or under a registry-documented fallback validity policy when `valid_until` is absent. While a hint remains usable, its `generated_at` age **MUST NOT** continuously decay its availability contribution or the hit's final rank.
+- Availability is applied after hard-filter recall as a bounded secondary signal, and baseline relevance (text, geography, and other registry-specific signals) **MUST** remain dominant. Registries **MUST NOT** order results by raw counts of hinted openings, because raw counts reward a longer published horizon, a finer `start_interval`, or more duration variants without proving a better buyer match.
+- Ranking **MUST** run before pagination. The scoring instant and the index snapshot **MUST** be frozen for a cursor sequence, so later pages are not rescored, and remaining ties **MUST** break deterministically, for example by ascending `service_id`.
+- A registry that advertises availability ranking **SHOULD** document its availability inputs, its normalization ranges, the maximum contribution availability can make relative to baseline relevance, and its refresh cadence. A registry **SHOULD NOT** advertise availability ranking unless it actually refreshes hints inside their validity policy; the conforming alternative is neutral availability ranking, not ranking from stale snapshots.
+
+**Rank signals on each result (normative).** `rank_signals` reports what the registry concluded about a hit so an agent can inspect it, or re-order **the returned page** when its policy differs from the registry default. It is not a substitute for a new search with different `desired_service_time_ranges` or `prefer_sooner_availability_slots`.
+
+When a registry applies availability ranking, or when the request carries `desired_service_time_ranges` and/or `prefer_sooner_availability_slots`, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. When `rank_signals` is present it **MUST** contain all five members:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `relevance` | number in `[0, 1]` | How well this hit matches the request **apart from availability**: text `query`, categories, geography, and other registry relevance. Higher means a closer topical or location match. The scale is registry-specific. Compare values only among hits in this same response. |
+| `coverage` | number in `[0, 1]` or `null` | When `desired_service_time_ranges` is present: how much of the buyer's requested time has a hinted opening. `1` means the requested time is fully covered by hinted openings. `0` means the requested time was represented in the structured snapshot and no opening overlapped it. `null` means coverage was not computed: no time preference was sent, no usable structured hint, or the requested time falls outside what the service published. |
+| `density` | number in `[0, 1]` or `null` | How packed the published start-time ruler is with openings, ignoring when those openings fall. `1` means every represented candidate start is open. `0` means the grid was sampled and is known empty. `null` means density is unknown because there is no usable structured hint. Density is not "sooner is better" and is not "matches Thursday afternoon." |
+| `soonness` | number in `[0, 1]` or `null` | How soon the earliest **acceptable** opening is, relative to the request anchor and the registry's documented horizon. `1` means that opening is at the anchor (now, or the start of the requested window). `0` means there is no acceptable opening inside the horizon. `null` means soonness is unknown because there is no usable structured hint. This field is still populated when `prefer_sooner_availability_slots` is `false`, so an agent can apply soonness even if the registry did not. |
+| `hint_usable` | boolean | Whether this hit's `availability_hint` was trusted enough to contribute availability ranking. `true` means the non-null availability numbers come from a structured snapshot inside producer-declared or registry-documented validity. `false` means the registry treated availability as unknown for ranking: omitted hint, summary-only hint, expired snapshot, malformed bitmap, or invariant failure. `false` is not "a worse service." |
+
+`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Snapshot recency is not a quality of the service. Agents that need expiry data **MUST** read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`.
+
+Values **MUST NOT** be compared across registries, across requests, across snapshots, or across scoring instants. Two responses with similar numbers can reflect different horizons, different relevance engines, and different snapshots.
+
+**Response-state semantics (normative).** An agent that sent time preferences **MUST NOT** treat a missing or summary-only hint as proof that the requested time cannot be satisfied. That state means the registry had no structured evidence; live availability remains the authority. Clients distinguish the following states:
+
+| Response state | Meaning | Required client handling |
+| --- | --- | --- |
+| `rank_signals` omitted | The registry did not apply availability ranking on this response. | Do not infer anything about availability from the response ordering. |
+| `hint_usable: false`, with `coverage`, `density`, and `soonness` all `null` | Unknown. Covers an omitted hint, a summary-only hint, an expired or malformed structured hint, and an invariant failure. | Keep the hit. **MUST NOT** be treated as unavailable, and **MUST NOT** be treated as maximum soonness or as a failed time match. |
+| `hint_usable: true` and `coverage: null` | Coverage was not computed even though the snapshot was usable: no time preference was sent, or the requested time falls outside what this service published. `density` and `soonness` **MAY** still be populated. | Do not read this as a time match or a time mismatch. |
+| `hint_usable: true` and `coverage: 0` | Known non-overlap on this registry's structured snapshot. | Still not a hard exclusion. Confirm with live availability before telling a user the time cannot be booked. |
+| `hint_usable: true` and `coverage` in `(0, 1]` | Structured evidence that the requested time overlaps hinted openings. | Still confirm with live availability before booking. |
+| Mixed states within one page | Some hits had usable structured evidence and others did not. | Time preferences remain ranking context only; comparing a known value against a `null` is not a ranking or exclusion decision. |
+
+`null` means unknown. `0` means known empty or known non-overlap. Agents **MUST NOT** collapse those states when re-sorting. `summary` **MAY** inform conversation with a user; it **MUST NOT** be turned into `coverage`, `density`, or `soonness`.
+
+Agents **MAY** re-sort the current `services[]` array using any function of these fields, for example density-first or coverage-only. They **SHOULD** keep `hint_usable: false` hits in the list and **SHOULD NOT** drop them. They **MUST NOT** assume that re-sorting page 1 produces the globally best N hits, because later pages were selected under the registry's original order. A different global policy requires a new search, not a client-side shuffle of one page.
 
 ### 6.4 Get Registration - `GET /registry/businesses/{id}`
 
