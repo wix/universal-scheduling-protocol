@@ -317,7 +317,7 @@ Availability data has an inverse relationship between freshness and usefulness: 
 
 | Tier | Source | Date Range | Recommended TTL | Use Case |
 |------|--------|------------|-----------------|----------|
-| **Hint** | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" |
+| **Hint** | `availability_hint` (including `slot_bitmaps` when published) | General / near-term | Cached with catalog; honor producer `valid_until` or registry validity policy | Agent pre-filtering: "which date range should I even query?" |
 | **Select** | `slot` query | 1-2 specific days | 30-60 seconds | Time picker: "what times are available on Tuesday?" |
 | **Commit** *(optional)* | Hold | Single slot | Real-time (no cache) | Slot hold before booking. Only when `"holds": true`. |
 
@@ -325,7 +325,7 @@ This creates a natural funnel that balances user experience with data freshness:
 
 ```mermaid
 graph TD
-    H["1. Availability Hint (catalog-cached, 1-6hr)"] -- "Agent narrows date range" --> S
+    H["1. Availability Hint (catalog-cached; valid_until cutout)"] -- "Agent narrows date range" --> S
     S["2. Slot Query (slot-level, short cache)"] --> D["Agent picks a slot"]
     D --> E{"3. Holds supported?"}
     E -- "Yes" --> F["Hold Slot (real-time)"]

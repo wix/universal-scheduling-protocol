@@ -2763,6 +2763,26 @@
           }
         },
         {
+          "name": "desired_service_time_ranges",
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DesiredServiceTimePreference"
+            }
+          },
+          "description": "Optional buyer time preferences for availability ranking. Ranking context only; not a hard filter."
+        },
+        {
+          "name": "prefer_sooner_availability_slots",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "default": true
+          },
+          "description": "When false, registry default ordering ignores soonness within the availability signal."
+        },
+        {
           "name": "context",
           "required": false,
           "schema": {
@@ -3194,6 +3214,12 @@
       },
       "RegistryDurationRangeFilter": {
         "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/DurationRangeFilter"
+      },
+      "DesiredServiceTimePreference": {
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/DesiredServiceTimePreference"
+      },
+      "RankSignals": {
+        "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RankSignals"
       },
       "RegistryEntry": {
         "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistryEntry"

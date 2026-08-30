@@ -277,6 +277,7 @@ def check_schemas(findings: Findings) -> None:
 
     check_namespace_key_patterns(findings)
     check_section_72_profile_examples(findings)
+    check_availability_ranking(findings)
 
 
 def check_namespace_key_patterns(findings: Findings) -> None:
@@ -767,6 +768,374 @@ def check_vectors(findings: Findings) -> None:
 
 
 # --------------------------------------------------------------------------
+# check: availability bitmap ranking
+# --------------------------------------------------------------------------
+
+def availability_schema_validators():
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+
+    catalog = json.loads((SCHEMA_DIR / "catalog.json").read_text())
+    registry = json.loads((SCHEMA_DIR / "registry.json").read_text())
+    reg = Registry().with_resources(
+        (uri, Resource.from_contents(doc))
+        for uri, doc in (
+            (f"{USP_SCHEMA_BASE}catalog.json", catalog),
+            (f"{USP_SCHEMA_BASE}registry.json", registry),
+        )
+    )
+    hint_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}catalog.json#/$defs/AvailabilityHint",
+    }
+    rank_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}registry.json#/$defs/RankSignals",
+    }
+    pref_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": f"{USP_SCHEMA_BASE}registry.json#/$defs/DesiredServiceTimePreference",
+    }
+    return (
+        Draft202012Validator(hint_schema, registry=reg),
+        Draft202012Validator(rank_schema, registry=reg),
+        Draft202012Validator(pref_schema, registry=reg),
+    )
+
+
+def schema_errors(validator, instance) -> list[str]:
+    return sorted(
+        f"{'/'.join(str(p) for p in err.absolute_path) or '<root>'}: {err.message}"
+        for err in validator.iter_errors(instance)
+    )
+
+
+def check_availability_ranking(findings: Findings) -> None:
+    """Projection, scoring, schema, and rejection cases for §3.6 / §6.3."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from availability_ranking_checks import (
+        BACK_MASSAGE_HINT,
+        PROJECTION_CASES,
+        assert_close,
+        decode_roaring32_bitmap,
+        dominance_holds,
+        hint_is_usable,
+        project_intent,
+        score_entry,
+        select_best_entry,
+    )
+
+    try:
+        hint_validator, rank_validator, pref_validator = availability_schema_validators()
+    except ImportError as exc:
+        findings.fail("AVAIL:dependency",
+                      f"jsonschema/referencing required for availability checks: {exc}")
+        return
+
+    if schema_errors(hint_validator, BACK_MASSAGE_HINT):
+        findings.fail("AVAIL:fixture", "canonical back massage hint fails AvailabilityHint schema")
+        return
+
+    pt60 = BACK_MASSAGE_HINT["slot_bitmaps"][0]
+    pt90 = BACK_MASSAGE_HINT["slot_bitmaps"][1]
+    available_60 = decode_roaring32_bitmap(pt60["bitmap"])
+    if available_60 != {0, 1, 2, 6, 10, 14, 15, 16}:
+        findings.fail("AVAIL:decode:pt60",
+                      f"PT60M bitmap decodes to {sorted(available_60)}, not the spec set")
+    available_90 = decode_roaring32_bitmap(pt90["bitmap"])
+    if available_90 != {0, 1, 14, 15}:
+        findings.fail("AVAIL:decode:pt90",
+                      f"PT90M bitmap decodes to {sorted(available_90)}, not the spec set")
+
+    for label, pref in (
+        ("moment", {"at": "2026-03-14T10:00:00-04:00"}),
+        ("bounded", {
+            "start": "2026-03-14T10:00:00-04:00",
+            "end": "2026-03-14T11:30:00-04:00",
+        }),
+        ("open", {"start": "2026-03-14T16:00:00-04:00"}),
+    ):
+        if schema_errors(pref_validator, pref):
+            findings.fail(f"AVAIL:pref:{label}", "intent preference fixture fails schema")
+
+    scoring_instant = __import__("datetime").datetime.fromisoformat("2026-03-14T08:00:00-04:00")
+    if not hint_is_usable(BACK_MASSAGE_HINT, scoring_instant):
+        findings.fail("AVAIL:validity", "back massage hint should be usable before valid_until")
+    expired = __import__("datetime").datetime.fromisoformat("2026-03-14T20:00:00-04:00")
+    if hint_is_usable(BACK_MASSAGE_HINT, expired):
+        findings.fail("AVAIL:validity-expired", "hint must be unusable after valid_until")
+    at_cutout = __import__("datetime").datetime.fromisoformat("2026-03-14T19:30:00-04:00")
+    if hint_is_usable(BACK_MASSAGE_HINT, at_cutout):
+        findings.fail("AVAIL:validity-cutout", "hint must be unusable at valid_until")
+    different_age = {
+        **BACK_MASSAGE_HINT,
+        "generated_at": "2026-03-13T07:30:00-04:00",
+    }
+    if hint_is_usable(different_age, scoring_instant) != hint_is_usable(
+        BACK_MASSAGE_HINT, scoring_instant
+    ):
+        findings.fail("AVAIL:validity-no-age-decay",
+                      "generated_at age changed usability before the shared cutout")
+
+    try:
+        for case in PROJECTION_CASES:
+            intent = project_intent(pt60, case["preferences"])
+            intersection = available_60 & intent
+            if intent != case["intent"]:
+                findings.fail(
+                    f"AVAIL:project:{case['name']}",
+                    f"expected intent {sorted(case['intent'])}, got {sorted(intent)}",
+                )
+            if intersection != case["intersection"]:
+                findings.fail(
+                    f"AVAIL:intersection:{case['name']}",
+                    f"expected intersection {sorted(case['intersection'])}, "
+                    f"got {sorted(intersection)}",
+                )
+            scored_case = score_entry(
+                pt60,
+                available_60,
+                case["preferences"],
+                prefer_sooner=True,
+                scoring_instant=scoring_instant,
+            )
+            expected_coverage = case["coverage"]
+            if expected_coverage is None:
+                if scored_case["coverage"] is not None:
+                    findings.fail(
+                        f"AVAIL:coverage:{case['name']}",
+                        f"expected skipped coverage, got {scored_case['coverage']}",
+                    )
+            else:
+                assert_close(scored_case["coverage"], expected_coverage)
+            if "soonness" in case:
+                assert_close(scored_case["soonness"], case["soonness"])
+
+        bounded_prefs = [{
+            "start": "2026-03-14T10:00:00-04:00",
+            "end": "2026-03-14T11:30:00-04:00",
+        }]
+        intent = project_intent(pt60, bounded_prefs)
+        if intent != {2, 3, 4, 5}:
+            findings.fail("AVAIL:project:bounded",
+                          f"bounded intent expected {{2,3,4,5}}, got {sorted(intent)}")
+        scored = score_entry(pt60, available_60, bounded_prefs, prefer_sooner=True,
+                             scoring_instant=scoring_instant)
+        assert_close(scored["coverage"], 0.25)
+        assert_close(scored["soonness"], 1.0)
+        assert_close(scored["match_score"], 0.25)
+        assert_close(scored["density"], 8 / 17)
+
+        moment_ok = score_entry(
+            pt60,
+            available_60,
+            [{"at": "2026-03-14T10:00:00-04:00"}],
+            prefer_sooner=True,
+            scoring_instant=scoring_instant,
+        )
+        assert_close(moment_ok["coverage"], 1.0)
+        moment_gap = score_entry(
+            pt60,
+            available_60,
+            [{"at": "2026-03-14T10:07:00-04:00"}],
+            prefer_sooner=True,
+            scoring_instant=scoring_instant,
+        )
+        assert_close(moment_gap["coverage"], 0.0)
+
+        open_prefs = [{"start": "2026-03-14T16:00:00-04:00"}]
+        open_scored = score_entry(pt90, available_90, open_prefs, prefer_sooner=True,
+                                  scoring_instant=scoring_instant)
+        assert_close(open_scored["coverage"], 1.0)
+        assert_close(open_scored["soonness"], 1.0)
+        assert_close(open_scored["match_score"], 1.0)
+        assert_close(open_scored["density"], 0.25)
+
+        no_pref_a = score_entry(pt60, available_60, None, prefer_sooner=True,
+                                scoring_instant=scoring_instant)
+        no_pref_b = score_entry(pt60, {10}, None, prefer_sooner=True,
+                                scoring_instant=scoring_instant)
+        if (no_pref_a["soonness"], no_pref_a["density"]) <= (no_pref_b["soonness"], no_pref_b["density"]):
+            findings.fail("AVAIL:order:soonness-first",
+                          "lexicographic soonness-then-density ordering violated")
+
+        false_flag = score_entry(pt60, available_60, bounded_prefs, prefer_sooner=False,
+                                 scoring_instant=scoring_instant)
+        assert_close(false_flag["match_score"], 0.25)
+        assert_close(false_flag["soonness"], 1.0)
+
+        _entry, best = select_best_entry(
+            BACK_MASSAGE_HINT,
+            bounded_prefs,
+            prefer_sooner=True,
+            scoring_instant=scoring_instant,
+        )
+        assert_close(best["match_score"], 0.25)
+
+        all_zero = score_entry(
+            pt60,
+            set(),
+            bounded_prefs,
+            prefer_sooner=True,
+            scoring_instant=scoring_instant,
+        )
+        assert_close(all_zero["coverage"], 0.0)
+        assert_close(all_zero["density"], 0.0)
+        assert_close(all_zero["soonness"], 0.0)
+        assert_close(all_zero["match_score"], 0.0)
+
+        all_one = score_entry(
+            pt60,
+            set(range(pt60["slot_count"])),
+            bounded_prefs,
+            prefer_sooner=True,
+            scoring_instant=scoring_instant,
+        )
+        assert_close(all_one["coverage"], 1.0)
+        assert_close(all_one["density"], 1.0)
+        assert_close(all_one["soonness"], 1.0)
+        assert_close(all_one["match_score"], 1.0)
+    except AssertionError as exc:
+        findings.fail("AVAIL:scoring", str(exc))
+    except Exception as exc:  # noqa: BLE001
+        findings.fail("AVAIL:scoring", f"projection/scoring raised: {exc}")
+
+    if not dominance_holds(0.2, 0.15):
+        findings.fail("AVAIL:dominance-pass", "illustrated 0.15 weight should satisfy dominance")
+    if dominance_holds(0.2, 0.25):
+        findings.fail("AVAIL:dominance-fail",
+                      "weight exceeding clearly-better gap must fail dominance check")
+
+    usable_rank = {
+        "relevance": 0.82,
+        "coverage": 1.0,
+        "density": 0.25,
+        "soonness": 1.0,
+        "hint_usable": True,
+    }
+    neutral_rank = {
+        "relevance": 0.5,
+        "coverage": None,
+        "density": None,
+        "soonness": None,
+        "hint_usable": False,
+    }
+    empty_rank = {
+        "relevance": 0.4,
+        "coverage": 0.0,
+        "density": 0.0,
+        "soonness": 0.0,
+        "hint_usable": True,
+    }
+    for label, doc in (
+        ("usable", usable_rank),
+        ("neutral", neutral_rank),
+        ("empty", empty_rank),
+    ):
+        if schema_errors(rank_validator, doc):
+            findings.fail(f"AVAIL:rank:{label}", "rank_signals fixture fails schema")
+
+    bad_rank = {**usable_rank, "freshness_decay": 0.5}
+    if not schema_errors(rank_validator, bad_rank):
+        findings.fail("AVAIL:rank:reject-decay",
+                      "rank_signals must reject freshness_decay additional property")
+
+    reject_cases = {
+        "summary-only": {
+            "summary": "text only",
+            "generated_at": "2026-03-14T07:30:00-04:00",
+        },
+        "empty-bitmaps": {
+            "summary": "empty",
+            "generated_at": "2026-03-14T07:30:00-04:00",
+            "slot_bitmaps": [],
+        },
+        "missing-encoding": {
+            "summary": "bad",
+            "generated_at": "2026-03-14T07:30:00-04:00",
+            "slot_bitmaps": [{
+                "duration": "PT60M",
+                "starts_at": "2026-03-14T09:00:00-04:00",
+                "start_interval": "PT30M",
+                "slot_count": 4,
+                "bitmap": pt60["bitmap"],
+            }],
+        },
+        "bad-discriminator": {"at": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:00:00-04:00"},
+    }
+    for label, doc in reject_cases.items():
+        validator = pref_validator if label == "bad-discriminator" else hint_validator
+        if not schema_errors(validator, doc):
+            findings.fail(f"AVAIL:reject:{label}", "invalid fixture unexpectedly passed schema")
+
+    try:
+        decode_roaring32_bitmap(base64.b64encode(b"BAD!").decode())
+        findings.fail("AVAIL:reject:bad-b64", "invalid base64 should raise")
+    except Exception:
+        pass
+
+    bad_cookie = base64.b64encode((99999).to_bytes(4, "little") + b"rest").decode()
+    try:
+        decode_roaring32_bitmap(bad_cookie)
+        findings.fail("AVAIL:reject:bad-cookie", "invalid Roaring cookie should raise")
+    except ValueError:
+        pass
+
+    playground = REPO / "playground" / "scenarios" / "services.json"
+    if playground.is_file():
+        services = json.loads(playground.read_text())["happy_path"]["response"]["body"]["services"]
+        for svc in services:
+            hint = svc.get("availability_hint")
+            if hint is None:
+                continue
+            if schema_errors(hint_validator, hint):
+                findings.fail(f"AVAIL:playground:{svc['id']}",
+                              "playground availability_hint fails AvailabilityHint schema")
+
+    tutorial_sources = {
+        "specification": SPEC,
+        "service-catalog": REPO / "site-docs" / "specification" / "service-catalog.md",
+        "discovery-registry": REPO / "site-docs" / "specification" / "discovery-registry.md",
+    }
+    required_by_source = {
+        "specification": (
+            "Why a bitmap",
+            "business schedule -> candidate-start ruler",
+            "Moment projection",
+            "Bounded projection",
+            "Open projection and union behavior",
+            "Bitmap occupancy and duration eligibility",
+            "Invalid, missing, and inconsistent hints",
+            "Freshness and refresh behavior",
+            "Pagination and page-local reordering",
+        ),
+        "service-catalog": (
+            "Why a bitmap",
+            "business schedule -> candidate-start ruler",
+        ),
+        "discovery-registry": (
+            "Moment projection",
+            "Bounded projection",
+            "Open projection and union behavior",
+            "Bitmap occupancy and duration eligibility",
+            "Invalid, missing, and inconsistent hints",
+            "Freshness and refresh behavior",
+            "Pagination and page-local reordering",
+        ),
+    }
+    for source, required_fragments in required_by_source.items():
+        text = tutorial_sources[source].read_text()
+        for fragment in required_fragments:
+            if fragment not in text:
+                findings.fail(
+                    f"AVAIL:tutorial:{source}:{fragment.lower().replace(' ', '-')}",
+                    f"{source} tutorial is missing required section or flow fragment {fragment!r}",
+                )
+
+
+# --------------------------------------------------------------------------
 # check: authority publication
 # --------------------------------------------------------------------------
 
@@ -802,9 +1171,7 @@ def check_authority(findings: Findings) -> None:
         "waitlist-extension",
         "856-acp-booking-extension",
     }
-    historical = {
-        REPO / "site-docs" / "migration.md",
-    }
+    historical: set[Path] = set()
     legacy_path_docs = historical | {
         SPEC,
         REPO / "scripts" / "build-site.sh",
