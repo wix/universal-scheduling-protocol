@@ -1,5 +1,18 @@
 # Change Log
 
+## 30/08/26 at 12:58:11 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Trimmed availability-hint and registry-ranking prose to the interoperability boundary: sections 3.6 and 6.3 now carry wire shapes, semantic guarantees, and response-state rules only, because projection procedures, scoring formulas, horizons, weights, dominance arithmetic, and worked ranking walkthroughs are registry-specific implementation detail that does not belong in normative protocol text
+- Consolidated the former 6.3.2-6.3.4 subsections into one "Availability Ranking Context and Response Signals" section that states the advisory request shapes, the observable guarantees a client can rely on, and a response-state table separating unknown (`hint_usable: false` with null values) from known non-overlap (`coverage: 0`), so agents stop inferring unavailability from a registry that simply had no structured evidence
+- Made `slot_bitmaps` optional inside `AvailabilityHint` in `schemas/catalog.json` and the prose, since a producer that never sampled a grid previously had to drop the natural-language summary as well; a summary-only hint is now valid and yields the unknown response state
+- Required all five `RankSignals` members whenever the object is emitted in `schemas/registry.json`, because a partially populated object made unknown and known-empty indistinguishable for clients re-ordering a page
+- Mirrored the same boundary in `site-docs/specification/service-catalog.md` and `site-docs/specification/discovery-registry.md` so the published site does not describe an algorithm the specification no longer states
+- Simplified the playground availability fixture to one structured hint and added a summary-only hint, so the fixtures exercise both hint forms now that structured rulers are optional
+- Rewrote `tools/availability_ranking_checks.py` and the availability check in `tools/usp_check.py` to assert the public contract (bitmap decoding and index bounds, index-to-time mapping across offsets, the exclusive `valid_until` cutout, age-neutral usability, and every response state) and to fail if registry-specific ranking material reappears in public sources
+- Aligned the section 4 caching tier with the validity model instead of a fixed 1-6 hour window, which contradicted the producer-declared `valid_until` cutout
+
+---
+
 ## 29/08/26 at 21:13:04 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added approved design and implementation plans plus a bitmap mental model and end-to-end data flow, because registry implementers need to understand why Roaring sets are used and how their operations produce coverage, density, and soonness

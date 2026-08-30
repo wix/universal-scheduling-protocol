@@ -147,7 +147,7 @@
               "aromatherapy"
             ],
             "availability_hint": {
-              "summary": "Good availability this morning and late afternoon. Midday is mostly booked, and 90-minute sessions are limited to 9:00-9:30 and after 16:00.",
+              "summary": "Good availability this morning and late afternoon. Midday is mostly booked.",
               "generated_at": "2026-03-14T07:30:00-04:00",
               "valid_until": "2026-03-14T19:30:00-04:00",
               "next_available_date": "2026-03-14",
@@ -159,14 +159,6 @@
                   "slot_count": 17,
                   "encoding": "roaring32-portable-base64",
                   "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
-                },
-                {
-                  "duration": "PT90M",
-                  "starts_at": "2026-03-14T09:00:00-04:00",
-                  "start_interval": "PT30M",
-                  "slot_count": 16,
-                  "encoding": "roaring32-portable-base64",
-                  "bitmap": "OjAAAAEAAAAAAAMAEAAAAAAAAQAOAA8A"
                 }
               ]
             }
@@ -279,7 +271,12 @@
               "morning",
               "vinyasa",
               "group-class"
-            ]
+            ],
+            "availability_hint": {
+              "summary": "Classes run every weekday morning. This week is close to full; next week is open.",
+              "generated_at": "2026-03-14T07:30:00-04:00",
+              "valid_until": "2026-03-14T19:30:00-04:00"
+            }
           },
           {
             "id": "svc_suite_001",

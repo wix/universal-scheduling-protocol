@@ -580,8 +580,8 @@
     "AvailabilityHint": {
       "type": "object",
       "title": "AvailabilityHint",
-      "description": "Approximate availability summary for agent-assisted discovery. When published, MUST include a non-empty slot_bitmaps array. Producers that did not sample a grid omit the entire hint.",
-      "required": ["summary", "generated_at", "slot_bitmaps"],
+      "description": "Approximate, non-authoritative availability summary for agent-assisted discovery. Structured slot_bitmaps are optional: a summary-only hint is valid, and a producer that did not sample a grid omits slot_bitmaps rather than publishing an empty array or a dummy all-zero ruler.",
+      "required": ["summary", "generated_at"],
       "properties": {
         "summary": {
           "type": "string",
@@ -600,13 +600,13 @@
         "next_available_date": {
           "type": "string",
           "format": "date",
-          "description": "YYYY-MM-DD service-local date of the earliest available start across all duration entries. Required when any bitmap contains a set bit; omitted when every bitmap is all-zero."
+          "description": "YYYY-MM-DD service-local date of the earliest available start across all duration entries. Required when any bitmap contains a set bit; omitted when every bitmap is all-zero or when slot_bitmaps is absent. MUST NOT be sent as an empty string to mean unknown."
         },
         "slot_bitmaps": {
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/AvailabilitySlotBitmap" },
-          "description": "Non-empty array of duration-specific availability rulers. Each duration MUST appear at most once."
+          "description": "Optional array of duration-specific availability rulers. When present it MUST be non-empty and each duration MUST appear at most once. Consumers read each duration ruler independently and MUST NOT derive one duration's bitmap from another's."
         }
       }
     }

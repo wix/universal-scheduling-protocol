@@ -72,11 +72,9 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [3.5 Localization](#35-localization)
     - [3.6 Availability Hint](#36-availability-hint)
         - [3.6.1 Agent Use Cases](#361-agent-use-cases)
-        - [3.6.2 What gets published](#362-what-gets-published)
+        - [3.6.2 Structured slot bitmaps](#362-structured-slot-bitmaps)
         - [3.6.3 What `start_interval` is](#363-what-start_interval-is)
         - [3.6.4 How one bitmap maps onto time](#364-how-one-bitmap-maps-onto-time)
-        - [3.6.5 The example](#365-the-example)
-        - [3.6.6 The JSON](#366-the-json)
     - [3.7 Duration](#37-duration)
     - [3.8 Pricing](#38-pricing)
     - [3.9 Service Policies](#39-service-policies)
@@ -98,10 +96,8 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [6.1 Business Registration](#61-business-registration---post-registrybusinesses)
     - [6.2 Business Search](#62-business-search---post-registrysearch_business)
     - [6.3 Service Search](#63-service-search---post-registrysearch_services)
-        - [6.3.2 How a search request uses it](#632-how-a-search-request-uses-it)
-        - [6.3.3 Reading it back](#633-reading-it-back)
-        - [6.3.4 Intent projection edge cases](#634-intent-projection-edge-cases)
         - [6.3.1 Filter Matching Semantics](#631-filter-matching-semantics)
+        - [6.3.2 Availability Ranking Context and Response Signals](#632-availability-ranking-context-and-response-signals)
     - [6.4 Get Registration](#64-get-registration---get-registrybusinessesid)
     - [6.5 Update Registration](#65-update-registration---put-registrybusinessesid)
     - [6.6 Delete Registration](#66-delete-registration---delete-registrybusinessesid)
@@ -1327,10 +1323,10 @@ NOT** use it as a substitute for real-time availability queries. It is strictly
 | Field                 | Type   | Required | Description                                                                                                                                                                                                                               |
 |-----------------------|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `summary`             | string | **Yes**  | Natural-language description of near-term availability. Aimed at AI agents for reasoning about which dates to query. Example: *"Fully booked this week. Next week we have good availability on Tuesday afternoon and Wednesday morning."* |
-| `generated_at`        | string | **Yes**  | RFC 3339 timestamp of when this hint was generated. Records snapshot creation time; while a hint remains usable its age **MUST NOT** continuously reduce availability rank (see [Section 6.3.2](#632-how-a-search-request-uses-it)). |
+| `generated_at`        | string | **Yes**  | RFC 3339 timestamp of when this hint was generated. Records snapshot creation time; while a hint remains usable its age **MUST NOT** continuously reduce availability rank (see [Section 6.3.2](#632-availability-ranking-context-and-response-signals)). |
 | `valid_until`         | string | No       | Optional RFC 3339 instant after `generated_at` when this snapshot stops being usable for availability ranking.                                                                                                                          |
-| `next_available_date` | string | No       | `YYYY-MM-DD` service-local date of the earliest available start across all duration entries. **Required** when any bitmap contains a set bit; **MUST** be omitted when every bitmap is all-zero.                                         |
-| `slot_bitmaps`        | array  | **Yes**  | Non-empty array of [AvailabilitySlotBitmap](#362-what-gets-published) entries, one per represented bookable duration. Producers that did not sample a grid **MUST** omit the entire `availability_hint`.                                   |
+| `next_available_date` | string | No       | `YYYY-MM-DD` service-local date of the earliest available start across all duration entries. **Required** when any bitmap contains a set bit; **MUST** be omitted when every bitmap is all-zero or when `slot_bitmaps` is absent.        |
+| `slot_bitmaps`        | array  | No       | Optional array of [AvailabilitySlotBitmap](#362-structured-slot-bitmaps) entries, one per represented bookable duration. When present it **MUST** be non-empty. A hint that carries only `summary` and `generated_at` is valid.            |
 
 #### 3.6.1 Agent Use Cases
 
@@ -1351,53 +1347,34 @@ and how the hint helps in each:
 | 9  | **Off-peak targeting**                 | "When is the cheapest time to book?"                    | The hint identifies low-demand windows (e.g., midweek mornings), which the agent can infer as likely off-peak pricing for services with `variable` pricing models.                                                    |
 | 10 | **Background pre-qualification**       | Agent compiles a daily briefing of scheduling options.  | Hints from the user's preferred businesses are read entirely from the cached catalog - zero availability API calls - to produce a summary like "Your salon has openings Tuesday; your dentist is booked until April." |
 
-#### 3.6.2 What gets published
+#### 3.6.2 Structured slot bitmaps
 
 ##### Why a bitmap
 
 The hint answers a discovery question, not a booking question: **which candidate
 start times were approximately bookable when the catalog snapshot was made?**
-A bitmap represents that answer as a finite set of integer indices on a time
-ruler. One bit can record one candidate start without repeating a timestamp or
-slot object, so a producer can summarize many possible starts compactly.
+`summary` answers it in prose. `slot_bitmaps` answers it as a finite set of
+integer indices on a time ruler, so a consumer can reason about it mechanically.
+One bit records one candidate start without repeating a timestamp or slot
+object, which keeps many possible starts compact.
 
 USP uses the 32-bit Roaring portable format because availability can be sparse
-on a nearly full calendar or dense on a quiet calendar, and Roaring remains
-compact in both cases. It also supports the set operations that ranking needs
-directly:
+on a nearly full calendar or dense on a quiet calendar, and Roaring stays
+compact in both cases while supporting set intersection, cardinality, and
+minimum directly. Standard Base64 is only the JSON transport wrapper around the
+portable Roaring bytes; consumers decode the bytes to an integer set before
+interpreting them.
 
-```text
-available AND intent
-    -> candidate starts that are both hinted open and acceptable to the buyer
+A 1-bit says that at least one unit was approximately bookable for one start and
+duration when sampled. It is not a capacity count, a live slot, or permission to
+skip the real-time availability query.
 
-cardinality(available AND intent) / cardinality(intent)
-    -> coverage
-
-cardinality(available) / slot_count
-    -> density
-
-minimum(available AND intent)
-    -> earliest acceptable hinted start used for soonness
-```
-
-Standard Base64 is only the JSON transport wrapper around the portable Roaring
-bytes. Consumers decode the bytes to an integer set before projecting or
-scoring. The complete path is:
-
-```text
-business schedule -> candidate-start ruler -> Roaring set -> Base64 in
-availability_hint -> registry decode -> buyer-intent set -> intersection ->
-coverage, density, soonness -> bounded secondary rank -> rank_signals
-```
-
-This compression and set arithmetic serve `availability_hint` without changing
-its authority. A 1-bit says that at least one unit was approximately bookable
-for one start and duration when sampled. It is not a capacity count, a live
-slot, or permission to skip the real-time availability query. The registry uses
-the decoded set only after normal search recall, and an unusable or missing hint
-never removes a result.
-
-`availability_hint` remains optional on a service. When a producer publishes it, the object **MUST** contain `summary`, `generated_at`, and a non-empty `slot_bitmaps` array. A producer that did not sample a structured availability grid **MUST** omit the entire `availability_hint`; it **MUST NOT** publish a summary-only hint, an empty `slot_bitmaps` array, or a dummy bitmap to mean unknown.
+`availability_hint` is optional on a service, and `slot_bitmaps` is optional
+within the hint. A producer that did not sample a structured availability grid
+**MAY** publish a summary-only hint, and **MUST** omit `slot_bitmaps` rather
+than publishing an empty array or a dummy all-zero ruler to mean unknown. When
+`slot_bitmaps` is present it **MUST** be non-empty and every entry **MUST**
+conform to the wire contract below.
 
 `slot_bitmaps` is an array because JSON cannot carry two properties with the same name, and one service can have more than one bookable duration. Each array entry is one duration-specific ruler: its own `duration`, time origin, tick spacing, length, encoding, and bitmap. A duration **MUST** appear at most once in the array. Shared snapshot metadata (`summary`, `generated_at`, optional `valid_until`, and conditional `next_available_date`) lives on the hint. Per-duration time-grid metadata lives on the entry.
 
@@ -1420,7 +1397,7 @@ If any duration bitmap contains a set bit, `next_available_date` **MUST** be pre
 
 Producers **MUST NOT** encode unknown values as `0`, `""`, a zero-length blob, an empty array, or a dummy all-zero ruler. In particular, `next_available_date` **MUST** be omitted rather than sent as `""` when there is no sampled opening. Consumers **MUST** map absent data to a neutral availability signal, never to maximum soonness. Malformed, unsupported, expired, or out-of-range bitmap data **MUST** be treated as absent ranking data and **MUST NOT** cause the service to be excluded from search results.
 
-The following fragment is a complete back massage offering that can last one hour or one and a half hours. The catalog duration is a range. The hint carries one bitmap per selectable duration.
+The following fragment shows a service whose catalog duration is a range, with one bitmap per selectable duration.
 
 ```json
 {
@@ -1462,7 +1439,9 @@ The following fragment is a complete back massage offering that can last one hou
 }
 ```
 
-The two `slot_bitmaps` entries share the same `starts_at` and `start_interval` in this example, but they **MUST** be scored independently because their 1-bits differ. Subsequent subsections reuse this service as the running example.
+The two `slot_bitmaps` entries share the same `starts_at` and `start_interval` in this example, but their 1-bits differ because a longer booking fits fewer starts. Consumers **MUST** read each duration ruler independently and **MUST NOT** derive one duration's bitmap from another's.
+
+The Roaring format allows the same set to serialize in more than one valid byte layout (for example run containers versus an array container). Consumers **MUST** compare decoded integer sets. Consumers **MUST NOT** treat Base64 string equality as set equality, and cache keys **MUST NOT** assume byte-stable re-indexing.
 
 #### 3.6.3 What `start_interval` is
 
@@ -1472,14 +1451,14 @@ This is not a new concept. It restates, on the bitmap, the existing service poli
 
 The two fields are independent, and both are required on each bitmap entry:
 
-| Field | Meaning | Back massage example |
+| Field | Meaning | Example |
 | --- | --- | --- |
 | `duration` | How long the booking occupies | `PT60M` or `PT90M` |
 | `start_interval` | Gap between consecutive bits | `PT30M` |
 
-When `start_interval` is smaller than `duration`, consecutive 1-bits describe overlapping windows. That is normal and intentional. A 90-minute massage starting at 09:00 and another starting at 09:30 are two legitimate options that cannot both be booked.
+When `start_interval` is smaller than `duration`, consecutive 1-bits describe overlapping windows. That is normal and intentional. A 90-minute booking starting at 09:00 and another starting at 09:30 are two legitimate options that cannot both be taken.
 
-On the back massage `PT30M` grid, both the 60-minute and 90-minute offerings can have candidate starts at 09:00, 09:30, 10:00, and so on. The bits do not mean "occupied minutes." They mean "a booking of this `duration` can start at this tick."
+The bits do not mean "occupied minutes." They mean "a booking of this `duration` can start at this tick."
 
 #### 3.6.4 How one bitmap maps onto time
 
@@ -1526,108 +1505,6 @@ With `duration` `PT60M` and `start_interval` `PT30M`, bits 2 and 3 both being 1 
 ```
 
 `slot_count` is the length of the ruler. It is required because 32-bit Roaring indices only go from 0 through 4294967295, and because an open-ended buyer preference ("anytime after Tuesday") has to stop somewhere. Consumers **MUST** clip intent projection to `[0, slot_count)`.
-
-#### 3.6.5 The example
-
-The running back massage can be given for 60 minutes or 90 minutes. The catalog duration is `{ min: "PT60M", max: "PT90M", step: "PT30M" }`, so the hint carries one bitmap per selectable duration.
-
-The therapist works 09:00 to 18:00 local time (`America/New_York`, offset `-04:00`) on 14 March 2026, with three commitments already on the calendar:
-
-```text
-11:00-12:00   existing booking
-13:00-14:00   lunch
-15:00-16:00   existing booking
-```
-
-On a 30-minute grid starting at 09:00, the two durations produce different bit patterns. A 1 means the window fits in an open stretch of the day. A 0 means it collides with a commitment or would run past close.
-
-```text
- i    start    60 min window     60  90 min window     90
-  0   09:00    09:00-10:00        1   09:00-10:30        1
-  1   09:30    09:30-10:30        1   09:30-11:00        1
-  2   10:00    10:00-11:00        1   10:00-11:30        0
-  3   10:30    10:30-11:30        0   10:30-12:00        0
-  4   11:00    11:00-12:00        0   11:00-12:30        0
-  5   11:30    11:30-12:30        0   11:30-13:00        0
-  6   12:00    12:00-13:00        1   12:00-13:30        0
-  7   12:30    12:30-13:30        0   12:30-14:00        0
-  8   13:00    13:00-14:00        0   13:00-14:30        0
-  9   13:30    13:30-14:30        0   13:30-15:00        0
- 10   14:00    14:00-15:00        1   14:00-15:30        0
- 11   14:30    14:30-15:30        0   14:30-16:00        0
- 12   15:00    15:00-16:00        0   15:00-16:30        0
- 13   15:30    15:30-16:30        0   15:30-17:00        0
- 14   16:00    16:00-17:00        1   16:00-17:30        1
- 15   16:30    16:30-17:30        1   16:30-18:00        1
- 16   17:00    17:00-18:00        1   (past close)
-```
-
-The 60-minute set is `{0, 1, 2, 6, 10, 14, 15, 16}`. The 90-minute set is `{0, 1, 14, 15}`.
-
-Tick 2 (10:00) is the reason the durations need separate bitmaps. A 60-minute massage fits, because it ends at 11:00 when the existing booking starts. A 90-minute massage does not, because it would run to 11:30. A consumer **MUST NOT** derive a 90-minute bitmap from a 60-minute bitmap.
-
-`slot_count` also differs. The 60-minute ruler has 17 positions (last start 17:00). The 90-minute ruler has 16 (last start 16:30), because a later start would run past closing. Producers **MUST** set `slot_count` to the number of candidate starts they actually represented, not to a shared constant across durations.
-
-#### 3.6.6 The JSON
-
-The hint for that day is:
-
-```json
-"availability_hint": {
-  "summary": "Good availability this morning and late afternoon. Midday is mostly booked, and 90-minute sessions are limited to 9:00-9:30 and after 16:00.",
-  "generated_at": "2026-03-14T07:30:00-04:00",
-  "valid_until": "2026-03-14T19:30:00-04:00",
-  "next_available_date": "2026-03-14",
-  "slot_bitmaps": [
-    {
-      "duration": "PT60M",
-      "starts_at": "2026-03-14T09:00:00-04:00",
-      "start_interval": "PT30M",
-      "slot_count": 17,
-      "encoding": "roaring32-portable-base64",
-      "bitmap": "OjAAAAEAAAAAAAcAEAAAAAAAAQACAAYACgAOAA8AEAA="
-    },
-    {
-      "duration": "PT90M",
-      "starts_at": "2026-03-14T09:00:00-04:00",
-      "start_interval": "PT30M",
-      "slot_count": 16,
-      "encoding": "roaring32-portable-base64",
-      "bitmap": "OjAAAAEAAAAAAAMAEAAAAAAAAQAOAA8A"
-    }
-  ]
-}
-```
-
-Field-by-field:
-
-- `summary` is the natural-language hint for agents ([Section 3.6](#36-availability-hint)).
-- `generated_at` is when this snapshot was produced. Its age does not continuously alter rank.
-- `valid_until` is the producer-declared ranking-validity cutout. At or after that instant the hint contributes neutral availability data.
-- `next_available_date` is the service-local date of the earliest 1-bit across both duration rulers.
-- `slot_bitmaps[0].duration` `PT60M` is the 60-minute ruler. `slot_bitmaps[1].duration` `PT90M` is the 90-minute ruler.
-- `starts_at` `2026-03-14T09:00:00-04:00` is bit 0 on each ruler.
-- `start_interval` `PT30M` is the gap between bit `i` and bit `i+1`.
-- `slot_count` 17 and 16 are the ruler lengths explained in the example.
-- `encoding` names the wire contract so a future format can be introduced without guessing.
-- `bitmap` is standard Base64 of the 32-bit Roaring portable blob holding the sets listed above.
-
-The 60-minute Base64 decodes to 32 bytes:
-
-```text
-3a 30 00 00     cookie SERIAL_COOKIE_NO_RUNCONTAINER = 12346 little-endian
-01 00 00 00     one container
-00 00           container key 0 (indices 0..65535)
-07 00           cardinality minus one = 7, so 8 values
-10 00 00 00     container offset 16 from the start of the blob
-00 00 01 00 02 00 06 00 0a 00 0e 00 0f 00 10 00
-                array container values 0, 1, 2, 6, 10, 14, 15, 16
-```
-
-The 90-minute Base64 decodes the same way with cardinality minus one = 3 and values `0, 1, 14, 15`.
-
-The Roaring format allows the same set to serialize in more than one valid byte layout (for example run containers versus an array container). A producer that encoded `{0, 1, 2}` and `{14, 15, 16}` as runs would emit different bytes for the identical 60-minute set. Consumers **MUST** compare decoded integer sets. Consumers **MUST NOT** treat Base64 string equality as set equality, and cache keys **MUST NOT** assume byte-stable re-indexing.
-
 
 ### 3.7 Duration
 
@@ -2643,7 +2520,7 @@ tiered caching strategy:
 
 | Tier                    | Source              | Date Range          | Recommended TTL                 | Use Case                                                                                               |
 |-------------------------|---------------------|---------------------|---------------------------------|--------------------------------------------------------------------------------------------------------|
-| **Hint**                | `availability_hint` | General / near-term | 1-6 hours (cached with catalog) | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
+| **Hint**                | `availability_hint` (including `slot_bitmaps` when published) | General / near-term | Cached with the catalog; honor producer `valid_until` or a documented validity policy | Agent pre-filtering: "which date range should I even query?" See [Section 3.6](#36-availability-hint). |
 | **Select**              | `slot` query        | 1-2 specific days   | 30-60 seconds                   | Time picker: "what times are available on Tuesday?"                                                    |
 | **Commit** *(optional)* | Hold                | Single slot         | Real-time (no cache)            | Slot hold before booking. Only available when business advertises `"holds": true`.                     |
 
@@ -3810,8 +3687,8 @@ Request:
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
 | `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
-| `desired_service_time_ranges` | array | No | Ranking context only: buyer time preferences (`moment`, bounded `range`, or open `from`). Not a hard filter. See [Section 6.3.2](#632-how-a-search-request-uses-it). |
-| `prefer_sooner_availability_slots` | boolean | No | Default `true`. When `false`, registry default ordering ignores soonness. See [Section 6.3.2](#632-how-a-search-request-uses-it). |
+| `desired_service_time_ranges` | array | No | Ranking context only: buyer time preferences (`moment`, bounded `range`, or open `from`). Not a hard filter. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
+| `prefer_sooner_availability_slots` | boolean | No | Default `true`. When `false`, registry default ordering ignores soonness. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
 | `context`        | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See [Section 6.2](#62-business-search---post-registrysearch_business). |
 | `pagination`     | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                     |
 
@@ -3951,440 +3828,7 @@ filter and match the same service when all other filters are unchanged.
 
 Registries **SHOULD** index services from registered businesses by subscribing to catalog changes via feed subscriptions ([Section 3.12.2](#3122-feed-subscriptions---post-servicesfeedsubscriptions)) where the business supports them, rather than relying solely on periodic polling. For businesses that do not support feed subscriptions, registries **SHOULD** re-index at most every 24 hours. Registry search results are **non-authoritative snapshots**; platforms **MUST** fetch the business's live profile and catalog for booking-time decisions. Registries **SHOULD** include `last_indexed_at` (ISO 8601 datetime) on each service search result so platforms can assess data freshness. When the indexed catalog service includes an `availability_hint` ([Section 3.6](#36-availability-hint)), registries **SHOULD** pass it through on each `ServiceSearchResult` so agents can reason about near-term availability without an extra catalog fetch. Platforms **MUST NOT** treat the hint as authoritative or use it as a hard availability filter; it is an approximate, cached signal for ranking context and date-range scoping only.
 
-#### 6.3.2 How a search request uses it
-
-A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter. It does **not** satisfy the requirement that a search request contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). A request that contains only `desired_service_time_ranges`, `prefer_sooner_availability_slots`, `pagination`, and/or `context` **MUST** be rejected with `validation_error`.
-
-The request **MAY** include `prefer_sooner_availability_slots`, a boolean whose default is `true`. When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference; the registry uses coverage or density without soonness. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
-
-**Recommended intent mapping for agents.** Agents **SHOULD** map buyer intent as follows:
-
-| Consumer intent | Recommended request representation | Soonness flag |
-| --- | --- | --- |
-| First available, "book ASAP", or "whenever is soonest" | Open `{ "start": "<now>" }` | Omit flag or set `true` |
-| At a specific time, where rounding to the next candidate start is acceptable | Moment `{ "at": "<instant>" }` | Usually `true`; irrelevant when only one tick is represented |
-| At a specific time with a tolerance | Bounded range from earliest acceptable start through latest acceptable start | `true` if earlier within the tolerance is preferred, otherwise `false` |
-| During one window, such as Tuesday afternoon | One bounded range | `true` if earlier in the window is preferred, otherwise `false` |
-| During any of several alternative windows | One bounded element per window | `true` if earlier acceptable alternatives are preferred, otherwise `false` |
-| On a calendar date without a stated time | One bounded range covering valid start times on that date in the service timezone | `true` unless the buyer says time order is irrelevant |
-| Starting no earlier than a future date or event | Open `{ "start": "<earliest acceptable instant>" }` | `true` for the first opening after the boundary, `false` when all later openings are equally preferred |
-| Before a deadline | Bounded range from the earliest acceptable start through the deadline | `true` unless the buyer prefers no time direction |
-| Exact duration plus time intent | Add an exact `duration_range` and the applicable moment, bounded, or open time preference | Set according to the time wording |
-| Flexible duration plus time intent | Add the acceptable `duration_range`; the registry scores every eligible duration bitmap without adding their cardinalities | Set according to the time wording |
-| Recurring or repeated desired windows | Expand every occurrence in the searched horizon into a bounded element | `false` unless earlier occurrences are preferred |
-| Prefer a later period for a known reason, such as after payday or during a trip | Encode that future boundary or window directly | Usually `true` within the chosen future period |
-| No acceptable time information, but sooner is generally better | Omit `desired_service_time_ranges` | Omit flag or set `true`; rank by soonness, then density |
-| No acceptable time information and no preference for earlier starts | Omit `desired_service_time_ranges` | Set `false`; rank by density only |
-| Ambiguous natural-language time or unknown timezone | Ask for clarification rather than inventing a timestamp | Do not fabricate ranges |
-
-Agents **SHOULD NOT** use a moment when the consumer named a strict latest acceptable start; they should use a bounded range so ceiling to the next grid tick cannot silently exceed that limit. Agents **SHOULD** normalize all date-only intents in the service timezone and transmit RFC 3339 instants with offsets. Open ranges are clipped to each bitmap horizon and do not imply availability beyond it.
-
-Each element **MUST** be exactly one of the following shapes. JSON has no infinity sentinel, and `null` as "this is a moment" is ambiguous, so the three cases are distinct objects:
-
-```json
-{ "at": "2026-03-14T10:00:00-04:00" }
-```
-
-```json
-{ "start": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:30:00-04:00" }
-```
-
-```json
-{ "start": "2026-03-14T16:00:00-04:00" }
-```
-
-- `at` is a moment: the first candidate start at or after that instant.
-- `start` and `end` is a bounded range. Both bounds are inclusive. `end` is the latest acceptable **start**, not the latest acceptable occupancy.
-- `start` alone is open-ended: every candidate start at or after that instant, clipped to `slot_count`.
-
-The registry **MUST** project intent onto each service bitmap's own ruler. Two services with different `starts_at` or `start_interval` **MUST NOT** share one intent bitmap.
-
-**Projection (normative).** For an `AvailabilitySlotBitmap` with origin `S`, interval `I`, and `slot_count` `N`, define `start(i) = S + i * I` for `i` in `[0, N)`. All comparisons use instants.
-
-1. Create an empty intent set of indices.
-2. For each preference, compute a half-open index range `[lo, hi)` and union it into the intent set:
-   - Moment `{ "at": T }`: `lo = min { i | start(i) >= T }`, `hi = lo + 1`. If no such `i` exists, contribute nothing.
-   - Bounded `{ "start": A, "end": B }`: if `B < A`, contribute nothing. Otherwise `lo = min { i | start(i) >= A }` and `hi = max { i | start(i) <= B } + 1`, then clip to `[0, N)`. If `lo >= hi` after clipping, contribute nothing.
-   - Open `{ "start": A }`: `lo = min { i | start(i) >= A }`, `hi = N`. If no such `i` exists, contribute nothing.
-3. Let `intent` be the union. Overlapping preferences **MUST NOT** be double-counted.
-4. Let `available` be the decoded set of 1-bits.
-5. Let `intersection = available ∩ intent`.
-
-**Scoring (normative).** For every valid bitmap entry, define:
-
-```text
-density = |available| / slot_count
-```
-
-`density` is in `[0, 1]`. It normalizes the number of represented openings by the ruler length, preventing a producer from receiving a larger score merely by publishing a longer horizon. Registries **MUST NOT** substitute raw `|available|` for density.
-
-When preferences are present, skip an entry whose projected `intent` is empty and define:
-
-```text
-coverage = |intersection| / |intent|
-```
-
-To calculate soonness efficiently, the registry **SHOULD** use the Roaring minimum operation:
-
-```text
-earliest = minimum(available AND intent)    # preferences present
-earliest = minimum(available)               # preferences absent
-```
-
-The registry does not need to construct or count a bitmap of preceding zero bits. Convert `earliest` to its start instant with `starts_at + earliest * start_interval`. Let `H` be a positive, registry-documented soonness horizon in seconds. The worked examples use `H = 14 days`, matching the sampled horizon. Let `anchor` be the earliest lower-bound instant in `desired_service_time_ranges` when preferences exist, or the search scoring instant when they do not:
-
-```text
-delay = max(0, earliest_start - anchor)
-soonness = max(0, 1 - delay / H)
-```
-
-An empty `available AND intent` or empty `available` set has `soonness = 0`. Missing or invalid `next_available_date` **MUST NOT** be converted to epoch 0 and **MUST NOT** receive maximum soonness.
-
-`next_available_date` accounts for the same fact at date granularity: it **MUST** equal the service-local date of the earliest set bit across all duration entries. Registries rank from the exact earliest set-bit instant and **SHOULD** reject the hint for ranking if this invariant does not hold.
-
-When `desired_service_time_ranges` is present:
-
-```text
-prefer_sooner_availability_slots = true:  match_score = coverage * soonness
-prefer_sooner_availability_slots = false: match_score = coverage
-```
-
-Compare duration entries by `match_score`, then by density, and take the best eligible entry. Cardinalities or scores across durations **MUST NOT** be added.
-
-For example, two services can both have `coverage = 1`. With a 14-day horizon, an earliest intersecting start tomorrow has `soonness = 13/14`, while one at the end of the 14-day horizon has `soonness = 0`. With the default-true flag their match scores differ, so the nearer perfect overlap ranks higher within the availability signal. With the flag false, both have match score 1 and density is the next tie-break.
-
-When `desired_service_time_ranges` is absent:
-
-```text
-prefer_sooner_availability_slots = true:  compare (soonness, density) lexicographically
-prefer_sooner_availability_slots = false: compare density
-```
-
-Lexicographic means any greater soonness wins; density is consulted only when soonness is equal. This preserves "soonest first, then most available" without letting a dense but distant calendar overtake an earlier opening. If several duration entries exist, use the best entry under the same comparison and never add them.
-
-For example, without desired ranges and with the default-true flag:
-
-```text
-Service A: soonness 0.90, density 0.10
-Service B: soonness 0.80, density 0.90
-Result: A ranks above B because soonness is compared first.
-
-Service C: soonness 0.90, density 0.60
-Service D: soonness 0.90, density 0.20
-Result: C ranks above D because equal soonness is broken by density.
-```
-
-With `prefer_sooner_availability_slots = false`, the same no-preference search ignores soonness and compares density only, so B ranks above A and C ranks above D.
-
-**Freshness cutout (normative).** `generated_at` records when the snapshot was produced; it is not a continuous relevance factor. While a hint remains usable, its age **MUST NOT** decay `coverage`, `density`, `soonness`, or final rank. A hint is usable before producer-declared `valid_until`, or under a registry-documented fallback validity policy when `valid_until` is absent. At or after the cutout it contributes neutral availability ranking data. Freshness is about whether the hint is usable, not about how good the service is.
-
-The registry **MUST** apply availability only after hard-filter recall, as a bounded secondary boost or reranking signal. Baseline relevance (text, geography, and other registry-specific signals) **MUST** remain dominant. Registries **SHOULD** document the soonness horizon, the conversion of the availability rank key to an engine score, and its maximum weight.
-
-For a worked magnitude, suppose baseline relevance is normalized to `[0, 1]` and the registry maps its availability key to `[0, 1]`. An `availability_weight` of `0.15` gives:
-
-```text
-final_score = baseline_score + 0.15 * availability_score
-```
-
-This is an example, not a mandated constant. USP does not standardize baseline relevance scoring, so a fixed weight is not portable: the same numeric value behaves differently against a baseline normalized to `[0, 1]`, an unbounded lexical score, and a composite key dominated by a large geographic term. What is portable is the disclosure and the ordering invariant below.
-
-**Weight disclosure (normative).** A registry that advertises availability ranking **MUST** document, alongside its ranking behavior:
-
-1. the normalization range of its baseline relevance score;
-2. the normalization range of its availability score;
-3. the maximum contribution availability can make, expressed in the same units as the baseline score;
-4. the soonness horizon;
-5. the baseline relevance gap it treats as a clearly better match.
-
-**Dominance check (normative).** The registry's configuration **MUST** satisfy the following property. Take any two candidate hits where the first has the higher baseline relevance and the gap is at least the documented clearly-better threshold. Score the second with a maximal availability signal and the first with a neutral availability signal. The first **MUST** still rank above the second. Equivalently, the maximum availability contribution **MUST** be strictly smaller than the documented clearly-better relevance gap. This property is scale-independent: it holds or fails against whatever units the registry has disclosed, so it is testable without USP fixing a weight.
-
-Missing, expired, malformed, inconsistent, or non-overlapping hints contribute neutral availability data and **MUST** remain in the result set.
-
-**Refresh requirement (normative).** Availability ranking **SHOULD** only be advertised when the registry actually refreshes hints through catalog feeds or its documented indexing cadence. Producers **SHOULD** update `generated_at`, `valid_until`, and bitmaps when availability changes, or republish before their declared validity expires. Registries **SHOULD** ingest those changes and **SHOULD** re-index businesses without feeds on the Section 6.3 cadence. If the pipeline cannot keep hints within their validity policy, the conforming behavior is neutral availability ranking, not ranking from old snapshots.
-
-Ranking **MUST** run before pagination. The scoring instant and the index snapshot **MUST** be frozen for the cursor sequence. Ties after all rank signals **MUST** break deterministically, for example by `service_id` ascending.
-
-**Rank signals on each result (normative).** Every `ServiceSearchResult` in a response that applies availability ranking **MUST** include `rank_signals`. The object reports the meaning of each availability and relevance ingredient so an agent can re-order **the returned page** when its policy differs from the registry default. It is not a substitute for a new search with different `desired_service_time_ranges` or `prefer_sooner_availability_slots`.
-
-`rank_signals` **MUST** contain:
-
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `relevance` | number in `[0, 1]` | How well this hit matches the request **apart from availability**: text `query`, categories, geography, and other registry relevance. Higher means a closer topical or location match. The scale is registry-specific. Compare values only among hits in this same response. |
-| `coverage` | number in `[0, 1]` or `null` | When `desired_service_time_ranges` is present: how much of the projected buyer-time intent has a hinted opening. `1` means every represented intent tick is available. `0` means the intent was represented on the ruler but no opening overlapped it. `null` means coverage was not computed: no time preference was sent, or the hint is not usable. |
-| `density` | number in `[0, 1]` or `null` | How packed the published start-time ruler is with openings, ignoring when those openings fall. `1` means every represented tick is open. `0` means the grid was sampled and is known empty. `null` means density is unknown: no usable hint. Density is not "sooner is better" and is not "matches Thursday afternoon." |
-| `soonness` | number in `[0, 1]` or `null` | How soon the earliest **acceptable** opening is, relative to the request anchor and the registry's documented horizon. `1` means that opening is at the anchor (now, or the start of the requested window). `0` means there is no acceptable opening inside the horizon, or the earliest acceptable opening sits at or beyond the horizon. `null` means soonness is unknown: no usable hint. This field is still populated when `prefer_sooner_availability_slots` is `false`, so an agent can apply soonness even if the registry did not. |
-| `hint_usable` | boolean | Whether this hit's `availability_hint` is trusted enough to contribute availability ranking. `true` means coverage, density, and soonness (when not null) are from a snapshot still inside producer-declared or registry-documented validity. `false` means the registry treated availability as unknown for ranking: omitted hint, expired snapshot, malformed bitmap, or invariant failure. `false` is not "a worse service." |
-
-Null versus zero **MUST** follow the missing-field rule. `null` means unknown. `0` means known empty or known non-overlap. Agents **MUST NOT** treat `null` as `0` when re-sorting, and **MUST NOT** treat `hint_usable: false` as maximum soonness.
-
-`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Snapshot recency is not a quality of the service. Agents that need expiry data **MUST** read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`.
-
-Agents **MAY** re-sort the current `services[]` array using any function of these fields, for example density-first, coverage-only, or a custom mix. They **SHOULD** keep `hint_usable: false` hits in the list and **SHOULD NOT** drop them. They **MUST NOT** assume that re-sorting page 1 produces the globally best N hits. Later pages were fetched under the registry's original order. A different global policy requires a new search, not a client-side shuffle of one page.
-
-Values **MUST NOT** be compared across registries, across requests, or across scoring instants. Two responses with similar numbers can reflect different horizons, different relevance engines, and different snapshots.
-
-**Worked request: bounded range on the running example.** The buyer wants a start between 10:00 and 11:30 inclusive, and also sent `query: "back massage"` so the request is valid. The 60-minute ruler is used for illustration; a 90-minute preference would use the other entry.
-
-```json
-{
-  "query": "back massage",
-  "desired_service_time_ranges": [
-    {
-      "start": "2026-03-14T10:00:00-04:00",
-      "end": "2026-03-14T11:30:00-04:00"
-    }
-  ]
-}
-```
-
-```text
-60-minute ruler, S = 09:00, I = 30 min, N = 17
-lo = first start >= 10:00 -> i = 2
-hi = last start <= 11:30 -> i = 5, then hi = 6
-intent     = {2, 3, 4, 5}
-available  = {0, 1, 2, 6, 10, 14, 15, 16}
-intersection = {2}
-|intent| = 4, |intersection| = 1
-coverage = 1/4 = 0.25
-
-90-minute ruler, N = 16
-intent     = {2, 3, 4, 5}
-available  = {0, 1, 14, 15}
-intersection = {}
-coverage = 0/4 = 0
-
-eligible coverages: 0.25 and 0; take max -> 0.25
-The hint is usable because the scoring instant is before valid_until.
-prefer_sooner_availability_slots defaults to true.
-anchor = 10:00; earliest intersecting start = 10:00; delay = 0
-soonness = 1
-match_score = coverage * soonness = 0.25
-density tie-break for PT60M = 8/17
-```
-
-**Worked request: moment.** `{ "at": "2026-03-14T10:07:00-04:00" }` on the 60-minute ruler ceils to the first start at or after 10:07, which is 10:30 (`i = 3`). `intent = {3}`. `available` does not contain 3, so `coverage = 0`. The same moment at exactly 10:00 ceils to `i = 2`, `intent = {2}`, `coverage = 1`.
-
-**Worked request: open from.** `{ "start": "2026-03-14T16:00:00-04:00" }` is scored in the next subsection.
-
-Registries **MAY** differ in how they mix the bounded availability rank key with text and geo scores. They **MUST NOT** sort the result set by raw intersection cardinality or raw `|available|`. Raw counts favor longer published horizons, finer `start_interval` values, and services that publish more duration variants.
-
-#### 6.3.3 Reading it back
-
-This subsection closes the running example with one complete registry walkthrough. The buyer wants a 90-minute back massage sometime after 16:00. The request also carries a real search filter:
-
-```json
-{
-  "query": "back massage",
-  "duration_range": {
-    "min_minutes": 90,
-    "max_minutes": 90,
-    "match": "overlap"
-  },
-  "desired_service_time_ranges": [
-    { "start": "2026-03-14T16:00:00-04:00" }
-  ]
-}
-```
-
-1. Hard filters run first. `query` and `duration_range` include `svc_back_massage_001`. The hint is not consulted for inclusion.
-2. The registry selects the `PT90M` `slot_bitmaps` entry (`starts_at` 09:00, `start_interval` 30 minutes, `slot_count` 16). A 60-minute-only preference would have used the other entry. Here 90 minutes is the eligible duration, so only this ruler is scored.
-3. Open preference `{ "start": "2026-03-14T16:00:00-04:00" }`: the first tick at or after 16:00 is index 14. Clip `hi` to `slot_count` 16. Intent mask `{14, 15}`.
-4. Decoded availability `{0, 1, 14, 15}`.
-5. Intersection `{14, 15}`. Cardinality 2 of 2. `coverage = 1.0`.
-6. The earliest intersecting bit is 14 at 16:00. The open preference anchor is also 16:00, so delay is 0 and `soonness = 1`. The default-true flag gives `match_score = coverage * soonness = 1`. Density is `4/16 = 0.25` and is used only as the next tie-break.
-7. The scoring instant is before `valid_until`, so the hint is usable. `generated_at` age does not reduce the score. At or after `valid_until`, the whole availability signal becomes neutral instead.
-8. The match key is converted into a bounded secondary boost on top of text and geographic relevance. With the worked weight 0.15, a normalized perfect availability score contributes at most 0.15. A nearby, clearly more relevant service with neutral availability still appears and should remain ahead. Pagination uses the frozen order for later cursors.
-9. The result includes `rank_signals` so an agent can re-order this page without a second search, for example to ignore soonness or to inspect coverage. Example for this 90-minute hit:
-
-```json
-"rank_signals": {
-  "relevance": 0.82,
-  "coverage": 1.0,
-  "density": 0.25,
-  "soonness": 1.0,
-  "hint_usable": true
-}
-```
-
-`relevance` 0.82 is only meaningful next to other hits in this response. `coverage` 1.0 means both intent ticks after 16:00 are open. `density` 0.25 means the full afternoon ruler is not densely open, even though the requested tail is. `soonness` 1.0 means the first acceptable opening is at the requested start. `hint_usable` true means these numbers come from a still-valid snapshot, not that the massage is "fresher" than a quieter competitor.
-
-#### 6.3.4 Intent projection edge cases
-
-These vectors make every projection and ranking boundary explicit. Unless a row
-says otherwise, they use the running `PT60M` ruler:
-
-```text
-S = 2026-03-14T09:00:00-04:00
-I = PT30M
-N = 17
-available = {0,1,2,6,10,14,15,16}
-density = 8/17 = 0.470588...
-H = 14 days = 336 hours
-validity = usable
-prefer_sooner_availability_slots = true
-```
-
-In the result cells, `E` is the earliest matching index, `A` is the request
-anchor, `D` is delay, and `K` is the availability rank key. A skipped ruler has
-no represented intent positions and contributes no key. It is different from a
-represented intent with no available overlap, which has known `coverage = 0`
-and `soonness = 0`.
-
-##### Moment projection
-
-Moment projection always chooses the first represented tick at or after `at`.
-It never rounds backward.
-
-| Case and request | Complete result |
-| --- | --- |
-| On grid: `{ "at": "2026-03-14T10:00:00-04:00" }` | `intent={2}`; `available={0,1,2,6,10,14,15,16}`; `intersection={2}`; `coverage=1`; `density=8/17`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| Between ticks: `{ "at": "2026-03-14T10:07:00-04:00" }` | `intent={3}`; same `available`; `intersection={}`; `coverage=0`; `density=8/17`; no `E`; `A=10:07`; no finite matching delay; `soonness=0`; usable; `K=0`, then density |
-| Before origin: `{ "at": "2026-03-14T08:00:00-04:00" }` | `intent={0}`; same `available`; `intersection={0}`; `coverage=1`; `density=8/17`; `E=0`; `A=08:00`; `D=1h`; `soonness=335/336`, about `0.997024`; usable; `K=335/336` |
-| Final tick: `{ "at": "2026-03-14T17:00:00-04:00" }` | `intent={16}`; same `available`; `intersection={16}`; `coverage=1`; `density=8/17`; `E=16`; `A=17:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| After horizon: `{ "at": "2026-03-14T17:01:00-04:00" }` | `intent={}` after clipping; same `available`; no intersection or coverage; `density=8/17` exists on the ruler but the ruler is skipped; no `E`; `A=17:01`; `soonness=null`; usable hint but no eligible ruler; neutral availability key |
-
-##### Bounded projection
-
-Both bounds are inclusive candidate-start bounds. The lower bound is ceiled,
-the upper bound is floored, and the resulting half-open index range is clipped
-to `[0,N)`.
-
-| Case and request | Complete result |
-| --- | --- |
-| Aligned: `{ "start": "10:00", "end": "11:30" }` with the example offset | `intent={2,3,4,5}`; same `available`; `intersection={2}`; `coverage=1/4`; `density=8/17`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=0.25` |
-| Unaligned: `{ "start": "10:07", "end": "11:20" }` | `intent={3,4}`; same `available`; `intersection={}`; `coverage=0`; `density=8/17`; no `E`; `A=10:07`; `soonness=0`; usable; `K=0`, then density |
-| Single included tick: `{ "start": "10:00", "end": "10:00" }` | `intent={2}`; same `available`; `intersection={2}`; `coverage=1`; `density=8/17`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| No included tick: `{ "start": "10:01", "end": "10:29" }` | `intent={}` because the ceiled lower index equals the exclusive upper index; ruler skipped; neutral availability key |
-| End before start: `{ "start": "12:00", "end": "11:00" }` | contributes no indices; ruler skipped; neutral availability key |
-| Clipped on left: `{ "start": "07:00", "end": "09:00" }` | `intent={0}`; same `available`; `intersection={0}`; `coverage=1`; `density=8/17`; `E=0`; `A=07:00`; `D=2h`; `soonness=334/336`, about `0.994048`; usable; `K=334/336` |
-| Clipped on right: `{ "start": "17:00", "end": "19:00" }` | `intent={16}`; same `available`; `intersection={16}`; `coverage=1`; `density=8/17`; `E=16`; `A=17:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| Spans both sides: `{ "start": "07:00", "end": "19:00" }` | `intent={0..16}`; intersection equals `available`; `coverage=8/17`; `density=8/17`; `E=0`; `A=07:00`; `D=2h`; `soonness=334/336`; usable; `K=(8/17)*(334/336)` |
-
-##### Open projection and union behavior
-
-An open preference starts at its ceiled lower index and ends at `N`. Multiple
-preferences are unioned before intersection, so duplicate or overlapping
-positions count once.
-
-| Case and request | Complete result |
-| --- | --- |
-| Open before origin: `{ "start": "08:00" }` | `intent={0..16}`; intersection equals `available`; `coverage=8/17`; `density=8/17`; `E=0`; `A=08:00`; `D=1h`; `soonness=335/336`; usable; `K=(8/17)*(335/336)` |
-| Open inside horizon: `{ "start": "16:00" }` | `intent={14,15,16}`; `intersection={14,15,16}`; `coverage=1`; `density=8/17`; `E=14`; `A=16:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| Open at final tick: `{ "start": "17:00" }` | `intent={16}`; `intersection={16}`; `coverage=1`; `density=8/17`; `E=16`; `A=17:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| Open after horizon: `{ "start": "17:01" }` | `intent={}`; ruler skipped; neutral availability key |
-| Disjoint alternatives: moment 10:00 plus bounded 14:00 through 15:00 | `intent={2,10,11,12}`; `intersection={2,10}`; `coverage=2/4`; `density=8/17`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=0.5` |
-| Overlap plus duplicate: bounded 09:30 through 10:30, then bounded 10:00 through 11:00 twice | union `intent={1,2,3,4}`, not nine positions; `intersection={1,2}`; `coverage=2/4`; `density=8/17`; `E=1`; `A=09:30`; `D=0`; `soonness=1`; usable; `K=0.5` |
-| Mixed shapes: moment 10:00, bounded 14:00 through 15:00, open from 16:00 | `intent={2,10,11,12,14,15,16}`; `intersection={2,10,14,15,16}`; `coverage=5/7`; `density=8/17`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=5/7` |
-
-##### Bitmap occupancy and duration eligibility
-
-| Case | Complete result |
-| --- | --- |
-| All-zero bitmap with represented intent | `available={}`; intersection empty; `coverage=0`; `density=0`; no `E`; `soonness=0`; usable; `K=0`; `next_available_date` omitted |
-| All-one bitmap on this ruler with bounded 10:00 through 11:30 | `available={0..16}`; `intent={2,3,4,5}`; full intersection; `coverage=1`; `density=1`; `E=2`; `A=10:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| No overlap on a non-empty bitmap with bounded 11:00 through 11:30 | `intent={4,5}`; `intersection={}`; `coverage=0`; `density=8/17`; no `E`; `soonness=0`; usable; `K=0`, then density |
-| Full overlap with open from 16:00 | `intent={14,15,16}`; intersection equals intent; `coverage=1`; `density=8/17`; `E=14`; `A=16:00`; `D=0`; `soonness=1`; usable; `K=1` |
-| Fixed 60-minute service | only its `PT60M` ruler is eligible; use that ruler's normalized values |
-| Exact 90-minute request | hard `duration_range` recall admits the service, then only `PT90M` is eligible; for open 16:00, `intent={14,15}`, `available={0,1,14,15}`, `coverage=1`, `density=4/16`, `E=14`, `soonness=1`, `K=1` |
-| Flexible duration with both rulers eligible | score each ruler independently, compare `(match_score,density)`, and select the maximum tuple; do not add coverage, density, cardinality, or score across rulers |
-| Requested duration has no ruler | no eligible duration entry; availability is neutral and the service remains if hard recall admitted it |
-| Hint omits one otherwise selectable duration | the published ruler can rank only that represented duration; a request requiring the missing duration gets neutral availability, not a derived bitmap |
-
-Normalization is mandatory. Raw counts would reward a longer horizon, a finer
-`start_interval`, or more duration variants without proving a better buyer
-match.
-
-##### Invalid, missing, and inconsistent hints
-
-The following states all produce neutral availability ranking and **MUST NOT**
-exclude the service:
-
-| Hint state | Required handling and `rank_signals` |
-| --- | --- |
-| `availability_hint` omitted | Unknown: `coverage`, `density`, and `soonness` are `null`; `hint_usable=false` |
-| Hint present without `slot_bitmaps`, with an empty array, or with a dummy ruler for unknown | Invalid producer payload; neutral values; `hint_usable=false` |
-| Malformed Base64 or unsupported encoding | Do not attempt ranking from bytes; neutral values; `hint_usable=false` |
-| Invalid Roaring32 cookie or serialization | Do not interpret it as an empty set; neutral values; `hint_usable=false` |
-| Decoded index equal to or greater than `slot_count` | Ruler is out of range; neutral values; `hint_usable=false` |
-| Duplicate `duration` entries | Ambiguous duration ruler; whole hint is unusable for ranking |
-| Required duration variant absent | Valid for represented durations, but neutral for a request with no eligible represented ruler |
-| `next_available_date` absent or `""` while a set bit exists | Invariant failure; neutral values; `hint_usable=false`; never parse as epoch 0 |
-| `next_available_date` differs from earliest set-bit service-local date | Invariant failure; neutral values; `hint_usable=false` |
-| Every ruler all-zero and date omitted | Known empty, not invalid: `density=0`, represented `coverage=0`, `soonness=0`, `hint_usable=true` |
-| Every ruler all-zero but a date is present | Invariant failure; neutral values; `hint_usable=false` |
-
-`null` means the registry does not know the value. `0` means it measured a
-usable grid and found known emptiness or known non-overlap. Consumers **MUST
-NOT** collapse those states.
-
-##### Flag-conditional ordering
-
-| Request state | Availability ordering | Published signals |
-| --- | --- | --- |
-| Preferences present, flag omitted or `true` | compare `coverage * soonness`, then density | coverage, density, and soonness remain populated for a usable eligible ruler |
-| Preferences present, flag `false` | compare coverage, then density | soonness remains populated but is not in the registry key |
-| Preferences absent, flag omitted or `true` | compare `(soonness,density)` lexicographically | coverage is `null`; density and soonness are populated |
-| Preferences absent, flag `false` | compare density only | coverage is `null`; soonness remains populated for agent inspection |
-
-For preference ranking, a service with `coverage=1`, `soonness=0.5` has
-`K=0.5` when the flag is true and `K=1` when false. Equal primary keys use
-density only as the next tie-break. For no-preference ranking, `(0.90,0.10)`
-beats `(0.80,0.90)` because soonness is compared first. With equal soonness,
-`(0.90,0.60)` beats `(0.90,0.20)`. With the flag false, only density is compared.
-
-##### Freshness and refresh behavior
-
-At scoring instant 18:00, `valid_until=17:59` is expired,
-`valid_until=18:00` is expired because the cutout is exclusive, and
-`valid_until=18:01` is usable. When `valid_until` is absent, the registry applies
-its documented fallback policy and exposes the resulting boolean decision in
-`hint_usable`.
-
-A `generated_at` value unreasonably later than the scoring instant is an
-inconsistent snapshot under the registry's documented clock-skew policy and
-contributes neutral data. For two otherwise identical hints that are both
-usable, different `generated_at` ages produce identical coverage, density,
-soonness, and final availability key. Age never becomes a multiplier.
-
-Producers **SHOULD** refresh on availability change and republish before
-expiry. Registries **SHOULD** ingest feed updates and use the documented
-polling fallback when feeds are unavailable. If no functioning refresh path
-keeps hints within policy, the registry produces neutral availability signals
-and **SHOULD NOT** advertise effective availability ranking.
-
-##### Soonness horizon and instant arithmetic
-
-With `H=14 days`, a matching start at the anchor has `D=0` and `soonness=1`; a
-start seven days later has `soonness=0.5`; a start exactly fourteen days later
-has `soonness=0`; and later starts remain `0`. The formula clamps both negative
-delay and values below zero.
-
-Equivalent RFC 3339 values compare as instants. For example,
-`2026-03-14T10:00:00-04:00` equals `2026-03-14T14:00:00Z` and must project to
-the same index. Across a daylight-saving transition, add `start_interval` on
-the instant timeline first, then render a local label if needed. A repeated or
-skipped wall-clock label does not create or remove an index.
-
-##### Pagination and page-local reordering
-
-Availability ranking runs after recall and before pagination. The registry
-freezes the scoring instant and index snapshot for the cursor sequence, then
-uses a deterministic final tie-break such as ascending `service_id`. Later
-pages **MUST NOT** be rescored against a newer instant or refreshed snapshot.
-
-Every hit in a response that applies availability ranking includes
-`rank_signals`, including omitted-hint and expired-hint hits with
-`hint_usable=false` and null availability numbers. A known-empty usable hint
-reports density `0`; a represented but non-overlapping intent reports coverage
-`0`; and soonness remains populated when the request flag is false.
-
-An agent may re-order only the returned page. For example, density-first
-shuffling of page 1 cannot recover the global density-first top N because hits
-on later pages were selected under the registry's original order. A different
-global policy requires a new search request.
-
-### 6.3.1 Filter Matching Semantics
+#### 6.3.1 Filter Matching Semantics
 
 Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **MAY** differ across registries; match predicates **MUST** follow this section so federated registries return the same inclusion set for identical filters. Canonical schema descriptions (including worked examples) live in [`schemas/registry.json`](schemas/registry.json) (`PriceRangeFilter`, `DurationRangeFilter`, `RangeMatchMode`, `RegistrySearchLocation`).
 
@@ -4435,6 +3879,72 @@ Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }`
 - Resolved match currency: `price_range.currency` if present; else `context.currency` if present; else registries **MUST** reject with `validation_error` (omitting both is ambiguous). When both are present and differ, `price_range.currency` is authoritative for matching; `context.currency` remains a display/ranking hint.
 - `pricing.model: free` → treat as amount **0** (degenerate `[0, 0]` in the service currency). Free services match filters that include 0 under the selected `match` mode, and are excluded when `min > 0` under `overlap`/`contained`/`equals` as the intervals dictate.
 - Fixed amount → `[amount, amount]`. Variable / hourly / per_person with published `price_range` → that interval. Services with no indexable price interval **MUST** be excluded when a `price_range` filter is present.
+
+#### 6.3.2 Availability Ranking Context and Response Signals
+
+A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter. It does **not** satisfy the requirement that a search request contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). A request that contains only `desired_service_time_ranges`, `prefer_sooner_availability_slots`, `pagination`, and/or `context` **MUST** be rejected with `validation_error`.
+
+The request **MAY** include `prefer_sooner_availability_slots`, a boolean whose default is `true`. When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
+
+**Request shapes.** Each element of `desired_service_time_ranges` **MUST** be exactly one of the following shapes. JSON has no infinity sentinel, and `null` as "this is a moment" is ambiguous, so the three cases are distinct objects:
+
+```json
+{ "at": "2026-03-14T10:00:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T10:00:00-04:00", "end": "2026-03-14T11:30:00-04:00" }
+```
+
+```json
+{ "start": "2026-03-14T16:00:00-04:00" }
+```
+
+- `at` is a moment: the first candidate start at or after that instant.
+- `start` and `end` is a bounded range. Both bounds are inclusive. `end` is the latest acceptable **start**, not the latest acceptable occupancy.
+- `start` alone is open-ended: every candidate start at or after that instant, bounded by what the service actually published.
+
+All bounds are instants (RFC 3339). Equal instants with different offsets **MUST** compare equal. Agents **SHOULD** express a strict latest acceptable start as a bounded range rather than a moment, because a moment resolves to the next candidate start and can therefore fall after the buyer's limit. Agents **SHOULD** normalize date-only intents in the service timezone. An open-ended preference **MUST NOT** be read as a claim of availability beyond the horizon a producer published.
+
+**Observable guarantees (normative).** USP does not standardize how a registry derives an availability ranking key. Projection details, formulas, horizons, weights, duration selection, and score composition are registry-specific. The following properties are observable to clients and **MUST** hold in any conforming registry:
+
+- Availability data is non-authoritative ranking context only. A hint that is missing, summary-only, expired, malformed, internally inconsistent, or non-overlapping **MUST NOT** remove a hit that hard-filter recall admitted, and **MUST NOT** be used as a hard time filter. Platforms **MUST** confirm live availability ([Section 4](#4-availability)) before claiming that a time can or cannot be booked.
+- Unusable or absent availability data is neutral, never favorable. Registries **MUST NOT** convert unknown availability into maximum soonness or into an earliest-opening claim, and **MUST NOT** parse a missing or empty `next_available_date` as epoch 0.
+- Freshness decides usability, not quality. A hint is usable before a producer-declared `valid_until`, or under a registry-documented fallback validity policy when `valid_until` is absent. While a hint remains usable, its `generated_at` age **MUST NOT** continuously decay its availability contribution or the hit's final rank.
+- Availability is applied after hard-filter recall as a bounded secondary signal, and baseline relevance (text, geography, and other registry-specific signals) **MUST** remain dominant. Registries **MUST NOT** order results by raw counts of hinted openings, because raw counts reward a longer published horizon, a finer `start_interval`, or more duration variants without proving a better buyer match.
+- Ranking **MUST** run before pagination. The scoring instant and the index snapshot **MUST** be frozen for a cursor sequence, so later pages are not rescored, and remaining ties **MUST** break deterministically, for example by ascending `service_id`.
+- A registry that advertises availability ranking **SHOULD** document its availability inputs, its normalization ranges, the maximum contribution availability can make relative to baseline relevance, and its refresh cadence. A registry **SHOULD NOT** advertise availability ranking unless it actually refreshes hints inside their validity policy; the conforming alternative is neutral availability ranking, not ranking from stale snapshots.
+
+**Rank signals on each result (normative).** `rank_signals` reports what the registry concluded about a hit so an agent can inspect it, or re-order **the returned page** when its policy differs from the registry default. It is not a substitute for a new search with different `desired_service_time_ranges` or `prefer_sooner_availability_slots`.
+
+When a registry applies availability ranking, or when the request carries `desired_service_time_ranges` and/or `prefer_sooner_availability_slots`, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. When `rank_signals` is present it **MUST** contain all five members:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `relevance` | number in `[0, 1]` | How well this hit matches the request **apart from availability**: text `query`, categories, geography, and other registry relevance. Higher means a closer topical or location match. The scale is registry-specific. Compare values only among hits in this same response. |
+| `coverage` | number in `[0, 1]` or `null` | When `desired_service_time_ranges` is present: how much of the buyer's requested time has a hinted opening. `1` means the requested time is fully covered by hinted openings. `0` means the requested time was represented in the structured snapshot and no opening overlapped it. `null` means coverage was not computed: no time preference was sent, no usable structured hint, or the requested time falls outside what the service published. |
+| `density` | number in `[0, 1]` or `null` | How packed the published start-time ruler is with openings, ignoring when those openings fall. `1` means every represented candidate start is open. `0` means the grid was sampled and is known empty. `null` means density is unknown because there is no usable structured hint. Density is not "sooner is better" and is not "matches Thursday afternoon." |
+| `soonness` | number in `[0, 1]` or `null` | How soon the earliest **acceptable** opening is, relative to the request anchor and the registry's documented horizon. `1` means that opening is at the anchor (now, or the start of the requested window). `0` means there is no acceptable opening inside the horizon. `null` means soonness is unknown because there is no usable structured hint. This field is still populated when `prefer_sooner_availability_slots` is `false`, so an agent can apply soonness even if the registry did not. |
+| `hint_usable` | boolean | Whether this hit's `availability_hint` was trusted enough to contribute availability ranking. `true` means the non-null availability numbers come from a structured snapshot inside producer-declared or registry-documented validity. `false` means the registry treated availability as unknown for ranking: omitted hint, summary-only hint, expired snapshot, malformed bitmap, or invariant failure. `false` is not "a worse service." |
+
+`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Snapshot recency is not a quality of the service. Agents that need expiry data **MUST** read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`.
+
+Values **MUST NOT** be compared across registries, across requests, across snapshots, or across scoring instants. Two responses with similar numbers can reflect different horizons, different relevance engines, and different snapshots.
+
+**Response-state semantics (normative).** An agent that sent time preferences **MUST NOT** treat a missing or summary-only hint as proof that the requested time cannot be satisfied. That state means the registry had no structured evidence; live availability remains the authority. Clients distinguish the following states:
+
+| Response state | Meaning | Required client handling |
+| --- | --- | --- |
+| `rank_signals` omitted | The registry did not apply availability ranking on this response. | Do not infer anything about availability from the response ordering. |
+| `hint_usable: false`, with `coverage`, `density`, and `soonness` all `null` | Unknown. Covers an omitted hint, a summary-only hint, an expired or malformed structured hint, and an invariant failure. | Keep the hit. **MUST NOT** be treated as unavailable, and **MUST NOT** be treated as maximum soonness or as a failed time match. |
+| `hint_usable: true` and `coverage: null` | Coverage was not computed even though the snapshot was usable: no time preference was sent, or the requested time falls outside what this service published. `density` and `soonness` **MAY** still be populated. | Do not read this as a time match or a time mismatch. |
+| `hint_usable: true` and `coverage: 0` | Known non-overlap on this registry's structured snapshot. | Still not a hard exclusion. Confirm with live availability before telling a user the time cannot be booked. |
+| `hint_usable: true` and `coverage` in `(0, 1]` | Structured evidence that the requested time overlaps hinted openings. | Still confirm with live availability before booking. |
+| Mixed states within one page | Some hits had usable structured evidence and others did not. | Time preferences remain ranking context only; comparing a known value against a `null` is not a ranking or exclusion decision. |
+
+`null` means unknown. `0` means known empty or known non-overlap. Agents **MUST NOT** collapse those states when re-sorting. `summary` **MAY** inform conversation with a user; it **MUST NOT** be turned into `coverage`, `density`, or `soonness`.
+
+Agents **MAY** re-sort the current `services[]` array using any function of these fields, for example density-first or coverage-only. They **SHOULD** keep `hint_usable: false` hits in the list and **SHOULD NOT** drop them. They **MUST NOT** assume that re-sorting page 1 produces the globally best N hits, because later pages were selected under the registry's original order. A different global policy requires a new search, not a client-side shuffle of one page.
 
 ### 6.4 Get Registration - `GET /registry/businesses/{id}`
 

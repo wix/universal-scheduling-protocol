@@ -306,8 +306,8 @@
     "RankSignals": {
       "type": "object",
       "title": "RankSignals",
-      "description": "Per-hit availability and relevance ingredients for service search ranking. Comparable only within one response from one registry.",
-      "required": ["relevance", "hint_usable"],
+      "description": "Per-hit availability and relevance ingredients for service search ranking. Present on every hit of a response that applies availability ranking or that answers a request carrying time preferences, including hits with no hint or a summary-only hint. Values are registry-specific and comparable only within one response from one registry. null means unknown; 0 means known empty or known non-overlap.",
+      "required": ["relevance", "coverage", "density", "soonness", "hint_usable"],
       "properties": {
         "relevance": {
           "type": "number",
@@ -319,23 +319,23 @@
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "Fraction of projected buyer-time intent with a hinted opening when desired_service_time_ranges is present. null when not computed."
+          "description": "How much of the requested time has a hinted opening when desired_service_time_ranges is present. 0 means the requested time was represented in the structured snapshot and no opening overlapped it. null means not computed: no time preference, no usable structured hint, or requested time outside what the service published."
         },
         "density": {
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "Fraction of represented ticks that are open, ignoring when openings fall. null when unknown."
+          "description": "Fraction of represented candidate starts that are open, ignoring when openings fall. 0 means sampled and known empty. null means unknown because there is no usable structured hint."
         },
         "soonness": {
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "How soon the earliest acceptable opening is relative to anchor and documented horizon. null when unknown."
+          "description": "How soon the earliest acceptable opening is relative to the request anchor and the registry's documented horizon. 0 means no acceptable opening inside the horizon. null means unknown because there is no usable structured hint. Populated even when prefer_sooner_availability_slots is false."
         },
         "hint_usable": {
           "type": "boolean",
-          "description": "Whether availability_hint contributed usable ranking data for this hit."
+          "description": "Whether availability_hint contributed usable structured ranking data for this hit. false means availability was unknown for ranking (omitted hint, summary-only hint, expired snapshot, malformed bitmap, or invariant failure) and is not a statement that the service is worse or unavailable."
         }
       },
       "additionalProperties": false
@@ -440,7 +440,7 @@
         },
         "rank_signals": {
           "$ref": "#/$defs/RankSignals",
-          "description": "Availability and relevance ranking ingredients when the registry applies availability ranking on this response."
+          "description": "Availability and relevance ranking ingredients. Required on every hit of a response that applies availability ranking or that answers a request carrying desired_service_time_ranges or prefer_sooner_availability_slots; omitted only when the registry applied no availability ranking at all."
         }
       }
     }
