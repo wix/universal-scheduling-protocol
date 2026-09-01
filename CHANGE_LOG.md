@@ -97,6 +97,12 @@
 - Fixed the underscore as well, which was never rename fallout: the old pattern also rejected `dev.usp-protocol.services.paid_bookings` and `dev.ucp.common.identity_linking`, so it had been narrower than the namespace it describes since before the `2026-08-20` cutover
 - Added `check_namespace_key_patterns` to `tools/usp_check.py schemas`, asserting that every reserved `dev.usp-protocol.*` name and the third-party names the specification's examples carry satisfy every `propertyNames` pattern gating a capability or service key map, so the next namespace change cannot silently leave a pattern behind; the reserved-name list moved to a module constant now that the authority and schemas checks both read it
 - Kept the patterns otherwise unchanged: two labels minimum, lowercase first character per label, no leading or trailing hyphen or underscore in a label, and no empty label
+## 24/08/26 at 00:00:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Required §10.1.6 verifiers to reject a proof whose header JWK declares a `crv` other than the one the accepted `alg` requires, and forbade treating two thumbprints differing only in `crv` as distinct principals, because the [RFC 7638] thumbprint covers `crv` while JOSE libraries in wide use accept an `OKP` key labelled `Ed25519`, `Ed448`, `X25519` or `X448` without checking `x` against it — so one key's own bytes re-labelled produce a different `jkt` that still verifies, and since the thumbprint *is* the platform identifier that hands one key several identities and lets a principal already rejected by the trust-on-first-use binding re-bind as a first contact
+- Folded the curve into step 5 of the normative verification order rather than adding a step, because `alg` is already checked there and the two are one decision about the same header
+- Added vector `011-crv-substitution` (K1's own bytes labelled `crv: X448`, genuine signature, `pop_proof_invalid`) and cited it in `specification.md`, following the `006` model of a rejection case a plausible implementation would accept — a library strict enough to refuse at parse passes it too, since the outcome is the same rejection
+- Defined `[RFC 8037]` in the reference block, since Section 3.1's prohibition on signing with `X25519`/`X448` key-agreement keys is now cited
 
 ---
 

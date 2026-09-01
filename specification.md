@@ -8010,6 +8010,23 @@ reject a proof whose header JWK carries any private-key member. Accepted
 algorithms are advertised through the `authorization` policy, which is an open
 object, so this requires no schema change.
 
+**The curve is part of the identity (MUST).** A business **MUST** reject a proof
+whose header JWK declares a `crv` other than the one the accepted `alg`
+requires - `Ed25519` for `EdDSA` - and **MUST NOT** treat two thumbprints that
+differ only in `crv` as distinct principals. Verifying the signature does not
+imply this check, and the omission is not benign. The [RFC 7638] thumbprint
+covers `crv`, and JOSE libraries in wide use accept an `OKP` JWK whose `crv` is
+any of `Ed25519`, `Ed448`, `X25519` or `X448` without validating `x`'s length
+against it - so one key's own bytes, merely re-labelled, produce a *different*
+`jkt` that still verifies against that same header JWK. Because the thumbprint
+**is** the platform identifier, a verifier that skips this gives one key several
+identities: a principal already rejected by the trust-on-first-use binding above
+re-presents itself under another `crv` and binds cleanly as a first contact, and
+any per-`jkt` flag or rate limit is escaped by editing one header member.
+`X25519` and `X448` are key-agreement keys besides, which [RFC 8037] Section 3.1
+requires be rejected for signing. Vector `011-crv-substitution` is this case: the
+signature is genuine, and the curve is the only thing wrong with it.
+
 **Downgrade resistance (MUST, both bindings).** A credential carrying `cnf` is
 sender-constrained and **MUST NOT** be accepted as a bearer token. A business
 that receives such a credential without an accompanying valid proof over the key
@@ -8036,7 +8053,8 @@ per step and reordering them leaks information about which part was wrong:
    declared `mechanism`.
 3. The credential's scope matches the addressed resource.
 4. The proof parses and its `typ` matches the binding in use.
-5. The `alg` is one the business accepts, and is not `none`.
+5. The `alg` is one the business accepts, and is not `none`, and the header
+   JWK's `crv` is the one that `alg` requires.
 6. The [RFC 7638] thumbprint of the header JWK equals the recorded `cnf.jkt`
    (any `kid` is ignored).
 7. The signature verifies against that header JWK.
@@ -8121,6 +8139,7 @@ trust:
 | `008-replayed-jti` | A byte-identical resend, rejected on the second presentation. |
 | `009-aud-mismatch` | A proof captured at one business and presented at another. |
 | `010-alg-none` | `alg: none`, rejected before any signature check. |
+| `011-crv-substitution` | One key's own bytes re-labelled `crv: X448`. The signature verifies; the thumbprint changes. |
 
 Vector `006` is the one that matters most, and is worth stating plainly: its
 proof **verifies correctly against its own header key**. An implementation that
@@ -9131,6 +9150,7 @@ They are not valid aliases in the `2026-08-20` protocol version.
 [RFC 7519]: https://www.rfc-editor.org/rfc/rfc7519
 [RFC 7638]: https://www.rfc-editor.org/rfc/rfc7638
 [RFC 7800]: https://www.rfc-editor.org/rfc/rfc7800
+[RFC 8037]: https://www.rfc-editor.org/rfc/rfc8037
 [RFC 8785]: https://www.rfc-editor.org/rfc/rfc8785
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421
 
