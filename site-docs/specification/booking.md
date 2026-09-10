@@ -445,6 +445,9 @@ Moves a booking to a different time slot. Rescheduling preserves the booking `id
 
     A failed reschedule **MUST NOT** release a still-valid hold.
 
+!!! warning "Credential Expiry on Reschedule"
+    A `booking_scoped_credential` is issued at creation and its `expires_at` is chosen against the slot the booking occupied then; rescheduling to a later slot does not move it. A business whose credential lifetime is derived from the slot **SHOULD** re-issue on the reschedule response, as a sibling of `booking`, whenever the existing credential would otherwise expire before the new slot. [Section 5.6](#conditional-writes-and-concurrency) already permits re-issuing to the same bound key, and the previous credential **MAY** be left to expire on its own. Without this the platform holds a booking it will stop being able to read, reschedule or cancel *before the appointment occurs* -- it has only a proof of possession, and credentials are issued on creation, not on demand.
+
 !!! note "Price Changes on Reschedule"
     When slot-level pricing differs between the original and new slot (e.g., rescheduling from off-peak to peak), the business **SHOULD** update `payment.amount`. If additional payment is required, the business **MUST** add a new `payment`-type action to `actions[]`, transitioning the booking to `requires_action`.
 
