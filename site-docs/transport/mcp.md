@@ -24,6 +24,10 @@ Each USP REST operation maps to a JSON-RPC method name used as the tool name in 
 | `GET /services/{service_id}` | `usp_services_get` | Get a single service |
 | `GET /services/feed` | `usp_services_feed` | Get service catalog feed |
 | `POST /services/feed/subscriptions` | `usp_services_feed_subscribe` | Create a feed subscription |
+| `GET /services/feed/subscriptions/{subscription_id}` | `usp_services_feed_subscription_get` | Get a feed subscription |
+| `DELETE /services/feed/subscriptions/{subscription_id}` | `usp_services_feed_unsubscribe` | Cancel a feed subscription (terminal) |
+| `POST /services/feed/subscriptions/{subscription_id}/pause` | `usp_services_feed_subscription_pause` | Pause delivery, retaining the cursor |
+| `POST /services/feed/subscriptions/{subscription_id}/resume` | `usp_services_feed_subscription_resume` | Resume delivery from the retained cursor |
 | `POST /availability/query` | `usp_availability_query` | Query time slots |
 | `POST /availability/holds` | `usp_availability_hold` | Hold a slot (requires `holds: true`) |
 | `DELETE /availability/holds/{hold_id}` | `usp_availability_release` | Release a hold (requires `holds: true`) |
@@ -46,6 +50,12 @@ Each USP REST operation maps to a JSON-RPC method name used as the tool name in 
 | `GET /registry/businesses/{id}` | `usp_registry_get` | Get registration by ID |
 | `PUT /registry/businesses/{id}` | `usp_registry_update` | Update registration |
 | `DELETE /registry/businesses/{id}` | `usp_registry_delete` | Delete registration |
+
+!!! info "The mapping is total"
+
+    Every REST operation has exactly one MCP method, and every MCP method maps back to exactly one REST operation. The only REST path without a row is `GET /.well-known/usp`, which is profile discovery rather than an operation.
+
+    A capability advertised over one binding **MUST** be reachable over the other. A business that advertises MCP but implements only part of the method set is not conforming: implement the whole set for the capabilities you advertise, or do not list `mcp` in `transports`.
 
 ## Request/Response Format
 

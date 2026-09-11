@@ -28,20 +28,26 @@ UCP-Native Mode is the deployment option for platforms that already support the 
 
 Businesses register USP scheduling capabilities in their UCP profile alongside other UCP capabilities. The profile declares both UCP and USP services and capabilities in a single document.
 
+!!! info "What USP requires, and what it does not"
+
+    Every `dev.usp-protocol.services.*` capability entry (and the `dev.usp-protocol.services` service entry) **MUST** carry `version`, `spec`, and `schema`. A USP entry missing any of the three is malformed and **MUST** be rejected on its own, without rejecting the rest of the profile.
+
+    USP does **not** define what makes a UCP profile valid overall, and a USP consumer **MUST NOT** treat a `dev.ucp.*` entry as malformed just because it lacks `spec` or `schema`. USP depends on `dev.ucp.shopping.checkout` being present and usable, not on its metadata. A consumer that cannot run a checkout **MUST** fail closed for checkout-backed services and **MAY** still book checkout-free services from the same profile.
+
 ### Full Profile (Paid + Free Services)
 
 ```json
 {
   "ucp": {
-    "version": "2026-01-11",
+    "version": "2026-08-25",
     "services": {
       "dev.ucp.shopping": [
         {
-          "version": "2026-01-11",
+          "version": "2026-08-25",
           "spec": "https://ucp.dev/latest/specification/overview/",
           "transport": "rest",
           "endpoint": "https://business.example.com/ucp/v1",
-          "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
+          "schema": "https://ucp.dev/latest/services/shopping/rest.openapi.json"
         }
       ],
       "dev.usp-protocol.services": [
@@ -66,9 +72,9 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
     "capabilities": {
       "dev.ucp.shopping.checkout": [
         {
-          "version": "2026-01-11",
-          "spec": "https://ucp.dev/latest/specification/checkout/",
-          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/checkout/",
+          "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
       "dev.usp-protocol.services.catalog": [
@@ -98,6 +104,22 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "version": "2026-08-20",
           "spec": "https://usp-protocol.dev/specification#7-ucp-native-mode",
           "schema": "https://usp-protocol.dev/schemas/services/paid_bookings.json",
+          "extends": "dev.ucp.shopping.checkout"
+        }
+      ],
+      "dev.ucp.common.payment.terms": [
+        {
+          "version": "2026-08-25",
+          "extends": ["dev.ucp.shopping.checkout", "dev.ucp.shopping.order"],
+          "spec": "https://ucp.dev/latest/specification/payment/extensions/terms/",
+          "schema": "https://ucp.dev/2026-08-25/schemas/common/payment_terms.json"
+        }
+      ],
+      "dev.usp-protocol.services.pay_at_service": [
+        {
+          "version": "2026-08-20",
+          "spec": "https://usp-protocol.dev/specification#pay-at-service-settlement-extension",
+          "schema": "https://usp-protocol.dev/schemas/services/pay_at_service.json",
           "extends": "dev.ucp.shopping.checkout"
         }
       ]
@@ -141,7 +163,7 @@ Businesses offering only free services omit `dev.ucp.shopping.checkout` and `dev
 ```json
 {
   "ucp": {
-    "version": "2026-01-11",
+    "version": "2026-08-25",
     "services": {
       "dev.usp-protocol.services": [
         {
@@ -289,10 +311,10 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 ```json
 {
   "ucp": {
-    "version": "2026-01-11",
+    "version": "2026-08-25",
     "capabilities": {
       "dev.ucp.shopping.checkout": [
-        { "version": "2026-01-11" }
+        { "version": "2026-08-25" }
       ],
       "dev.usp-protocol.services.paid_bookings": [
         { "version": "2026-08-20" }
@@ -383,6 +405,8 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 | `hold_id`           | string          | No                      | The hold ID if a slot was held.                                                        |
 | `resources`         | Array\[object\] | No                      | `{id, type, name}` -- requested resources.                                             |
 | `party_size`        | integer         | No                      | Number of participants. Default: 1.                                                    |
+| `recipient`         | object          | No                      | The person receiving the service, when different from the buyer.                       |
+| `delivery_address`  | DeliveryAddress | Conditional             | The buyer's service delivery address. **MUST** be present when the service's `channel.type` is `at_buyer_location`. Same shape as `Booking.delivery_address`, so a UCP-Native checkout can carry the address that Standalone `create_booking` carries. |
 | `confirmation_mode` | string          | No                      | `auto` or `manual`.                                                                    |
 | `booking_status`    | string          | **Yes** (response only) | Checkout-scoped status: `pending`, `confirmed`, or `canceled`. Derived from UCP checkout status. Not the same as the full `Booking.status` lifecycle. |
 | `actions`           | Array\[Action\] | No                      | Non-payment actions (e.g., waiver). **MAY** appear when `create_checkout` requires buyer steps before payment. |
@@ -437,11 +461,35 @@ When the platform detects `dev.usp-protocol.services.paid_bookings` in the UCP p
     2. **Updated `booking_status`** -- to `confirmed` (when `confirmation_mode: auto` and no pending actions) or retained `pending` with payment collected (when `confirmation_mode: manual`)
     3. **Released the slot hold** (if any)
 
-    If payment processing fails, the booking **MUST** remain in `pending` status and no partial state changes are permitted. If the booking cannot be confirmed (e.g., hold expired), the business **MUST NOT** process the payment and **MUST** return a `slot_unavailable` error.
+### Making the Guarantee Operable
+
+A PSP charge and a booking write live in different systems, so a business cannot literally commit both in one transaction. "Atomic" is a statement about what a platform may **observe**, not about the business's transaction manager. These six rules define that contract and are testable from the platform side.
+
+| Rule | Requirement |
+|---|---|
+| **A1. Check before charge** | Re-validate slot availability, hold validity, capacity, and booking window **before** initiating the charge. On failure, **MUST NOT** charge; return `slot_unavailable`, `hold_expired`, `capacity_exceeded`, or `booking_window_violated`. |
+| **A2. Never leave a charge without a booking** | If the charge succeeds but the booking cannot be durably recorded, the business **MUST** either retry the write until it succeeds or reverse the charge, and **MUST NOT** report the checkout `completed` until one of those settles. Charging without reversing and then failing is non-conformant. |
+| **A3. Failure leaves no partial state** | After any in-flight compensation settles, a failed `complete_checkout` means no charge and no confirmed booking. While compensation is in flight, `booking_status` stays `pending`. |
+| **A4. Unknown outcomes are retryable and idempotent** | On timeout or 5xx the platform **MUST NOT** assume failure; retry with the **same** idempotency key or call `get_checkout`. A settled key replays the original outcome and **MUST NOT** charge or book twice. A key replayed with a different body gets `idempotency_conflict`. |
+| **A5. Hold disposition on failure** | A failed `complete_checkout` **MUST NOT** release a still-valid hold, so the buyer can retry or change instrument within the hold window. |
+| **A6. Reconciliation** | The business **MUST** be able to resolve a charge with no confirmed booking, and **SHOULD** refund it. `order_id` is the correlation key. |
+
+!!! warning "Why A4 exists"
+
+    A timeout on `complete_checkout` is the single most common real-world failure on the one call that moves money. Without idempotent replay it is unrecoverable: the platform cannot tell a charged buyer from an uncharged one.
 
 !!! info "Checkout expiry and holds"
 
-    The checkout session's `expires_at` **SHOULD** be no later than the slot hold's `expires_at`. If the hold expires before checkout completes, the business **MUST** return `slot_unavailable` from `complete_checkout` and **MUST NOT** process payment.
+    The checkout session's `expires_at` **SHOULD** be no later than the slot hold's `expires_at`, so the checkout cannot outlive the reservation it depends on.
+
+    If the hold expires before `complete_checkout` settles, the business **MUST NOT** process payment and **MUST** return:
+
+    | Situation after the hold lapses | Code | Why it matters |
+    |---|---|---|
+    | Slot still has capacity; only the reservation lapsed | `hold_expired` | Platform can re-hold the same slot and retry without re-querying availability. |
+    | Slot was taken or is no longer bookable | `slot_unavailable` | Platform must return the buyer to slot selection. |
+
+    Earlier drafts required `slot_unavailable` in both cases, which told the platform to discard a slot that was still free.
 
 ### Action Ordering
 
@@ -455,7 +503,7 @@ The business **MAY** reject `complete_checkout` if non-payment actions are still
 
 When a business requires policy display, mandatory notices, or affirmative
 acceptance before confirmation, UCP-Native deployments **SHOULD** use
-[UCP checkout](https://ucp.dev/latest/specification/checkout/) and
+[UCP checkout](https://ucp.dev/latest/specification/shopping/checkout/) and
 [UCP overview](https://ucp.dev/latest/specification/overview/) mechanisms rather
 than parallel USP fields. USP does not define merchant-mandated checkboxes,
 minimum age, audience tiers, or recurring enrollment in this version.
@@ -485,6 +533,46 @@ booking/checkout; use `locations[]` / `service_area` for geography. Platforms
 
 **Recurring enrollment:** out of scope for this version; one-shot bookings and
 `cancel_booking` only. See [Roadmap](../roadmap.md).
+
+---
+
+## Payment Timings Other Than `at_booking`
+
+All three payment timings are specified for UCP-Native Mode. Only `at_booking` is settled by base UCP checkout alone. The other two require additional capabilities, and a business **MUST** declare them before offering a service with that timing.
+
+| `payment_timing` | Standalone Mode | UCP-Native Mode | Capabilities required beyond base checkout |
+|---|---|---|---|
+| `at_booking` | Specified | Specified | None |
+| `deposit_required` | Specified | Specified | `dev.ucp.common.payment.terms` |
+| `at_service` | Specified | Specified | None on the direct path; `dev.ucp.common.payment.terms` and `dev.usp-protocol.services.pay_at_service` on the checkout path |
+
+Where a checkout is involved, both non-`at_booking` timings are statements about *when* money is due, and UCP has a capability for that: the [payment terms extension](https://ucp.dev/latest/specification/payment/extensions/terms/). It models a term as a set of *schedules*, each one payment with an amount, a timing class, an optional `due_at`, and a buyer-facing description. The selected term's schedules sum to the checkout total, and the accepted term is carried onto the order, so the outstanding amount survives checkout as machine-readable state rather than as prose in a confirmation email.
+
+### `deposit_required`
+
+Expressible in base UCP plus the payment terms extension, with no USP-specific machinery. The business offers a term with two schedules: an `immediate` schedule for the deposit, charged when the checkout completes, and a later schedule for the balance, whose `due_at` is the start of the booked slot. The instrument the buyer supplies funds both, which is why UCP requires that instrument to be capable of every schedule on the selected term.
+
+A business offering `deposit_required` **MUST** declare `dev.ucp.common.payment.terms` in its profile, **MUST** set the balance schedule's `due_at` to the slot start, and **MUST** carry the accepted term onto the order. Deposit amount and refundability are business policy, surfaced through the cancellation policy and UCP's disclosure mechanism, not through new USP fields.
+
+### `at_service`
+
+Collects no money digitally, so it has two conforming paths. A business **MUST** use one of them.
+
+**The direct path.** No checkout at all. The booking is created with `POST /bookings` and confirmed exactly as a free service is, with the price carried in the catalog and presented as due at the appointment. A business whose services are all free or all `at_service` **MAY** declare no checkout capability whatsoever. This is the path most independent businesses want: nothing about a cash transaction at a counter requires a checkout system.
+
+**The checkout path.** A business already running UCP checkout **MAY** route `at_service` through it, and **MUST** do so when the service shares a checkout with something charged, such as a product line item in a mixed cart. This also puts the obligation on the resulting order, where an agent can read what the buyer will owe rather than inferring it from a catalog price.
+
+The checkout path is the one UCP does not reach on its own, and the gap is narrow. Payment terms can *disclose* that the whole price falls due after completion. What it assumes is that a stored instrument will eventually be charged: UCP requires the funding instrument to be capable of every schedule of the selected term, and forbids advertising one that is not. A buyer paying cash at the counter supplies no instrument, so a checkout that will never charge anything has no specified way to complete.
+
+USP closes that gap with the [pay-at-service settlement extension](../extensions.md#pay-at-service-settlement-extension). It adds one thing: a declaration that a named term is settled offline, which lets a business offer the term with no payment handler and lets a platform complete the checkout with no instrument. The amount, the due time, and the buyer-facing statement of the obligation all come from the UCP payment term.
+
+!!! danger "Fail closed"
+
+    A business **MUST NOT** advertise a `deposit_required` service, or an `at_service` service it intends to route through a checkout, unless it declares every capability that path requires. A platform **MUST NOT** route an `at_service` service through a checkout when the business has not declared the pay-at-service extension; it uses the direct path instead. A platform encountering a `deposit_required` service without `dev.ucp.common.payment.terms` **MUST NOT** attempt to book it. Surface the reason to the operator: this is a business configuration error, not a buyer error.
+
+    The alternative, letting a platform improvise, produces the worst outcome in scheduling: a booking that looks confirmed to the buyer while the business has no record of how it will be paid.
+
+**Standalone Mode remains available.** A business that does not want the UCP payment terms dependency can operate in [Standalone Mode](standalone.md), where all three timings are specified without it, or offer those services only through a Standalone catalog while using UCP-Native Mode for its `at_booking` and free services.
 
 ---
 
@@ -720,7 +808,7 @@ sequenceDiagram
     {
       "id": "chk_abc123",
       "status": "completed",
-      "order_id": "ord_ucp_001",
+      "order": { "id": "ord_ucp_001" },
       "booking": {
         "booking_id": "bkg_456def",
         "booking_status": "confirmed",
@@ -730,6 +818,20 @@ sequenceDiagram
     ```
 
 After checkout completes, the business **MAY** send a `booking.confirmed` webhook. The payload **SHOULD** include `order_id` alongside `booking_id` so platforms can correlate USP bookings with UCP orders.
+
+!!! warning "`order.id` on the checkout, `order_id` on the webhook"
+
+    The UCP `complete_checkout` and `get_checkout` responses expose the order identifier as **`order.id`** inside an `order` object. USP correlation, including the `booking.confirmed` webhook, uses a top-level **`order_id`** which **SHOULD** equal that `order.id`.
+
+    Adapters bridging UCP and USP **MUST** map between the two. Agents **MUST NOT** assume a root-level `order_id` on a UCP checkout response unless the binding documents one.
+
+    ```json
+    // UCP checkout response
+    "order": { "id": "ord_ucp_001" }
+
+    // USP booking.confirmed webhook
+    "order_id": "ord_ucp_001"
+    ```
 
 ---
 

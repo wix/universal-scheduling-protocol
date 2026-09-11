@@ -9,7 +9,7 @@
   },
   "allOf": [
     {
-      "$ref": "https://ucp.dev/schemas/shopping/checkout.json"
+      "$ref": "https://ucp.dev/latest/schemas/shopping/checkout.json"
     },
     {
       "$ref": "#/$defs/dev.ucp.shopping.checkout"
@@ -110,6 +110,10 @@
         "notes": {
           "type": "string",
           "description": "Buyer-provided special requests."
+        },
+        "delivery_address": {
+          "$ref": "booking.json#/$defs/DeliveryAddress",
+          "description": "The buyer's service delivery address. MUST be present when the service's channel.type is at_buyer_location. MAY be present for other channels. Same shape as Booking.delivery_address, so a UCP-Native checkout can carry the address that Standalone create_booking carries."
         },
         "recipient": {
           "type": "object",

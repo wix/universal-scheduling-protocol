@@ -138,9 +138,9 @@ Several USP operations return paginated result sets. All paginated operations us
 - Platforms that retry after cursor expiry MAY receive a `cursor_expired` error and SHOULD restart from the first page.
 - Default page sizes: **50 items** for slot queries, **20 items** for service lists.
 
-!!! note "Feed endpoint exception"
+!!! note "Feed endpoint naming exception"
 
-    The `GET /services/feed` endpoint uses a timestamp-based cursor named `next_cursor` (not `cursor`) because its pagination semantics are tied to the RPDE incremental-sync model. All other paginated USP operations use the `cursor`/`has_more` pattern.
+    The `GET /services/feed` endpoint names its response field `next_cursor` (not `cursor`). Only the **name** differs: the value is an opaque cursor governed by the same rules as above, and platforms **MUST NOT** parse or construct it. The feed orders items by `(modified_at, id)` ascending so the cursor denotes a stable position in a resumable stream.
 
 ### Example
 
