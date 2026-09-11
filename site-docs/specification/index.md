@@ -80,8 +80,19 @@ keywords only carry their special meaning when they appear in all capitals.
 |-----------|--------|---------|
 | **Dates** | [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) | `2026-03-15T09:00:00-04:00` |
 | **Durations** | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) | `PT60M`, `PT24H`, `P90D` |
-| **Currency amounts** | Minor units / cents | `7500` = $75.00 |
+| **Currency amounts** | Minor units / cents, as a JSON number or decimal string | `7500` or `"7500"` = $75.00 |
 | **Timezones** | [IANA Time Zone Database](https://www.iana.org/time-zones) | `America/New_York` |
+
+### Integer Encoding
+
+Monetary amount fields — those documented as minor currency units — **MAY** be transmitted as either a JSON number or a decimal string. Consumers **MUST** accept both forms and **MUST** treat them as equal. A producer **SHOULD NOT** vary the form it emits for a given field between responses.
+
+The string form **MUST** be a canonical decimal integer matching `^-?[0-9]+$`: no leading `+`, no exponent, no thousands separator, and no decimal point. Where a field also admits a fractional value — `pricing.deposit.value`, which carries a percentage when `deposit.type` is `percentage` — the string form **MUST** match `^-?[0-9]+(\.[0-9]+)?$`.
+
+!!! note "Why both forms"
+    JSON numbers are IEEE 754 doubles and cannot represent every 64-bit integer exactly. The canonical Protocol Buffers JSON mapping therefore serializes 64-bit integer fields as decimal strings, and does so unconditionally — an implementation generated from a Protobuf IDL inherits that behavior rather than choosing it. A monetary field restricted to JSON numbers would be one such an implementation cannot emit conformantly.
+
+Fields with a bounded domain — counts, capacities, party sizes, percentages, pagination limits, waitlist positions, HTTP status codes — remain strictly `integer`. They fit a 32-bit integer, are not subject to the 64-bit mapping, and **MUST** be transmitted as JSON numbers.
 
 ---
 

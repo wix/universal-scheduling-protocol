@@ -363,7 +363,8 @@
           "description": "The pricing model."
         },
         "amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Price in minor currency units. REQUIRED when model is fixed, hourly, or per_person. MUST NOT be present when model is free."
         },
         "currency": {
@@ -375,8 +376,8 @@
           "description": "Displayable price range in minor currency units (same currency as pricing.currency). RECOMMENDED when model is variable, hourly, or per_person. MUST NOT be present when model is free. Aligns with UCP price_range.",
           "required": ["min", "max"],
           "properties": {
-            "min": { "type": "integer", "description": "Minimum price in minor currency units." },
-            "max": { "type": "integer", "description": "Maximum price in minor currency units." }
+            "min": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$", "description": "Minimum price in minor currency units." },
+            "max": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$", "description": "Maximum price in minor currency units." }
           }
         },
         "deposit": {
@@ -384,7 +385,7 @@
           "description": "REQUIRED when payment_timing is deposit_required.",
           "properties": {
             "type": { "type": "string", "enum": ["fixed", "percentage"] },
-            "value": { "type": ["integer", "number"] },
+            "value": { "type": ["integer", "number", "string"], "pattern": "^-?[0-9]+(\\.[0-9]+)?$" },
             "refundable": { "type": "boolean" }
           }
         }
@@ -463,7 +464,7 @@
           "properties": {
             "allowed": { "type": "boolean" },
             "free_cancellation_until": { "type": "string", "description": "ISO 8601 duration" },
-            "late_cancellation_fee": { "type": "integer" },
+            "late_cancellation_fee": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$" },
             "no_cancellation_after": { "type": "string", "description": "ISO 8601 duration" }
           }
         },
@@ -474,13 +475,13 @@
             "allowed": { "type": "boolean" },
             "free_reschedule_until": { "type": "string", "description": "ISO 8601 duration" },
             "max_reschedules": { "type": "integer" },
-            "fee": { "type": "integer" }
+            "fee": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$" }
           }
         },
         "no_show": {
           "type": "object",
           "properties": {
-            "fee": { "type": "integer" },
+            "fee": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$" },
             "fee_percentage": { "type": "integer", "minimum": 0, "maximum": 100 },
             "grace_period": { "type": "string", "description": "ISO 8601 duration" }
           }
