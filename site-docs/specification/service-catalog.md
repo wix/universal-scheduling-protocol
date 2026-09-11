@@ -360,7 +360,9 @@ assume byte-stable re-indexing.
 
 `start_interval` is the spacing of the grid of candidate start times that the bits sit on. It answers "how far apart are consecutive bits?", which is different from "how long is the booking?" (`duration`).
 
-This restates, on the bitmap, the existing service policy `booking_window.slot_interval` ([Service Policies](#service-policies)): the interval at which slots are generated (for example `PT30M` means slots may start every 30 minutes). Publishing `start_interval` on the bitmap lets a consumer turn a bit index into a wall-clock start without fetching service policies.
+`start_interval` is **per bitmap entry**. Two entries on the same service **MAY** use different `starts_at`, `start_interval`, and `slot_count` values. Publishing it on the entry lets a consumer turn a bit index into a start instant without fetching other catalog fields.
+
+`start_interval` **MUST NOT** be treated as a restatement of `booking_window.slot_interval` ([Service Policies](#service-policies)). That policy is the business's advertised generation interval for live slots. The ruler's tick spacing is the grid this snapshot used, and those two durations can differ. Consumers **MUST** decode each entry using that entry's `start_interval` and **MUST NOT** substitute `booking_window.slot_interval`.
 
 | Field | Meaning | Example |
 | --- | --- | --- |

@@ -1,5 +1,14 @@
 # Change Log
 
+## 11/09/26 at 16:35:48 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Dropped the Section 3.6.3 claim that `start_interval` restates `booking_window.slot_interval`, because the ruler tick is per bitmap entry and can differ from the live-slot policy, so consumers that substituted the policy decoded the wrong starts
+- Stated that `coverage`, `density`, and `soonness` are comparable only within one vertical and within one entry's grid, extending the existing "not comparable across registries, requests, snapshots, or scoring instants" rule, because density is a fraction of that entry's own `slot_count` and mixed-vertical comparison ranked class and course calendars against appointment grids
+- Mirrored both rules in `site-docs/specification/service-catalog.md`, `site-docs/specification/discovery-registry.md`, `schemas/catalog.json`, and `schemas/registry.json` `RankSignals`, so the published site and the canonical schemas do not keep the old equivalence or the old comparability bound
+- Extended `tools/usp_check.py` availability contract fragments so a later edit cannot restore the restatement sentence or drop the vertical and grid comparability language
+
+---
+
 ## 11/09/26 at 15:50:47 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Corrected Section 7.6.1, which claimed UCP checkout cannot express a deposit with a remainder owed at service time. Verified against the current UCP specification: the payment terms extension `dev.ucp.common.payment.terms` models exactly that, and carries the accepted term onto the order so the outstanding amount stays machine-readable. The claim was true only of the UCP version the specification still pinned, and read as a protocol limitation rather than a stale dependency.

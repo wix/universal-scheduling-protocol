@@ -692,7 +692,7 @@
         },
         "start_interval": {
           "type": "string",
-          "description": "ISO 8601 duration between consecutive candidate starts. Independent of duration."
+          "description": "ISO 8601 duration between consecutive candidate starts on this entry. Independent of duration and MUST NOT be treated as a restatement of booking_window.slot_interval."
         },
         "slot_count": {
           "type": "integer",

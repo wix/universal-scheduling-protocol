@@ -1039,15 +1039,21 @@ def check_availability_ranking(findings: Findings) -> None:
             "Response-state semantics",
             "Observable guarantees",
             "`null` means unknown",
+            "be treated as a restatement of",
+            "across verticals",
+            "within one vertical and within one entry's grid",
         ),
         "service-catalog": (
             "Structured slot bitmaps",
             "summary-only hint is valid",
+            "be treated as a restatement of",
         ),
         "discovery-registry": (
             "Observable guarantees",
             "Response-state semantics",
             "Rank signals on each result",
+            "across verticals",
+            "within one vertical and within one entry's grid",
         ),
     }
     # Private ranking-algorithm material must not reappear in public sources.
@@ -1057,6 +1063,7 @@ def check_availability_ranking(findings: Findings) -> None:
         "availability_weight",
         "dominance check",
         "Recommended intent mapping",
+        "It restates, on the bitmap",
     )
     for source, required_fragments in required_by_source.items():
         text = contract_sources[source].read_text()
