@@ -63,6 +63,10 @@ See [UCP-Native Mode](../deployment-modes/ucp-native.md).
 
 See [Waitlist](../extensions.md#waitlist-extension).
 
+### Pay-at-Service Settlement Extension {#pay-at-service-settlement-extension}
+
+See [Pay at Service](../extensions.md#pay-at-service-settlement-extension).
+
 ### ACP Booking Extension {#856-acp-booking-extension}
 
 See the
@@ -233,7 +237,7 @@ USP is built on three constructs:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
+| **Capabilities** | Self-contained features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
 | **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base schemas. | Waitlist management, paid bookings, vendor-specific loyalty |
 | **Transport Bindings** | Declarations of how USP traffic is carried (REST, MCP, A2A, embedded). | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card) |
 
@@ -243,9 +247,11 @@ USP uses reverse-domain notation for capability names: `{reverse-domain}.{servic
 
 | Namespace pattern | Authority | Governance |
 |-------------------|-----------|------------|
-| `dev.usp-protocol.*` | usp.dev | USP governing body |
+| `dev.usp-protocol.*` | usp-protocol.dev | USP governing body |
 | `com.{vendor}.*` | {vendor}.com | Vendor organization |
 | `org.{org}.*` | {org}.org | Organization |
 
 !!! warning "Spec URL Binding"
     The `spec` and `schema` URLs on each capability entry **MUST** use origins that match the reverse-domain namespace authority of the capability name. Platforms **MUST** validate this binding when processing profiles.
+
+    Rejection is **per entry, not per profile**: discard the mismatched capability entry, keep processing the remaining entries, and do not rewrite the URL to the expected origin.

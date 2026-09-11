@@ -532,7 +532,9 @@
         },
         "canceled_by": {
           "type": "string",
-          "description": "Who initiated the cancellation."
+          "enum": ["buyer", "business", "system"],
+          "default": "buyer",
+          "description": "Who initiated the cancellation. buyer: the buyer or an agent acting for them. business: the business or its staff. system: an automated policy such as no-show or payment expiry."
         },
         "fee": {
           "type": "integer",

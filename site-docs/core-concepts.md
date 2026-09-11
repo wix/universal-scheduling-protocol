@@ -118,12 +118,30 @@ services, no checkout system is needed in either mode.
 USP supports both **paid services** that require payment integration and **free
 or pay-later services** that operate without any payment infrastructure.
 
-| Mode | `requires_payment` | `payment_timing` | Checkout Required? | Booking Flow |
+| Commerce mode | `requires_payment` | `payment_timing` | Checkout Required? | Booking Flow |
 |------|--------------------|------------------|--------------------|--------------|
-| **Free** | `false` | N/A | No | `pending` → `confirmed` |
-| **Pay at service** | `true` | `at_service` | No | `pending` → `confirmed` (payment collected in person) |
+| **No payment** | `false` | N/A | No | `pending` → `confirmed` |
+| **Pay at service** | `true` | `at_service` | Not for payment | `pending` → `confirmed` (payment collected in person) |
 | **Pay at booking** | `true` | `at_booking` | Yes | `pending` → `requires_action` → checkout → `confirmed` |
-| **Deposit** | `true` | `deposit_required` | Yes | `pending` → `requires_action` → checkout → `confirmed` |
+| **Deposit at booking** | `true` | `deposit_required` | Yes | `pending` → `requires_action` → checkout → `confirmed` |
+
+The first two are **checkout-free**; the last two are **checkout-backed**. That
+distinction, not the mode name, determines whether a business needs payment
+infrastructure at all.
+
+!!! info "\"Checkout-free\" is about payment, not about the checkout object"
+
+    Neither checkout-free mode involves a payment handler, a PSP, or any money moving digitally.
+
+    A `Pay at service` booking is normally created directly, with no checkout of any kind, in either deployment mode. A business may still choose to route one through a UCP checkout that collects nothing, so the amount owed is recorded on an order or settles alongside a charged line item in a mixed cart. No instrument is supplied and nothing is charged. See the [pay-at-service settlement extension](extensions.md#pay-at-service-settlement-extension).
+
+    A business offering only `No payment` or `Pay at service` services needs no checkout system in either deployment mode.
+
+!!! warning "Commerce modes are not deployment modes"
+
+    A **commerce mode** describes *when money moves* for a service, set per service by `requires_payment` and `payment_timing`. A **deployment mode** describes *which protocol stack the business runs*: [UCP-Native](deployment-modes/ucp-native.md) or [Standalone](deployment-modes/standalone.md).
+
+    The two axes are independent, and one business commonly offers services in more than one commerce mode. Earlier drafts named two commerce modes "Standalone", which collided with the Standalone deployment mode.
 
 ---
 
@@ -133,7 +151,7 @@ USP is built on three constructs:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
+| **Capabilities** | Self-contained features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
 | **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`). | Waitlist (extends bookings), Paid bookings (extends UCP checkout) |
 | **Transport Bindings** | Declarations of how USP traffic is carried. The profile maps service names to arrays of transport-specific bindings. | [REST](transport/rest.md), [MCP](transport/mcp.md), [A2A](transport/a2a.md), [ESP](transport/esp.md) |
 
@@ -149,13 +167,18 @@ USP uses reverse-domain notation for capability names:
 
 | Namespace | Authority | Governance |
 |-----------|-----------|------------|
-| `dev.usp-protocol.*` | usp.dev | USP governing body |
+| `dev.usp-protocol.*` | usp-protocol.dev | USP governing body |
 | `com.{vendor}.*` | {vendor}.com | Vendor organization |
 | `org.{org}.*` | {org}.org | Organization |
 
 The `spec` and `schema` URLs on each capability entry **MUST** use origins that
 match the reverse-domain namespace authority. For example, `dev.usp-protocol.*`
 capabilities must reference `https://usp-protocol.dev/...`.
+
+When an entry's origin does not match, the platform **MUST** discard **that
+capability entry** and continue processing the rest of the profile. A single
+malformed entry **MUST NOT** cause the whole profile to be rejected, and the
+platform **MUST NOT** rewrite the URL to the expected origin.
 
 Within the `dev.usp-protocol.*` namespace:
 

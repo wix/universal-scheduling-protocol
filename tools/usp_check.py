@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Conformance checks for the USP specification repository.
 
-Four subcommands, each useful on its own:
+Five subcommands, each useful on its own:
 
   schemas   Parse every JSON artefact, compile every file under schemas/ as a
             JSON Schema, assert the protocol version literal agrees across
@@ -24,6 +24,12 @@ Four subcommands, each useful on its own:
   authority Enforce the owned origin and capability namespace, canonical URL
             layout, published artifact coverage, playground mirrors, problem
             pages, and stale-identifier absence.
+
+  coherence Catch the three drifts that read as healthy prose: a field table
+            naming a field its cited $def does not have, a binding growing an
+            operation the other binding or §12 never hears about, and a binding
+            emitting an error code the §9.4 matrix does not define. Each is
+            invisible to review because each document is self-consistent.
 
 Accepted pre-existing failures live one per line in tools/known-issues.txt.
 That file is an explicit, reviewable debt ledger - not a suppression flag - and
@@ -631,6 +637,22 @@ def spec_error_codes() -> set[str]:
     return set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
 
 
+def spec_business_outcome_codes() -> set[str]:
+    """Codes documented in the 9.4.2 business-outcome table.
+
+    Flow vectors assert outcomes carried in ``messages[]`` with HTTP 200, so
+    they cannot be checked against the protocol-error mirrors: a business
+    outcome deliberately has no Problem type and no JSON-RPC error code.
+    """
+    text = SPEC.read_text()
+    start = text.find("#### 9.4.2")
+    if start == -1:
+        return set()
+    end = text.find("#### 9.4.3", start)
+    window = text[start:end if end != -1 else start + 6000]
+    return set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
+
+
 def check_vectors(findings: Findings) -> None:
     vector_dir = REPO / "tests" / "vectors"
     files = sorted(vector_dir.rglob("*.json")) if vector_dir.exists() else []
@@ -665,6 +687,7 @@ def check_vectors(findings: Findings) -> None:
             return None
 
     documented = spec_error_codes()
+    outcome_codes = spec_business_outcome_codes()
     enum = set(resolve_pointer(
         json.loads(OPENRPC.read_text()),
         "/components/errors/USPProtocolError/data/properties/code/enum"))
@@ -688,6 +711,32 @@ def check_vectors(findings: Findings) -> None:
                 findings.fail(f"VECTOR:{vid}:code-unenumerated",
                               f"reject_code {code!r} is not in the OpenRPC "
                               "USPProtocolError code enum")
+
+        # Flow vectors assert business outcomes rather than protocol errors,
+        # so they are checked against the 9.4.2 table instead of the protocol
+        # mirrors. Mixing the two fields would let a vector claim an HTTP 200
+        # outcome while naming a code that only exists as a 4xx.
+        outcome = vector.get("outcome_code")
+        if outcome:
+            if code:
+                findings.fail(f"VECTOR:{vid}:code-family-mixed",
+                              "vector sets both reject_code and outcome_code; a "
+                              "case is either a protocol error or a business "
+                              "outcome, never both")
+            if outcome not in outcome_codes:
+                findings.fail(f"VECTOR:{vid}:outcome-undocumented",
+                              f"outcome_code {outcome!r} is not in the 9.4.2 "
+                              "business-outcome table")
+            if outcome in enum:
+                findings.fail(f"VECTOR:{vid}:outcome-misfiled",
+                              f"outcome_code {outcome!r} also appears in the "
+                              "OpenRPC USPProtocolError enum, so the two error "
+                              "families overlap")
+            status = vector.get("then", {}).get("http_status")
+            if status is not None and status != 200:
+                findings.fail(f"VECTOR:{vid}:outcome-status",
+                              f"business outcome asserts HTTP {status}; 9.4.2 "
+                              "requires 200")
 
         credential = vector.get("credential")
         if credential is not None and vector.get("credential_wellformed", True):
@@ -1060,6 +1109,7 @@ def check_authority(findings: Findings) -> None:
         "5-booking-lifecycle",
         "7-ucp-native-mode",
         "waitlist-extension",
+        "pay-at-service-settlement-extension",
         "856-acp-booking-extension",
     }
     historical: set[Path] = set()
@@ -1223,11 +1273,195 @@ def check_authority(findings: Findings) -> None:
             findings.fail(f"NAMESPACE:{name}", "missing from namespace registry")
 
 
+# ---------------------------------------------------------------------------
+# check: coherence
+#
+# The three failure modes below all look like healthy prose. A field table can
+# name a field the schema never had, a binding can grow an operation the other
+# binding and the operation reference never hear about, and a binding can
+# return an error code the normative matrix does not define. Each is invisible
+# to review precisely because the text reads correctly on its own.
+# ---------------------------------------------------------------------------
+
+# Only bare pointers, where the section defines the object itself. A qualified
+# pointer ("Response - [/$defs/Booking]") sits above an operation's *request*
+# table, whose fields are deliberately not properties of the response object.
+SCHEMA_POINTER_RE = re.compile(
+    r"^> \*\*JSON Schema:\*\* \[/\$defs/(\w+)\]\(schemas/([\w.]+)\)\s*$", re.M)
+FIELD_ROW_RE = re.compile(r"^\|\s*`([A-Za-z_][\w.\[\]]*)`\s*\|", re.M)
+
+# Prose tables that legitimately name something other than a property of the
+# cited $def. Each entry is (heading substring, reason).
+NON_FIELD_TABLES = {
+    "Slot state values",
+    "Booking Status Lifecycle",
+    "Permitted Transitions by Operation",
+}
+
+
+def _defs_properties(defs_doc: dict, name: str) -> set[str] | None:
+    """Property names of a $def, following allOf/oneOf/anyOf one level."""
+    node = defs_doc.get("$defs", {}).get(name)
+    if node is None:
+        return None
+    props: set[str] = set()
+
+    def walk(n, depth=0):
+        if not isinstance(n, dict) or depth > 4:
+            return
+        props.update(n.get("properties", {}).keys())
+        for kw in ("allOf", "oneOf", "anyOf"):
+            for sub in n.get(kw, []) or []:
+                walk(sub, depth + 1)
+        for kw in ("then", "else", "if"):
+            if kw in n:
+                walk(n[kw], depth + 1)
+
+    walk(node)
+    return props
+
+
+def check_prose_fields(findings: Findings) -> None:
+    """Every field named in a prose table exists in the cited $def."""
+    text = SPEC.read_text()
+    cache: dict[str, dict] = {}
+    checked = 0
+
+    for match in SCHEMA_POINTER_RE.finditer(text):
+        def_name, schema_file = match.group(1), match.group(2)
+        path = SCHEMA_DIR / schema_file
+        if not path.exists():
+            findings.fail(f"PROSE:{schema_file}#{def_name}:missing-file",
+                          f"specification cites schemas/{schema_file}, which does not exist")
+            continue
+        doc = cache.setdefault(schema_file, json.loads(path.read_text()))
+        props = _defs_properties(doc, def_name)
+        if props is None:
+            findings.fail(f"PROSE:{schema_file}#{def_name}:missing-def",
+                          f"specification cites $defs/{def_name} in {schema_file}, "
+                          "which is not defined there")
+            continue
+        if not props:
+            continue
+
+        # The first field table after the pointer, up to the next heading or
+        # the next pointer, is the one the pointer is describing.
+        window = text[match.end():]
+        stop = len(window)
+        for pat in (r"\n#{2,6} ", r"\n> \*\*JSON Schema:\*\*"):
+            m = re.search(pat, window)
+            if m:
+                stop = min(stop, m.start())
+        window = window[:stop]
+        if any(label in window for label in NON_FIELD_TABLES):
+            continue
+
+        table = re.search(r"^\| Field.*?(?:\n\|.*)+", window, re.M)
+        if not table:
+            continue
+        checked += 1
+        for row in FIELD_ROW_RE.finditer(table.group(0)):
+            field = row.group(1).split(".")[0].split("[")[0]
+            if field not in props:
+                findings.fail(
+                    f"PROSE:{schema_file}#{def_name}:{field}",
+                    f"prose table documents {field!r}, which is not a property "
+                    f"of $defs/{def_name} in {schema_file}")
+    print(f"  checked {checked} prose field table(s)")
+
+
+def check_transport_parity(findings: Findings) -> None:
+    """REST and MCP expose the same operations, and §12 lists all of them."""
+    openapi = json.loads(OPENAPI.read_text())
+    openrpc = json.loads(OPENRPC.read_text())
+    text = SPEC.read_text()
+
+    rest_ops = {
+        f"{method.upper()} {path}"
+        for path, item in openapi.get("paths", {}).items()
+        for method in item
+        if method in {"get", "post", "put", "patch", "delete"}
+        # Discovery, not an operation: no MCP method and no §12 row.
+        and path != "/.well-known/usp"
+    }
+    mcp_methods = {m["name"] for m in openrpc.get("methods", [])}
+
+    section = text[text.find("## 12. Operation Reference"):]
+    section = section[:section.find("\n## 13.")]
+    rows = re.findall(
+        r"^\|\s*[^|]+\|\s*`(GET|POST|PUT|PATCH|DELETE)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|",
+        section, re.M)
+    table_rest = {f"{verb} {path}" for verb, path, _ in rows}
+    table_mcp = {mcp for _, _, mcp in rows}
+
+    if len(rest_ops) != len(mcp_methods):
+        findings.fail("PARITY:count",
+                      f"REST exposes {len(rest_ops)} operations but MCP exposes "
+                      f"{len(mcp_methods)}; §9.2.1 claims a total one-to-one mapping")
+
+    for missing in sorted(rest_ops - table_rest):
+        findings.fail(f"PARITY:section12-missing-rest:{missing}",
+                      "OpenAPI defines this operation but §12 has no row for it")
+    for extra in sorted(table_rest - rest_ops):
+        findings.fail(f"PARITY:section12-phantom-rest:{extra}",
+                      "§12 lists this operation but OpenAPI does not define it")
+    for missing in sorted(mcp_methods - table_mcp):
+        findings.fail(f"PARITY:section12-missing-mcp:{missing}",
+                      "OpenRPC defines this method but §12 has no row for it")
+    for extra in sorted(table_mcp - mcp_methods):
+        findings.fail(f"PARITY:section12-phantom-mcp:{extra}",
+                      "§12 lists this MCP method but OpenRPC does not define it")
+    print(f"  {len(rest_ops)} REST / {len(mcp_methods)} MCP / {len(rows)} §12 rows")
+
+
+def check_binding_error_codes(findings: Findings) -> None:
+    """Every error code a binding can emit is defined in the §9.4 matrix."""
+    text = SPEC.read_text()
+    matrix = set(spec_error_codes()) | spec_business_outcome_codes()
+
+    start = text.find("#### 9.4.3")
+    if start != -1:
+        window = text[start:text.find("\n#### 9.5", start)]
+        matrix |= set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
+    # Extension codes are registered in their own sections by design.
+    for marker in ("#### 11.1.6",):
+        s = text.find(marker)
+        if s != -1:
+            matrix |= set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|",
+                                     text[s:s + 4000], re.M))
+
+    openrpc = json.loads(OPENRPC.read_text())
+    enum = set(resolve_pointer(
+        openrpc, "/components/errors/USPProtocolError/data/properties/code/enum"))
+    for code in sorted(enum - matrix):
+        findings.fail(f"ERRCODE:openrpc:{code}",
+                      "OpenRPC USPProtocolError can emit this code but the "
+                      "§9.4 matrix does not define it")
+
+    openapi = json.loads(OPENAPI.read_text())
+    slugs = set(re.findall(r"usp-protocol\.dev/errors/([a-z0-9-]+)",
+                           json.dumps(openapi)))
+    for slug in sorted(slugs):
+        if slug.replace("-", "_") not in matrix:
+            findings.fail(f"ERRCODE:openapi:{slug}",
+                          "OpenAPI returns this Problem type but the §9.4 "
+                          "matrix does not define a matching code")
+    print(f"  {len(enum)} OpenRPC code(s) / {len(slugs)} Problem type(s) "
+          f"against {len(matrix)} matrix entries")
+
+
+def check_coherence(findings: Findings) -> None:
+    check_prose_fields(findings)
+    check_transport_parity(findings)
+    check_binding_error_codes(findings)
+
+
 CHECKS = {
     "schemas": check_schemas,
     "refs": check_refs,
     "vectors": check_vectors,
     "authority": check_authority,
+    "coherence": check_coherence,
 }
 
 

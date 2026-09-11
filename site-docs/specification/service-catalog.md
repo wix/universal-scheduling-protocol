@@ -59,7 +59,7 @@ The feed returns a paginated, chronologically ordered list of service records, s
         }
       ],
       "pagination": {
-        "cursor": "crs_f7g8h9i0j1k2",
+        "next_cursor": "crs_f7g8h9i0j1k2",
         "has_more": true
       },
       "feed_meta": {
@@ -75,16 +75,18 @@ The feed returns a paginated, chronologically ordered list of service records, s
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `items[].state` | string | **Yes** | `updated` (new or modified service) or `deleted` (service removed; aggregators **MUST** prune this from their index). |
-| `items[].modified_at` | string | **Yes** | RFC 3339 timestamp of when this record was last modified. Used as the cursor for incremental sync. |
+| `items[].modified_at` | string | **Yes** | RFC 3339 timestamp of when this record was last modified. Defines the feed's sort order. It is **not** the cursor. |
 | `items[].data` | object | **Yes** | Full service object for `updated` state; object containing only `id` for `deleted` state. |
-| `pagination.next_cursor` | string | **Yes** | Opaque cursor to pass as the `cursor` query parameter on the next request. |
+| `pagination.next_cursor` | string | **Yes** | Opaque cursor to pass as the `cursor` query parameter on the next request. Aggregators **MUST NOT** parse or construct it. |
 | `pagination.has_more` | boolean | **Yes** | Whether more records exist beyond this page. |
 | `feed_meta.feed_generated_at` | string | **Yes** | RFC 3339 timestamp of when this feed page was computed. |
 | `feed_meta.total_services` | integer | **Yes** | Total number of active (non-deleted) services in the business's catalog. |
 | `feed_meta.feed_status` | string | **Yes** | Health status: `healthy`, `degraded`, or `rebuilding`. |
 
 !!! note "Feed Cursor vs Pagination Cursor"
-    The feed endpoint uses `pagination.next_cursor` (a timestamp string) rather than the generic `cursor` used by all other paginated USP operations. The feed cursor is a `modified_at` timestamp that enables incremental RPDE-style synchronization.
+    The feed response field is named `pagination.next_cursor` rather than the generic `cursor` used by all other paginated USP operations. Only the **name** differs; the opacity contract is identical.
+
+    The feed orders items by `(modified_at, id)` ascending, using `id` as a deterministic tie-break so records sharing a timestamp cannot straddle a page boundary and be skipped or duplicated on resume. `next_cursor` is an opaque token encoding that position. Aggregators **MUST** pass it back verbatim and **MUST NOT** parse, construct, or substitute a timestamp for it.
 
 ---
 
