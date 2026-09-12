@@ -167,6 +167,36 @@ for the full normative text and rationale.
 
 ---
 
+## Data Privacy
+
+USP carries buyer and recipient personal data: `buyer`, `recipient`, `delivery_address`, and free-text `notes`, which in scheduling frequently contains health, accessibility, or household detail. Both parties hold that data, so both are constrained.
+
+### Business Requirements
+
+- Buyer personal data **MUST** be transmitted only over encrypted connections.
+- Businesses **SHOULD** minimize the buyer data returned in responses to what the operation needs.
+- Businesses **MUST** comply with applicable data protection regulations (GDPR, CCPA, and similar) on retention and deletion.
+
+### Platform Requirements
+
+A platform or agent is a processor of the same data and, unlike the business, often handles many buyers across many businesses.
+
+| Requirement | Rule |
+|---|---|
+| **Log minimization** | **MUST NOT** write `buyer`, `recipient`, `delivery_address`, or `notes` to logs, traces, or analytics. Log `booking_id`, `service_id`, and status instead, which are enough to debug a booking flow. Wholesale body captures **MUST** redact these fields before persisting. |
+| **Redaction in error echoes** | Errors and diagnostics **MUST NOT** echo personal data to a third party. A `validation_error` **MUST** name the offending field (by name or JSON Pointer) and **MUST NOT** include its value. |
+| **Cache bounds** | Personal data **MUST NOT** be cached beyond the booking flow that required it. Retain it while managing an active booking; discard it when the booking reaches a terminal status or the buyer's session ends, whichever is later. |
+| **No secondary use** | Personal data from a USP booking **MUST NOT** be used for anything but completing and managing that booking, absent separate buyer consent. |
+| **Onward transfer** | A platform forwarding data to a further party (such as a sub-agent completing the booking) **MUST** limit the forwarded fields to what the receiving operation requires. |
+
+!!! tip "Why redaction matters more than it looks"
+
+    "Invalid phone number" is conformant; quoting the number is not. Error strings propagate into logs, dashboards, and operator surfaces the buyer never consented to, so an echoed value outlives the request that produced it.
+
+Catalog and availability data carry no personal data and are cached per the normal [caching strategy](specification/availability.md) without these limits.
+
+---
+
 ## Standalone Mode Security Infrastructure
 
 !!! note "UCP-Native Mode"

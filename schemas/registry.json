@@ -306,7 +306,7 @@
     "RankSignals": {
       "type": "object",
       "title": "RankSignals",
-      "description": "Per-hit availability and relevance ingredients for service search ranking. Present on every hit of a response that applies availability ranking or that answers a request carrying time preferences, including hits with no hint or a summary-only hint. Values are registry-specific and comparable only within one response from one registry. null means unknown; 0 means known empty or known non-overlap.",
+      "description": "Per-hit availability and relevance ingredients for service search ranking. Present on every hit of a response that applies availability ranking or that answers a request carrying time preferences, including hits with no hint or a summary-only hint. Values are registry-specific. coverage, density, and soonness are comparable only within one response from one registry, within one vertical, and within one bitmap entry's grid (same starts_at, start_interval, and slot_count). null means unknown; 0 means known empty or known non-overlap.",
       "required": ["relevance", "coverage", "density", "soonness", "hint_usable"],
       "properties": {
         "relevance": {
@@ -319,19 +319,19 @@
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "How much of the requested time has a hinted opening when desired_service_time_ranges is present. 0 means the requested time was represented in the structured snapshot and no opening overlapped it. null means not computed: no time preference, no usable structured hint, or requested time outside what the service published."
+          "description": "How much of the requested time has a hinted opening when desired_service_time_ranges is present. 0 means the requested time was represented in the structured snapshot and no opening overlapped it. null means not computed: no time preference, no usable structured hint, or requested time outside what the service published. Comparable only within one vertical and within one entry's grid."
         },
         "density": {
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "Fraction of represented candidate starts that are open, ignoring when openings fall. 0 means sampled and known empty. null means unknown because there is no usable structured hint."
+          "description": "Fraction of represented candidate starts that are open, ignoring when openings fall. 0 means sampled and known empty. null means unknown because there is no usable structured hint. A fraction of that entry's own slot_count, so comparable only within one vertical and within one entry's grid."
         },
         "soonness": {
           "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "How soon the earliest acceptable opening is relative to the request anchor and the registry's documented horizon. 0 means no acceptable opening inside the horizon. null means unknown because there is no usable structured hint. Populated even when prefer_sooner_availability_slots is false."
+          "description": "How soon the earliest acceptable opening is relative to the request anchor and the registry's documented horizon. 0 means no acceptable opening inside the horizon. null means unknown because there is no usable structured hint. Populated even when prefer_sooner_availability_slots is false. Comparable only within one vertical and within one entry's grid."
         },
         "hint_usable": {
           "type": "boolean",

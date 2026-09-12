@@ -233,6 +233,42 @@
                   "status": 400,
                   "detail": "Content-Digest header does not match the computed digest of the request body"
                 }
+              },
+              "invalid_profile_url": {
+                "summary": "Profile URL malformed, non-HTTPS, or unresolvable",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/invalid-profile-url",
+                  "title": "Invalid Profile URL",
+                  "status": 400,
+                  "detail": "The supplied profile URL is malformed, uses a non-HTTPS scheme, or cannot be resolved"
+                }
+              },
+              "cursor_expired": {
+                "summary": "Pagination cursor no longer honored",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/cursor-expired",
+                  "title": "Cursor Expired",
+                  "status": 400,
+                  "detail": "The supplied pagination cursor is no longer honored; restart from the first page"
+                }
+              },
+              "range_too_wide": {
+                "summary": "Availability range exceeds the supported limit",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/range-too-wide",
+                  "title": "Range Too Wide",
+                  "status": 400,
+                  "detail": "The requested availability range exceeds the business's supported limit"
+                }
+              },
+              "version_unsupported": {
+                "summary": "Requested USP version is not supported",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/version-unsupported",
+                  "title": "Version Unsupported",
+                  "status": 400,
+                  "detail": "The requested USP version is not supported by this business"
+                }
               }
             }
           }
@@ -327,23 +363,64 @@
                   "status": 401,
                   "detail": "The jti in the DPoP proof has already been seen within the freshness window. Build a fresh proof for each request."
                 }
+              },
+              "pop_proof_required": {
+                "summary": "Sender-constrained credential presented without a proof",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/pop-proof-required",
+                  "title": "Proof of possession required",
+                  "status": 401,
+                  "detail": "A sender-constrained credential was presented without a valid proof of possession"
+                }
+              },
+              "pop_proof_invalid": {
+                "summary": "Proof failed to parse or verify",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/pop-proof-invalid",
+                  "title": "Proof invalid",
+                  "status": 401,
+                  "detail": "The proof failed to parse or verify: bad typ, rejected alg, signature failure, or a mismatched htm/htu, usp_m/aud/usp_p, or ath"
+                }
+              },
+              "proof_nonce_required": {
+                "summary": "Business requires a nonce in the proof",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/proof-nonce-required",
+                  "title": "Proof nonce required",
+                  "status": 401,
+                  "detail": "The business requires a nonce. Retry with a fresh proof carrying the nonce supplied in this response."
+                }
               }
             }
           }
         }
       },
       "NotFound": {
-        "description": "Resource not found",
+        "description": "Protocol error: the resource addressed by the request path does not exist or is not visible to the caller. Path-addressed operations MUST return 404 rather than a 200 with a messages[] entry, so that a missing resource is distinguishable from a successful read. See specification.md Section 9.4.1.",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp-protocol.dev/errors/booking-not-found",
-              "title": "Not Found",
-              "status": 404,
-              "detail": "The requested resource does not exist"
+            "examples": {
+              "booking_not_found": {
+                "summary": "Booking in the request path does not exist",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/booking-not-found",
+                  "title": "Not Found",
+                  "status": 404,
+                  "detail": "The requested booking does not exist or is not visible to the caller"
+                }
+              },
+              "entry_not_found": {
+                "summary": "Waitlist entry in the request path does not exist",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/entry-not-found",
+                  "title": "Not Found",
+                  "status": 404,
+                  "detail": "The requested waitlist entry does not exist or is not visible to the caller"
+                }
+              }
             }
           }
         }
@@ -365,17 +442,31 @@
         }
       },
       "UnprocessableEntity": {
-        "description": "Validation error",
+        "description": "Protocol error: the request was well-formed but failed validation (validation_error), or a referenced profile document failed schema validation (profile_malformed). See specification.md Section 9.4.3.",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp-protocol.dev/errors/validation-error",
-              "title": "Unprocessable Entity",
-              "status": 422,
-              "detail": "Request fields are invalid"
+            "examples": {
+              "validation_error": {
+                "summary": "Request fields failed validation",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/validation-error",
+                  "title": "Unprocessable Entity",
+                  "status": 422,
+                  "detail": "One or more request fields failed validation"
+                }
+              },
+              "profile_malformed": {
+                "summary": "Profile document fails schema validation",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/profile-malformed",
+                  "title": "Profile Malformed",
+                  "status": 422,
+                  "detail": "The profile document is not valid JSON or fails schema validation against schemas/profile.json"
+                }
+              }
             }
           }
         }
@@ -413,7 +504,7 @@
         }
       },
       "TooManyRequests": {
-        "description": "Rate limited",
+        "description": "Protocol error: the caller exceeded the applicable request rate (rate_limited), or the buyer already holds the maximum number of concurrent holds the business permits (hold_limit_exceeded). See specification.md Sections 9.4.3 and 10.1.2.",
         "headers": {
           "Retry-After": {
             "schema": {
@@ -426,11 +517,25 @@
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
             },
-            "example": {
-              "type": "https://usp-protocol.dev/errors/rate-limited",
-              "title": "Too Many Requests",
-              "status": 429,
-              "detail": "Rate limit exceeded"
+            "examples": {
+              "rate_limited": {
+                "summary": "Request rate exceeded",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/rate-limited",
+                  "title": "Too Many Requests",
+                  "status": 429,
+                  "detail": "Rate limit exceeded"
+                }
+              },
+              "hold_limit_exceeded": {
+                "summary": "Buyer already at the concurrent hold limit",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/hold-limit-exceeded",
+                  "title": "Hold Limit Exceeded",
+                  "status": 429,
+                  "detail": "The buyer already holds the maximum number of concurrent holds permitted for this service. Release an existing hold before requesting another."
+                }
+              }
             }
           }
         }
@@ -465,6 +570,12 @@
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp-protocol.dev/errors/service-unavailable",
+              "title": "Service Unavailable",
+              "status": 503,
+              "detail": "The business is temporarily unable to handle requests"
             }
           }
         }
@@ -968,7 +1079,7 @@
           {
             "name": "cursor",
             "in": "query",
-            "description": "Opaque cursor from a previous feed response's next_cursor field. Omit on the first request.",
+            "description": "Opaque cursor from a previous feed response's pagination.next_cursor field, passed back verbatim. Omit on the first request to read the feed from the beginning. Clients MUST NOT parse or construct this value, and MUST NOT substitute a timestamp.",
             "schema": {
               "type": "string"
             }
@@ -1038,16 +1149,16 @@
                         "pagination": {
                           "type": "object",
                           "required": [
-                            "cursor",
+                            "next_cursor",
                             "has_more"
                           ],
                           "properties": {
-                            "cursor": {
+                            "next_cursor": {
                               "type": [
                                 "string",
                                 "null"
                               ],
-                              "description": "Opaque cursor to pass on the next request. Null when no more pages."
+                              "description": "Opaque cursor to pass as the cursor query parameter on the next request. Null when no more pages. Encodes a position in (modified_at, id) order; clients MUST NOT parse or construct it. See specification Section 3.1."
                             },
                             "has_more": {
                               "type": "boolean"

@@ -1,14 +1,14 @@
 {
   "ucp": {
-    "version": "2026-01-11",
+    "version": "2026-08-25",
     "services": {
       "dev.ucp.shopping": [
         {
-          "version": "2026-01-11",
+          "version": "2026-08-25",
           "spec": "https://ucp.dev/latest/specification/overview/",
           "transport": "rest",
           "endpoint": "https://business.example.com/ucp/v1",
-          "schema": "https://ucp.dev/schemas/shopping/rest.openapi.json"
+          "schema": "https://ucp.dev/latest/services/shopping/rest.openapi.json"
         }
       ],
       "dev.usp-protocol.services": [
@@ -33,9 +33,9 @@
     "capabilities": {
       "dev.ucp.shopping.checkout": [
         {
-          "version": "2026-01-11",
-          "spec": "https://ucp.dev/latest/specification/checkout/",
-          "schema": "https://ucp.dev/schemas/shopping/checkout.json"
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/checkout/",
+          "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
       "dev.usp-protocol.services.catalog": [

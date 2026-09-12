@@ -13,7 +13,11 @@ The Embedded Scheduling Protocol enables a host application to embed a business'
 
 ## Message Schemas
 
-ESP uses JSON-RPC 2.0 messaging over `MessageChannel` (web) or injected globals (native):
+!!! info "Canonical schema"
+
+    Every ESP message has a `$def` in [`schemas/esp.json`](https://usp-protocol.dev/schemas/services/esp.json), and `$defs/EspMessage` is the discriminated union over all twelve. This is the schema the message-validation requirement below refers to.
+
+ESP uses JSON-RPC 2.0 messaging over `MessageChannel` (web) or injected globals (native). Every message shares the same framing: `jsonrpc` is exactly `"2.0"`, `method` is one of the twelve names below, `params` carries the message-specific payload, and `id` appears only on frames that expect a correlated reply.
 
 | Message | Direction | Description |
 |---------|-----------|-------------|
@@ -122,7 +126,7 @@ ESP iframes **MUST** use the `sandbox` attribute with the following minimum valu
 |-------------|---------|
 | **Content-Security-Policy** | Business MUST set CSP headers restricting the embedded page's capabilities |
 | **Communication channel** | Host MUST use `MessageChannel` -- direct `postMessage` to `window.parent` is not permitted |
-| **Message validation** | All ESP messages MUST be validated against the expected JSON-RPC schema before processing |
+| **Message validation** | Both peers MUST validate every incoming frame against `schemas/esp.json` (`$defs/EspMessage`) before acting on it, and MUST discard a frame that does not validate. A discarded frame MUST NOT advance session state. A frame whose `method` is not one of the twelve registered names, or that invokes a delegation not accepted in `esp.start`, MUST be rejected. |
 | **Sandbox attribute** | MUST include `allow-scripts allow-same-origin allow-forms` at minimum |
 | **Referrer policy** | SHOULD use `no-referrer` |
 

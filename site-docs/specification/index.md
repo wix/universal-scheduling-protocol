@@ -63,6 +63,10 @@ See [UCP-Native Mode](../deployment-modes/ucp-native.md).
 
 See [Waitlist](../extensions.md#waitlist-extension).
 
+### Pay-at-Service Settlement Extension {#pay-at-service-settlement-extension}
+
+See [Pay at Service](../extensions.md#pay-at-service-settlement-extension).
+
 ### ACP Booking Extension {#856-acp-booking-extension}
 
 See the
@@ -91,6 +95,8 @@ The string form **MUST** be a canonical decimal integer matching `^-?[0-9]+$`: n
 
 !!! note "Why both forms"
     JSON numbers are IEEE 754 doubles and cannot represent every 64-bit integer exactly. The canonical Protocol Buffers JSON mapping therefore serializes 64-bit integer fields as decimal strings, and does so unconditionally — an implementation generated from a Protobuf IDL inherits that behavior rather than choosing it. A monetary field restricted to JSON numbers would be one such an implementation cannot emit conformantly.
+
+Where a monetary field carries a numeric bound, the string form is constrained to match: `esp.json` `params.amount` has `exclusiveMinimum: 0` and so admits only `^[1-9][0-9]*$`, and `pay_at_service.json` `AtServiceSchedule.amount` has `minimum: 0` and so admits `^[0-9]+$`. A bound expressed with `minimum` or `exclusiveMinimum` does not constrain a string, so it is restated in the pattern rather than lost.
 
 Fields with a bounded domain — counts, capacities, party sizes, percentages, pagination limits, waitlist positions, HTTP status codes — remain strictly `integer`. They fit a 32-bit integer, are not subject to the 64-bit mapping, and **MUST** be transmitted as JSON numbers.
 
@@ -244,7 +250,7 @@ USP is built on three constructs:
 
 | Construct | Description | Examples |
 |-----------|-------------|----------|
-| **Capabilities** | Standalone features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
+| **Capabilities** | Self-contained features a business supports, declared using a registry pattern. Each capability has a namespace, schema, and version. | `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings` |
 | **Extensions** | Optional modules that augment a capability via the `extends` field. Extensions use JSON Schema composition (`allOf`, `$defs`) to layer additional fields onto base schemas. | Waitlist management, paid bookings, vendor-specific loyalty |
 | **Transport Bindings** | Declarations of how USP traffic is carried (REST, MCP, A2A, embedded). | REST (OpenAPI 3.x), MCP (OpenRPC / JSON-RPC), A2A (Agent Card) |
 
@@ -254,9 +260,11 @@ USP uses reverse-domain notation for capability names: `{reverse-domain}.{servic
 
 | Namespace pattern | Authority | Governance |
 |-------------------|-----------|------------|
-| `dev.usp-protocol.*` | usp.dev | USP governing body |
+| `dev.usp-protocol.*` | usp-protocol.dev | USP governing body |
 | `com.{vendor}.*` | {vendor}.com | Vendor organization |
 | `org.{org}.*` | {org}.org | Organization |
 
 !!! warning "Spec URL Binding"
     The `spec` and `schema` URLs on each capability entry **MUST** use origins that match the reverse-domain namespace authority of the capability name. Platforms **MUST** validate this binding when processing profiles.
+
+    Rejection is **per entry, not per profile**: discard the mismatched capability entry, keep processing the remaining entries, and do not rewrite the URL to the expected origin.
