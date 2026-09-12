@@ -688,11 +688,13 @@
                         "description": "Price range filter in minor currency units. Currency determined by context.currency or the business's default currency.",
                         "properties": {
                           "min": {
-                            "type": "integer",
+                            "type": ["integer", "string"],
+                            "pattern": "^-?[0-9]+$",
                             "description": "Minimum price in minor currency units (e.g., 5000 = $50.00)."
                           },
                           "max": {
-                            "type": "integer",
+                            "type": ["integer", "string"],
+                            "pattern": "^-?[0-9]+$",
                             "description": "Maximum price in minor currency units (e.g., 15000 = $150.00)."
                           }
                         }
@@ -2989,7 +2991,8 @@
                         "description": "Transaction identifier from the payment provider."
                       },
                       "amount_paid": {
-                        "type": "integer",
+                        "type": ["integer", "string"],
+                        "pattern": "^-?[0-9]+$",
                         "description": "Amount paid in minor currency units."
                       },
                       "currency": {
