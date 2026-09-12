@@ -49,6 +49,35 @@ stateDiagram-v2
 | `no_show` | Client did not attend within the grace period. Terminal state. Business **MAY** charge the no-show fee. |
 | `canceled` | Booking has been canceled. Can be reached from `pending`, `requires_action`, or `confirmed`. Terminal state. |
 
+### Permitted Transitions by Operation
+
+The lifecycle diagram shows which statuses can follow which. It does not say which **operation** is legal from a given status, which is what a platform needs to know whether a call will be accepted. This table is normative.
+
+`Yes` means the business **MUST** accept the call when all other preconditions hold. `No` means it **MUST** reject with `invalid_transition`.
+
+| Current status | `confirm` | `cancel` | `reschedule` | `confirm-payment` | `update` |
+|-------------------|-----------|----------|--------------|-------------------|----------|
+| `pending` | Yes | Yes | SHOULD | No | Yes |
+| `requires_action` | No | Yes | MAY | Yes | Yes |
+| `confirmed` | Yes (idempotent) | Yes | Yes | No | Yes |
+| `in_progress` | No | No | No | No | Yes |
+| `completed` | No | No | No | No | No |
+| `no_show` | No | No | No | No | No |
+| `canceled` | No | No | No | No | No |
+
+The cells implementations diverge on:
+
+- **`reschedule` from `pending`** is `SHOULD`. A business that does not allow it **MUST** reject with `invalid_transition` rather than silently succeeding.
+- **`reschedule` from `requires_action`** is `MAY`, because an outstanding payment action may be priced against the original slot. A business that allows it **MUST** apply the reschedule price-change rules.
+- **`confirm` from `confirmed`** is idempotent: it **MUST** return the current booking, so a retried confirmation is safe.
+- **`update` on terminal statuses** is `No`. The booking is a historical record; contact and address edits **MUST NOT** be accepted on `completed`, `no_show`, or `canceled` bookings.
+
+Transitions to `in_progress`, `completed`, and `no_show` are business-initiated and have no platform-facing operation. They surface via `GET /bookings/{booking_id}` and the `booking.updated` webhook.
+
+!!! note "`invalid_transition` is a business outcome, not a protocol error"
+
+    Cancelling an already-canceled booking is a well-formed, authorized request that the business understood. By the [error family test](../errors/index.md), that makes it a business outcome: HTTP `200 OK` with the code in `messages[]`, not a `4xx` Problem Details response.
+
 ---
 
 ## Booking Schema
@@ -408,12 +437,29 @@ Cancels a booking. Eligible from `pending`, `requires_action`, or `confirmed` st
 
 Moves a booking to a different time slot. Rescheduling preserves the booking `id` -- this is not a cancel + rebook. The original slot is released and the new slot is occupied.
 
-**Eligible statuses:** `confirmed` (**MUST** be supported). `pending` **SHOULD** be allowed. `requires_action` is at the business's discretion. Rescheduling a `canceled` or terminal-state booking **MUST** return a 409 error.
+**Eligible statuses:** see [Permitted Transitions by Operation](#permitted-transitions-by-operation). Rescheduling a `canceled` or terminal-state booking **MUST** be rejected with `invalid_transition`.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `slot_id` | string | **Yes** | The new slot to reschedule to. |
 | `hold_id` | string | No | Hold ID for the new slot, when business supports holds. |
+
+!!! warning "Reschedule is atomic"
+
+    Acquiring the new slot and releasing the original **MUST** be atomic: either the booking moves and the original is released, or the booking is left entirely unchanged. The original slot **MUST NOT** be released before the new one is secured, because a failure in between leaves the buyer with no booking at all, which is worse than a rejected reschedule.
+
+    When the new slot cannot be secured, the booking stays on its original slot and the business returns:
+
+    | Cause | Code |
+    |---|---|
+    | New slot is taken or not bookable | `slot_unavailable` |
+    | `hold_id` for the new slot has lapsed | `hold_expired` |
+    | New slot lacks capacity for `party_size` | `capacity_exceeded` |
+    | New slot violates the booking window | `booking_window_violated` |
+    | Rescheduling policy limit reached | `reschedule_limit_reached` |
+    | Booking status cannot be rescheduled | `invalid_transition` |
+
+    A failed reschedule **MUST NOT** release a still-valid hold.
 
 !!! note "Price Changes on Reschedule"
     When slot-level pricing differs between the original and new slot (e.g., rescheduling from off-peak to peak), the business **SHOULD** update `payment.amount`. If additional payment is required, the business **MUST** add a new `payment`-type action to `actions[]`, transitioning the booking to `requires_action`.

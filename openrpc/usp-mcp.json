@@ -708,6 +708,330 @@
       "x-usp-access": "privileged_platform"
     },
     {
+      "name": "usp_services_feed_subscription_get",
+      "summary": "Get Feed Subscription",
+      "description": "Returns the current state of a feed subscription. Maps to GET /services/feed/subscriptions/{subscription_id}. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy and MUST include _meta.usp.profile bound to that credential. A subscription MUST only be visible to the platform profile that created it.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
+              }
+            }
+          },
+          "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED."
+        },
+        {
+          "name": "subscription_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Identifier of the subscription to read."
+        }
+      ],
+      "result": {
+        "name": "FeedSubscriptionResult",
+        "schema": {
+          "type": "object",
+          "required": [
+            "structuredContent"
+          ],
+          "properties": {
+            "structuredContent": {
+              "type": "object",
+              "required": [
+                "usp",
+                "subscription"
+              ],
+              "properties": {
+                "usp": {
+                  "$ref": "#/components/schemas/USPMeta"
+                },
+                "subscription": {
+                  "$ref": "#/components/schemas/FeedSubscription"
+                }
+              }
+            },
+            "content": {
+              "type": "array",
+              "description": "Human-readable text summary for MCP clients that render text.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/USPProtocolError"
+        }
+      ],
+      "x-usp-access": "privileged_platform"
+    },
+    {
+      "name": "usp_services_feed_unsubscribe",
+      "summary": "Cancel Feed Subscription",
+      "description": "Permanently cancels a feed subscription and stops delivery. Maps to DELETE /services/feed/subscriptions/{subscription_id}. Cancellation is terminal: a canceled subscription cannot be resumed, and the platform creates a new subscription instead. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy and MUST include _meta.usp.profile bound to that credential.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
+              }
+            }
+          },
+          "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED."
+        },
+        {
+          "name": "subscription_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Identifier of the subscription to cancel."
+        }
+      ],
+      "result": {
+        "name": "FeedSubscriptionResult",
+        "schema": {
+          "type": "object",
+          "required": [
+            "structuredContent"
+          ],
+          "properties": {
+            "structuredContent": {
+              "type": "object",
+              "required": [
+                "usp",
+                "subscription"
+              ],
+              "properties": {
+                "usp": {
+                  "$ref": "#/components/schemas/USPMeta"
+                },
+                "subscription": {
+                  "$ref": "#/components/schemas/FeedSubscription"
+                }
+              }
+            },
+            "content": {
+              "type": "array",
+              "description": "Human-readable text summary for MCP clients that render text.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/USPProtocolError"
+        }
+      ],
+      "x-usp-access": "privileged_platform"
+    },
+    {
+      "name": "usp_services_feed_subscription_pause",
+      "summary": "Pause Feed Subscription",
+      "description": "Suspends delivery for a feed subscription without canceling it. Maps to POST /services/feed/subscriptions/{subscription_id}/pause. The subscription retains its cursor position so that resuming does not require a full resync. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy and MUST include _meta.usp.profile bound to that credential.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
+              }
+            }
+          },
+          "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED."
+        },
+        {
+          "name": "subscription_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Identifier of the subscription to pause."
+        }
+      ],
+      "result": {
+        "name": "FeedSubscriptionResult",
+        "schema": {
+          "type": "object",
+          "required": [
+            "structuredContent"
+          ],
+          "properties": {
+            "structuredContent": {
+              "type": "object",
+              "required": [
+                "usp",
+                "subscription"
+              ],
+              "properties": {
+                "usp": {
+                  "$ref": "#/components/schemas/USPMeta"
+                },
+                "subscription": {
+                  "$ref": "#/components/schemas/FeedSubscription"
+                }
+              }
+            },
+            "content": {
+              "type": "array",
+              "description": "Human-readable text summary for MCP clients that render text.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/USPProtocolError"
+        }
+      ],
+      "x-usp-access": "privileged_platform"
+    },
+    {
+      "name": "usp_services_feed_subscription_resume",
+      "summary": "Resume Feed Subscription",
+      "description": "Resumes delivery for a paused feed subscription. Maps to POST /services/feed/subscriptions/{subscription_id}/resume. Delivery continues from the subscription's retained cursor position. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy and MUST include _meta.usp.profile bound to that credential.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatform"
+              }
+            }
+          },
+          "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED."
+        },
+        {
+          "name": "subscription_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Identifier of the subscription to resume."
+        }
+      ],
+      "result": {
+        "name": "FeedSubscriptionResult",
+        "schema": {
+          "type": "object",
+          "required": [
+            "structuredContent"
+          ],
+          "properties": {
+            "structuredContent": {
+              "type": "object",
+              "required": [
+                "usp",
+                "subscription"
+              ],
+              "properties": {
+                "usp": {
+                  "$ref": "#/components/schemas/USPMeta"
+                },
+                "subscription": {
+                  "$ref": "#/components/schemas/FeedSubscription"
+                }
+              }
+            },
+            "content": {
+              "type": "array",
+              "description": "Human-readable text summary for MCP clients that render text.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/USPProtocolError"
+        }
+      ],
+      "x-usp-access": "privileged_platform"
+    },
+    {
       "name": "usp_availability_query",
       "summary": "Query Availability",
       "description": "Returns available time slots for a service within a date range. Maps to POST /availability/query. Platforms SHOULD query at most 7 calendar days per request. Businesses MAY reject wider ranges with error code range_too_wide. Slots are returned in ascending start order. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
@@ -3443,7 +3767,7 @@
     "errors": {
       "USPProtocolError": {
         "code": -32600,
-        "message": "USP protocol error. Business outcome errors are returned in result.messages[], not as JSON-RPC errors. See §9.4.",
+        "message": "USP protocol error. Business outcome errors are returned in result.structuredContent.messages[], not as JSON-RPC errors. See §9.4.",
         "data": {
           "type": "object",
           "required": [
@@ -3453,13 +3777,16 @@
           "properties": {
             "code": {
               "type": "string",
-              "description": "Machine-readable protocol error code from §9.4 Error Code Mapping.",
+              "description": "Machine-readable protocol error code from §9.4.3 Protocol Errors. This is the authoritative discriminator: the JSON-RPC number is a coarse bucket and several codes deliberately share one, so clients MUST branch on this value rather than on the number. Every enum member appears in the §9.4.3 matrix with its REST status and Problem type slug.",
               "enum": [
                 "invalid_request",
+                "validation_error",
                 "invalid_profile_url",
                 "profile_unreachable",
                 "profile_malformed",
                 "profile_not_trusted",
+                "booking_not_found",
+                "entry_not_found",
                 "authentication_required",
                 "signature_missing",
                 "signature_invalid",
@@ -3474,7 +3801,11 @@
                 "pop_proof_replayed",
                 "proof_nonce_required",
                 "revision_mismatch",
+                "idempotency_conflict",
+                "cursor_expired",
+                "range_too_wide",
                 "rate_limited",
+                "hold_limit_exceeded",
                 "version_unsupported",
                 "service_unavailable",
                 "server_error"

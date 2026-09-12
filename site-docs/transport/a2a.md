@@ -5,6 +5,12 @@ description: USP A2A transport binding — agent-to-agent communication with tas
 
 # A2A Binding
 
+!!! warning "Informative and partial, not a peer binding"
+
+    Unlike [REST](rest.md) and [MCP](mcp.md), this binding is **not** at parity with the USP operation set. It maps 12 of the 31 USP operations and is published so that agents already speaking A2A share a naming and payload convention, not as a complete transport a business can implement alone.
+
+    A business **MUST NOT** advertise A2A as its only transport. A business that lists `a2a` in `transports` **MUST** also offer REST or MCP so every advertised capability stays reachable. Platforms **MUST NOT** assume an operation is unavailable merely because it has no A2A task type.
+
 The A2A (Agent-to-Agent) binding enables USP interactions between autonomous agents using the [A2A protocol](https://a2a-protocol.org/latest/).
 
 | Property | Value |
@@ -12,7 +18,7 @@ The A2A (Agent-to-Agent) binding enables USP interactions between autonomous age
 | **Schema format** | Agent Card Specification |
 | **Transport** | A2A protocol (HTTP-based agent messaging) |
 
-Each USP operation is expressed as an A2A **task**. The full multi-step booking flow is supported through A2A task chaining.
+The mapped subset covers the discover-to-book happy path through A2A task chaining. Steps outside it fall back to REST or MCP.
 
 ## Task-Type Mapping
 
@@ -30,6 +36,20 @@ Each USP operation is expressed as an A2A **task**. The full multi-step booking 
 | Reschedule Booking | `usp/bookings/reschedule` | Reschedule task |
 | Confirm Payment | `usp/bookings/confirm-payment` | Payment confirmation |
 | Join Waitlist | `usp/waitlist/join` | Waitlist task |
+
+### Operations with no A2A task type
+
+These are reachable over REST and MCP only. Implementers **MUST NOT** invent task types for them, since a future revision assigns names and privately chosen ones would collide.
+
+| Area | Unmapped operations |
+|------|---------------------|
+| Catalog | Lookup Services |
+| Catalog feed | Create, Get, Pause, Resume and Cancel Feed Subscription |
+| Bookings | Update Booking, Confirm Booking |
+| Waitlist | List Entries, Get Entry, Leave, Accept Offer, Decline Offer |
+| Registry | Register, Search Businesses, Search Services, Get, Update, Delete Registration |
+
+In practice an A2A-only agent cannot complete a manual-confirmation booking (no Confirm Booking), cannot act on a waitlist offer it was notified about (no Accept or Decline), and cannot participate in registry-based discovery at all.
 
 ## End-to-End Booking Flow via A2A
 

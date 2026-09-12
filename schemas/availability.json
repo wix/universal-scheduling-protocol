@@ -43,7 +43,8 @@
           "properties": {
             "total": { "type": "integer", "description": "Maximum number of spots." },
             "remaining": { "type": "integer", "description": "Spots still available." },
-            "held": { "type": "integer", "description": "Spots currently in active holds." }
+            "held": { "type": "integer", "description": "Spots currently in active holds." },
+            "waitlist": { "type": "boolean", "description": "Whether waitlist is enabled for this slot when it is full. A slot MUST NOT carry state waitlist unless this is true." }
           }
         },
         "resources": {

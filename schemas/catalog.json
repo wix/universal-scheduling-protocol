@@ -143,7 +143,88 @@
           "$ref": "#/$defs/LocalizedFields",
           "description": "Per-locale overrides for human-readable text fields. The top-level fields (name, description, etc.) serve as the default/fallback locale."
         }
-      }
+      },
+      "allOf": [
+        {
+          "title": "capacity required for group and reservation",
+          "description": "Specification Section 3.11: capacity is REQUIRED for the group and reservation verticals.",
+          "if": {
+            "properties": { "type": { "enum": ["group", "reservation"] } },
+            "required": ["type"]
+          },
+          "then": { "required": ["capacity"] }
+        },
+        {
+          "title": "free services price as free",
+          "description": "Specification Section 3.11.2 rule 1: when requires_payment is false, pricing.model MUST be free.",
+          "if": {
+            "properties": {
+              "policies": {
+                "properties": { "requires_payment": { "const": false } },
+                "required": ["requires_payment"]
+              }
+            },
+            "required": ["policies"]
+          },
+          "then": {
+            "properties": {
+              "pricing": { "properties": { "model": { "const": "free" } } }
+            }
+          }
+        },
+        {
+          "title": "paid services do not price as free",
+          "description": "Specification Section 3.11.2 rule 2: when requires_payment is true, pricing.model MUST NOT be free.",
+          "if": {
+            "properties": {
+              "policies": {
+                "properties": { "requires_payment": { "const": true } },
+                "required": ["requires_payment"]
+              }
+            },
+            "required": ["policies"]
+          },
+          "then": {
+            "properties": {
+              "pricing": { "properties": { "model": { "not": { "const": "free" } } } }
+            }
+          }
+        },
+        {
+          "title": "deposit_required carries a deposit",
+          "description": "Specification Section 3.11.2 rule 3: when payment_timing is deposit_required, pricing.deposit MUST be present.",
+          "if": {
+            "properties": {
+              "policies": {
+                "properties": { "payment_timing": { "const": "deposit_required" } },
+                "required": ["payment_timing"]
+              }
+            },
+            "required": ["policies"]
+          },
+          "then": {
+            "properties": { "pricing": { "required": ["deposit"] } }
+          }
+        },
+        {
+          "title": "undetermined duration cannot be priced hourly",
+          "description": "Specification Section 3.11.2 rule 7: hourly pricing requires a known duration to compute the total.",
+          "if": {
+            "properties": {
+              "duration": {
+                "properties": { "undetermined": { "const": true } },
+                "required": ["undetermined"]
+              }
+            },
+            "required": ["duration"]
+          },
+          "then": {
+            "properties": {
+              "pricing": { "properties": { "model": { "not": { "const": "hourly" } } } }
+            }
+          }
+        }
+      ]
     },
     "ServiceCategory": {
       "type": "object",
@@ -220,7 +301,12 @@
         },
         "buffer_before": { "type": "string", "description": "ISO 8601 duration. Non-bookable prep time." },
         "buffer_after": { "type": "string", "description": "ISO 8601 duration. Non-bookable cleanup time." }
-      }
+      },
+      "oneOf": [
+        { "title": "fixed duration", "required": ["fixed"] },
+        { "title": "range duration", "required": ["range"] },
+        { "title": "undetermined duration", "required": ["undetermined"] }
+      ]
     },
     "Rating": {
       "type": "object",
@@ -388,7 +474,32 @@
             "refundable": { "type": "boolean" }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "title": "free carries no amount or range",
+          "description": "Specification Section 3.11.2 rule 4.",
+          "if": {
+            "properties": { "model": { "const": "free" } },
+            "required": ["model"]
+          },
+          "then": {
+            "not": { "anyOf": [{ "required": ["amount"] }, { "required": ["price_range"] }] }
+          }
+        },
+        {
+          "title": "priced models carry a positive amount",
+          "description": "Specification Section 3.11.2 rule 5.",
+          "if": {
+            "properties": { "model": { "enum": ["fixed", "hourly", "per_person"] } },
+            "required": ["model"]
+          },
+          "then": {
+            "required": ["amount"],
+            "properties": { "amount": { "exclusiveMinimum": 0 } }
+          }
+        }
+      ]
     },
     "Location": {
       "type": "object",
@@ -433,7 +544,18 @@
           },
           "description": "Available resource instances. REQUIRED when selectable is true."
         }
-      }
+      },
+      "allOf": [
+        {
+          "title": "selectable resources list their options",
+          "description": "Specification Section 3.10: a buyer cannot choose a specific resource unless the instances are enumerated.",
+          "if": {
+            "properties": { "selectable": { "const": true } },
+            "required": ["selectable"]
+          },
+          "then": { "required": ["options"] }
+        }
+      ]
     },
     "Channel": {
       "type": "object",
@@ -505,7 +627,19 @@
           "enum": ["at_booking", "at_service", "deposit_required"],
           "description": "REQUIRED when requires_payment is true."
         }
-      }
+      },
+      "allOf": [
+        {
+          "title": "payment_timing tracks requires_payment",
+          "description": "Specification Section 3.11.2 rule 1: payment_timing is REQUIRED when requires_payment is true and MUST NOT be present when it is false.",
+          "if": {
+            "properties": { "requires_payment": { "const": true } },
+            "required": ["requires_payment"]
+          },
+          "then": { "required": ["payment_timing"] },
+          "else": { "not": { "required": ["payment_timing"] } }
+        }
+      ]
     },
     "LocalizedFields": {
       "type": "object",
@@ -558,7 +692,7 @@
         },
         "start_interval": {
           "type": "string",
-          "description": "ISO 8601 duration between consecutive candidate starts. Independent of duration."
+          "description": "ISO 8601 duration between consecutive candidate starts on this entry. Independent of duration and MUST NOT be treated as a restatement of booking_window.slot_interval."
         },
         "slot_count": {
           "type": "integer",

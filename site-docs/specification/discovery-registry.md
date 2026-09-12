@@ -379,12 +379,12 @@ When a registry applies availability ranking, or when the request carries `desir
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `relevance` | number in `[0, 1]` | Match apart from availability, including text, categories, geography, and registry signals. Registry-specific scale; compare only within this response. |
-| `coverage` | number in `[0, 1]` or `null` | How much of the requested time has a hinted opening. `1` is full coverage, `0` is known non-overlap in the structured snapshot, and `null` is not computed: no time preference, no usable structured hint, or requested time outside what the service published. |
-| `density` | number in `[0, 1]` or `null` | Share of all represented candidate starts that are open. `0` is a sampled empty grid; `null` is unknown. It does not express soonness or requested-window fit. |
-| `soonness` | number in `[0, 1]` or `null` | Normalized delay to the earliest acceptable opening, relative to the request anchor and the registry's documented horizon. `0` includes no acceptable opening inside the horizon; `null` is unknown. It remains populated when `prefer_sooner_availability_slots` is `false`. |
+| `coverage` | number in `[0, 1]` or `null` | How much of the requested time has a hinted opening. `1` is full coverage, `0` is known non-overlap in the structured snapshot, and `null` is not computed: no time preference, no usable structured hint, or requested time outside what the service published. Comparable only within one vertical and within one entry's grid. |
+| `density` | number in `[0, 1]` or `null` | Share of all represented candidate starts that are open. `0` is a sampled empty grid; `null` is unknown. It does not express soonness or requested-window fit. It is a fraction of that entry's own `slot_count`, so it is comparable only within one vertical and within one entry's grid. |
+| `soonness` | number in `[0, 1]` or `null` | Normalized delay to the earliest acceptable opening, relative to the request anchor and the registry's documented horizon. `0` includes no acceptable opening inside the horizon; `null` is unknown. It remains populated when `prefer_sooner_availability_slots` is `false`. Comparable only within one vertical and within one entry's grid. |
 | `hint_usable` | boolean | Whether the structured snapshot passed validity and consistency checks. `false` means availability was unknown for ranking (omitted hint, summary-only hint, expired snapshot, malformed bitmap, or invariant failure), not a worse service. |
 
-`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Agents that need expiry data read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`. Values **MUST NOT** be compared across registries, requests, snapshots, or scoring instants.
+`rank_signals` **MUST NOT** include a continuous freshness, age-decay, or confidence score. Agents that need expiry data read `availability_hint.generated_at`, `availability_hint.valid_until`, and `last_indexed_at`. Values **MUST NOT** be compared across registries, across requests, across snapshots, across scoring instants, across verticals, or across bitmap entries that do not share the same grid (`starts_at`, `start_interval`, and `slot_count`).
 
 ### Response-state semantics
 

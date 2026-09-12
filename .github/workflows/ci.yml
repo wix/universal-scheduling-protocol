@@ -41,6 +41,13 @@ jobs:
       - name: Validate test vectors
         run: python tools/usp_check.py vectors
 
+      # Prose, bindings, and the operation reference are each self-consistent
+      # when they drift apart, so nothing above catches a field table naming a
+      # field its schema dropped, an operation added to one binding only, or an
+      # error code a binding can emit that the 9.4 matrix never defined.
+      - name: Validate spec and binding coherence
+        run: python tools/usp_check.py coherence
+
       # Not --strict: site-docs deliberately links to repository files that sit
       # outside docs_dir (specification.md, schemas/, openapi/, openrpc/), which
       # resolve on GitHub but not in mkdocs. Seven such links exist today, so

@@ -50,7 +50,7 @@ A time slot represents a specific, bookable combination of a time window and ass
 | `end` | string | **Yes** | RFC 3339 end time of the slot. |
 | `duration` | string | **Yes** | ISO 8601 duration of the slot (e.g., `PT60M`). |
 | `state` | string | **Yes** | Availability state. See state values below. |
-| `capacity` | object | No | `{total, remaining, held}` -- present for `group` and `reservation` types. |
+| `capacity` | object | No | `{total, remaining, held, waitlist}` -- present for `group` and `reservation` types. `waitlist` is a boolean; a slot **MUST NOT** carry state `waitlist` unless it is `true`. |
 | `resources` | Array[object] | No | `{id, type, name}` -- the specific resources assigned to this slot. |
 | `location` | object | No | `{id, name}` -- the specific location for this slot. |
 | `pricing` | object | No | `{amount, currency, label}` -- slot-specific pricing that overrides service-level pricing. |
@@ -61,7 +61,7 @@ A time slot represents a specific, bookable combination of a time window and ass
 |-------|-------------|
 | `available` | The slot has capacity for new bookings. For `appointment` types, the slot is open. For `group`/`reservation` types, `capacity.remaining > 0`. |
 | `limited` | Low remaining capacity. Businesses **SHOULD** return `limited` when remaining capacity drops below 20% of total or fewer than 3 spots remain. |
-| `waitlist` | Fully booked but waitlist is enabled. Platform **MAY** allow the buyer to join the waitlist. Businesses **MUST NOT** return `waitlist` unless the `dev.usp-protocol.services.waitlist` capability is supported. |
+| `waitlist` | Fully booked but the service has waitlist enabled (`capacity.waitlist: true`). Platform **MAY** allow the buyer to join the waitlist. Businesses **MUST NOT** return `waitlist` unless the `dev.usp-protocol.services.waitlist` capability is supported. |
 
 ---
 
@@ -92,6 +92,32 @@ The business **MUST** enforce hold concurrency rules matching the service's capa
 | `appointment` | **MUST NOT** accept more than one active hold per slot. Second request returns `slot_unavailable`. |
 | `group` / `reservation` | Multiple concurrent holds permitted up to remaining capacity. Exceeding capacity returns `slot_unavailable`. |
 | `rental` | Overlapping time holds on the same resource **MUST** be rejected with `slot_unavailable`. |
+
+### Hold Conversion
+
+A hold exists to make the gap between slot selection and booking safe. That is only true if converting it cannot lose the reservation, so conversion is specified rather than left to each implementation.
+
+**Capacity accounting.** `Hold.spots` and the booking request's `party_size` count the same capacity units from opposite ends of the flow: `spots` is what was reserved, `party_size` is what is being booked.
+
+- With a `hold_id`, `party_size` (default 1) **MUST NOT** exceed the hold's `spots` (default 1). Exceeding it returns `capacity_exceeded`, because the surplus was never reserved and another buyer may hold it.
+- A `party_size` **lower** than `spots` is allowed; unused spots **MUST** return to `capacity.remaining` on conversion.
+- Without a `hold_id`, `party_size` is checked directly against `capacity.remaining` at booking time.
+
+**Conversion is atomic.** Either the booking is created and the hold moves to `converted`, or neither happens. A hold **MUST NOT** be left `converted` with no booking, and a booking **MUST NOT** be created from a hold left `active` where it could convert again.
+
+| Hold state at conversion | Slot still bookable? | Code | Hold outcome |
+|---|---|---|---|
+| `active` | Yes | (success) | `converted` |
+| `expired` | Yes | `hold_expired` | stays `expired` |
+| `expired` | No | `slot_unavailable` | stays `expired` |
+| `released` | Yes | `hold_expired` | stays `released` |
+| `released` | No | `slot_unavailable` | stays `released` |
+| `converted` | n/a | (success, idempotent replay) | stays `converted` |
+| `active`, `party_size` exceeds `spots` | n/a | `capacity_exceeded` | stays `active` |
+
+Two rows are deliberate. A `converted` hold replayed with the same request returns the **existing** booking rather than an error, which is what makes `hold_id` usable as an idempotency key. And `capacity_exceeded` leaves the hold `active`, so the platform can retry with a `party_size` that fits instead of losing the reservation.
+
+An unrecognized `hold_id` returns `validation_error`, not `hold_expired`: the platform needs to tell a bad identifier from a lapsed reservation.
 
 ---
 
