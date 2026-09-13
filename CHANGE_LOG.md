@@ -15,6 +15,14 @@
 
 ---
 
+## 13/09/26 at 08:40:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Permitted `401 Unauthorized` for `profile_unreachable` on a privileged request, alongside the existing `424 Failed Dependency`, because under Section 10.1.6 a fetchable profile is part of the agent header *being* an identity — a profile that cannot be retrieved leaves the request unauthenticated rather than merely blocked on a dependency, and the thing the caller must fix is their own published document
+- Named the practical cost of mandating `424` alone: it is unreachable from a gRPC-based stack, where HTTP statuses derive from gRPC's closed set of status codes and nothing maps to Failed Dependency, so an implementation there had to either repoint a status mapping shared with every other service on the platform or pick some third code — and picking arbitrarily is the interoperability failure the table exists to prevent
+- Mirrored the row in `site-docs/transport/index.md` so the published transport table does not keep the narrower mapping
+
+---
+
 ## 11/09/26 at 16:35:48 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Dropped the Section 3.6.3 claim that `start_interval` restates `booking_window.slot_interval`, because the ruler tick is per bitmap entry and can differ from the live-slot policy, so consumers that substituted the policy decoded the wrong starts
