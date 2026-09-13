@@ -1,5 +1,13 @@
 # Change Log
 
+## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
+- Stated in Section 8.5.4 and in `site-docs/deployment-modes/standalone.md` that an absent `Action.expires_at` means the business sets no deadline and a platform **MUST NOT** infer one, and that a business which *will* expire the action **MUST** publish it, because the failure mode of a hidden deadline is that the platform cannot act on it and the buyer first learns of it when the booking is already canceled
+- Reworded the two places in Section 5 that enumerated an action's fields as `type`, `status`, `continue_url`, `expires_at`, since they read as a list of what is always present and are the sentences a reader checks before the schema
+
+---
+
 ## 11/09/26 at 16:35:48 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Dropped the Section 3.6.3 claim that `start_interval` restates `booking_window.slot_interval`, because the ruler tick is per bitmap entry and can differ from the live-slot policy, so consumers that substituted the policy decoded the wrong starts

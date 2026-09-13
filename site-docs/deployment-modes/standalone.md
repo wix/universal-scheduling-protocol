@@ -314,6 +314,8 @@ The `POST /bookings/{booking_id}/confirm-payment` endpoint is called by the plat
 
 !!! warning "Payment expiry"
 
+    A payment action **MAY** omit `expires_at`, and an absent value means this business sets no deadline for the action — a platform **MUST NOT** infer one. A business that *will* expire the action **MUST** publish `expires_at`, because a deadline a platform cannot see is one it cannot act on, and the buyer learns of it only when the booking is already canceled.
+
     When a payment action's `expires_at` passes without `confirm-payment`, the business **SHOULD** set the action status to `expired`. If no other pending actions remain, the booking **MUST** transition to `canceled`. This payment-action clock is independent of whether the booking advertises `expires_at`. A late `confirm-payment` **MUST** return the canceled booking with code `payment_expired`. The payment action's `expires_at` **SHOULD** be no later than the booking's `expires_at` when the booking advertises that field, and no later than the slot hold's `expires_at` when a hold exists.
 
 ### Embedded / Generic Payment Flow
