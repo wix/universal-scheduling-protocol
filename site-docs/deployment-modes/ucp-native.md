@@ -249,6 +249,8 @@ In UCP-Native Mode, the following infrastructure is inherited from UCP. USP does
 
     In UCP-Native Mode the authorization policy is published as **`config.authorization` on the `dev.usp-protocol.services` service binding** in `/.well-known/ucp`, **not** as a top-level member of the UCP profile: USP declares only under its own `dev.usp-protocol.*` namespace authority, and `config` is the member UCP reserves for entity-specific settings.
 
+    That one policy governs **every** privileged USP operation, whichever endpoint carries it — including a booking created as the `dev.usp-protocol.services.paid_bookings` extension on `POST /checkout-sessions`, which is a UCP URL. A business **MUST NOT** publish a USP policy on a UCP binding such as `dev.ucp.shopping`, and a platform **MUST NOT** read the absence of `config.authorization` there as meaning no authentication is required for USP operations on those endpoints.
+
     See [Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations).
 
 ---

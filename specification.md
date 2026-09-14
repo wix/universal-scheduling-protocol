@@ -4511,6 +4511,11 @@ not redefine these concerns:
 > Key publication and request signing likewise reuse UCP's own key array and
 > covered components ([Section 9.1.4](#914-request-signing)), so a UCP-Native
 > business adds a policy declaration rather than any new UCP-facing surface.
+>
+> That single declaration is what authorises privileged operations on the UCP
+> endpoints too — a booking created through `POST /checkout-sessions` included.
+> The UCP bindings carry no USP policy of their own and **MUST NOT**; see
+> [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
 
 ### 7.4 Paid Bookings Extension Schema
 
@@ -8458,9 +8463,34 @@ defined once in [`schemas/profile.json`](schemas/profile.json)
   authority, which for USP is `dev.usp-protocol.*`. Within that key, `config` is the
   member [UCP] defines for carrying entity-specific settings on a service or
   capability entry, so the policy travels in the slot UCP already reserves for
-  it rather than as an invented sibling field. Publishing it on the
-  `dev.usp-protocol.services` binding also scopes it correctly, since it governs access
-  to the USP endpoint that binding declares.
+  it rather than as an invented sibling field.
+
+**What that one policy governs (UCP-Native).** The policy published on the
+`dev.usp-protocol.services` binding governs **every USP privileged operation this
+business exposes**, whichever endpoint carries it — not only requests sent to the
+USP endpoint that binding declares. In UCP-Native Mode a privileged USP operation
+is routinely carried on a [UCP] endpoint: creating a booking travels as the
+`dev.usp-protocol.services.paid_bookings` extension on `POST /checkout-sessions`
+([Section 7.4](#74-paid-bookings-extension-schema)), which is a UCP URL governed by
+a UCP binding. A platform **MUST** apply the policy to those requests too, and a
+business **MUST** accept the declared mechanism on them.
+
+A business **MUST NOT** publish a USP `authorization` policy on a [UCP] service
+binding such as `dev.ucp.shopping`, for the namespace reason above: a USP
+declaration belongs under `dev.usp-protocol.*`, and `dev.ucp.shopping.config` is
+UCP's slot, not USP's. A platform therefore **MUST NOT** read the absence of
+`config.authorization` on a UCP binding as meaning no authentication is required
+for USP operations on that binding's endpoints, and **MUST NOT** treat a
+fail-closed posture as satisfied by that absence — the single policy on the USP
+binding is the authoritative declaration for both.
+
+> Without this rule the two statements above are irreconcilable for a
+> fail-closed client: [Section 7.2](#72-profile-registration-in-well-knownucp)
+> says Section 10.1.6 applies to UCP-Native checkout and booking-extension
+> operations, while a policy scoped to "the USP endpoint that binding declares"
+> would leave a proof on `POST /checkout-sessions` unauthorised by anything the
+> profile publishes. Such a client would then either refuse to transact against a
+> conformant business or send a proof it cannot justify.
 
 A business **MUST** accept at least one mechanism for privileged operations,
 and **MUST** publish which one(s) it requires via that `authorization` policy.
