@@ -1,5 +1,20 @@
 # Change Log
 
+## 16/09/26 at 23:23:45 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed an accidentally committed Python bytecode cache from the policy-scoping change so generated local artifacts are not shipped with the specification
+
+---
+
+## 14/09/26 at 07:30:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Stated that the UCP-Native `config.authorization` policy governs every privileged USP operation whichever endpoint carries it, not only the USP endpoint its binding declares, because a booking created through the `paid_bookings` extension travels on `POST /checkout-sessions` — a UCP URL — and nothing said which published policy authorised a proof there
+- Prohibited publishing a USP policy on a UCP binding such as `dev.ucp.shopping`, and forbade a platform reading the absence of `config.authorization` on a UCP binding as "no authentication required", since the namespace rule that keeps USP declarations under `dev.usp-protocol.*` is exactly what makes that absence uninformative rather than permissive
+- Recorded why the rule is needed: Section 7.2 already says Section 10.1.6 applies to UCP-Native checkout and booking-extension operations, while a policy scoped to "the USP endpoint that binding declares" left those operations unauthorised by anything in the profile — so a fail-closed client had to either refuse a conformant business or send a proof it could not justify
+- Mirrored both rules in `site-docs/deployment-modes/ucp-native.md`
+
+---
+
 ## 11/09/26 at 16:35:48 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Dropped the Section 3.6.3 claim that `start_interval` restates `booking_window.slot_interval`, because the ruler tick is per bitmap entry and can differ from the live-slot policy, so consumers that substituted the policy decoded the wrong starts
