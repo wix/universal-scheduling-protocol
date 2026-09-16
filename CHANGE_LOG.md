@@ -66,6 +66,14 @@
 
 ---
 
+## 10/09/26 at 12:22:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Added a `SHOULD` in section 5.3.6 requiring a business whose `booking_scoped_credential` lifetime is derived from the slot to re-issue on the reschedule response, because a credential's `expires_at` is fixed at creation against the slot the booking occupied then and rescheduling does not move it — so rescheduling beyond that window strands the platform with a booking it can no longer read, reschedule or cancel before the appointment happens, holding only a proof of possession and no way to obtain a fresh credential
+- Stated that the previous credential **MAY** be left to expire on its own rather than being revoked, so an agent still in flight with the old value is not cut off mid-operation; section 5.6 already permits several live credentials per booking
+- Mirrored both in `site-docs/specification/booking.md` so the published site does not omit a rule that silently breaks long-range reschedules
+
+---
+
 ## 30/08/26 at 12:58:11 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Trimmed availability-hint and registry-ranking prose to the interoperability boundary: sections 3.6 and 6.3 now carry wire shapes, semantic guarantees, and response-state rules only, because projection procedures, scoring formulas, horizons, weights, dominance arithmetic, and worked ranking walkthroughs are registry-specific implementation detail that does not belong in normative protocol text

@@ -3262,6 +3262,19 @@ requirement that a failed reschedule **MUST NOT** release a still-valid hold.
 
 Response: the full updated `booking` object with `slot` updated to the new time.
 
+**Credential expiry on reschedule:** A `booking_scoped_credential` is issued at
+creation and its `expires_at` is chosen against the slot the booking occupied at
+that moment. Rescheduling to a later slot does not move it. A business whose
+credential lifetime is derived from the slot **SHOULD** therefore re-issue on the
+reschedule response — as a sibling of `booking`, exactly as on creation — whenever
+the existing credential would otherwise expire before the new slot. Section 5.6
+already permits re-issuing to the same bound key, and the previous credential
+**MAY** be left to expire on its own so an agent still in flight with the old
+value is not cut off. Without this the platform is handed a booking it will stop
+being able to read, reschedule or cancel *before the appointment occurs*, holding
+only a proof of possession and no way to obtain a fresh credential — the
+mechanism issues them on creation, not on demand.
+
 **Price changes on reschedule:** When slot-level pricing differs between the
 original and new slot (e.g., rescheduling from an off-peak to a peak slot), the
 business **SHOULD** update `payment.amount` to reflect the new price. If
