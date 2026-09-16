@@ -1,5 +1,11 @@
 # Change Log
 
+## 16/09/26 at 23:23:45 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed an accidentally committed Python bytecode cache from the policy-scoping change so generated local artifacts are not shipped with the specification
+
+---
+
 ## 14/09/26 at 07:30:00 by [Maor Yehuda](mailto:maorye@wix.com)
 
 - Stated that the UCP-Native `config.authorization` policy governs every privileged USP operation whichever endpoint carries it, not only the USP endpoint its binding declares, because a booking created through the `paid_bookings` extension travels on `POST /checkout-sessions` — a UCP URL — and nothing said which published policy authorised a proof there
