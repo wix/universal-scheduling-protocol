@@ -1,5 +1,13 @@
 # Change Log
 
+## 19/09/26 at 23:10:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `booking_window` and each of its members optional on `ServicePolicies`, because requiring all three forced any business that states no window to invent values, and a consumer then could not tell `max_advance: P365D` "the merchant allows a year" from `max_advance: P365D` "the implementation had nothing to say"
+- Stated the presence rule explicitly: a business that constrains how far ahead or how late a booking may be made MUST state the constraint it enforces, a business that does not MUST omit the member, and a consumer MUST NOT read an omitted member as an unbounded window, a zero minimum, or a default interval
+- Singled out `slot_interval`, which has no honest value for a business that publishes no generation interval, so a required field made a fabricated claim about when appointments can start
+- Mirrored the optionality in `schemas/catalog.json` `$defs/ServicePolicies` and in `site-docs/specification/service-catalog.md`, so the canonical schema and the published site do not keep requiring what the prose now permits omitting
+
+---
 ## 16/09/26 at 23:23:45 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed an accidentally committed Python bytecode cache from the policy-scoping change so generated local artifacts are not shipped with the specification
