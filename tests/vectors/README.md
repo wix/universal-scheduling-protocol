@@ -85,6 +85,7 @@ implement rather than checking that they already did.
 | `102-concurrent-holds-one-slot` | Two platforms race for the last capacity unit. Decidable only because capacity is consumed at hold creation, not at booking. |
 | `103-dst-spanning-slot` | Two slots straddling a DST change where wall-clock arithmetic is wrong in opposite directions: 30 minutes for a 90-minute service, 2 hours for a 60-minute one. |
 | `104-charge-without-booking` | The PSP charge succeeds and the booking write fails. There is no single transaction to roll back, so the vector records both permitted resolutions and the intermediate state that is forbidden. |
+| `105-confirmation-mode-guard` | `confirm` from `pending` is legal only in manual mode. An auto-mode UCP-Native leftover that is still `pending` MUST be rejected with `invalid_transition` at HTTP 200; a booking-scoped credential MUST NOT authorize the call. |
 
 ## The keys are deliberately published
 

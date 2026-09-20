@@ -1421,6 +1421,85 @@ def check_transport_parity(findings: Findings) -> None:
     print(f"  {len(rest_ops)} REST / {len(mcp_methods)} MCP / {len(rows)} §12 rows")
 
 
+PLATFORM_SECURITY_SCHEMES = {
+    "HttpMessageSignature",
+    "PlatformKeyPop",
+    "BookingScopedCredential",
+    "OAuth2Bearer",
+    "ApiKey",
+    "MutualTLS",
+}
+
+CONFIRM_REST_PATH = "/bookings/{booking_id}/confirm"
+CONFIRM_MCP_METHOD = "usp_bookings_confirm"
+
+
+def check_business_only_access(findings: Findings) -> None:
+    """Confirm is business-only: not a platform or booking-scoped continuation."""
+    openapi = json.loads(OPENAPI.read_text())
+    openrpc = json.loads(OPENRPC.read_text())
+
+    rest_confirm = openapi.get("paths", {}).get(CONFIRM_REST_PATH, {}).get("post")
+    if not isinstance(rest_confirm, dict):
+        findings.fail("ACCESS:confirmBooking:missing",
+                      "OpenAPI is missing POST /bookings/{booking_id}/confirm")
+    elif rest_confirm.get("x-usp-access") != "business_only":
+        findings.fail("ACCESS:confirmBooking",
+                      "POST /bookings/{booking_id}/confirm must set "
+                      "x-usp-access: business_only")
+
+    mcp_confirm = next(
+        (m for m in openrpc.get("methods", []) if m.get("name") == CONFIRM_MCP_METHOD),
+        None)
+    if mcp_confirm is None:
+        findings.fail("ACCESS:usp_bookings_confirm:missing",
+                      "OpenRPC is missing usp_bookings_confirm")
+    elif mcp_confirm.get("x-usp-access") != "business_only":
+        findings.fail("ACCESS:usp_bookings_confirm",
+                      "usp_bookings_confirm must set x-usp-access: business_only")
+
+    for path, item in openapi.get("paths", {}).items():
+        for method, op in item.items():
+            if method not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            if not isinstance(op, dict) or op.get("x-usp-access") != "business_only":
+                continue
+            for param in op.get("parameters", []) or []:
+                if not isinstance(param, dict):
+                    continue
+                ref = param.get("$ref", "")
+                name = param.get("name", "")
+                if ref.endswith("/USP-Agent") or name == "USP-Agent":
+                    findings.fail(
+                        f"ACCESS:business_only:{method.upper()} {path}:usp-agent",
+                        "business_only operations must not require USP-Agent")
+            for req in op.get("security") or []:
+                if not isinstance(req, dict):
+                    continue
+                bad = set(req) & PLATFORM_SECURITY_SCHEMES
+                if bad:
+                    findings.fail(
+                        f"ACCESS:business_only:{method.upper()} {path}:security",
+                        "business_only operations must not accept platform or "
+                        f"booking-scoped schemes {sorted(bad)}")
+
+    for method in openrpc.get("methods", []):
+        if method.get("x-usp-access") != "business_only":
+            continue
+        name = method.get("name", "<unnamed>")
+        blob = json.dumps(method)
+        if "McpUspMetaPrivileged" in blob:
+            findings.fail(
+                f"ACCESS:business_only:{name}:privileged-meta",
+                "business_only methods must not require privileged MCP _meta")
+        for scheme in PLATFORM_SECURITY_SCHEMES:
+            if scheme in blob:
+                findings.fail(
+                    f"ACCESS:business_only:{name}:{scheme}",
+                    "business_only methods must not accept platform or "
+                    f"booking-scoped scheme {scheme}")
+
+
 def check_binding_error_codes(findings: Findings) -> None:
     """Every error code a binding can emit is defined in the §9.4 matrix."""
     text = SPEC.read_text()
@@ -1460,6 +1539,7 @@ def check_binding_error_codes(findings: Findings) -> None:
 def check_coherence(findings: Findings) -> None:
     check_prose_fields(findings)
     check_transport_parity(findings)
+    check_business_only_access(findings)
     check_binding_error_codes(findings)
 
 
