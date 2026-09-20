@@ -1,5 +1,12 @@
 # Change Log
 
+## 20/09/26 at 14:21:09 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Corrected the Section 7.5 cancel-checkout invariant to say Section 5.1.1 "requires or permits" accepting `confirm`, `reschedule`, or `update`, because `reschedule` from `pending` is `SHOULD` rather than `Yes` and the previous wording claimed a requirement the cited table does not make; mirrored in `site-docs/deployment-modes/ucp-native.md`
+- Added a wrong answer to flow vector `105-cancel-checkout-abandoned-booking` for keying the terminal state on USP `pending` instead of the specific backing state the abandoned checkout left behind, because a status mapping that folds several backing states into `pending` would also match a paid manual-confirmation booking awaiting merchant approval, which derivation rule 1 makes `pending` and which must never be reported canceled
+
+---
+
 ## 20/09/26 at 14:06:21 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Rewrote the Section 7.5 cancel-checkout requirement as a mechanism-agnostic invariant on the USP booking resource observed through `GET /bookings/{booking_id}`, so a business must not leave that booking in a state from which Section 5.1.1 requires accepting `confirm`, without prescribing how the internal record is stored

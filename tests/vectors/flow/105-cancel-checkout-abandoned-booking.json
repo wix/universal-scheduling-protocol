@@ -114,6 +114,11 @@
       "behaviour": "stamp canceled_at with the current time on every read",
       "violates": "7.5 canceled_at stability",
       "why": "A later get_booking returns a different canceled_at, so platforms cannot treat the timestamp as the instant cancellation was recorded."
+    },
+    {
+      "behaviour": "key the terminal state on USP pending rather than on the specific backing state the abandoned checkout left behind",
+      "violates": "7.5 cancel-checkout invariant (false positive)",
+      "why": "A business whose status mapping folds several backing states into USP pending will also match a manual-confirmation booking that is paid and awaiting merchant approval, which is pending under Section 7.5 derivation rule 1 and must never be reported canceled. Same failure for a booking that is paid after the platform walked away. The invariant applies to the booking the canceled checkout left unpaid, not to every booking reading pending."
     }
   ]
 }

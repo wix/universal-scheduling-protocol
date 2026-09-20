@@ -497,7 +497,7 @@ A PSP charge and a booking write live in different systems, so a business cannot
 
 ### Cancel Checkout
 
-When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any. The business **MUST NOT** leave any booking associated with that checkout in a state from which [permitted transitions](../specification/booking.md#permitted-transitions-by-operation) require accepting `confirm`, `reschedule`, or `update`.
+When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any. The business **MUST NOT** leave any booking associated with that checkout in a state from which [permitted transitions](../specification/booking.md#permitted-transitions-by-operation) require or permit accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are `Yes` from `pending`; `reschedule` is `SHOULD`).
 
 This requirement constrains the **USP booking resource as observed through `GET /bookings/{booking_id}`**, not the business's internal record. Transitioning that resource to `status: canceled` satisfies the invariant; so does a deployment that creates no booking before the checkout completes. The requirement exists so the booking is non-actionable, so booking-scoped credentials are invalidated and personal-data retention clocks can fire, and **not** to release slot capacity.
 

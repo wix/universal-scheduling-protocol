@@ -5016,8 +5016,9 @@ to refresh state. If escalation fails or times out, the platform **MAY** call
 it **MUST** atomically: transition the checkout to `canceled`, and release the
 slot hold if any. The business **MUST NOT** leave any booking associated with
 that checkout in a state from which
-[Section 5.1.1](#511-permitted-transitions-by-operation) requires accepting
-`confirm`, `reschedule`, or `update`. This requirement constrains the **USP
+[Section 5.1.1](#511-permitted-transitions-by-operation) requires or permits
+accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are
+`Yes` from `pending`; `reschedule` is `SHOULD`). This requirement constrains the **USP
 booking resource as observed through `GET /bookings/{booking_id}`**, not the
 business's internal record. Transitioning that resource to `status: canceled`
 satisfies the invariant; so does a deployment that creates no booking before
