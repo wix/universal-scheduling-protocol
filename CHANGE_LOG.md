@@ -1,5 +1,13 @@
 # Change Log
 
+## 20/09/26 at 16:15:19 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made Section 5.3.4 authoritative over the Section 5.1.1 `pending`/`confirm` cell, so `confirm` from `pending` is legal only in manual confirmation mode and an auto-mode booking that is not already `confirmed` MUST be rejected with `invalid_transition`. That closes the contradiction that would otherwise let a platform confirm an unpaid UCP-Native leftover sitting in `pending`
+- Marked REST `POST /bookings/{booking_id}/confirm` and MCP `usp_bookings_confirm` as `business_only`, stripping platform `USP-Agent`/`_meta` and booking-scoped credentials, because a scoped credential that can confirm would still grant a free appointment on that unpaid leftover
+- Added flow vector `105-confirmation-mode-guard` and a coherence check for the `business_only` access class so the cell cannot drift untested again
+
+---
+
 ## 20/09/26 at 14:50:25 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Withdrew the Section 7.5 cancel-checkout terminal-state invariant, the `cancellation.reason_code` field with its `checkout_abandoned` value, the `canceled_at` cross-read stability requirement, the buyer-notification suppression rule, the Section 5.2 note on the missing terminal path, and flow vector `105-cancel-checkout-abandoned-booking`. The hazard they addressed rested on the claim that a booking left `pending` by an abandoned checkout stays confirmable, and Section 5.3.4 restricts `confirm` to business-initiated manual-mode approval, so the claim does not hold as stated

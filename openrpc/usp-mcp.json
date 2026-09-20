@@ -1766,22 +1766,9 @@
     {
       "name": "usp_bookings_confirm",
       "summary": "Confirm Booking",
-      "description": "Business-initiated confirmation for manual mode bookings. Maps to POST /bookings/{booking_id}/confirm. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
+      "description": "Business-initiated confirmation for manual-mode bookings. Maps to POST /bookings/{booking_id}/confirm (specification.md Section 5.3.4). x-usp-access: business_only. Not a platform continuation method: a platform principal and a booking_scoped_credential MUST NOT authorize this call. Authentication of the business caller is deployment-defined. Auto-mode bookings that are not already confirmed MUST be rejected with invalid_transition at HTTP 200 in messages[].",
       "paramStructure": "by-name",
       "params": [
-        {
-          "name": "_meta",
-          "required": true,
-          "schema": {
-            "type": "object",
-            "properties": {
-              "usp": {
-                "$ref": "#/components/schemas/McpUspMetaPrivilegedScoped"
-              }
-            }
-          },
-          "description": "MCP metadata for a privileged scoped operation (existing booking, hold, waitlist entry, or registry registration). _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6; prefer booking_scoped_credential via _meta.usp.authorization when available, together with the platform_key_pop proof in _meta.usp.authorization.proof that its cnf binding requires."
-        },
         {
           "name": "booking_id",
           "required": true,
@@ -1841,7 +1828,7 @@
           "$ref": "#/components/errors/USPProtocolError"
         }
       ],
-      "x-usp-access": "privileged_scoped"
+      "x-usp-access": "business_only"
     },
     {
       "name": "usp_bookings_cancel",

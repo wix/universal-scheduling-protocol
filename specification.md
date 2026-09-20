@@ -2725,7 +2725,7 @@ and the `confirm-payment` operation for payment confirmation.
 #### 5.1.1 Permitted Transitions by Operation
 
 The diagram above shows which statuses can follow which. It does not say which
-**operation** is legal from a given status, and that is what a platform needs in
+**operation** is legal from a given status, and that is what a caller needs in
 order to know whether a call will be accepted. This table is normative.
 
 Rows are the booking's current status; columns are the operation. `Yes` means
@@ -2735,7 +2735,7 @@ means the business **MUST** reject it with `invalid_transition`
 
 | Current status    | `confirm` | `cancel` | `reschedule` | `confirm-payment` | `update` |
 |-------------------|-----------|----------|--------------|-------------------|----------|
-| `pending`         | Yes       | Yes      | SHOULD       | No                | Yes      |
+| `pending`         | Yes (manual) | Yes   | SHOULD       | No                | Yes      |
 | `requires_action` | No        | Yes      | MAY          | Yes               | Yes      |
 | `confirmed`       | Yes (idempotent) | Yes | Yes        | No                | Yes      |
 | `in_progress`     | No        | No       | No           | No                | Yes      |
@@ -2753,6 +2753,11 @@ on today:
   discretion, because an outstanding payment action may be priced against the
   original slot. A business that allows it **MUST** apply the price-change rules
   in [Section 5.3.6](#536-reschedule-booking---post-bookingsbooking_idreschedule).
+- **`confirm` from `pending`** is `Yes` only when `confirmation_mode` is
+  `manual`. For an `auto`-mode booking the operation does not apply: a business
+  **MUST** return the current booking unchanged when it is already `confirmed`
+  (idempotent), and **MUST** reject with `invalid_transition` otherwise. Flow
+  vector `105-confirmation-mode-guard` pins the auto-mode rejection.
 - **`confirm` from `confirmed`** is idempotent: it **MUST** return the current
   booking rather than an error, so a retried confirmation is safe.
 - **`update` on terminal statuses** is `No` because the booking is a historical
@@ -3149,10 +3154,26 @@ Response: the full updated `booking` object with `updated_at` reflecting the mod
 > **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
 Business-initiated confirmation for bookings with `confirmation_mode: manual`.
-Transitions the booking from `pending` to `confirmed`. Only applicable when
-`confirmation_mode` is `manual` — calling this on an `auto`-mode booking that is
-already `confirmed` **MUST** return the current booking state (idempotent). The
-business **SHOULD** send a `booking.confirmed` webhook after confirming.
+A platform or buyer agent **MUST NOT** call this operation, and a
+`booking_scoped_credential` **MUST NOT** authorize it. Authentication of the
+business caller is deployment-defined and is not a platform
+`AuthorizationPolicy` mechanism.
+
+When `confirmation_mode` is `manual` and the booking is `pending`, the business
+**MUST** transition the booking to `confirmed`. When `confirmation_mode` is
+`auto` and the booking is already `confirmed`, the business **MUST** return the
+current booking unchanged (idempotent). When `confirmation_mode` is `auto` and
+the booking is not already `confirmed` (including a UCP-Native unpaid booking
+that remains `pending` while checkout is open or abandoned), the operation does
+not apply: the business **MUST** reject with `invalid_transition`
+([Section 9.4.2](#942-business-outcome-codes)) at HTTP `200 OK` in
+`messages[]`. The same rejection applies from every status whose
+[Section 5.1.1](#511-permitted-transitions-by-operation) `confirm` cell is
+`No`. Flow vector `105-confirmation-mode-guard` records the auto-mode
+`pending` rejection.
+
+The business **SHOULD** send a `booking.confirmed` webhook after a successful
+manual confirmation.
 
 | Field   | Type   | Required | Description                                         |
 |---------|--------|----------|-----------------------------------------------------|
@@ -7088,7 +7109,7 @@ Each USP REST operation maps to a JSON-RPC method:
 | `POST /bookings`                              | `usp_bookings_create`          | Create a booking                        |
 | `GET /bookings/{booking_id}`                  | `usp_bookings_get`             | Get a booking                           |
 | `PUT /bookings/{booking_id}`                  | `usp_bookings_update`          | Update a booking                        |
-| `POST /bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | Confirm a booking (manual mode)         |
+| `POST /bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | Confirm a booking (business-initiated, manual mode) |
 | `POST /bookings/{booking_id}/cancel`          | `usp_bookings_cancel`          | Cancel a booking                        |
 | `POST /bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | Reschedule a booking                    |
 | `POST /bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | Confirm payment for a booking           |
@@ -7124,13 +7145,14 @@ capabilities it advertises, or not advertise MCP in `transports` at all
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the pairing of principal to profile URI on first contact and **MUST** reject a later request where *that principal* presents a different profile URI. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself, and **MUST NOT** reject other principals that present the same URI. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every `privileged_platform` and `privileged_scoped` MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. Business-only methods **MUST NOT** require it. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the pairing of principal to profile URI on first contact and **MUST** reject a later request where *that principal* presents a different profile URI. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself, and **MUST NOT** reject other principals that present the same URI. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
 - **Public methods** (`x-usp-access: public` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)): catalog, availability query, and registry search/get. Authentication is optional.
 - **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, the full feed-subscription lifecycle (subscribe, get, pause, resume, unsubscribe), registry register, waitlist list, and registry update/delete. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same mechanism set documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
-- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, or waitlist entry. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it. Registry registrations are deliberately **not** in this set: a registry entry has exactly one owner, so it is authorized at platform tier against the registering platform's bound `jkt` rather than needing a second credential type.
+- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule on an existing booking, hold, or waitlist entry. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it. Registry registrations are deliberately **not** in this set: a registry entry has exactly one owner, so it is authorized at platform tier against the registering platform's bound `jkt` rather than needing a second credential type.
+- **Business-only methods** (`x-usp-access: business_only`): `usp_bookings_confirm`. Manual-mode merchant approval of an existing booking ([Section 5.3.4](#534-confirm-booking---post-bookingsbooking_idconfirm)). Not a platform continuation method: it **MUST NOT** be authorized by a `booking_scoped_credential` or by a platform principal under `AuthorizationPolicy`.
 
 When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
 
@@ -7417,7 +7439,7 @@ A conforming MCP binding implementation **SHOULD:**
 1. Include `_meta.usp.idempotency_key` on state-modifying operations.
 2. Provide a human-readable text summary in `result.content[]`.
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
-4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
+4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism. `usp_bookings_confirm` is `business_only` and **MUST NOT** be authorized that way.
 5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
@@ -7475,8 +7497,9 @@ chosen ones would collide.
 | Waitlist | List Entries, Get Entry, Leave, Accept Offer, Decline Offer |
 | Registry | Register, Search Businesses, Search Services, Get, Update, Delete Registration |
 
-The practical consequence is that an A2A-only agent cannot complete a
-manual-confirmation booking (no Confirm Booking), cannot act on a waitlist offer
+The practical consequence is that an A2A-only agent cannot confirm a
+manual-mode booking, because Confirm Booking is business-only and has no A2A
+task type, cannot act on a waitlist offer
 it was notified about (no Accept or Decline), and cannot participate in
 registry-based discovery at all.
 
@@ -8383,8 +8406,11 @@ USP separates operations into two trust tiers, independent of deployment mode:
   unauthenticated. These responses carry no buyer data and mutate no state, so
   forcing authentication here blocks browse-only integrations for no security
   benefit.
-- **Privileged operations** (creating, updating, confirming, cancelling, or
-  rescheduling a booking; creating or releasing an inventory hold; any
+- **Privileged operations** (creating, updating, cancelling, or
+  rescheduling a booking; business-authenticated confirmation of a booking
+  per [Section 5.3.4](#534-confirm-booking---post-bookingsbooking_idconfirm),
+  which a platform principal **MUST NOT** invoke; creating or releasing an
+  inventory hold; any
   payment-adjacent completion; joining, reading, or acting on a waitlist entry;
   registering or modifying a feed subscription; registry writes that mutate
   the discovery index; and any response that includes buyer personal data)
@@ -8529,7 +8555,7 @@ makes this list an extension point.
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
 | Platform key proof-of-possession (`platform_key_pop`) | Permissionless | Proves possession of an **ephemeral key the caller never transmits**, as a compact JWS derived from DPoP ([RFC 9449]). The business records the [RFC 7638] thumbprint (`jkt`) as the platform identifier; nothing is published, registered, or rotated, and the platform profile stays keyless. Composes with rather than replaces the rows around it: it is what lets a permissionless caller authenticate without the [RFC 9421] covered-component machinery, and what makes a booking-scoped credential **sender-constrained** via `cnf.jkt`. Not a credential on its own. |
-| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
+| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Does **not** authorize `confirm`. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
 | Mutual TLS (mTLS)                                 | Pre-established | High-security environments requiring certificate-based authentication. |
@@ -9785,7 +9811,7 @@ binding covers only part of this table and is marked accordingly in
 | Create Booking     | `POST`   | `/bookings`                              | `usp_bookings_create`          | bookings   |
 | Get Booking        | `GET`    | `/bookings/{booking_id}`                 | `usp_bookings_get`             | bookings   |
 | Update Booking     | `PUT`    | `/bookings/{booking_id}`                 | `usp_bookings_update`          | bookings   |
-| Confirm Booking    | `POST`   | `/bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | bookings   |
+| Confirm Booking    | `POST`   | `/bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | bookings (business-initiated; not a platform continuation method) |
 | Cancel Booking     | `POST`   | `/bookings/{booking_id}/cancel`          | `usp_bookings_cancel`          | bookings   |
 | Reschedule Booking | `POST`   | `/bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | bookings   |
 | Confirm Payment    | `POST`   | `/bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | bookings   |

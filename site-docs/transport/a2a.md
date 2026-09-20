@@ -49,7 +49,7 @@ These are reachable over REST and MCP only. Implementers **MUST NOT** invent tas
 | Waitlist | List Entries, Get Entry, Leave, Accept Offer, Decline Offer |
 | Registry | Register, Search Businesses, Search Services, Get, Update, Delete Registration |
 
-In practice an A2A-only agent cannot complete a manual-confirmation booking (no Confirm Booking), cannot act on a waitlist offer it was notified about (no Accept or Decline), and cannot participate in registry-based discovery at all.
+In practice an A2A-only agent cannot confirm a manual-mode booking, because Confirm Booking is business-only and has no A2A task type, cannot act on a waitlist offer it was notified about (no Accept or Decline), and cannot participate in registry-based discovery at all.
 
 ## End-to-End Booking Flow via A2A
 
@@ -95,7 +95,7 @@ Each task in the chain carries the A2A conversation context, enabling the busine
 
 ## Observability Join
 
-Participating A2A agents carry the optional money-path join id via the `USP-Correlation-Id` HTTP header. See [Section 9.7](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#97-observability-join-non-normative-recommendation). Omitting it is conformant USP.
+Participating A2A agents carry the optional money-path join id via the `USP-Correlation-Id` HTTP header. See [Section 9.7](../../specification.md#97-observability-join-non-normative-recommendation). Omitting it is conformant USP.
 
 ## Agent Card
 

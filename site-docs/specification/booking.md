@@ -57,7 +57,7 @@ The lifecycle diagram shows which statuses can follow which. It does not say whi
 
 | Current status | `confirm` | `cancel` | `reschedule` | `confirm-payment` | `update` |
 |-------------------|-----------|----------|--------------|-------------------|----------|
-| `pending` | Yes | Yes | SHOULD | No | Yes |
+| `pending` | Yes (manual) | Yes | SHOULD | No | Yes |
 | `requires_action` | No | Yes | MAY | Yes | Yes |
 | `confirmed` | Yes (idempotent) | Yes | Yes | No | Yes |
 | `in_progress` | No | No | No | No | Yes |
@@ -69,6 +69,7 @@ The cells implementations diverge on:
 
 - **`reschedule` from `pending`** is `SHOULD`. A business that does not allow it **MUST** reject with `invalid_transition` rather than silently succeeding.
 - **`reschedule` from `requires_action`** is `MAY`, because an outstanding payment action may be priced against the original slot. A business that allows it **MUST** apply the reschedule price-change rules.
+- **`confirm` from `pending`** is `Yes` only when `confirmation_mode` is `manual`. For an `auto`-mode booking the operation does not apply: a business **MUST** return the current booking unchanged when it is already `confirmed` (idempotent), and **MUST** reject with `invalid_transition` otherwise.
 - **`confirm` from `confirmed`** is idempotent: it **MUST** return the current booking, so a retried confirmation is safe.
 - **`update` on terminal statuses** is `No`. The booking is a historical record; contact and address edits **MUST NOT** be accepted on `completed`, `no_show`, or `canceled` bookings.
 
@@ -362,7 +363,9 @@ Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are 
 
 ### Confirm Booking -- `POST /bookings/{booking_id}/confirm`
 
-Business-initiated confirmation for bookings with `confirmation_mode: manual`. Transitions from `pending` to `confirmed`. Calling this on an `auto`-mode booking that is already `confirmed` **MUST** return the current booking state (idempotent).
+Business-initiated confirmation for bookings with `confirmation_mode: manual`. A platform or buyer agent **MUST NOT** call this operation, and a `booking_scoped_credential` **MUST NOT** authorize it. Authentication of the business caller is deployment-defined.
+
+When `confirmation_mode` is `manual` and the booking is `pending`, the business **MUST** transition it to `confirmed`. When `confirmation_mode` is `auto` and the booking is already `confirmed`, the business **MUST** return the current booking unchanged (idempotent). When `confirmation_mode` is `auto` and the booking is not already `confirmed` (including a UCP-Native unpaid booking that remains `pending`), the business **MUST** reject with `invalid_transition` at HTTP `200 OK` in `messages[]`.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
