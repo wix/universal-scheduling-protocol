@@ -1,5 +1,15 @@
 # Change Log
 
+## 20/09/26 at 14:50:25 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Withdrew the Section 7.5 cancel-checkout terminal-state invariant, the `cancellation.reason_code` field with its `checkout_abandoned` value, the `canceled_at` cross-read stability requirement, the buyer-notification suppression rule, the Section 5.2 note on the missing terminal path, and flow vector `105-cancel-checkout-abandoned-booking`. The hazard they addressed rested on the claim that a booking left `pending` by an abandoned checkout stays confirmable, and Section 5.3.4 restricts `confirm` to business-initiated manual-mode approval, so the claim does not hold as stated
+- Removed the pre-existing clause requiring `cancel_checkout` to transition the pending booking to `canceled`, because it cited derivation rule 2 as its authority when that rule governs only the checkout-scoped summary, and because it forced a terminal transition the protocol has no established need for
+- Stated explicitly that Section 7.5 places no requirement on `Booking.status` for a booking that never reached `confirmed`, so the silence is not read as an implicit requirement now that the transition clause is gone
+- Kept the derivation rule 2 clarification that the rule constrains `BookingContext.booking_status` only, since the conflation it corrects was a genuine ambiguity independent of the withdrawn invariant
+- Kept the cancel-response shape rule forbidding `booking_status: pending` on a canceled checkout and permitting omission of the `booking` object, since that describes the agreed response contract and is unaffected by the withdrawal
+
+---
+
 ## 20/09/26 at 14:21:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Corrected the Section 7.5 cancel-checkout invariant to say Section 5.1.1 "requires or permits" accepting `confirm`, `reschedule`, or `update`, because `reschedule` from `pending` is `SHOULD` rather than `Yes` and the previous wording claimed a requirement the cited table does not make; mirrored in `site-docs/deployment-modes/ucp-native.md`

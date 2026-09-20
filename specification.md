@@ -2815,7 +2815,7 @@ at a specific time.
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
 | `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
-| `cancellation`      | object          | No          | `{reason, reason_code, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled. `reason` is human-readable; `reason_code` is an open machine-readable vocabulary (well-known value: `checkout_abandoned`). See [Section 7.5](#75-checkout-flow-and-atomicity-guarantee) for the checkout-abandoned case.                                                                                                                                                                                                              |
+| `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `expires_at`        | string          | No          | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include `expires_at`. Advertising the field is a claim the business **MUST** honour (see Booking Expiry).                                                                                                                                                                                                                         |
@@ -2833,22 +2833,6 @@ When a `pending` or `requires_action` booking that includes `expires_at` reaches
 4. The business **MUST** release any underlying slot hold when the booking expires, making the slot available for new bookings.
 
 For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
-
-> **Terminal path when `expires_at` is omitted.** A business that holds no
-> capacity for an unconfirmed booking **MAY** omit `expires_at`. That omission
-> is conformant on its own. Combined with a checkout that is abandoned without
-> an explicit [`cancel_checkout`](https://ucp.dev/latest/specification/shopping/checkout/#cancel-checkout)
-> (for example the platform times out or walks away), the booking has **no
-> protocol-defined terminal path**: Section 7.5's cancel invariant fires only on
-> an explicit cancel, and the numbered expiry rules above fire only when
-> `expires_at` is advertised. Platforms **SHOULD** call `cancel_checkout` when
-> abandoning a paid checkout rather than relying on expiry. Businesses that
-> omit `expires_at` and that create a booking at `create_checkout` **SHOULD**
-> provide some other terminal path for silent abandonment (for example scheduled
-> cleanup against a deadline recorded at create); otherwise the USP-visible
-> booking may remain in a state from which
-> [Section 5.1.1](#511-permitted-transitions-by-operation) still requires
-> accepting `confirm`.
 
 ### 5.3 Operations
 
@@ -4803,8 +4787,7 @@ and [UCP Status Values](https://ucp.dev/latest/specification/shopping/checkout/#
 2. When the checkout reaches **`canceled`**: `booking_status` becomes `canceled`.
    This rule constrains the checkout-scoped `BookingContext.booking_status`
    summary only; it does **not** by itself change
-   [`Booking.status`](#51-booking-status-lifecycle). See **Cancel checkout**
-   below for the requirement on the USP booking resource.
+   [`Booking.status`](#51-booking-status-lifecycle).
 3. **For all other checkout statuses**: `booking_status` remains `pending`.
 
 Only the terminal UCP checkout statuses `completed` and `canceled` change
@@ -4976,12 +4959,7 @@ because only the business can see both sides.
 > [`104-charge-without-booking`](tests/vectors/flow/104-charge-without-booking.json)
 > works the A2 case: the PSP charge succeeds and the booking write then fails,
 > which is the failure the old wording could not describe because there is no
-> single transaction to roll back.
-> [`105-cancel-checkout-abandoned-booking`](tests/vectors/flow/105-cancel-checkout-abandoned-booking.json)
-> works the cancel-checkout invariant: after `cancel_checkout`, the USP-visible
-> booking is terminal with `reason_code: checkout_abandoned`, a subsequent
-> `confirm` is refused with `invalid_transition` at HTTP 200, and a later read
-> returns the same `canceled_at`. Each records the permitted resolutions, the
+> single transaction to roll back. Each records the permitted resolutions, the
 > forbidden intermediate state, and the plausible wrong answers.
 
 **Checkout `expires_at` and holds:** The checkout session's `expires_at`
@@ -5014,38 +4992,17 @@ to refresh state. If escalation fails or times out, the platform **MAY** call
 [`cancel_checkout`](https://ucp.dev/latest/specification/shopping/checkout/#cancel-checkout)
 (see [UCP Checkout REST](https://ucp.dev/latest/specification/shopping/checkout/rest/)),
 it **MUST** atomically: transition the checkout to `canceled`, and release the
-slot hold if any. The business **MUST NOT** leave any booking associated with
-that checkout in a state from which
-[Section 5.1.1](#511-permitted-transitions-by-operation) requires or permits
-accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are
-`Yes` from `pending`; `reschedule` is `SHOULD`). This requirement constrains the **USP
-booking resource as observed through `GET /bookings/{booking_id}`**, not the
-business's internal record. Transitioning that resource to `status: canceled`
-satisfies the invariant; so does a deployment that creates no booking before
-the checkout completes. The requirement exists so the booking is
-non-actionable under Section 5.1.1, so booking-scoped credentials are
-invalidated and personal-data retention clocks can fire under
-[Section 10](#10-security), and **not** to release slot capacity (holds do
-that separately).
-
-When the booking never reached `confirmed` and is terminalized because its
-checkout was canceled, the business **MUST** set
-`cancellation.reason_code` to `checkout_abandoned` and
-`cancellation.canceled_by` to `system` on the USP-visible booking.
-`cancellation.canceled_at` reports the instant the cancellation was recorded
-and **MUST NOT** change from one read to the next.
-
-A business **MUST NOT** present a `pending` to `canceled` transition on a
-booking that never reached `confirmed` as the cancellation of a confirmed
-appointment, and **SHOULD NOT** emit buyer-facing cancellation notices for
-it. The business **SHOULD** send a `booking.canceled` webhook; that webhook
-is platform-facing, carries `reason_code`, and is how the platform learns it
-may drop retained personal data.
+slot hold if any.
 
 On the cancel response itself, the business **MUST NOT** return
 `booking_status: pending` when the checkout `status` is `canceled`. The
 business **MAY** omit the `booking` object entirely; the platform already
 holds the booking id from create.
+
+This section places no requirement on [`Booking.status`](#51-booking-status-lifecycle)
+for a booking that never reached `confirmed`. A business **MAY** leave such a
+booking `pending`, and **SHOULD** send a `booking.canceled` webhook if it does
+transition it to a terminal status.
 
 **Non-payment actions and `complete_checkout`:** The business **MAY** reject
 `complete_checkout` if non-payment actions are still pending. The rejection is
