@@ -1,5 +1,25 @@
 # Change Log
 
+## 20/09/26 at 14:21:09 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Corrected the Section 7.5 cancel-checkout invariant to say Section 5.1.1 "requires or permits" accepting `confirm`, `reschedule`, or `update`, because `reschedule` from `pending` is `SHOULD` rather than `Yes` and the previous wording claimed a requirement the cited table does not make; mirrored in `site-docs/deployment-modes/ucp-native.md`
+- Added a wrong answer to flow vector `105-cancel-checkout-abandoned-booking` for keying the terminal state on USP `pending` instead of the specific backing state the abandoned checkout left behind, because a status mapping that folds several backing states into `pending` would also match a paid manual-confirmation booking awaiting merchant approval, which derivation rule 1 makes `pending` and which must never be reported canceled
+
+---
+
+## 20/09/26 at 14:06:21 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Rewrote the Section 7.5 cancel-checkout requirement as a mechanism-agnostic invariant on the USP booking resource observed through `GET /bookings/{booking_id}`, so a business must not leave that booking in a state from which Section 5.1.1 requires accepting `confirm`, without prescribing how the internal record is stored
+- Clarified that derivation rule 2 constrains only the checkout-scoped `BookingContext.booking_status` summary, resolving the ambiguity that previously cited that rule while naming the booking record
+- Added `cancellation.reason_code` (open vocabulary, well-known value `checkout_abandoned`) and required `reason_code: checkout_abandoned` with `canceled_by: system` when a booking is terminalized because its checkout was canceled and never reached `confirmed`, so platforms can distinguish abandonment from a confirmed-appointment cancellation on the agent-facing wire
+- Required `canceled_at` stability across reads so derive-and-stamp-now cannot report a different cancellation instant on every `GET`
+- Made buyer-facing cancellation-notice suppression normative for the never-confirmed case while keeping the `booking.canceled` webhook a SHOULD
+- Forbade `booking_status: pending` on a canceled checkout and permitted omitting the `booking` object on the cancel response
+- Documented the silent-abandonment terminal-path gap in Section 5.2 when `expires_at` is omitted and no explicit `cancel_checkout` runs
+- Added flow vector `105-cancel-checkout-abandoned-booking` and mirrored the cancel rules in `site-docs/deployment-modes/ucp-native.md` and `site-docs/specification/booking.md`
+
+---
+
 ## 16/09/26 at 23:23:45 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed an accidentally committed Python bytecode cache from the policy-scoping change so generated local artifacts are not shipped with the specification

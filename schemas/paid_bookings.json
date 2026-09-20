@@ -98,7 +98,7 @@
             "confirmed",
             "canceled"
           ],
-          "description": "Checkout-scoped status: pending, confirmed, or canceled. Derived from UCP checkout status (see USP specification Section 7.5). Distinct from full Booking.status in booking.json. Response only."
+          "description": "Checkout-scoped status: pending, confirmed, or canceled. Derived from UCP checkout status (see USP specification Section 7.5). Distinct from full Booking.status in booking.json. Response only when the booking object is present. MUST NOT be pending when the enclosing checkout status is canceled; the business MAY omit the booking object entirely after cancel_checkout."
         },
         "actions": {
           "type": "array",
