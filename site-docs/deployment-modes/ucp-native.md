@@ -410,7 +410,7 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 | `recipient`         | object          | No                      | The person receiving the service, when different from the buyer.                       |
 | `delivery_address`  | DeliveryAddress | Conditional             | The buyer's service delivery address. **MUST** be present when the service's `channel.type` is `at_buyer_location`. Same shape as `Booking.delivery_address`, so a UCP-Native checkout can carry the address that Standalone `create_booking` carries. |
 | `confirmation_mode` | string          | No                      | `auto` or `manual`.                                                                    |
-| `booking_status`    | string          | **Yes** (response only) | Checkout-scoped status: `pending`, `confirmed`, or `canceled`. Derived from UCP checkout status. Not the same as the full `Booking.status` lifecycle. |
+| `booking_status`    | string          | **Yes** (response only, when `booking` is present) | Checkout-scoped status: `pending`, `confirmed`, or `canceled`. Derived from UCP checkout status. Not the same as the full `Booking.status` lifecycle. Required when the checkout response includes the `booking` object; the business **MAY** omit `booking` entirely after `cancel_checkout`. |
 | `actions`           | Array\[Action\] | No                      | Non-payment actions (e.g., waiver). **MAY** appear when `create_checkout` requires buyer steps before payment. |
 | `notes`             | string          | No                      | Buyer-provided special requests.                                                       |
 
@@ -439,6 +439,8 @@ It is derived from the UCP checkout status:
 | `completed`         | `confirmed` (when `confirmation_mode: auto`) or `pending` (when `manual`) |
 | `canceled`          | `canceled`              |
 | Any other status    | `pending`               |
+
+Rule 2 (`canceled` -> `canceled`) constrains the checkout-scoped summary only; it does **not** by itself change `Booking.status`. See [Cancel Checkout](#cancel-checkout) for the requirement on the USP booking resource.
 
 ### Checkout Steps
 
@@ -492,6 +494,18 @@ A PSP charge and a booking write live in different systems, so a business cannot
     | Slot was taken or is no longer bookable | `slot_unavailable` | Platform must return the buyer to slot selection. |
 
     Earlier drafts required `slot_unavailable` in both cases, which told the platform to discard a slot that was still free.
+
+### Cancel Checkout
+
+When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any. The business **MUST NOT** leave any booking associated with that checkout in a state from which [permitted transitions](../specification/booking.md#permitted-transitions-by-operation) require accepting `confirm`, `reschedule`, or `update`.
+
+This requirement constrains the **USP booking resource as observed through `GET /bookings/{booking_id}`**, not the business's internal record. Transitioning that resource to `status: canceled` satisfies the invariant; so does a deployment that creates no booking before the checkout completes. The requirement exists so the booking is non-actionable, so booking-scoped credentials are invalidated and personal-data retention clocks can fire, and **not** to release slot capacity.
+
+When the booking never reached `confirmed` and is terminalized because its checkout was canceled, the business **MUST** set `cancellation.reason_code` to `checkout_abandoned` and `cancellation.canceled_by` to `system`. `cancellation.canceled_at` reports the instant the cancellation was recorded and **MUST NOT** change from one read to the next.
+
+A business **MUST NOT** present that transition as the cancellation of a confirmed appointment, and **SHOULD NOT** emit buyer-facing cancellation notices for it. The business **SHOULD** send a `booking.canceled` webhook.
+
+On the cancel response, the business **MUST NOT** return `booking_status: pending` when the checkout `status` is `canceled`, and **MAY** omit the `booking` object entirely.
 
 ### Action Ordering
 
