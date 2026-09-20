@@ -528,18 +528,13 @@
       "description": "Cancellation details when a booking has been canceled.",
       "properties": {
         "reason": {
-          "type": "string",
-          "description": "Human-readable cancellation reason from the initiating party."
-        },
-        "reason_code": {
-          "type": "string",
-          "description": "Machine-readable reason code. Open vocabulary. Well-known values: checkout_abandoned (booking terminalized because its UCP checkout was canceled and the booking never reached confirmed)."
+          "type": "string"
         },
         "canceled_by": {
           "type": "string",
           "enum": ["buyer", "business", "system"],
           "default": "buyer",
-          "description": "Who initiated the cancellation. buyer: the buyer or an agent acting for them. business: the business or its staff. system: an automated policy such as no-show, payment expiry, or checkout abandonment."
+          "description": "Who initiated the cancellation. buyer: the buyer or an agent acting for them. business: the business or its staff. system: an automated policy such as no-show or payment expiry."
         },
         "fee": {
           "type": "integer",
@@ -552,7 +547,7 @@
         "canceled_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 timestamp of when the cancellation was recorded. When present, MUST NOT change from one read of the booking to the next."
+          "description": "RFC 3339 timestamp."
         }
       }
     },

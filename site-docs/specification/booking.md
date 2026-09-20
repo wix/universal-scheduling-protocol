@@ -106,7 +106,7 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `booking_url` | string | No | Stable URL where the buyer can view and manage this booking. |
 | `messages` | Array[Message] | No | Soft messages from the business providing context about the booking state. |
 | `dispute` | Dispute | No | Present when a payment dispute has been opened. |
-| `cancellation` | object | No | `{reason, reason_code, canceled_by, fee, refund_amount, canceled_at}` -- present when canceled. `reason` is human-readable; `reason_code` is an open machine-readable vocabulary (well-known value: `checkout_abandoned`). |
+| `cancellation` | object | No | `{reason, canceled_by, fee, refund_amount, canceled_at}` -- present when canceled. |
 | `created_at` | string | **Yes** | RFC 3339 timestamp of creation. |
 | `updated_at` | string | **Yes** | RFC 3339 timestamp of last modification. |
 | `expires_at` | string | No | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include it. Advertising the field is a claim the business **MUST** honour (see Booking Expiry). |
@@ -124,9 +124,6 @@ When a `pending` or `requires_action` booking that includes `expires_at` reaches
 
 !!! warning "Hold Alignment"
     For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
-
-!!! note "Terminal path when `expires_at` is omitted"
-    Omitting `expires_at` is conformant when the business holds no capacity for the unconfirmed booking. Combined with a checkout that is abandoned without an explicit `cancel_checkout` (for example the platform times out or walks away), the booking has **no protocol-defined terminal path**: the [cancel-checkout invariant](../deployment-modes/ucp-native.md#cancel-checkout) fires only on an explicit cancel, and the numbered expiry rules above fire only when `expires_at` is advertised. Platforms **SHOULD** call `cancel_checkout` when abandoning a paid checkout. Businesses that omit `expires_at` and that create a booking at `create_checkout` **SHOULD** provide some other terminal path for silent abandonment; otherwise the USP-visible booking may remain in a state from which [permitted transitions](#permitted-transitions-by-operation) still require accepting `confirm`.
 
 ---
 
@@ -392,8 +389,6 @@ Cancels a booking. Eligible from `pending`, `requires_action`, or `confirmed` st
 |-------|------|----------|-------------|
 | `reason` | string | No | Human-readable cancellation reason. |
 | `canceled_by` | string | No | Who initiated: `buyer`, `business`, or `system`. Default: `buyer`. |
-
-The response populates `cancellation` on the booking. When a booking is terminalized because its UCP checkout was canceled and it never reached `confirmed`, the USP-visible booking **MUST** carry `cancellation.reason_code: checkout_abandoned` with `canceled_by: system`, and `canceled_at` **MUST NOT** change across reads. See [Cancel Checkout](../deployment-modes/ucp-native.md#cancel-checkout).
 
 ```json
 {

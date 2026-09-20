@@ -440,7 +440,7 @@ It is derived from the UCP checkout status:
 | `canceled`          | `canceled`              |
 | Any other status    | `pending`               |
 
-Rule 2 (`canceled` -> `canceled`) constrains the checkout-scoped summary only; it does **not** by itself change `Booking.status`. See [Cancel Checkout](#cancel-checkout) for the requirement on the USP booking resource.
+Rule 2 (`canceled` -> `canceled`) constrains the checkout-scoped summary only; it does **not** by itself change `Booking.status`.
 
 ### Checkout Steps
 
@@ -497,15 +497,11 @@ A PSP charge and a booking write live in different systems, so a business cannot
 
 ### Cancel Checkout
 
-When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any. The business **MUST NOT** leave any booking associated with that checkout in a state from which [permitted transitions](../specification/booking.md#permitted-transitions-by-operation) require or permit accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are `Yes` from `pending`; `reschedule` is `SHOULD`).
-
-This requirement constrains the **USP booking resource as observed through `GET /bookings/{booking_id}`**, not the business's internal record. Transitioning that resource to `status: canceled` satisfies the invariant; so does a deployment that creates no booking before the checkout completes. The requirement exists so the booking is non-actionable, so booking-scoped credentials are invalidated and personal-data retention clocks can fire, and **not** to release slot capacity.
-
-When the booking never reached `confirmed` and is terminalized because its checkout was canceled, the business **MUST** set `cancellation.reason_code` to `checkout_abandoned` and `cancellation.canceled_by` to `system`. `cancellation.canceled_at` reports the instant the cancellation was recorded and **MUST NOT** change from one read to the next.
-
-A business **MUST NOT** present that transition as the cancellation of a confirmed appointment, and **SHOULD NOT** emit buyer-facing cancellation notices for it. The business **SHOULD** send a `booking.canceled` webhook.
+When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any.
 
 On the cancel response, the business **MUST NOT** return `booking_status: pending` when the checkout `status` is `canceled`, and **MAY** omit the `booking` object entirely.
+
+This places no requirement on `Booking.status` for a booking that never reached `confirmed`. A business **MAY** leave such a booking `pending`, and **SHOULD** send a `booking.canceled` webhook if it does transition it to a terminal status.
 
 ### Action Ordering
 
