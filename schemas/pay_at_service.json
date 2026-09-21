@@ -156,7 +156,8 @@
           "description": "RFC 3339 date-time with an offset, equal to the start of the booked slot. UCP makes due_at optional and tells businesses to omit it when the date depends on a future event. A booked slot is not such an event: the time is known at checkout, which is the entire point of scheduling, so this extension requires it. That is what lets a platform set a reminder rather than parse prose."
         },
         "amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^[0-9]+$",
           "minimum": 0,
           "description": "Amount charged when this payment is taken, in the checkout currency's ISO 4217 minor units, inclusive of tax and every other charge. Stated once here rather than duplicated into settlement, so the amount owed cannot drift between the two."
         }

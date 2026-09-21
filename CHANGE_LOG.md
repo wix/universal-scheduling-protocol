@@ -144,6 +144,19 @@
 - Mirrored the rule in `site-docs/specification/booking.md` so the published site does not describe the field as unconditionally required
 
 ---
+
+## 11/09/26 at 09:14:22 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Permitted monetary amount fields to be transmitted as a decimal string as well as a JSON number, in `schemas/catalog.json`, `schemas/booking.json`, `schemas/availability.json`, and `schemas/registry.json` (19 fields), because the canonical Protocol Buffers JSON mapping serializes 64-bit integers as strings unconditionally, so `"type": "integer"` on a money field was a constraint no Protobuf-generated implementation could satisfy
+- Constrained the string form with `^-?[0-9]+$` so the relaxation admits only canonical decimal integers, rejecting exponents, thousands separators, leading `+`, and decimal points, because a permissive string type would let a producer emit `"3.5e4"` for a price and still validate
+- Used `^-?[0-9]+(\.[0-9]+)?$` for `pricing.deposit.value` alone, since that field already admits `number` to carry a percentage when `deposit.type` is `percentage`
+- Added an "Integer Encoding" subsection to section 1.1 stating that consumers **MUST** accept both forms and treat them as equal, and that producers **SHOULD NOT** vary the form for a given field between responses, so the two encodings do not become a compatibility matrix clients must discover by trial
+- Stated that bounded-domain integers — counts, capacities, party sizes, percentages, pagination limits, waitlist positions, HTTP status — remain strictly `integer` and **MUST** be JSON numbers, because they fit a 32-bit integer and widening them would cost type safety for no interoperability gain
+- Relaxed the two monetary fields added by the ESP and pay-at-service extensions as well (`esp.json` `params.amount`, `pay_at_service.json` `AtServiceSchedule.amount`), keeping their `exclusiveMinimum`/`minimum` bounds restated in the string pattern, because a numeric bound does not constrain a string and would otherwise be silently lost for that form
+- Mirrored the same rule in `site-docs/specification/index.md` so the published site does not state a narrower type than the schemas accept
+
+---
+
 ## 10/09/26 at 12:22:00 by [Maor Yehuda](mailto:maorye@wix.com)
 
 - Added a `SHOULD` in section 5.3.6 requiring a business whose `booking_scoped_credential` lifetime is derived from the slot to re-issue on the reschedule response, because a credential's `expires_at` is fixed at creation against the slot the booking occupied then and rescheduling does not move it — so rescheduling beyond that window strands the platform with a booking it can no longer read, reschedule or cancel before the appointment happens, holding only a proof of possession and no way to obtain a fresh credential

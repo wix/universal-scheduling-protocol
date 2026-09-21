@@ -80,8 +80,8 @@
       "title": "PriceRangeFilter",
       "description": "Filter services by price interval (minor currency units). Matching is within-currency only (no FX). Resolved match currency: price_range.currency if present, else context.currency; if neither is set, registries MUST reject with validation_error. pricing.model free is treated as amount 0. Build service interval S from fixed amount [a,a], published price_range, or [0,0] for free; exclude services with no indexable price interval when this filter is present. Compare S to filter F using match (default overlap). Example: service $50–$150 vs filter min=8000 max=10000: overlap and contains match; contained and equals do not.",
       "properties": {
-        "min": { "type": "integer", "description": "Inclusive lower bound of F in minor currency units. Omitted = unbounded below." },
-        "max": { "type": "integer", "description": "Inclusive upper bound of F in minor currency units. Omitted = unbounded above." },
+        "min": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$", "description": "Inclusive lower bound of F in minor currency units. Omitted = unbounded below." },
+        "max": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$", "description": "Inclusive upper bound of F in minor currency units. Omitted = unbounded above." },
         "currency": {
           "type": "string",
           "description": "ISO 4217 code for min/max. REQUIRED when context.currency is absent (omitting both is ambiguous). When both are present and differ, price_range.currency is authoritative for matching."
