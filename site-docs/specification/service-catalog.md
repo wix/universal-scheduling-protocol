@@ -504,7 +504,7 @@ Machine-readable policies that enable agents to make informed decisions. These p
 | `cancellation` | object | **Yes** | `allowed`, `free_cancellation_until` (ISO 8601 duration), `late_cancellation_fee` (minor units), `no_cancellation_after` (ISO 8601 duration). |
 | `rescheduling` | object | **Yes** | `allowed`, `free_reschedule_until`, `max_reschedules`, `fee`. |
 | `no_show` | object | No | `fee` (fixed) or `fee_percentage` (0-100), `grace_period` (ISO 8601 duration). |
-| `booking_window` | object | **Yes** | `min_advance`, `max_advance`, `slot_interval` -- all ISO 8601 durations. |
+| `booking_window` | object | No | `min_advance`, `max_advance`, `slot_interval` -- all ISO 8601 durations, and each independently optional. Omit a member the business does not constrain; an omitted member is not an unbounded window, a zero minimum, or a default interval. |
 | `confirmation_mode` | string | **Yes** | `auto` (confirmed immediately) or `manual` (requires business approval; the business **SHOULD** respond within 24 hours). If the booking advertises `expires_at` and the business does not confirm before that deadline, the booking transitions to `canceled` per [Booking Expiry](booking.md#booking-expiry). |
 | `requires_payment` | boolean | **Yes** | Whether this service requires any payment. |
 | `payment_timing` | string | Conditional | **REQUIRED** when `requires_payment` is `true`. One of: `at_booking`, `at_service`, `deposit_required`. |

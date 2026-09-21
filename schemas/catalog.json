@@ -577,7 +577,7 @@
       "type": "object",
       "title": "ServicePolicies",
       "description": "Machine-readable policies for booking, cancellation, rescheduling, and payment.",
-      "required": ["cancellation", "rescheduling", "booking_window", "confirmation_mode", "requires_payment"],
+      "required": ["cancellation", "rescheduling", "confirmation_mode", "requires_payment"],
       "properties": {
         "cancellation": {
           "type": "object",
@@ -609,7 +609,7 @@
         },
         "booking_window": {
           "type": "object",
-          "required": ["min_advance", "max_advance", "slot_interval"],
+          "description": "Every member is independently optional. Omit a member the business does not constrain; an omitted member is not an unbounded window, a zero minimum, or a default interval.",
           "properties": {
             "min_advance": { "type": "string", "description": "ISO 8601 duration" },
             "max_advance": { "type": "string", "description": "ISO 8601 duration" },
