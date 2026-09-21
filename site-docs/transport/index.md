@@ -93,7 +93,7 @@ Protocol errors use transport-native error mechanisms. The mapping across transp
 |----------------|-------------|-------------|---------------|
 | `invalid_request` | Malformed JSON, missing required fields | `400 Bad Request` | `-32600` |
 | `invalid_profile_url` | Profile URL is malformed or unresolvable | `400 Bad Request` | `-32602` |
-| `profile_unreachable` | Profile fetch failed (timeout, DNS, non-2xx) | `424 Failed Dependency` | `-32003` |
+| `profile_unreachable` | Profile fetch failed (timeout, DNS, non-2xx) | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request whose profile could not be fetched | `-32003` |
 | `profile_malformed` | Profile document fails schema validation | `422 Unprocessable Entity` | `-32004` |
 | `capabilities_incompatible` | No shared capabilities between business and platform | `200 OK` | result (not error) |
 | `profile_not_trusted` | Platform profile not in business allowlist | `403 Forbidden` | `-32005` |
