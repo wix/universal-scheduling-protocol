@@ -38,6 +38,13 @@
           "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
+      "dev.ucp.shopping.order": [
+        {
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/order",
+          "schema": "https://ucp.dev/latest/schemas/shopping/order.json"
+        }
+      ],
       "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",

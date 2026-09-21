@@ -1712,10 +1712,27 @@ booking lifecycle and **MUST** be enforced by the business.
 | `cancellation`      | object  | **Yes**     | Cancellation policy. `allowed`: boolean, whether cancellation is permitted. `free_cancellation_until`: ISO 8601 duration before the service start time within which cancellation incurs no fee (e.g., `PT24H` = free cancellation up to 24 hours before). `late_cancellation_fee`: integer, fee in minor currency units charged for cancellations after the free window. `no_cancellation_after`: ISO 8601 duration, the point after which cancellation is no longer permitted (e.g., `PT1H` = cannot cancel within 1 hour of start). |
 | `rescheduling`      | object  | **Yes**     | Rescheduling policy. `allowed`: boolean. `free_reschedule_until`: ISO 8601 duration before start time for free rescheduling. `max_reschedules`: integer, maximum number of times a booking can be rescheduled (prevents abuse). `fee`: integer, fee in minor currency units for rescheduling outside the free window.                                                                                                                                                                                                                 |
 | `no_show`           | object  | No          | No-show policy. `fee`: integer, fixed fee in minor currency units. `fee_percentage`: integer (0-100), percentage of the service price charged as a no-show fee. Only one of `fee` or `fee_percentage` **SHOULD** be set. `grace_period`: ISO 8601 duration after the scheduled start time before the booking is marked as a no-show (e.g., `PT15M` = 15-minute grace period).                                                                                                                                                         |
-| `booking_window`    | object  | **Yes**     | Booking window constraints. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
+| `booking_window`    | object  | No          | Booking window constraints, and every member is independently optional. Omit the object, or any member of it, when the business states no such constraint - see the presence rule below. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
 | `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the booking advertises `expires_at` and the business does not confirm before that deadline, the booking transitions to `canceled` per [Section 5.2](#52-booking-schema).                                                                                                                                                         |
 | `requires_payment`  | boolean | **Yes**     | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services).                                                                                                                                                                                                                                                                                                                                             |
 | `payment_timing`    | string  | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time).                                                                                                                                                                      |
+
+**Presence is the advertisement for `booking_window`.** A business that constrains
+how far ahead or how late a booking may be made **MUST** state the constraint it
+enforces. A business that does not constrain it **MUST** omit the member, and
+**MAY** omit `booking_window` entirely when it constrains none of the three. A
+consumer **MUST NOT** read an omitted member as an unbounded window, a zero
+minimum, or any default interval; it means the business has stated nothing, and
+the consumer learns the real answer by attempting the booking.
+
+Requiring all three made the field unusable for its purpose. An implementation
+whose upstream states no window had to invent values to satisfy the schema, and a
+consumer then could not tell `max_advance: P365D` "the merchant allows a year" from
+`max_advance: P365D` "the implementation had nothing to say". `slot_interval` is
+the sharpest case: a business that does not publish a generation interval has no
+honest value to send, and a fabricated one is a claim about when appointments can
+start. This mirrors `expires_at` in [Section 5.2](#52-booking-schema), where
+omission is already conformant and already means "no such claim".
 
 `ServicePolicies` governs booking lifecycle timing (cancellation windows,
 confirmation mode, payment timing). It **does not** declare minimum age, audience
@@ -2748,7 +2765,7 @@ and the `confirm-payment` operation for payment confirmation.
 | Status            | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pending`         | Booking has been created and is awaiting confirmation. For `auto` confirmation mode, this state is transient - the booking moves to `confirmed` immediately (or to `requires_action` if payment is needed). For `manual` mode, the booking remains in `pending` until the business explicitly confirms it.                                                                                                                             |
-| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type`, `status`, `continue_url`, and `expires_at`. The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
+| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type`, `status` and `continue_url`, plus an `expires_at` when the action has a deadline. The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
 | `confirmed`       | The booking is confirmed and the service will proceed at the scheduled time. This is reached after auto-confirmation, manual business approval, or successful payment completion (via `confirm-payment` or webhook).                                                                                                                                                                                                                   |
 | `in_progress`     | The service is currently being delivered. Transitioned by the business when the appointment/session begins.                                                                                                                                                                                                                                                                                                                            |
 | `completed`       | The service has been delivered. Terminal state.                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -2846,9 +2863,9 @@ at a specific time.
 | `location`          | object          | No          | `{id, name}` - the business's location for this booking. Present when `channel.type` is `at_business_location` or `hybrid`. For `at_buyer_location`, see `delivery_address` instead.                                                                                                                                                                                                                                                                                                                                                                    |
 | `delivery_address`  | DeliveryAddress | Conditional | The buyer's service delivery address, echoed from the create-booking request. **MUST** be present when the service's `channel.type` is `at_buyer_location`. **MAY** be present for other channels. See [Section 3.3](#33-service-schema) for channel types.                                                                                                                                                                                                                                                                                            |
 | `status`            | string          | **Yes**     | Current booking status. See [Section 5.1](#51-booking-status-lifecycle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `confirmation_mode` | string          | **Yes**     | `auto` or `manual`. Reflects the service's confirmation policy at booking time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `confirmation_mode` | string          | Conditional | `auto` or `manual`. The service's confirmation policy at the time the booking was created. **MUST** be present while `status` is `pending` or `requires_action`, where the buyer needs to know whether approval is outstanding. **MAY** be omitted once the booking has left those states. When present it **MUST** describe the policy in force at creation, not the service's current policy; a business that does not retain the original policy **MUST** omit the field rather than report the current one. See [Section 5.2.1](#521-confirmation-mode-and-booking-history).                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
-| `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
+| `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status` and `continue_url`, plus an optional `message` and an `expires_at` when the action has a deadline. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
@@ -2871,6 +2888,35 @@ When a `pending` or `requires_action` booking that includes `expires_at` reaches
 4. The business **MUST** release any underlying slot hold when the booking expires, making the slot available for new bookings.
 
 For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
+
+#### 5.2.1 Confirmation Mode and Booking History
+
+`confirmation_mode` is a historical fact about a booking, not a live read of the
+service. A business **MAY** change a service's confirmation policy at any time,
+and doing so **MUST NOT** change the meaning of bookings already taken under the
+previous policy.
+
+This makes the field unanswerable for some bookings. A business that does not
+store the policy alongside the booking has only two values available once the
+booking is confirmed, and both are wrong:
+
+- the service's **current** policy, which is not what the field means, and which
+  silently changes for historical bookings every time the policy changes
+- a fixed `auto`, which misreports every booking the merchant actually approved
+
+The field is therefore **REQUIRED** only while `status` is `pending` or
+`requires_action` — the states where a business necessarily knows the answer,
+because the booking is sitting in the flow that policy selected, and the states
+where the answer is actionable, because the buyer needs to know whether approval
+is outstanding. Outside those states the field is **OPTIONAL**, and a business
+that cannot answer truthfully **MUST** omit it.
+
+Platforms **MUST** treat an absent `confirmation_mode` as unknown. In
+particular, a platform **MUST NOT** infer `auto` from absence, and **MUST NOT**
+present a confirmed booking as having been auto-confirmed on that basis. A
+business that does retain the original policy **SHOULD** continue to publish the
+field on confirmed and completed bookings, where it remains useful for audit and
+for buyer-facing history.
 
 ### 5.3 Operations
 
@@ -3207,6 +3253,12 @@ not apply: the business **MUST** reject with `invalid_transition`
 
 The business **SHOULD** send a `booking.confirmed` webhook after a successful
 manual confirmation.
+
+`confirmation_mode` is **MUST**-present on exactly the states this endpoint acts
+on, so a caller always has the field it needs to decide whether to call. A
+platform **MUST NOT** infer the mode from its absence on a booking in another
+state: absence means the business did not retain the original policy, not that
+the policy was `auto`.
 
 | Field   | Type   | Required | Description                                         |
 |---------|--------|----------|-----------------------------------------------------|
@@ -4385,6 +4437,13 @@ An example profile:
           "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
+      "dev.ucp.shopping.order": [
+        {
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/order",
+          "schema": "https://ucp.dev/latest/schemas/shopping/order.json"
+        }
+      ],
       "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
@@ -5205,6 +5264,205 @@ term onto the order. The deposit amount and the refundability of that deposit on
 cancellation are business policy, surfaced through the cancellation policy
 ([Section 7.5.1](#751-merchant-policy-parity-and-eligibility-ucp-overlay)) and
 UCP's disclosure mechanism, not through new USP fields.
+
+The checkout `totals` entry of type `total` is the full obligation. Exactly one
+term is selected. That term has one positive `immediate` schedule (the amount
+collected at `complete_checkout`) and one later schedule whose amount is the
+balance due at the booked slot start. Platforms **MUST** spend the immediate
+amount and **MUST NOT** send `split_payments`. For a percentage deposit, the
+immediate amount is the business-computed integer on the schedule; the platform
+**MUST NOT** multiply a catalog percentage itself.
+
+> **Test vectors.** [`106-ucp-native-fixed-deposit`](tests/vectors/flow/106-ucp-native-fixed-deposit.json)
+> and [`107-ucp-native-percentage-deposit`](tests/vectors/flow/107-ucp-native-percentage-deposit.json)
+> pin both shapes, including order `accepted_term` projection.
+
+###### Fixed deposit
+
+A 100.00 USD appointment with a 10.00 USD fixed deposit due now. The remaining
+90.00 USD is due at the slot start. `complete_checkout` collects 10.00 USD only.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_fixed_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "totals": [
+      { "type": "subtotal", "amount": 10000 },
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_fixed_deposit",
+      "terms": [
+        {
+          "id": "pt_fixed_deposit",
+          "title": "Deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "1000 USD cents due now to hold the appointment."
+              },
+              "amount": 1000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 9000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_install_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_fixed_deposit_001",
+    "checkout_id": "checkout_fixed_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_fixed_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_fixed_deposit",
+        "title": "Deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "1000 USD cents due now to hold the appointment."
+            },
+            "amount": 1000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 9000
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+###### Percentage deposit
+
+A 200.00 USD appointment with a 20 percent deposit. The business computed the
+immediate amount as 40.00 USD (4000 minor units). The platform copies that
+integer; it does not compute 20 percent of the total itself.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_percent_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "catalog_deposit": {
+      "type": "percentage",
+      "value": 20
+    },
+    "totals": [
+      { "type": "subtotal", "amount": 20000 },
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_percent_deposit",
+      "terms": [
+        {
+          "id": "pt_percent_deposit",
+          "title": "20 percent deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+              },
+              "amount": 4000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 16000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_consult_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_percent_deposit_001",
+    "checkout_id": "checkout_percent_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_percent_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_percent_deposit",
+        "title": "20 percent deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+            },
+            "amount": 4000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 16000
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
 ##### `at_service`
 
@@ -6208,7 +6466,13 @@ to that `continue_url` **regardless** of the declared `checkout_systems` value,
 then resume with `confirm-payment` after success. This aligns with UCP's
 `requires_escalation` + `continue_url` pattern using USP's action model.
 
-**Payment action expiry:** When a payment action's `expires_at` passes without
+**Payment action expiry:** A payment action **MAY** omit `expires_at`, and an
+absent value means this business sets no deadline for the action - a platform
+**MUST NOT** infer one. A business that *will* expire the action **MUST**
+publish `expires_at`, because a deadline a platform cannot see is one it cannot
+act on, and the buyer learns of it only when the booking is already canceled.
+
+When a payment action's `expires_at` passes without
 `confirm-payment`, the business **SHOULD** set the action's `status` to
 `expired`. If no other pending actions remain, the booking **MUST** transition
 to `canceled`. This payment-action clock is independent of whether the booking
@@ -7765,7 +8029,7 @@ fully allocated, so codes added after that allocation are distinguished by
 | `invalid_request`        | Malformed JSON, or missing required fields.                                                                                 | `400 Bad Request`           | `invalid-request`        | `-32600` | `invalid_request`        |
 | `validation_error`       | One or more request fields failed validation or violated a documented constraint.                                           | `422 Unprocessable Entity`  | `validation-error`       | `-32602` | `validation_error`       |
 | `invalid_profile_url`    | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable.                                                      | `400 Bad Request`           | `invalid-profile-url`    | `-32602` | `invalid_profile_url`    |
-| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`     | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
+| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request (see note) | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
 | `profile_malformed`      | Profile document is not valid JSON or fails schema validation against [`schemas/profile.json`](schemas/profile.json).       | `422 Unprocessable Entity`  | `profile-malformed`      | `-32004` | `profile_malformed`      |
 | `profile_not_trusted`    | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist).         | `403 Forbidden`             | `profile-not-trusted`    | `-32005` | `profile_not_trusted`    |
 | `booking_not_found`      | The booking identified in the request path does not exist or is not visible to the caller ([Section 9.4.1](#941-choosing-the-error-family)). | `404 Not Found`             | `booking-not-found`      | `-32602` | `booking_not_found`      |
@@ -7796,6 +8060,21 @@ fully allocated, so codes added after that allocation are distinguished by
 The signature and proof-of-possession rows are specified in detail in
 [Section 10.1.1](#1011-webhook-security); this table is the authoritative
 transport mapping for them.
+
+> **`profile_unreachable` may be answered `401` on a privileged request.** `424` remains correct
+> where the fetch is an ordinary server-side dependency — registry registration, for instance. But
+> under [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) a fetchable profile
+> is part of the agent header *being* an identity, so a profile that cannot be retrieved leaves the
+> request unauthenticated rather than merely blocked on a dependency. `401` is both the more accurate
+> answer and the more actionable one: the caller's own published document is the thing to fix, and
+> every client already has a `401` path.
+>
+> Mandating `424` alone also had a practical cost. It is unreachable from a gRPC-based stack, where
+> HTTP statuses are derived from gRPC's closed set of status codes and nothing maps to Failed
+> Dependency. An implementation there must either repoint a status mapping shared with every other
+> service or pick some third code, and picking arbitrarily is the interoperability failure this table
+> exists to prevent. Permitting `401` lets such an implementation be conformant and predictable
+> instead.
 
 > **Adding a code.** A new protocol error **MUST** be added to this table with
 > all five columns populated before any binding references it. Because the
