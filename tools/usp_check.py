@@ -117,6 +117,8 @@ RESERVED_NAMESPACE_NAMES = {
 FOREIGN_NAMESPACE_NAMES = {
     "dev.ucp.shopping",
     "dev.ucp.shopping.checkout",
+    "dev.ucp.shopping.order",
+    "dev.ucp.common.payment.terms",
     "dev.ucp.common.identity_linking",
     "com.stripe.payments",
 }
@@ -320,6 +322,151 @@ def check_namespace_key_patterns(findings: Findings) -> None:
 
 JSON_FENCE = re.compile(r"```json\n(.*?)```", re.S)
 SITE_UCP_NATIVE = REPO / "site-docs" / "deployment-modes" / "ucp-native.md"
+UCP_PIN = "2026-08-25"
+DEPOSIT_VECTORS = (
+    ("106-ucp-native-fixed-deposit", "fixed"),
+    ("107-ucp-native-percentage-deposit", "percentage"),
+)
+
+
+def checkout_total(checkout: dict) -> int | None:
+    for entry in checkout.get("totals") or []:
+        if isinstance(entry, dict) and entry.get("type") == "total":
+            amount = entry.get("amount")
+            return amount if isinstance(amount, int) else None
+    return None
+
+
+def selected_term(checkout: dict) -> dict | None:
+    payment = checkout.get("payment") or {}
+    selected = payment.get("selected_term_id")
+    terms = [t for t in (payment.get("terms") or []) if isinstance(t, dict)]
+    matches = [t for t in terms if t.get("id") == selected]
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def schedule_amount(schedule: dict) -> int | None:
+    amount = schedule.get("amount")
+    return amount if isinstance(amount, int) else None
+
+
+def check_paid_ucp_pin(findings: Findings, key: str, ucp: dict) -> None:
+    """Paid UCP-Native profiles must pin checkout and order at 2026-08-25."""
+    if ucp.get("version") != UCP_PIN:
+        findings.fail(key, f"ucp.version must be {UCP_PIN}, got {ucp.get('version')!r}")
+    caps = ucp.get("capabilities") or {}
+    for name in ("dev.ucp.shopping.checkout", "dev.ucp.shopping.order"):
+        entries = caps.get(name)
+        if not isinstance(entries, list) or not entries:
+            findings.fail(key, f"paid profile omits {name}")
+            continue
+        versions = {entry.get("version") for entry in entries if isinstance(entry, dict)}
+        if versions != {UCP_PIN}:
+            findings.fail(key, f"{name} versions {sorted(versions)} must be exactly {UCP_PIN}")
+    if "dev.ucp.common.payment.terms" in caps:
+        terms = (caps.get("dev.ucp.common.payment.terms") or [{}])[0]
+        parents = terms.get("extends") if isinstance(terms, dict) else None
+        if isinstance(parents, str):
+            parents = [parents]
+        required = {"dev.ucp.shopping.checkout", "dev.ucp.shopping.order"}
+        if not isinstance(parents, list) or not required.issubset(set(parents)):
+            findings.fail(key, "payment.terms must extend both checkout and order")
+
+
+def validate_deposit_pair(findings: Findings, key: str, checkout: dict, order: dict,
+                          deposit_kind: str) -> None:
+    if "split_payments" in checkout or "split_payments" in order:
+        findings.fail(key, "deposit examples must not include split_payments")
+    total = checkout_total(checkout)
+    if total is None:
+        findings.fail(key, "checkout totals must include a type=total integer amount")
+        return
+    term = selected_term(checkout)
+    terms = (checkout.get("payment") or {}).get("terms") or []
+    if len(terms) != 1 or term is None:
+        findings.fail(key, "checkout must have exactly one selected term")
+        return
+    schedules = term.get("schedules") or []
+    if len(schedules) != 2:
+        findings.fail(key, "deposit term must have exactly two schedules")
+        return
+    amounts = [schedule_amount(s) for s in schedules]
+    if any(a is None for a in amounts):
+        findings.fail(key, "every schedule amount must be a business-computed integer")
+        return
+    if sum(amounts) != total:
+        findings.fail(key, f"schedule amounts {amounts} must sum to checkout total {total}")
+    immediate = [s for s in schedules if s.get("type") == "immediate"]
+    balance = [s for s in schedules if s.get("type") != "immediate"]
+    if len(immediate) != 1 or not isinstance(immediate[0].get("amount"), int) \
+            or immediate[0]["amount"] <= 0:
+        findings.fail(key, "term must have exactly one positive immediate schedule")
+    if len(balance) != 1:
+        findings.fail(key, "term must have exactly one at-service balance schedule")
+    else:
+        due = balance[0].get("due_at")
+        slot_start = ((checkout.get("booking") or {}).get("slot") or {}).get("start")
+        if not due or due != slot_start:
+            findings.fail(key, "balance due_at must equal the booked slot start")
+        if immediate and immediate[0]["amount"] >= total:
+            findings.fail(key, "immediate amount must be less than checkout total")
+    if deposit_kind == "percentage":
+        catalog = checkout.get("catalog_deposit") or {}
+        if catalog.get("type") != "percentage":
+            findings.fail(key, "percentage example must record catalog_deposit.type=percentage")
+        if "formula" in str(immediate[0].get("amount")):
+            findings.fail(key, "percentage amount must be computed by the business, not a formula")
+    accepted = ((order.get("payment") or {}).get("accepted_term") or {})
+    if accepted != term:
+        findings.fail(key, "order.payment.accepted_term must equal the selected checkout term")
+    order_total = checkout_total(order)
+    if order_total is not None and order_total != total:
+        findings.fail(key, "order total must equal checkout total")
+
+
+def labeled_json_fence(markdown: str, label: str) -> dict | None:
+    pattern = re.compile(
+        rf"^#+ {re.escape(label)}\s*$.*?```json\n(.*?)```",
+        re.M | re.S,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return None
+    try:
+        parsed = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def check_deposit_examples(findings: Findings) -> None:
+    spec = SPEC.read_text()
+    site = SITE_UCP_NATIVE.read_text() if SITE_UCP_NATIVE.is_file() else ""
+    for vid, kind in DEPOSIT_VECTORS:
+        path = REPO / "tests" / "vectors" / "flow" / f"{vid}.json"
+        if not path.is_file():
+            findings.fail(f"DEPOSIT:{vid}", f"missing {rel(path)}")
+            continue
+        vector = json.loads(path.read_text())
+        checkout = vector.get("checkout")
+        order = vector.get("order")
+        if not isinstance(checkout, dict) or not isinstance(order, dict):
+            findings.fail(f"DEPOSIT:{vid}", "vector must carry checkout and order objects")
+            continue
+        validate_deposit_pair(findings, f"DEPOSIT:{vid}", checkout, order, kind)
+        label = "Fixed deposit" if kind == "fixed" else "Percentage deposit"
+        for source_name, markdown in (("specification.md", spec), ("ucp-native.md", site)):
+            published = labeled_json_fence(markdown, label)
+            if published is None:
+                findings.fail(f"DEPOSIT:{vid}:{source_name}",
+                              f"missing labeled {label} json example")
+                continue
+            if published.get("checkout") != checkout or published.get("order") != order:
+                findings.fail(f"DEPOSIT:{vid}:{source_name}",
+                              "labeled example must match the vector checkout and order bytes")
+
 
 
 def markdown_slice(text: str, start_pattern: str, end_pattern: str) -> str | None:
@@ -402,6 +549,7 @@ def check_section_72_profile_examples(findings: Findings) -> None:
                       f"jsonschema/referencing is required to validate §7.2 profiles: {exc}")
         return
 
+    paid_checked = False
     for index, doc in profiles:
         errors = sorted(validator.iter_errors(doc["ucp"]), key=lambda e: list(e.path))
         if errors:
@@ -410,6 +558,13 @@ def check_section_72_profile_examples(findings: Findings) -> None:
             findings.fail(f"EXAMPLE72:schema:{index}",
                           f"§7.2 json fence {index} ucp object fails business_schema at {path}: "
                           f"{err.message}")
+        caps = doc["ucp"].get("capabilities") or {}
+        if "dev.usp-protocol.services.paid_bookings" in caps:
+            paid_checked = True
+            check_paid_ucp_pin(findings, f"EXAMPLE72:paid:{index}", doc["ucp"])
+    if not paid_checked:
+        findings.fail("EXAMPLE72:paid",
+                      "§7.2 has no paid profile declaring dev.usp-protocol.services.paid_bookings")
 
     if not SITE_UCP_NATIVE.is_file():
         findings.fail("EXAMPLE72:site-docs",
@@ -814,6 +969,13 @@ def check_vectors(findings: Findings) -> None:
                 findings.fail(f"VECTOR:{vid}:usp_p",
                               f"published usp_p does not match: "
                               f"expected {canon['usp_p']}, computed {digest}")
+
+    check_deposit_examples(findings)
+    paid = json.loads((SCHEMA_DIR / "paid_bookings.json").read_text()).get("requires") or {}
+    for cap in ("dev.ucp.shopping.checkout", "dev.ucp.shopping.order"):
+        if paid.get(cap) != f">={UCP_PIN}":
+            findings.fail("DEPOSIT:paid_bookings",
+                          f"schemas/paid_bookings.json requires.{cap} must be >={UCP_PIN}")
 
 
 # --------------------------------------------------------------------------

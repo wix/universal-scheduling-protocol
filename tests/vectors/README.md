@@ -86,6 +86,8 @@ implement rather than checking that they already did.
 | `103-dst-spanning-slot` | Two slots straddling a DST change where wall-clock arithmetic is wrong in opposite directions: 30 minutes for a 90-minute service, 2 hours for a 60-minute one. |
 | `104-charge-without-booking` | The PSP charge succeeds and the booking write fails. There is no single transaction to roll back, so the vector records both permitted resolutions and the intermediate state that is forbidden. |
 | `105-confirmation-mode-guard` | `confirm` from `pending` is legal only in manual mode. An auto-mode UCP-Native leftover that is still `pending` MUST be rejected with `invalid_transition` at HTTP 200; a booking-scoped credential MUST NOT authorize the call. |
+| `106-ucp-native-fixed-deposit` | UCP-Native `deposit_required` with a fixed deposit: full checkout total, one selected term, one immediate schedule, balance `due_at` equal to slot start, order `accepted_term`, no `split_payments`. |
+| `107-ucp-native-percentage-deposit` | Same shape with a percentage catalog deposit whose immediate amount is the business-computed integer 4000, not a platform-side 20 percent of total. |
 
 ## The keys are deliberately published
 
