@@ -325,7 +325,8 @@
           "description": "Mirrors the service's payment_timing value."
         },
         "amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Service fee in minor currency units, before tax. REQUIRED when timing is at_booking or deposit_required. Does not include tax_amount."
         },
         "currency": {
@@ -333,15 +334,18 @@
           "description": "ISO 4217 currency code. REQUIRED when amount is present."
         },
         "amount_due": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount due now in minor currency units. REQUIRED when timing is at_booking or deposit_required."
         },
         "deposit_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "The deposit amount in minor currency units. Present when timing is deposit_required."
         },
         "tax_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Tax amount in minor currency units. When present, the total charged to the buyer is amount + tax_amount. MUST use the same currency as amount."
         },
         "transaction_id": {
@@ -367,7 +371,8 @@
       ],
       "properties": {
         "amount_due": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount to collect in minor currency units."
         },
         "currency": {
@@ -393,7 +398,8 @@
                 "type": "string"
               },
               "amount": {
-                "type": "integer"
+                "type": ["integer", "string"],
+                "pattern": "^-?[0-9]+$"
               },
               "quantity": {
                 "type": "integer"
@@ -407,7 +413,8 @@
           "description": "Itemized breakdown for display and checkout integration."
         },
         "tax_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Tax portion of amount_due in minor currency units. When present, the checkout system SHOULD display the tax breakdown. Pre-tax subtotal is amount_due minus tax_amount when tax_amount is present."
         },
         "metadata": {
@@ -537,11 +544,13 @@
           "description": "Who initiated the cancellation. buyer: the buyer or an agent acting for them. business: the business or its staff. system: an automated policy such as no-show or payment expiry."
         },
         "fee": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Cancellation fee in minor currency units."
         },
         "refund_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount refunded in minor currency units."
         },
         "canceled_at": {

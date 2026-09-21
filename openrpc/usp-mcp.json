@@ -77,11 +77,13 @@
                 "description": "Price range filter in minor currency units.",
                 "properties": {
                   "min": {
-                    "type": "integer",
+                    "type": ["integer", "string"],
+                    "pattern": "^-?[0-9]+$",
                     "description": "Minimum price in minor currency units."
                   },
                   "max": {
-                    "type": "integer",
+                    "type": ["integer", "string"],
+                    "pattern": "^-?[0-9]+$",
                     "description": "Maximum price in minor currency units."
                   }
                 }
@@ -2076,7 +2078,8 @@
                 "type": "string"
               },
               "amount_paid": {
-                "type": "integer"
+                "type": ["integer", "string"],
+                "pattern": "^-?[0-9]+$"
               },
               "currency": {
                 "type": "string"
