@@ -1,5 +1,17 @@
 # Change Log
 
+## 21/09/26 at 16:57:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `CODEOWNERS` from the public spec because it named `@wix-private/ot-ds-payments`, a team in another organization that GitHub cannot use as owners on `wix/universal-scheduling-protocol`, and because that internal team slug should not ship in the public tree
+
+---
+
+## 21/09/26 at 16:57:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `CODEOWNERS` from the public spec because it named `@wix-private/ot-ds-payments`, a team in another organization that GitHub cannot use as owners on `wix/universal-scheduling-protocol`, and because that internal team slug should not ship in the public tree
+
+---
+
 ## 21/09/26 at 14:47:01 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Raised `schemas/paid_bookings.json` so `dev.ucp.shopping.checkout` and `dev.ucp.shopping.order` both require `>=2026-08-25`, because payment terms and order `accepted_term` do not exist on the old checkout pin
