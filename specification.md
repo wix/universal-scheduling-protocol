@@ -7732,7 +7732,7 @@ fully allocated, so codes added after that allocation are distinguished by
 | `invalid_request`        | Malformed JSON, or missing required fields.                                                                                 | `400 Bad Request`           | `invalid-request`        | `-32600` | `invalid_request`        |
 | `validation_error`       | One or more request fields failed validation or violated a documented constraint.                                           | `422 Unprocessable Entity`  | `validation-error`       | `-32602` | `validation_error`       |
 | `invalid_profile_url`    | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable.                                                      | `400 Bad Request`           | `invalid-profile-url`    | `-32602` | `invalid_profile_url`    |
-| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`     | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
+| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request (see note) | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
 | `profile_malformed`      | Profile document is not valid JSON or fails schema validation against [`schemas/profile.json`](schemas/profile.json).       | `422 Unprocessable Entity`  | `profile-malformed`      | `-32004` | `profile_malformed`      |
 | `profile_not_trusted`    | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist).         | `403 Forbidden`             | `profile-not-trusted`    | `-32005` | `profile_not_trusted`    |
 | `booking_not_found`      | The booking identified in the request path does not exist or is not visible to the caller ([Section 9.4.1](#941-choosing-the-error-family)). | `404 Not Found`             | `booking-not-found`      | `-32602` | `booking_not_found`      |
@@ -7763,6 +7763,21 @@ fully allocated, so codes added after that allocation are distinguished by
 The signature and proof-of-possession rows are specified in detail in
 [Section 10.1.1](#1011-webhook-security); this table is the authoritative
 transport mapping for them.
+
+> **`profile_unreachable` may be answered `401` on a privileged request.** `424` remains correct
+> where the fetch is an ordinary server-side dependency — registry registration, for instance. But
+> under [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) a fetchable profile
+> is part of the agent header *being* an identity, so a profile that cannot be retrieved leaves the
+> request unauthenticated rather than merely blocked on a dependency. `401` is both the more accurate
+> answer and the more actionable one: the caller's own published document is the thing to fix, and
+> every client already has a `401` path.
+>
+> Mandating `424` alone also had a practical cost. It is unreachable from a gRPC-based stack, where
+> HTTP statuses are derived from gRPC's closed set of status codes and nothing maps to Failed
+> Dependency. An implementation there must either repoint a status mapping shared with every other
+> service or pick some third code, and picking arbitrarily is the interoperability failure this table
+> exists to prevent. Permitting `401` lets such an implementation be conformant and predictable
+> instead.
 
 > **Adding a code.** A new protocol error **MUST** be added to this table with
 > all five columns populated before any binding references it. Because the
