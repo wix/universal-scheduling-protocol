@@ -439,12 +439,11 @@
     "Action": {
       "type": "object",
       "title": "Action",
-      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry.",
+      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status and continue URL, and an expiry when the action has a deadline.",
       "required": [
         "type",
         "status",
-        "continue_url",
-        "expires_at"
+        "continue_url"
       ],
       "properties": {
         "type": {
@@ -468,7 +467,7 @@
         "expires_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 deadline for this action. Can be equal to or earlier than the booking expiry."
+          "description": "RFC 3339 deadline for this action. OPTIONAL. A business whose action does not expire MAY omit this field; a business that will expire the action MUST include it, since a platform cannot otherwise know the action has a deadline before it passes. Omitting it asserts only that this business sets no deadline - it does not relieve the business of Section 8.5.4's expiry obligations if it later does. Can be equal to or earlier than the booking expiry. Mirrors Booking.expires_at, which is likewise optional and for the same reason: a deadline that does not exist cannot be stated truthfully, and a fabricated one is acted on by agents."
         },
         "message": {
           "$ref": "#/$defs/Message",

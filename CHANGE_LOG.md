@@ -50,6 +50,11 @@
 - Prohibited publishing a USP policy on a UCP binding such as `dev.ucp.shopping`, and forbade a platform reading the absence of `config.authorization` on a UCP binding as "no authentication required", since the namespace rule that keeps USP declarations under `dev.usp-protocol.*` is exactly what makes that absence uninformative rather than permissive
 - Recorded why the rule is needed: Section 7.2 already says Section 10.1.6 applies to UCP-Native checkout and booking-extension operations, while a policy scoped to "the USP endpoint that binding declares" left those operations unauthorised by anything in the profile — so a fail-closed client had to either refuse a conformant business or send a proof it could not justify
 - Mirrored both rules in `site-docs/deployment-modes/ucp-native.md`
+## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
+- Stated in Section 8.5.4 and in `site-docs/deployment-modes/standalone.md` that an absent `Action.expires_at` means the business sets no deadline and a platform **MUST NOT** infer one, and that a business which *will* expire the action **MUST** publish it, because the failure mode of a hidden deadline is that the platform cannot act on it and the buyer first learns of it when the booking is already canceled
+- Reworded the two places in Section 5 that enumerated an action's fields as `type`, `status`, `continue_url`, `expires_at`, since they read as a list of what is always present and are the sentences a reader checks before the schema
 
 ---
 
