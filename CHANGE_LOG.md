@@ -1,5 +1,13 @@
 # Change Log
 
+## 21/09/26 at 14:47:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Raised `schemas/paid_bookings.json` so `dev.ucp.shopping.checkout` and `dev.ucp.shopping.order` both require `>=2026-08-25`, because payment terms and order `accepted_term` do not exist on the old checkout pin
+- Declared `dev.ucp.shopping.order` at `2026-08-25` on the paid UCP-Native profile examples (specification, site-docs, and the demo merchant profile) so checkout and order are the same core version the payment-terms extension extends
+- Added labeled fixed-deposit and percentage-deposit UCP-Native examples, plus flow vectors `106` and `107`, so CI checks full checkout total, one selected term, one immediate schedule, balance due at slot start, order `accepted_term`, immediate-only collection, and the absence of `split_payments`. The percentage example publishes the business-computed amount rather than instructing the client to compute it
+
+---
+
 ## 20/09/26 at 16:15:19 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Made Section 5.3.4 authoritative over the Section 5.1.1 `pending`/`confirm` cell, so `confirm` from `pending` is legal only in manual confirmation mode and an auto-mode booking that is not already `confirmed` MUST be rejected with `invalid_transition`. That closes the contradiction that would otherwise let a platform confirm an unpaid UCP-Native leftover sitting in `pending`

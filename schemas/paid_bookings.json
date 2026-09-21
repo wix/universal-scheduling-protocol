@@ -4,7 +4,8 @@
   "title": "USP Paid Bookings Extension",
   "description": "Extends dev.ucp.shopping.checkout with booking context. UCP assimilation artifact for integrating USP scheduling with UCP checkout. When complete_checkout succeeds, payment and booking are atomically finalized.",
   "requires": {
-    "dev.ucp.shopping.checkout": ">=2026-01-11",
+    "dev.ucp.shopping.checkout": ">=2026-08-25",
+    "dev.ucp.shopping.order": ">=2026-08-25",
     "dev.usp-protocol.services.bookings": ">=2026-08-20"
   },
   "allOf": [
