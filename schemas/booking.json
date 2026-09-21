@@ -16,9 +16,17 @@
         "buyer",
         "party_size",
         "status",
-        "confirmation_mode",
         "created_at",
         "updated_at"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "enum": ["pending", "requires_action"] } },
+            "required": ["status"]
+          },
+          "then": { "required": ["confirmation_mode"] }
+        }
       ],
       "properties": {
         "id": {
@@ -98,11 +106,8 @@
         },
         "confirmation_mode": {
           "type": "string",
-          "enum": [
-            "auto",
-            "manual"
-          ],
-          "description": "Reflects the service's confirmation policy at booking time."
+          "enum": ["auto", "manual"],
+          "description": "The service's confirmation policy at the time the booking was created. REQUIRED while status is pending or requires_action, where it tells the buyer whether approval is outstanding. OPTIONAL once the booking has left those states. When present it MUST describe the policy in force at creation, not the service's current policy; a business that does not retain the original policy MUST omit the field rather than report the current one."
         },
         "payment": {
           "$ref": "#/$defs/BookingPayment",

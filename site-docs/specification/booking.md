@@ -100,7 +100,7 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `resources` | Array[object] | No | `{id, type, name}` -- specific resources assigned to this booking. |
 | `location` | object | No | `{id, name}` -- specific location for this booking. |
 | `status` | string | **Yes** | Current booking status. See [Status Lifecycle](#booking-status-lifecycle). |
-| `confirmation_mode` | string | **Yes** | `auto` or `manual`. |
+| `confirmation_mode` | string | Conditional | `auto` or `manual`. The service's confirmation policy at the time the booking was created. **MUST** be present while `status` is `pending` or `requires_action`; **MAY** be omitted afterwards. When present it **MUST** describe the policy in force at creation, not the service's current policy (see Confirmation Mode and Booking History). |
 | `payment` | BookingPayment | Conditional | Payment state. **MUST** be present when `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. |
 | `actions` | Array[Action] | Conditional | Ordered array of pending tasks. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. |
 | `notes` | string | No | Buyer-provided special requests or notes. |
@@ -111,6 +111,19 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `created_at` | string | **Yes** | RFC 3339 timestamp of creation. |
 | `updated_at` | string | **Yes** | RFC 3339 timestamp of last modification. |
 | `expires_at` | string | No | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include it. Advertising the field is a claim the business **MUST** honour (see Booking Expiry). |
+
+### Confirmation Mode and Booking History
+
+`confirmation_mode` is a historical fact about a booking, not a live read of the service. A business **MAY** change a service's confirmation policy at any time, and doing so **MUST NOT** change the meaning of bookings already taken under the previous policy.
+
+This makes the field unanswerable for some bookings. A business that does not store the policy alongside the booking has only two values available once the booking is confirmed, and both are wrong:
+
+- the service's **current** policy, which is not what the field means, and which silently changes for historical bookings every time the policy changes
+- a fixed `auto`, which misreports every booking the merchant actually approved
+
+The field is therefore **REQUIRED** only while `status` is `pending` or `requires_action` — the states where a business necessarily knows the answer, because the booking is sitting in the flow that policy selected, and the states where the answer is actionable, because the buyer needs to know whether approval is outstanding. Outside those states the field is **OPTIONAL**, and a business that cannot answer truthfully **MUST** omit it.
+
+Platforms **MUST** treat an absent `confirmation_mode` as unknown. A business that does retain the original policy **SHOULD** continue to publish the field on confirmed and completed bookings, where it remains useful for audit and buyer-facing history.
 
 ### Booking Expiry
 
@@ -366,6 +379,9 @@ Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are 
 Business-initiated confirmation for bookings with `confirmation_mode: manual`. A platform or buyer agent **MUST NOT** call this operation, and a `booking_scoped_credential` **MUST NOT** authorize it. Authentication of the business caller is deployment-defined.
 
 When `confirmation_mode` is `manual` and the booking is `pending`, the business **MUST** transition it to `confirmed`. When `confirmation_mode` is `auto` and the booking is already `confirmed`, the business **MUST** return the current booking unchanged (idempotent). When `confirmation_mode` is `auto` and the booking is not already `confirmed` (including a UCP-Native unpaid booking that remains `pending`), the business **MUST** reject with `invalid_transition` at HTTP `200 OK` in `messages[]`.
+
+!!! note "Absence is not `auto`"
+    `confirmation_mode` is **MUST**-present on exactly the states this endpoint acts on, so a caller always has the field it needs. A platform **MUST NOT** infer the mode from its absence on a booking in another state: absence means the business did not retain the original policy, not that the policy was `auto`.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|

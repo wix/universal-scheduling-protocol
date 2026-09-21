@@ -133,6 +133,17 @@
 
 ---
 
+## 11/09/26 at 09:41:05 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Booking.confirmation_mode` conditional rather than unconditionally required in `schemas/booking.json`, required via `if`/`then` on `status` being `pending` or `requires_action`, because the field is defined as the policy at booking time and a business that does not store that policy alongside the booking has no truthful value to send once the booking is confirmed
+- Stated that a business which cannot answer truthfully **MUST** omit the field rather than report the service's current policy, since the current policy silently rewrites the history of every past booking each time a merchant changes it, and a fixed `auto` misreports every booking the merchant actually approved
+- Required platforms to treat an absent `confirmation_mode` as unknown and **MUST NOT** infer `auto` from absence, because merely relaxing the requirement would otherwise turn one wrong answer into a different wrong answer
+- Added section 5.2.1 "Confirmation Mode and Booking History" explaining why the field is scoped to the unconfirmed states — they are the states where a business necessarily knows the answer and where the answer is actionable for the buyer
+- Noted in section 5.3.4 that `confirmation_mode` is **MUST**-present on exactly the states Confirm Booking acts on, so narrowing the requirement does not leave that endpoint's precondition unreadable
+- Kept the field **SHOULD**-published on confirmed and completed bookings for businesses that do retain the original policy, so audit and buyer-facing history do not lose information that is available
+- Mirrored the rule in `site-docs/specification/booking.md` so the published site does not describe the field as unconditionally required
+
+---
 ## 10/09/26 at 12:22:00 by [Maor Yehuda](mailto:maorye@wix.com)
 
 - Added a `SHOULD` in section 5.3.6 requiring a business whose `booking_scoped_credential` lifetime is derived from the slot to re-issue on the reschedule response, because a credential's `expires_at` is fixed at creation against the slot the booking occupied then and rescheduling does not move it — so rescheduling beyond that window strands the platform with a booking it can no longer read, reschedule or cancel before the appointment happens, holding only a proof of possession and no way to obtain a fresh credential

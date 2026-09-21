@@ -2830,7 +2830,7 @@ at a specific time.
 | `location`          | object          | No          | `{id, name}` - the business's location for this booking. Present when `channel.type` is `at_business_location` or `hybrid`. For `at_buyer_location`, see `delivery_address` instead.                                                                                                                                                                                                                                                                                                                                                                    |
 | `delivery_address`  | DeliveryAddress | Conditional | The buyer's service delivery address, echoed from the create-booking request. **MUST** be present when the service's `channel.type` is `at_buyer_location`. **MAY** be present for other channels. See [Section 3.3](#33-service-schema) for channel types.                                                                                                                                                                                                                                                                                            |
 | `status`            | string          | **Yes**     | Current booking status. See [Section 5.1](#51-booking-status-lifecycle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `confirmation_mode` | string          | **Yes**     | `auto` or `manual`. Reflects the service's confirmation policy at booking time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `confirmation_mode` | string          | Conditional | `auto` or `manual`. The service's confirmation policy at the time the booking was created. **MUST** be present while `status` is `pending` or `requires_action`, where the buyer needs to know whether approval is outstanding. **MAY** be omitted once the booking has left those states. When present it **MUST** describe the policy in force at creation, not the service's current policy; a business that does not retain the original policy **MUST** omit the field rather than report the current one. See [Section 5.2.1](#521-confirmation-mode-and-booking-history).                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
 | `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status` and `continue_url`, plus an optional `message` and an `expires_at` when the action has a deadline. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -2855,6 +2855,35 @@ When a `pending` or `requires_action` booking that includes `expires_at` reaches
 4. The business **MUST** release any underlying slot hold when the booking expires, making the slot available for new bookings.
 
 For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
+
+#### 5.2.1 Confirmation Mode and Booking History
+
+`confirmation_mode` is a historical fact about a booking, not a live read of the
+service. A business **MAY** change a service's confirmation policy at any time,
+and doing so **MUST NOT** change the meaning of bookings already taken under the
+previous policy.
+
+This makes the field unanswerable for some bookings. A business that does not
+store the policy alongside the booking has only two values available once the
+booking is confirmed, and both are wrong:
+
+- the service's **current** policy, which is not what the field means, and which
+  silently changes for historical bookings every time the policy changes
+- a fixed `auto`, which misreports every booking the merchant actually approved
+
+The field is therefore **REQUIRED** only while `status` is `pending` or
+`requires_action` — the states where a business necessarily knows the answer,
+because the booking is sitting in the flow that policy selected, and the states
+where the answer is actionable, because the buyer needs to know whether approval
+is outstanding. Outside those states the field is **OPTIONAL**, and a business
+that cannot answer truthfully **MUST** omit it.
+
+Platforms **MUST** treat an absent `confirmation_mode` as unknown. In
+particular, a platform **MUST NOT** infer `auto` from absence, and **MUST NOT**
+present a confirmed booking as having been auto-confirmed on that basis. A
+business that does retain the original policy **SHOULD** continue to publish the
+field on confirmed and completed bookings, where it remains useful for audit and
+for buyer-facing history.
 
 ### 5.3 Operations
 
@@ -3191,6 +3220,12 @@ not apply: the business **MUST** reject with `invalid_transition`
 
 The business **SHOULD** send a `booking.confirmed` webhook after a successful
 manual confirmation.
+
+`confirmation_mode` is **MUST**-present on exactly the states this endpoint acts
+on, so a caller always has the field it needs to decide whether to call. A
+platform **MUST NOT** infer the mode from its absence on a booking in another
+state: absence means the business did not retain the original policy, not that
+the policy was `auto`.
 
 | Field   | Type   | Required | Description                                         |
 |---------|--------|----------|-----------------------------------------------------|
