@@ -1,5 +1,31 @@
 # Change Log
 
+## 21/09/26 at 14:47:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Raised `schemas/paid_bookings.json` so `dev.ucp.shopping.checkout` and `dev.ucp.shopping.order` both require `>=2026-08-25`, because payment terms and order `accepted_term` do not exist on the old checkout pin
+- Declared `dev.ucp.shopping.order` at `2026-08-25` on the paid UCP-Native profile examples (specification, site-docs, and the demo merchant profile) so checkout and order are the same core version the payment-terms extension extends
+- Added labeled fixed-deposit and percentage-deposit UCP-Native examples, plus flow vectors `106` and `107`, so CI checks full checkout total, one selected term, one immediate schedule, balance due at slot start, order `accepted_term`, immediate-only collection, and the absence of `split_payments`. The percentage example publishes the business-computed amount rather than instructing the client to compute it
+
+---
+
+## 20/09/26 at 16:15:19 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made Section 5.3.4 authoritative over the Section 5.1.1 `pending`/`confirm` cell, so `confirm` from `pending` is legal only in manual confirmation mode and an auto-mode booking that is not already `confirmed` MUST be rejected with `invalid_transition`. That closes the contradiction that would otherwise let a platform confirm an unpaid UCP-Native leftover sitting in `pending`
+- Marked REST `POST /bookings/{booking_id}/confirm` and MCP `usp_bookings_confirm` as `business_only`, stripping platform `USP-Agent`/`_meta` and booking-scoped credentials, because a scoped credential that can confirm would still grant a free appointment on that unpaid leftover
+- Added flow vector `105-confirmation-mode-guard` and a coherence check for the `business_only` access class so the cell cannot drift untested again
+
+---
+
+## 20/09/26 at 14:50:25 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Withdrew the Section 7.5 cancel-checkout terminal-state invariant, the `cancellation.reason_code` field with its `checkout_abandoned` value, the `canceled_at` cross-read stability requirement, the buyer-notification suppression rule, the Section 5.2 note on the missing terminal path, and flow vector `105-cancel-checkout-abandoned-booking`. The hazard they addressed rested on the claim that a booking left `pending` by an abandoned checkout stays confirmable, and Section 5.3.4 restricts `confirm` to business-initiated manual-mode approval, so the claim does not hold as stated
+- Removed the pre-existing clause requiring `cancel_checkout` to transition the pending booking to `canceled`, because it cited derivation rule 2 as its authority when that rule governs only the checkout-scoped summary, and because it forced a terminal transition the protocol has no established need for
+- Stated explicitly that Section 7.5 places no requirement on `Booking.status` for a booking that never reached `confirmed`, so the silence is not read as an implicit requirement now that the transition clause is gone
+- Kept the derivation rule 2 clarification that the rule constrains `BookingContext.booking_status` only, since the conflation it corrects was a genuine ambiguity independent of the withdrawn invariant
+- Kept the cancel-response shape rule forbidding `booking_status: pending` on a canceled checkout and permitting omission of the `booking` object, since that describes the agreed response contract and is unaffected by the withdrawal
+
+---
+
 ## 20/09/26 at 14:21:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Corrected the Section 7.5 cancel-checkout invariant to say Section 5.1.1 "requires or permits" accepting `confirm`, `reschedule`, or `update`, because `reschedule` from `pending` is `SHOULD` rather than `Yes` and the previous wording claimed a requirement the cited table does not make; mirrored in `site-docs/deployment-modes/ucp-native.md`
@@ -20,6 +46,14 @@
 
 ---
 
+## 19/09/26 at 23:10:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `booking_window` and each of its members optional on `ServicePolicies`, because requiring all three forced any business that states no window to invent values, and a consumer then could not tell `max_advance: P365D` "the merchant allows a year" from `max_advance: P365D` "the implementation had nothing to say"
+- Stated the presence rule explicitly: a business that constrains how far ahead or how late a booking may be made MUST state the constraint it enforces, a business that does not MUST omit the member, and a consumer MUST NOT read an omitted member as an unbounded window, a zero minimum, or a default interval
+- Singled out `slot_interval`, which has no honest value for a business that publishes no generation interval, so a required field made a fabricated claim about when appointments can start
+- Mirrored the optionality in `schemas/catalog.json` `$defs/ServicePolicies` and in `site-docs/specification/service-catalog.md`, so the canonical schema and the published site do not keep requiring what the prose now permits omitting
+
+---
 ## 16/09/26 at 23:23:45 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed an accidentally committed Python bytecode cache from the policy-scoping change so generated local artifacts are not shipped with the specification
@@ -32,6 +66,20 @@
 - Prohibited publishing a USP policy on a UCP binding such as `dev.ucp.shopping`, and forbade a platform reading the absence of `config.authorization` on a UCP binding as "no authentication required", since the namespace rule that keeps USP declarations under `dev.usp-protocol.*` is exactly what makes that absence uninformative rather than permissive
 - Recorded why the rule is needed: Section 7.2 already says Section 10.1.6 applies to UCP-Native checkout and booking-extension operations, while a policy scoped to "the USP endpoint that binding declares" left those operations unauthorised by anything in the profile — so a fail-closed client had to either refuse a conformant business or send a proof it could not justify
 - Mirrored both rules in `site-docs/deployment-modes/ucp-native.md`
+
+## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
+- Stated in Section 8.5.4 and in `site-docs/deployment-modes/standalone.md` that an absent `Action.expires_at` means the business sets no deadline and a platform **MUST NOT** infer one, and that a business which *will* expire the action **MUST** publish it, because the failure mode of a hidden deadline is that the platform cannot act on it and the buyer first learns of it when the booking is already canceled
+- Reworded the two places in Section 5 that enumerated an action's fields as `type`, `status`, `continue_url`, `expires_at`, since they read as a list of what is always present and are the sentences a reader checks before the schema
+
+---
+
+## 13/09/26 at 08:40:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Permitted `401 Unauthorized` for `profile_unreachable` on a privileged request, alongside the existing `424 Failed Dependency`, because under Section 10.1.6 a fetchable profile is part of the agent header *being* an identity — a profile that cannot be retrieved leaves the request unauthenticated rather than merely blocked on a dependency, and the thing the caller must fix is their own published document
+- Named the practical cost of mandating `424` alone: it is unreachable from a gRPC-based stack, where HTTP statuses derive from gRPC's closed set of status codes and nothing maps to Failed Dependency, so an implementation there had to either repoint a status mapping shared with every other service on the platform or pick some third code — and picking arbitrarily is the interoperability failure the table exists to prevent
+- Mirrored the row in `site-docs/transport/index.md` so the published transport table does not keep the narrower mapping
 
 ---
 
@@ -83,6 +131,30 @@
 - Added three flow test vectors under `tests/vectors/flow/` for hold expiry mid-checkout, a concurrent-hold race, and DST-spanning slots. Each records the plausible wrong answers and what they cost, because a spec can say "atomic" and "use instants" and be read as agreement by two implementations that behave differently
 - Added a `coherence` subcommand to `tools/usp_check.py` and wired it into CI. It catches the three drifts that read as healthy prose: a field table naming a field its schema dropped, an operation added to one binding only, and a binding emitting an error code the matrix never defined
 - Fixed the MCP business-outcome path to `result.structuredContent.messages[]` in all three places it was wrong, and corrected the UCP checkout example to `order: { id }` rather than a root-level `order_id`, which agents would otherwise read as a real UCP field
+
+---
+
+## 11/09/26 at 09:41:05 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Booking.confirmation_mode` conditional rather than unconditionally required in `schemas/booking.json`, required via `if`/`then` on `status` being `pending` or `requires_action`, because the field is defined as the policy at booking time and a business that does not store that policy alongside the booking has no truthful value to send once the booking is confirmed
+- Stated that a business which cannot answer truthfully **MUST** omit the field rather than report the service's current policy, since the current policy silently rewrites the history of every past booking each time a merchant changes it, and a fixed `auto` misreports every booking the merchant actually approved
+- Required platforms to treat an absent `confirmation_mode` as unknown and **MUST NOT** infer `auto` from absence, because merely relaxing the requirement would otherwise turn one wrong answer into a different wrong answer
+- Added section 5.2.1 "Confirmation Mode and Booking History" explaining why the field is scoped to the unconfirmed states — they are the states where a business necessarily knows the answer and where the answer is actionable for the buyer
+- Noted in section 5.3.4 that `confirmation_mode` is **MUST**-present on exactly the states Confirm Booking acts on, so narrowing the requirement does not leave that endpoint's precondition unreadable
+- Kept the field **SHOULD**-published on confirmed and completed bookings for businesses that do retain the original policy, so audit and buyer-facing history do not lose information that is available
+- Mirrored the rule in `site-docs/specification/booking.md` so the published site does not describe the field as unconditionally required
+
+---
+
+## 11/09/26 at 09:14:22 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Permitted monetary amount fields to be transmitted as a decimal string as well as a JSON number, in `schemas/catalog.json`, `schemas/booking.json`, `schemas/availability.json`, and `schemas/registry.json` (19 fields), because the canonical Protocol Buffers JSON mapping serializes 64-bit integers as strings unconditionally, so `"type": "integer"` on a money field was a constraint no Protobuf-generated implementation could satisfy
+- Constrained the string form with `^-?[0-9]+$` so the relaxation admits only canonical decimal integers, rejecting exponents, thousands separators, leading `+`, and decimal points, because a permissive string type would let a producer emit `"3.5e4"` for a price and still validate
+- Used `^-?[0-9]+(\.[0-9]+)?$` for `pricing.deposit.value` alone, since that field already admits `number` to carry a percentage when `deposit.type` is `percentage`
+- Added an "Integer Encoding" subsection to section 1.1 stating that consumers **MUST** accept both forms and treat them as equal, and that producers **SHOULD NOT** vary the form for a given field between responses, so the two encodings do not become a compatibility matrix clients must discover by trial
+- Stated that bounded-domain integers — counts, capacities, party sizes, percentages, pagination limits, waitlist positions, HTTP status — remain strictly `integer` and **MUST** be JSON numbers, because they fit a 32-bit integer and widening them would cost type safety for no interoperability gain
+- Relaxed the two monetary fields added by the ESP and pay-at-service extensions as well (`esp.json` `params.amount`, `pay_at_service.json` `AtServiceSchedule.amount`), keeping their `exclusiveMinimum`/`minimum` bounds restated in the string pattern, because a numeric bound does not constrain a string and would otherwise be silently lost for that form
+- Mirrored the same rule in `site-docs/specification/index.md` so the published site does not state a narrower type than the schemas accept
 
 ---
 
