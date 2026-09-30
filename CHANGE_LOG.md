@@ -1,5 +1,12 @@
 # Change Log
 
+## 30/09/26 at 10:30:11 by [danielja](mailto:danielja@wix.com)
+
+- Added `cancellation.late_cancellation_fee_percentage` (integer, 0-100) to Section 3.9 and `schemas/catalog.json`, because `late_cancellation_fee` is a fixed amount in minor units and a business whose late-cancellation fee is a percentage of the price had no field to state it in. Such a business either omitted the fee, which an agent reads as free cancellation, or would have had to put the percent into a minor-unit field, which misstates it. The pair mirrors `no_show.fee` and `no_show.fee_percentage`: at most one SHOULD be set, and a percentage MUST NOT be published as `late_cancellation_fee`
+- Mirrored the new field in `site-docs/specification/service-catalog.md`
+
+---
+
 ## 21/09/26 at 16:57:01 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Removed `CODEOWNERS` from the public spec because it named `@wix-private/ot-ds-payments`, a team in another organization that GitHub cannot use as owners on `wix/universal-scheduling-protocol`, and because that internal team slug should not ship in the public tree
