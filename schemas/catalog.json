@@ -587,6 +587,7 @@
             "allowed": { "type": "boolean" },
             "free_cancellation_until": { "type": "string", "description": "ISO 8601 duration" },
             "late_cancellation_fee": { "type": ["integer", "string"], "pattern": "^-?[0-9]+$" },
+            "late_cancellation_fee_percentage": { "type": "integer", "minimum": 0, "maximum": 100 },
             "no_cancellation_after": { "type": "string", "description": "ISO 8601 duration" }
           }
         },

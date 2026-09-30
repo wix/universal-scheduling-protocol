@@ -501,7 +501,7 @@ Machine-readable policies that enable agents to make informed decisions. These p
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `cancellation` | object | **Yes** | `allowed`, `free_cancellation_until` (ISO 8601 duration), `late_cancellation_fee` (minor units), `no_cancellation_after` (ISO 8601 duration). |
+| `cancellation` | object | **Yes** | `allowed`, `free_cancellation_until` (ISO 8601 duration), `late_cancellation_fee` (fixed, minor units) or `late_cancellation_fee_percentage` (0-100), `no_cancellation_after` (ISO 8601 duration). |
 | `rescheduling` | object | **Yes** | `allowed`, `free_reschedule_until`, `max_reschedules`, `fee`. |
 | `no_show` | object | No | `fee` (fixed) or `fee_percentage` (0-100), `grace_period` (ISO 8601 duration). |
 | `booking_window` | object | No | `min_advance`, `max_advance`, `slot_interval` -- all ISO 8601 durations, and each independently optional. Omit a member the business does not constrain; an omitted member is not an unbounded window, a zero minimum, or a default interval. |
