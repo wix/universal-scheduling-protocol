@@ -63,7 +63,7 @@ verifier alike:
 - Verifiers **MUST** support `ES256`; signers **SHOULD** default to it. ECDSA
   values use fixed-width raw `r||s` encoding, not DER.
 
-See [Section 9.1.4](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#914-request-signing)
+See [Section 9.1.4](../specification.md#914-request-signing)
 in the normative specification.
 
 
@@ -90,13 +90,15 @@ payment confirmation) **SHOULD** use an idempotency key:
 
 This requirement applies in **both** deployment modes: it is not inherited
 from UCP in UCP-Native Mode. See
-[Section 10.1.6](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#1016-platform-authentication-for-privileged-operations)
+[Section 10.1.6](../specification.md#1016-platform-authentication-for-privileged-operations)
 for the full normative text and rationale.
 
 - **Public operations** (catalog, availability, profile discovery) **MAY**
   remain unauthenticated.
-- **Privileged operations** (booking create/update/confirm/cancel/reschedule,
-  holds, waitlist actions, payment-adjacent completion, registry writes, and
+- **Privileged operations** (booking create/update/cancel/reschedule,
+  business-authenticated confirmation of a booking which a platform principal
+  **MUST NOT** invoke, holds, waitlist actions, payment-adjacent completion,
+  registry writes, and
   any response carrying buyer personal data) **MUST** be authenticated.
 - Every request to a privileged operation **MUST** carry a `USP-Agent` (or
   `UCP-Agent`) header on REST, or `_meta.usp.profile` on MCP, that resolves to
@@ -125,15 +127,15 @@ for the full normative text and rationale.
   compromised database can act on the booking. With it, the value alone is
   useless.
 - Businesses declare which mechanisms they require in an `authorization` policy
-  ([`schemas/profile.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/schemas/profile.json) `$defs/AuthorizationPolicy`
+  ([`schemas/profile.json`](https://usp-protocol.dev/schemas/profile.json) `$defs/AuthorizationPolicy`
   / `$defs/AuthorizationMechanism`), published **top-level** in a Standalone
   `/.well-known/usp` profile and as **`config.authorization` on the
   `dev.usp-protocol.services` service binding** in a UCP-Native `/.well-known/ucp`
   profile. USP does not add top-level members to a UCP profile document; it
   declares only under its own `dev.usp-protocol.*` namespace authority, and `config` is
   the member UCP defines for entity-specific settings. The same mechanism set is expressed in
-  [`openapi/usp-rest.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openapi/usp-rest.json) `components.securitySchemes`
-  and [`openrpc/usp-mcp.json`](https://github.com/wix/universal-scheduling-protocol/blob/master/openrpc/usp-mcp.json)
+  [`openapi/usp-rest.json`](https://usp-protocol.dev/schemas/openapi/usp-rest.json) `components.securitySchemes`
+  and [`openrpc/usp-mcp.json`](https://usp-protocol.dev/schemas/openrpc/usp-mcp.json)
   `components.x-usp-securitySchemes`; MCP may present credentials on the HTTP
   layer (when MCP is over HTTP) or via `_meta.usp.authorization`.
 - On rejection, businesses **SHOULD** return `401` with `WWW-Authenticate`
@@ -270,7 +272,7 @@ USP is designed to minimize PCI-DSS scope for implementations:
 | Buyer authorizes the charge on a trusted, deterministic surface | Inherited from UCP checkout | Required | USP spec §8.5 |
 | Privileged-op authentication (some accepted mechanism) | Required | Required | USP spec §10.1.6 |
 | HTTP Message Signatures (recommended default mechanism) | Available | Available | RFC 9421 |
-| Booking-scoped capability credential | Available (#134, #162) | Available (#134, #162) | USP spec §10.1.6 |
+| Booking-scoped capability credential | Available | Available | USP spec §10.1.6 |
 | OAuth 2.0 (one accepted mechanism) | Available | Available | RFC 6749 |
 | DPoP token binding | Inherited | Recommended | RFC 9449 |
 | Rate limiting | Inherited | Recommended | draft-ietf-httpapi-ratelimit-headers |

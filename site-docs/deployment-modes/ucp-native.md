@@ -77,6 +77,13 @@ Businesses register USP scheduling capabilities in their UCP profile alongside o
           "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
+      "dev.ucp.shopping.order": [
+        {
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/order",
+          "schema": "https://ucp.dev/latest/schemas/shopping/order.json"
+        }
+      ],
       "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
@@ -440,7 +447,7 @@ It is derived from the UCP checkout status:
 | `canceled`          | `canceled`              |
 | Any other status    | `pending`               |
 
-Rule 2 (`canceled` -> `canceled`) constrains the checkout-scoped summary only; it does **not** by itself change `Booking.status`. See [Cancel Checkout](#cancel-checkout) for the requirement on the USP booking resource.
+Rule 2 (`canceled` -> `canceled`) constrains the checkout-scoped summary only; it does **not** by itself change `Booking.status`.
 
 ### Checkout Steps
 
@@ -497,15 +504,11 @@ A PSP charge and a booking write live in different systems, so a business cannot
 
 ### Cancel Checkout
 
-When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any. The business **MUST NOT** leave any booking associated with that checkout in a state from which [permitted transitions](../specification/booking.md#permitted-transitions-by-operation) require or permit accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are `Yes` from `pending`; `reschedule` is `SHOULD`).
-
-This requirement constrains the **USP booking resource as observed through `GET /bookings/{booking_id}`**, not the business's internal record. Transitioning that resource to `status: canceled` satisfies the invariant; so does a deployment that creates no booking before the checkout completes. The requirement exists so the booking is non-actionable, so booking-scoped credentials are invalidated and personal-data retention clocks can fire, and **not** to release slot capacity.
-
-When the booking never reached `confirmed` and is terminalized because its checkout was canceled, the business **MUST** set `cancellation.reason_code` to `checkout_abandoned` and `cancellation.canceled_by` to `system`. `cancellation.canceled_at` reports the instant the cancellation was recorded and **MUST NOT** change from one read to the next.
-
-A business **MUST NOT** present that transition as the cancellation of a confirmed appointment, and **SHOULD NOT** emit buyer-facing cancellation notices for it. The business **SHOULD** send a `booking.canceled` webhook.
+When the business processes `cancel_checkout`, it **MUST** atomically transition the checkout to `canceled` and release the slot hold if any.
 
 On the cancel response, the business **MUST NOT** return `booking_status: pending` when the checkout `status` is `canceled`, and **MAY** omit the `booking` object entirely.
+
+This places no requirement on `Booking.status` for a booking that never reached `confirmed`. A business **MAY** leave such a booking `pending`, and **SHOULD** send a `booking.canceled` webhook if it does transition it to a terminal status.
 
 ### Action Ordering
 
@@ -607,6 +610,192 @@ Where a checkout is involved, both non-`at_booking` timings are statements about
 Expressible in base UCP plus the payment terms extension, with no USP-specific machinery. The business offers a term with two schedules: an `immediate` schedule for the deposit, charged when the checkout completes, and a later schedule for the balance, whose `due_at` is the start of the booked slot. The instrument the buyer supplies funds both, which is why UCP requires that instrument to be capable of every schedule on the selected term.
 
 A business offering `deposit_required` **MUST** declare `dev.ucp.common.payment.terms` in its profile, **MUST** set the balance schedule's `due_at` to the slot start, and **MUST** carry the accepted term onto the order. Deposit amount and refundability are business policy, surfaced through the cancellation policy and UCP's disclosure mechanism, not through new USP fields.
+
+The checkout `totals` entry of type `total` is the full obligation. Exactly one term is selected. That term has one positive `immediate` schedule (the amount collected at `complete_checkout`) and one later schedule whose amount is the balance due at the booked slot start. Platforms **MUST** spend the immediate amount and **MUST NOT** send `split_payments`. For a percentage deposit, the immediate amount is the business-computed integer on the schedule; the platform **MUST NOT** multiply a catalog percentage itself.
+
+#### Fixed deposit
+
+A 100.00 USD appointment with a 10.00 USD fixed deposit due now. The remaining 90.00 USD is due at the slot start. `complete_checkout` collects 10.00 USD only.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_fixed_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "totals": [
+      { "type": "subtotal", "amount": 10000 },
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_fixed_deposit",
+      "terms": [
+        {
+          "id": "pt_fixed_deposit",
+          "title": "Deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "1000 USD cents due now to hold the appointment."
+              },
+              "amount": 1000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 9000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_install_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_fixed_deposit_001",
+    "checkout_id": "checkout_fixed_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_fixed_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_fixed_deposit",
+        "title": "Deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "1000 USD cents due now to hold the appointment."
+            },
+            "amount": 1000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 9000
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+#### Percentage deposit
+
+A 200.00 USD appointment with a 20 percent deposit. The business computed the immediate amount as 40.00 USD (4000 minor units). The platform copies that integer; it does not compute 20 percent of the total itself.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_percent_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "catalog_deposit": {
+      "type": "percentage",
+      "value": 20
+    },
+    "totals": [
+      { "type": "subtotal", "amount": 20000 },
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_percent_deposit",
+      "terms": [
+        {
+          "id": "pt_percent_deposit",
+          "title": "20 percent deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+              },
+              "amount": 4000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 16000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_consult_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_percent_deposit_001",
+    "checkout_id": "checkout_percent_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_percent_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_percent_deposit",
+        "title": "20 percent deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+            },
+            "amount": 4000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 16000
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
 ### `at_service`
 

@@ -8,6 +8,19 @@
 
 ---
 
+## 30/09/26 at 10:30:11 by [danielja](mailto:danielja@wix.com)
+
+- Added `cancellation.late_cancellation_fee_percentage` (integer, 0-100) to Section 3.9 and `schemas/catalog.json`, because `late_cancellation_fee` is a fixed amount in minor units and a business whose late-cancellation fee is a percentage of the price had no field to state it in. Such a business either omitted the fee, which an agent reads as free cancellation, or would have had to put the percent into a minor-unit field, which misstates it. The pair mirrors `no_show.fee` and `no_show.fee_percentage`: at most one SHOULD be set, and a percentage MUST NOT be published as `late_cancellation_fee`
+- Mirrored the new field in `site-docs/specification/service-catalog.md`
+
+---
+
+## 21/09/26 at 16:57:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `CODEOWNERS` from the public spec because it named `@wix-private/ot-ds-payments`, a team in another organization that GitHub cannot use as owners on `wix/universal-scheduling-protocol`, and because that internal team slug should not ship in the public tree
+
+---
+
 ## 21/09/26 at 14:47:01 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Raised `schemas/paid_bookings.json` so `dev.ucp.shopping.checkout` and `dev.ucp.shopping.order` both require `>=2026-08-25`, because payment terms and order `accepted_term` do not exist on the old checkout pin
@@ -74,6 +87,19 @@
 - Prohibited publishing a USP policy on a UCP binding such as `dev.ucp.shopping`, and forbade a platform reading the absence of `config.authorization` on a UCP binding as "no authentication required", since the namespace rule that keeps USP declarations under `dev.usp-protocol.*` is exactly what makes that absence uninformative rather than permissive
 - Recorded why the rule is needed: Section 7.2 already says Section 10.1.6 applies to UCP-Native checkout and booking-extension operations, while a policy scoped to "the USP endpoint that binding declares" left those operations unauthorised by anything in the profile — so a fail-closed client had to either refuse a conformant business or send a proof it could not justify
 - Mirrored both rules in `site-docs/deployment-modes/ucp-native.md`
+## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
+- Stated in Section 8.5.4 and in `site-docs/deployment-modes/standalone.md` that an absent `Action.expires_at` means the business sets no deadline and a platform **MUST NOT** infer one, and that a business which *will* expire the action **MUST** publish it, because the failure mode of a hidden deadline is that the platform cannot act on it and the buyer first learns of it when the booking is already canceled
+- Reworded the two places in Section 5 that enumerated an action's fields as `type`, `status`, `continue_url`, `expires_at`, since they read as a list of what is always present and are the sentences a reader checks before the schema
+
+---
+
+## 13/09/26 at 08:40:00 by [Maor Yehuda](mailto:maorye@wix.com)
+
+- Permitted `401 Unauthorized` for `profile_unreachable` on a privileged request, alongside the existing `424 Failed Dependency`, because under Section 10.1.6 a fetchable profile is part of the agent header *being* an identity — a profile that cannot be retrieved leaves the request unauthenticated rather than merely blocked on a dependency, and the thing the caller must fix is their own published document
+- Named the practical cost of mandating `424` alone: it is unreachable from a gRPC-based stack, where HTTP statuses derive from gRPC's closed set of status codes and nothing maps to Failed Dependency, so an implementation there had to either repoint a status mapping shared with every other service on the platform or pick some third code — and picking arbitrarily is the interoperability failure the table exists to prevent
+- Mirrored the row in `site-docs/transport/index.md` so the published transport table does not keep the narrower mapping
 
 ## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
 

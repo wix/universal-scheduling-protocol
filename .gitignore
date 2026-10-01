@@ -1,5 +1,3 @@
-# Intellij
-.idea/site/
-
-# MkDocs build output
-site/
+tools/__pycache__/
+__pycache__/
+*.pyc

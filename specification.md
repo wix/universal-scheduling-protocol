@@ -268,7 +268,8 @@ capitals, as shown here.
 
 - Dates: [RFC 3339] (e.g., `2026-03-15T09:00:00-04:00`)
 - Durations: [ISO 8601] (e.g., `PT60M`, `PT24H`, `P90D`)
-- Currency amounts: Minor units / cents (e.g., `7500` = $75.00)
+- Currency amounts: Minor units / cents (e.g., `7500` = $75.00), transmitted as
+  a JSON number or a decimal string (see [Integer Encoding](#integer-encoding))
 - Timezones: [IANA Time Zone Database](https://www.iana.org/time-zones)
   identifiers (e.g., `America/New_York`)
 
@@ -281,6 +282,38 @@ offsets alike. Scheduling runs on local time, so daylight-saving transitions are
 routine rather than exceptional: see
 [`103-dst-spanning-slot`](tests/vectors/flow/103-dst-spanning-slot.json) for two
 worked cases where the wall-clock reading is wrong in opposite directions.
+
+#### Integer Encoding
+
+Monetary amount fields — those documented as minor currency units — **MAY** be
+transmitted as either a JSON number or a decimal string. Consumers **MUST**
+accept both forms and **MUST** treat them as equal. A producer **SHOULD NOT**
+vary the form it emits for a given field between responses.
+
+The string form **MUST** be a canonical decimal integer matching
+`^-?[0-9]+$`: no leading `+`, no exponent, no thousands separator, and no
+decimal point. Where a field also admits a fractional value — `pricing.deposit.value`,
+which carries a percentage when `deposit.type` is `percentage` — the string form
+**MUST** match `^-?[0-9]+(\.[0-9]+)?$`.
+
+Both forms are permitted because JSON numbers are IEEE 754 doubles and cannot
+represent every 64-bit integer exactly. The canonical Protocol Buffers JSON
+mapping therefore serializes 64-bit integer fields as decimal strings, and it
+does so unconditionally — any implementation generated from a Protobuf IDL
+inherits that behavior rather than choosing it. A monetary field restricted to
+JSON numbers would be one that such an implementation cannot emit conformantly.
+
+Where a monetary field carries a numeric bound, the string form is constrained
+to match: `esp.json` `params.amount` has `exclusiveMinimum: 0` and so admits
+only `^[1-9][0-9]*$`, and `pay_at_service.json` `AtServiceSchedule.amount` has
+`minimum: 0` and so admits `^[0-9]+$`. A bound expressed with `minimum` or
+`exclusiveMinimum` does not constrain a string, so it is restated in the pattern
+rather than lost.
+
+Fields with a bounded domain — counts, capacities, party sizes, percentages,
+pagination limits, waitlist positions, HTTP status codes — remain strictly
+`integer`. They fit a 32-bit integer, are not subject to the 64-bit mapping, and
+**MUST** be transmitted as JSON numbers.
 
 ### 1.2 Terminology
 
@@ -1677,13 +1710,30 @@ booking lifecycle and **MUST** be enforced by the business.
 
 | Field               | Type    | Required    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 |---------------------|---------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `cancellation`      | object  | **Yes**     | Cancellation policy. `allowed`: boolean, whether cancellation is permitted. `free_cancellation_until`: ISO 8601 duration before the service start time within which cancellation incurs no fee (e.g., `PT24H` = free cancellation up to 24 hours before). `late_cancellation_fee`: integer, fee in minor currency units charged for cancellations after the free window. `no_cancellation_after`: ISO 8601 duration, the point after which cancellation is no longer permitted (e.g., `PT1H` = cannot cancel within 1 hour of start). |
+| `cancellation`      | object  | **Yes**     | Cancellation policy. `allowed`: boolean, whether cancellation is permitted. `free_cancellation_until`: ISO 8601 duration before the service start time within which cancellation incurs no fee (e.g., `PT24H` = free cancellation up to 24 hours before). `late_cancellation_fee`: integer, fixed fee in minor currency units charged for cancellations after the free window. `late_cancellation_fee_percentage`: integer (0-100), percentage of the service price charged for cancellations after the free window. Only one of `late_cancellation_fee` or `late_cancellation_fee_percentage` **SHOULD** be set, and a business whose late-cancellation fee is a percentage **MUST NOT** publish it as `late_cancellation_fee`. `no_cancellation_after`: ISO 8601 duration, the point after which cancellation is no longer permitted (e.g., `PT1H` = cannot cancel within 1 hour of start). |
 | `rescheduling`      | object  | **Yes**     | Rescheduling policy. `allowed`: boolean. `free_reschedule_until`: ISO 8601 duration before start time for free rescheduling. `max_reschedules`: integer, maximum number of times a booking can be rescheduled (prevents abuse). `fee`: integer, fee in minor currency units for rescheduling outside the free window.                                                                                                                                                                                                                 |
 | `no_show`           | object  | No          | No-show policy. `fee`: integer, fixed fee in minor currency units. `fee_percentage`: integer (0-100), percentage of the service price charged as a no-show fee. Only one of `fee` or `fee_percentage` **SHOULD** be set. `grace_period`: ISO 8601 duration after the scheduled start time before the booking is marked as a no-show (e.g., `PT15M` = 15-minute grace period).                                                                                                                                                         |
-| `booking_window`    | object  | **Yes**     | Booking window constraints. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
+| `booking_window`    | object  | No          | Booking window constraints, and every member is independently optional. Omit the object, or any member of it, when the business states no such constraint - see the presence rule below. `min_advance`: ISO 8601 duration, minimum time before the slot start that a booking can be made (e.g., `PT2H` = must book at least 2 hours in advance). `max_advance`: ISO 8601 duration, maximum time in advance a booking can be made (e.g., `P60D` = can book up to 60 days ahead). `slot_interval`: ISO 8601 duration, the interval at which slots are generated (e.g., `PT30M` = slots start every 30 minutes).                                                                                      |
 | `confirmation_mode` | string  | **Yes**     | `auto`: booking is confirmed immediately upon creation (or upon payment completion if payment is required). `manual`: booking requires explicit business approval. The business **SHOULD** respond within 24 hours. If the booking advertises `expires_at` and the business does not confirm before that deadline, the booking transitions to `canceled` per [Section 5.2](#52-booking-schema).                                                                                                                                                         |
 | `requires_payment`  | boolean | **Yes**     | Whether this service requires any payment. `false` for free services. `true` for all paid services (including pay-at-service). See [Section 2.2](#22-commerce-and-non-commerce-services).                                                                                                                                                                                                                                                                                                                                             |
 | `payment_timing`    | string  | Conditional | **REQUIRED** when `requires_payment` is `true`. **MUST NOT** be present when `requires_payment` is `false`. One of: `at_booking` (full payment collected digitally before confirmation), `at_service` (payment collected in person at time of service), `deposit_required` (partial payment collected digitally before confirmation, remainder at service time).                                                                                                                                                                      |
+
+**Presence is the advertisement for `booking_window`.** A business that constrains
+how far ahead or how late a booking may be made **MUST** state the constraint it
+enforces. A business that does not constrain it **MUST** omit the member, and
+**MAY** omit `booking_window` entirely when it constrains none of the three. A
+consumer **MUST NOT** read an omitted member as an unbounded window, a zero
+minimum, or any default interval; it means the business has stated nothing, and
+the consumer learns the real answer by attempting the booking.
+
+Requiring all three made the field unusable for its purpose. An implementation
+whose upstream states no window had to invent values to satisfy the schema, and a
+consumer then could not tell `max_advance: P365D` "the merchant allows a year" from
+`max_advance: P365D` "the implementation had nothing to say". `slot_interval` is
+the sharpest case: a business that does not publish a generation interval has no
+honest value to send, and a fabricated one is a claim about when appointments can
+start. This mirrors `expires_at` in [Section 5.2](#52-booking-schema), where
+omission is already conformant and already means "no such claim".
 
 `ServicePolicies` governs booking lifecycle timing (cancellation windows,
 confirmation mode, payment timing). It **does not** declare minimum age, audience
@@ -2716,7 +2766,7 @@ and the `confirm-payment` operation for payment confirmation.
 | Status            | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pending`         | Booking has been created and is awaiting confirmation. For `auto` confirmation mode, this state is transient - the booking moves to `confirmed` immediately (or to `requires_action` if payment is needed). For `manual` mode, the booking remains in `pending` until the business explicitly confirms it.                                                                                                                             |
-| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type`, `status`, `continue_url`, and `expires_at`. The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
+| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type`, `status` and `continue_url`, plus an `expires_at` when the action has a deadline. The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
 | `confirmed`       | The booking is confirmed and the service will proceed at the scheduled time. This is reached after auto-confirmation, manual business approval, or successful payment completion (via `confirm-payment` or webhook).                                                                                                                                                                                                                   |
 | `in_progress`     | The service is currently being delivered. Transitioned by the business when the appointment/session begins.                                                                                                                                                                                                                                                                                                                            |
 | `completed`       | The service has been delivered. Terminal state.                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -2726,7 +2776,7 @@ and the `confirm-payment` operation for payment confirmation.
 #### 5.1.1 Permitted Transitions by Operation
 
 The diagram above shows which statuses can follow which. It does not say which
-**operation** is legal from a given status, and that is what a platform needs in
+**operation** is legal from a given status, and that is what a caller needs in
 order to know whether a call will be accepted. This table is normative.
 
 Rows are the booking's current status; columns are the operation. `Yes` means
@@ -2736,7 +2786,7 @@ means the business **MUST** reject it with `invalid_transition`
 
 | Current status    | `confirm` | `cancel` | `reschedule` | `confirm-payment` | `update` |
 |-------------------|-----------|----------|--------------|-------------------|----------|
-| `pending`         | Yes       | Yes      | SHOULD       | No                | Yes      |
+| `pending`         | Yes (manual) | Yes   | SHOULD       | No                | Yes      |
 | `requires_action` | No        | Yes      | MAY          | Yes               | Yes      |
 | `confirmed`       | Yes (idempotent) | Yes | Yes        | No                | Yes      |
 | `in_progress`     | No        | No       | No           | No                | Yes      |
@@ -2754,6 +2804,11 @@ on today:
   discretion, because an outstanding payment action may be priced against the
   original slot. A business that allows it **MUST** apply the price-change rules
   in [Section 5.3.6](#536-reschedule-booking---post-bookingsbooking_idreschedule).
+- **`confirm` from `pending`** is `Yes` only when `confirmation_mode` is
+  `manual`. For an `auto`-mode booking the operation does not apply: a business
+  **MUST** return the current booking unchanged when it is already `confirmed`
+  (idempotent), and **MUST** reject with `invalid_transition` otherwise. Flow
+  vector `105-confirmation-mode-guard` pins the auto-mode rejection.
 - **`confirm` from `confirmed`** is idempotent: it **MUST** return the current
   booking rather than an error, so a retried confirmation is safe.
 - **`update` on terminal statuses** is `No` because the booking is a historical
@@ -2809,9 +2864,9 @@ at a specific time.
 | `location`          | object          | No          | `{id, name}` - the business's location for this booking. Present when `channel.type` is `at_business_location` or `hybrid`. For `at_buyer_location`, see `delivery_address` instead.                                                                                                                                                                                                                                                                                                                                                                    |
 | `delivery_address`  | DeliveryAddress | Conditional | The buyer's service delivery address, echoed from the create-booking request. **MUST** be present when the service's `channel.type` is `at_buyer_location`. **MAY** be present for other channels. See [Section 3.3](#33-service-schema) for channel types.                                                                                                                                                                                                                                                                                            |
 | `status`            | string          | **Yes**     | Current booking status. See [Section 5.1](#51-booking-status-lifecycle).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `confirmation_mode` | string          | **Yes**     | `auto` or `manual`. Reflects the service's confirmation policy at booking time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `confirmation_mode` | string          | Conditional | `auto` or `manual`. The service's confirmation policy at the time the booking was created. **MUST** be present while `status` is `pending` or `requires_action`, where the buyer needs to know whether approval is outstanding. **MAY** be omitted once the booking has left those states. When present it **MUST** describe the policy in force at creation, not the service's current policy; a business that does not retain the original policy **MUST** omit the field rather than report the current one. See [Section 5.2.1](#521-confirmation-mode-and-booking-history).                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `payment`           | BookingPayment  | Conditional | Payment state. **MUST** be present when the service's `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. **MAY** be present with `status: not_required` when `payment_timing` is `at_service`. See [Section 8.5.1](#851-booking-payment-schema) (Standalone Mode).                                                                                                                                                                                          |
-| `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status`, `continue_url`, `expires_at`, and an optional `message`. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
+| `actions`           | Array\[Action\] | Conditional | Ordered array of pending tasks the buyer must complete. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. The booking has `status: requires_action` if and only if this array contains at least one action with `status: pending`. Each action has `type`, `status` and `continue_url`, plus an optional `message` and an `expires_at` when the action has a deadline. The business places actions in recommended completion order; non-payment actions **SHOULD** precede payment actions. See [Section 8.5](#85-payment-integration). |
 | `notes`             | string          | No          | Buyer-provided special requests or notes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
@@ -2835,21 +2890,34 @@ When a `pending` or `requires_action` booking that includes `expires_at` reaches
 
 For hold-backed bookings that advertise `expires_at`, the hold's `expires_at` (see [Section 4.2](#42-hold)) **SHOULD** be aligned with or earlier than the booking's `expires_at` to prevent a race condition where the slot is released but the booking has not yet expired.
 
-> **Terminal path when `expires_at` is omitted.** A business that holds no
-> capacity for an unconfirmed booking **MAY** omit `expires_at`. That omission
-> is conformant on its own. Combined with a checkout that is abandoned without
-> an explicit [`cancel_checkout`](https://ucp.dev/latest/specification/shopping/checkout/#cancel-checkout)
-> (for example the platform times out or walks away), the booking has **no
-> protocol-defined terminal path**: Section 7.5's cancel invariant fires only on
-> an explicit cancel, and the numbered expiry rules above fire only when
-> `expires_at` is advertised. Platforms **SHOULD** call `cancel_checkout` when
-> abandoning a paid checkout rather than relying on expiry. Businesses that
-> omit `expires_at` and that create a booking at `create_checkout` **SHOULD**
-> provide some other terminal path for silent abandonment (for example scheduled
-> cleanup against a deadline recorded at create); otherwise the USP-visible
-> booking may remain in a state from which
-> [Section 5.1.1](#511-permitted-transitions-by-operation) still requires
-> accepting `confirm`.
+#### 5.2.1 Confirmation Mode and Booking History
+
+`confirmation_mode` is a historical fact about a booking, not a live read of the
+service. A business **MAY** change a service's confirmation policy at any time,
+and doing so **MUST NOT** change the meaning of bookings already taken under the
+previous policy.
+
+This makes the field unanswerable for some bookings. A business that does not
+store the policy alongside the booking has only two values available once the
+booking is confirmed, and both are wrong:
+
+- the service's **current** policy, which is not what the field means, and which
+  silently changes for historical bookings every time the policy changes
+- a fixed `auto`, which misreports every booking the merchant actually approved
+
+The field is therefore **REQUIRED** only while `status` is `pending` or
+`requires_action` — the states where a business necessarily knows the answer,
+because the booking is sitting in the flow that policy selected, and the states
+where the answer is actionable, because the buyer needs to know whether approval
+is outstanding. Outside those states the field is **OPTIONAL**, and a business
+that cannot answer truthfully **MUST** omit it.
+
+Platforms **MUST** treat an absent `confirmation_mode` as unknown. In
+particular, a platform **MUST NOT** infer `auto` from absence, and **MUST NOT**
+present a confirmed booking as having been auto-confirmed on that basis. A
+business that does retain the original policy **SHOULD** continue to publish the
+field on confirmed and completed bookings, where it remains useful for audit and
+for buyer-facing history.
 
 ### 5.3 Operations
 
@@ -3166,10 +3234,32 @@ Response: the full updated `booking` object with `updated_at` reflecting the mod
 > **JSON Schema:** Response — [/$defs/Booking](schemas/booking.json)
 
 Business-initiated confirmation for bookings with `confirmation_mode: manual`.
-Transitions the booking from `pending` to `confirmed`. Only applicable when
-`confirmation_mode` is `manual` — calling this on an `auto`-mode booking that is
-already `confirmed` **MUST** return the current booking state (idempotent). The
-business **SHOULD** send a `booking.confirmed` webhook after confirming.
+A platform or buyer agent **MUST NOT** call this operation, and a
+`booking_scoped_credential` **MUST NOT** authorize it. Authentication of the
+business caller is deployment-defined and is not a platform
+`AuthorizationPolicy` mechanism.
+
+When `confirmation_mode` is `manual` and the booking is `pending`, the business
+**MUST** transition the booking to `confirmed`. When `confirmation_mode` is
+`auto` and the booking is already `confirmed`, the business **MUST** return the
+current booking unchanged (idempotent). When `confirmation_mode` is `auto` and
+the booking is not already `confirmed` (including a UCP-Native unpaid booking
+that remains `pending` while checkout is open or abandoned), the operation does
+not apply: the business **MUST** reject with `invalid_transition`
+([Section 9.4.2](#942-business-outcome-codes)) at HTTP `200 OK` in
+`messages[]`. The same rejection applies from every status whose
+[Section 5.1.1](#511-permitted-transitions-by-operation) `confirm` cell is
+`No`. Flow vector `105-confirmation-mode-guard` records the auto-mode
+`pending` rejection.
+
+The business **SHOULD** send a `booking.confirmed` webhook after a successful
+manual confirmation.
+
+`confirmation_mode` is **MUST**-present on exactly the states this endpoint acts
+on, so a caller always has the field it needs to decide whether to call. A
+platform **MUST NOT** infer the mode from its absence on a booking in another
+state: absence means the business did not retain the original policy, not that
+the policy was `auto`.
 
 | Field   | Type   | Required | Description                                         |
 |---------|--------|----------|-----------------------------------------------------|
@@ -4348,6 +4438,13 @@ An example profile:
           "schema": "https://ucp.dev/latest/schemas/shopping/checkout.json"
         }
       ],
+      "dev.ucp.shopping.order": [
+        {
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/latest/specification/shopping/order",
+          "schema": "https://ucp.dev/latest/schemas/shopping/order.json"
+        }
+      ],
       "dev.usp-protocol.services.catalog": [
         {
           "version": "2026-08-20",
@@ -4804,8 +4901,7 @@ and [UCP Status Values](https://ucp.dev/latest/specification/shopping/checkout/#
 2. When the checkout reaches **`canceled`**: `booking_status` becomes `canceled`.
    This rule constrains the checkout-scoped `BookingContext.booking_status`
    summary only; it does **not** by itself change
-   [`Booking.status`](#51-booking-status-lifecycle). See **Cancel checkout**
-   below for the requirement on the USP booking resource.
+   [`Booking.status`](#51-booking-status-lifecycle).
 3. **For all other checkout statuses**: `booking_status` remains `pending`.
 
 Only the terminal UCP checkout statuses `completed` and `canceled` change
@@ -5015,38 +5111,17 @@ to refresh state. If escalation fails or times out, the platform **MAY** call
 [`cancel_checkout`](https://ucp.dev/latest/specification/shopping/checkout/#cancel-checkout)
 (see [UCP Checkout REST](https://ucp.dev/latest/specification/shopping/checkout/rest/)),
 it **MUST** atomically: transition the checkout to `canceled`, and release the
-slot hold if any. The business **MUST NOT** leave any booking associated with
-that checkout in a state from which
-[Section 5.1.1](#511-permitted-transitions-by-operation) requires or permits
-accepting `confirm`, `reschedule`, or `update` (`confirm` and `update` are
-`Yes` from `pending`; `reschedule` is `SHOULD`). This requirement constrains the **USP
-booking resource as observed through `GET /bookings/{booking_id}`**, not the
-business's internal record. Transitioning that resource to `status: canceled`
-satisfies the invariant; so does a deployment that creates no booking before
-the checkout completes. The requirement exists so the booking is
-non-actionable under Section 5.1.1, so booking-scoped credentials are
-invalidated and personal-data retention clocks can fire under
-[Section 10](#10-security), and **not** to release slot capacity (holds do
-that separately).
-
-When the booking never reached `confirmed` and is terminalized because its
-checkout was canceled, the business **MUST** set
-`cancellation.reason_code` to `checkout_abandoned` and
-`cancellation.canceled_by` to `system` on the USP-visible booking.
-`cancellation.canceled_at` reports the instant the cancellation was recorded
-and **MUST NOT** change from one read to the next.
-
-A business **MUST NOT** present a `pending` to `canceled` transition on a
-booking that never reached `confirmed` as the cancellation of a confirmed
-appointment, and **SHOULD NOT** emit buyer-facing cancellation notices for
-it. The business **SHOULD** send a `booking.canceled` webhook; that webhook
-is platform-facing, carries `reason_code`, and is how the platform learns it
-may drop retained personal data.
+slot hold if any.
 
 On the cancel response itself, the business **MUST NOT** return
 `booking_status: pending` when the checkout `status` is `canceled`. The
 business **MAY** omit the `booking` object entirely; the platform already
 holds the booking id from create.
+
+This section places no requirement on [`Booking.status`](#51-booking-status-lifecycle)
+for a booking that never reached `confirmed`. A business **MAY** leave such a
+booking `pending`, and **SHOULD** send a `booking.canceled` webhook if it does
+transition it to a terminal status.
 
 **Non-payment actions and `complete_checkout`:** The business **MAY** reject
 `complete_checkout` if non-payment actions are still pending. The rejection is
@@ -5242,6 +5317,205 @@ term onto the order. The deposit amount and the refundability of that deposit on
 cancellation are business policy, surfaced through the cancellation policy
 ([Section 7.5.1](#751-merchant-policy-parity-and-eligibility-ucp-overlay)) and
 UCP's disclosure mechanism, not through new USP fields.
+
+The checkout `totals` entry of type `total` is the full obligation. Exactly one
+term is selected. That term has one positive `immediate` schedule (the amount
+collected at `complete_checkout`) and one later schedule whose amount is the
+balance due at the booked slot start. Platforms **MUST** spend the immediate
+amount and **MUST NOT** send `split_payments`. For a percentage deposit, the
+immediate amount is the business-computed integer on the schedule; the platform
+**MUST NOT** multiply a catalog percentage itself.
+
+> **Test vectors.** [`106-ucp-native-fixed-deposit`](tests/vectors/flow/106-ucp-native-fixed-deposit.json)
+> and [`107-ucp-native-percentage-deposit`](tests/vectors/flow/107-ucp-native-percentage-deposit.json)
+> pin both shapes, including order `accepted_term` projection.
+
+###### Fixed deposit
+
+A 100.00 USD appointment with a 10.00 USD fixed deposit due now. The remaining
+90.00 USD is due at the slot start. `complete_checkout` collects 10.00 USD only.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_fixed_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "totals": [
+      { "type": "subtotal", "amount": 10000 },
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_fixed_deposit",
+      "terms": [
+        {
+          "id": "pt_fixed_deposit",
+          "title": "Deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "1000 USD cents due now to hold the appointment."
+              },
+              "amount": 1000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 9000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_install_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_fixed_deposit_001",
+    "checkout_id": "checkout_fixed_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_fixed_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 10000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_fixed_deposit",
+        "title": "Deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "1000 USD cents due now to hold the appointment."
+            },
+            "amount": 1000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "9000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 9000
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+###### Percentage deposit
+
+A 200.00 USD appointment with a 20 percent deposit. The business computed the
+immediate amount as 40.00 USD (4000 minor units). The platform copies that
+integer; it does not compute 20 percent of the total itself.
+
+```json
+{
+  "checkout": {
+    "id": "checkout_percent_deposit_001",
+    "status": "ready_for_complete",
+    "currency": "USD",
+    "catalog_deposit": {
+      "type": "percentage",
+      "value": 20
+    },
+    "totals": [
+      { "type": "subtotal", "amount": 20000 },
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "selected_term_id": "pt_percent_deposit",
+      "terms": [
+        {
+          "id": "pt_percent_deposit",
+          "title": "20 percent deposit now, balance at the appointment",
+          "schedules": [
+            {
+              "id": "sched_deposit",
+              "type": "immediate",
+              "description": {
+                "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+              },
+              "amount": 4000
+            },
+            {
+              "id": "sched_balance",
+              "type": "at_service",
+              "description": {
+                "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+              },
+              "due_at": "2026-10-14T10:00:00-04:00",
+              "amount": 16000
+            }
+          ]
+        }
+      ]
+    },
+    "booking": {
+      "service_id": "svc_consult_deposit",
+      "service_type": "appointment",
+      "slot": {
+        "id": "slot_20261014_1000",
+        "start": "2026-10-14T10:00:00-04:00",
+        "end": "2026-10-14T11:00:00-04:00",
+        "duration": "PT1H"
+      }
+    }
+  },
+  "order": {
+    "id": "ord_percent_deposit_001",
+    "checkout_id": "checkout_percent_deposit_001",
+    "permalink_url": "https://business.example.com/orders/ord_percent_deposit_001",
+    "currency": "USD",
+    "totals": [
+      { "type": "total", "amount": 20000 }
+    ],
+    "payment": {
+      "accepted_term": {
+        "id": "pt_percent_deposit",
+        "title": "20 percent deposit now, balance at the appointment",
+        "schedules": [
+          {
+            "id": "sched_deposit",
+            "type": "immediate",
+            "description": {
+              "plain": "4000 USD cents due now. This is the business-computed 20 percent deposit."
+            },
+            "amount": 4000
+          },
+          {
+            "id": "sched_balance",
+            "type": "at_service",
+            "description": {
+              "plain": "16000 USD cents due at your appointment on 14 October 2026 at 10:00 AM EDT."
+            },
+            "due_at": "2026-10-14T10:00:00-04:00",
+            "amount": 16000
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
 ##### `at_service`
 
@@ -6245,7 +6519,13 @@ to that `continue_url` **regardless** of the declared `checkout_systems` value,
 then resume with `confirm-payment` after success. This aligns with UCP's
 `requires_escalation` + `continue_url` pattern using USP's action model.
 
-**Payment action expiry:** When a payment action's `expires_at` passes without
+**Payment action expiry:** A payment action **MAY** omit `expires_at`, and an
+absent value means this business sets no deadline for the action - a platform
+**MUST NOT** infer one. A business that *will* expire the action **MUST**
+publish `expires_at`, because a deadline a platform cannot see is one it cannot
+act on, and the buyer learns of it only when the booking is already canceled.
+
+When a payment action's `expires_at` passes without
 `confirm-payment`, the business **SHOULD** set the action's `status` to
 `expired`. If no other pending actions remain, the booking **MUST** transition
 to `canceled`. This payment-action clock is independent of whether the booking
@@ -7179,7 +7459,7 @@ Each USP REST operation maps to a JSON-RPC method:
 | `POST /bookings`                              | `usp_bookings_create`          | Create a booking                        |
 | `GET /bookings/{booking_id}`                  | `usp_bookings_get`             | Get a booking                           |
 | `PUT /bookings/{booking_id}`                  | `usp_bookings_update`          | Update a booking                        |
-| `POST /bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | Confirm a booking (manual mode)         |
+| `POST /bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | Confirm a booking (business-initiated, manual mode) |
 | `POST /bookings/{booking_id}/cancel`          | `usp_bookings_cancel`          | Cancel a booking                        |
 | `POST /bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | Reschedule a booking                    |
 | `POST /bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | Confirm payment for a booking           |
@@ -7215,13 +7495,14 @@ capabilities it advertises, or not advertise MCP in `transports` at all
 
 MCP clients invoke USP operations via the standard MCP `tools/call` method, with `params.name` set to the method name from [Section 9.2.1](#921-method-mapping) and `params.arguments` containing the operation parameters. The method names in [Section 9.2.1](#921-method-mapping) are the tool names passed in `params.name`, not raw JSON-RPC methods.
 
-The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every privileged MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the pairing of principal to profile URI on first contact and **MUST** reject a later request where *that principal* presents a different profile URI. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself, and **MUST NOT** reject other principals that present the same URI. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
+The `_meta.usp.profile` field inside `arguments` carries the platform's profile URI, equivalent to the `USP-Agent` header in the REST binding. It is the identity-binding input for [Section 10.1.6](#1016-platform-authentication-for-privileged-operations): every `privileged_platform` and `privileged_scoped` MCP method **MUST** include it, and any presented credential **MUST** be bound to that same profile URI. Business-only methods **MUST NOT** require it. "Bound to" means what [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) defines it to mean - the business records the pairing of principal to profile URI on first contact and **MUST** reject a later request where *that principal* presents a different profile URI. The URI is self-asserted and, for a shared platform profile, identical across every instance of that platform, so a business **MUST NOT** treat it as an authentication factor in itself, and **MUST NOT** reject other principals that present the same URI. This field is deliberately retained inside the `usp_p` digest for the same reason, so the profile a caller asserts is covered by the proof rather than free to be rewritten in transit.
 
 Privileged vs public access is transport-agnostic and **MUST** match the REST binding:
 
 - **Public methods** (`x-usp-access: public` in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)): catalog, availability query, and registry search/get. Authentication is optional.
 - **Privileged platform-level methods** (`x-usp-access: privileged_platform`): create booking/hold/waitlist, the full feed-subscription lifecycle (subscribe, get, pause, resume, unsubscribe), registry register, waitlist list, and registry update/delete. Authentication **MUST** use a mechanism from the business's `AuthorizationPolicy` ([`schemas/profile.json`](schemas/profile.json) `$defs/AuthorizationPolicy`), the same mechanism set documented for REST in [`openapi/usp-rest.json`](openapi/usp-rest.json) `components.securitySchemes` and for MCP in [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json) `components.x-usp-securitySchemes`.
-- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule/confirm on an existing booking, hold, or waitlist entry. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it. Registry registrations are deliberately **not** in this set: a registry entry has exactly one owner, so it is authorized at platform tier against the registering platform's bound `jkt` rather than needing a second credential type.
+- **Privileged scoped methods** (`x-usp-access: privileged_scoped`): get/update/cancel/reschedule on an existing booking, hold, or waitlist entry. Same as platform-level, and **SHOULD** prefer a retained `booking_scoped_credential` when the business accepts it. Registry registrations are deliberately **not** in this set: a registry entry has exactly one owner, so it is authorized at platform tier against the registering platform's bound `jkt` rather than needing a second credential type.
+- **Business-only methods** (`x-usp-access: business_only`): `usp_bookings_confirm`. Manual-mode merchant approval of an existing booking ([Section 5.3.4](#534-confirm-booking---post-bookingsbooking_idconfirm)). Not a platform continuation method: it **MUST NOT** be authorized by a `booking_scoped_credential` or by a platform principal under `AuthorizationPolicy`.
 
 When MCP runs over HTTP, platforms **SHOULD** present `oauth2_bearer` / `api_key` on the HTTP `Authorization` header, `http_message_signature` via RFC 9421 headers, and `mtls` via the TLS client certificate. When the credential must ride inside the tool call (stdio, or a booking-scoped credential), platforms **MUST** use `_meta.usp.authorization` ([`McpAuthorization`](openrpc/usp-mcp.json)).
 
@@ -7508,7 +7789,7 @@ A conforming MCP binding implementation **SHOULD:**
 1. Include `_meta.usp.idempotency_key` on state-modifying operations.
 2. Provide a human-readable text summary in `result.content[]`.
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
-4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism.
+4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism. `usp_bookings_confirm` is `business_only` and **MUST NOT** be authorized that way.
 5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
@@ -7566,8 +7847,9 @@ chosen ones would collide.
 | Waitlist | List Entries, Get Entry, Leave, Accept Offer, Decline Offer |
 | Registry | Register, Search Businesses, Search Services, Get, Update, Delete Registration |
 
-The practical consequence is that an A2A-only agent cannot complete a
-manual-confirmation booking (no Confirm Booking), cannot act on a waitlist offer
+The practical consequence is that an A2A-only agent cannot confirm a
+manual-mode booking, because Confirm Booking is business-only and has no A2A
+task type, cannot act on a waitlist offer
 it was notified about (no Accept or Decline), and cannot participate in
 registry-based discovery at all.
 
@@ -7800,7 +8082,7 @@ fully allocated, so codes added after that allocation are distinguished by
 | `invalid_request`        | Malformed JSON, or missing required fields.                                                                                 | `400 Bad Request`           | `invalid-request`        | `-32600` | `invalid_request`        |
 | `validation_error`       | One or more request fields failed validation or violated a documented constraint.                                           | `422 Unprocessable Entity`  | `validation-error`       | `-32602` | `validation_error`       |
 | `invalid_profile_url`    | Profile URL is malformed, uses a non-HTTPS scheme, or is unresolvable.                                                      | `400 Bad Request`           | `invalid-profile-url`    | `-32602` | `invalid_profile_url`    |
-| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`     | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
+| `profile_unreachable`    | Profile fetch failed (timeout, DNS failure, non-2xx response).                                                              | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request (see note) | `profile-unreachable`    | `-32003` | `profile_unreachable`    |
 | `profile_malformed`      | Profile document is not valid JSON or fails schema validation against [`schemas/profile.json`](schemas/profile.json).       | `422 Unprocessable Entity`  | `profile-malformed`      | `-32004` | `profile_malformed`      |
 | `profile_not_trusted`    | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist).         | `403 Forbidden`             | `profile-not-trusted`    | `-32005` | `profile_not_trusted`    |
 | `booking_not_found`      | The booking identified in the request path does not exist or is not visible to the caller ([Section 9.4.1](#941-choosing-the-error-family)). | `404 Not Found`             | `booking-not-found`      | `-32602` | `booking_not_found`      |
@@ -7831,6 +8113,21 @@ fully allocated, so codes added after that allocation are distinguished by
 The signature and proof-of-possession rows are specified in detail in
 [Section 10.1.1](#1011-webhook-security); this table is the authoritative
 transport mapping for them.
+
+> **`profile_unreachable` may be answered `401` on a privileged request.** `424` remains correct
+> where the fetch is an ordinary server-side dependency — registry registration, for instance. But
+> under [Section 10.1.6](#1016-platform-authentication-for-privileged-operations) a fetchable profile
+> is part of the agent header *being* an identity, so a profile that cannot be retrieved leaves the
+> request unauthenticated rather than merely blocked on a dependency. `401` is both the more accurate
+> answer and the more actionable one: the caller's own published document is the thing to fix, and
+> every client already has a `401` path.
+>
+> Mandating `424` alone also had a practical cost. It is unreachable from a gRPC-based stack, where
+> HTTP statuses are derived from gRPC's closed set of status codes and nothing maps to Failed
+> Dependency. An implementation there must either repoint a status mapping shared with every other
+> service or pick some third code, and picking arbitrarily is the interoperability failure this table
+> exists to prevent. Permitting `401` lets such an implementation be conformant and predictable
+> instead.
 
 > **Adding a code.** A new protocol error **MUST** be added to this table with
 > all five columns populated before any binding references it. Because the
@@ -8474,8 +8771,11 @@ USP separates operations into two trust tiers, independent of deployment mode:
   unauthenticated. These responses carry no buyer data and mutate no state, so
   forcing authentication here blocks browse-only integrations for no security
   benefit.
-- **Privileged operations** (creating, updating, confirming, cancelling, or
-  rescheduling a booking; creating or releasing an inventory hold; any
+- **Privileged operations** (creating, updating, cancelling, or
+  rescheduling a booking; business-authenticated confirmation of a booking
+  per [Section 5.3.4](#534-confirm-booking---post-bookingsbooking_idconfirm),
+  which a platform principal **MUST NOT** invoke; creating or releasing an
+  inventory hold; any
   payment-adjacent completion; joining, reading, or acting on a waitlist entry;
   registering or modifying a feed subscription; registry writes that mutate
   the discovery index; and any response that includes buyer personal data)
@@ -8620,7 +8920,7 @@ makes this list an extension point.
 |--------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | HTTP Message Signatures ([RFC 9421])              | Permissionless  | **RECOMMENDED default.** Keyed off the `keys` already published in the platform profile (or the transition `signing_keys` alias; verifiers resolve `keys` first) ([Section 9.1.4](#914-request-signing)). Requires no prior credential exchange, so a personal agent authenticates by publishing a profile: the same mechanism scales unchanged whether one platform or a million distinct agent instances are calling. |
 | Platform key proof-of-possession (`platform_key_pop`) | Permissionless | Proves possession of an **ephemeral key the caller never transmits**, as a compact JWS derived from DPoP ([RFC 9449]). The business records the [RFC 7638] thumbprint (`jkt`) as the platform identifier; nothing is published, registered, or rotated, and the platform profile stays keyless. Composes with rather than replaces the rows around it: it is what lets a permissionless caller authenticate without the [RFC 9421] covered-component machinery, and what makes a booking-scoped credential **sender-constrained** via `cnf.jkt`. Not a credential on its own. |
-| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
+| Booking-scoped capability credential              | Issued at creation | Authorizes `get`/`update`/`cancel`/reschedule/PII-bearing operations on **one specific booking or waitlist entry**, independent of the calling platform's identity. Does **not** authorize `confirm`. Answers the actual authorization question for continuation operations, "does this caller hold the credential for this booking," rather than "is this caller a known platform." Shape defined at [`schemas/profile.json`](schemas/profile.json) `$defs/BookingScopedCredential`. Issued to a `platform_key_pop` caller it carries `cnf`, and is then sender-constrained: the value alone is not usable. |
 | OAuth 2.0 Bearer tokens ([RFC 6749]/[RFC 6750])   | Pre-established | Known host platforms with a registrable client: `client_credentials` grant, or Standalone Mode's identity-linking `authorization_code` flow ([Section 10.2.4](#1024-identity-linking)). |
 | API keys                                          | Pre-established | Simple integrations with a small number of known platforms. |
 | Mutual TLS (mTLS)                                 | Pre-established | High-security environments requiring certificate-based authentication. |
@@ -9876,7 +10176,7 @@ binding covers only part of this table and is marked accordingly in
 | Create Booking     | `POST`   | `/bookings`                              | `usp_bookings_create`          | bookings   |
 | Get Booking        | `GET`    | `/bookings/{booking_id}`                 | `usp_bookings_get`             | bookings   |
 | Update Booking     | `PUT`    | `/bookings/{booking_id}`                 | `usp_bookings_update`          | bookings   |
-| Confirm Booking    | `POST`   | `/bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | bookings   |
+| Confirm Booking    | `POST`   | `/bookings/{booking_id}/confirm`         | `usp_bookings_confirm`         | bookings (business-initiated; not a platform continuation method) |
 | Cancel Booking     | `POST`   | `/bookings/{booking_id}/cancel`          | `usp_bookings_cancel`          | bookings   |
 | Reschedule Booking | `POST`   | `/bookings/{booking_id}/reschedule`      | `usp_bookings_reschedule`      | bookings   |
 | Confirm Payment    | `POST`   | `/bookings/{booking_id}/confirm-payment` | `usp_bookings_confirm_payment` | bookings   |

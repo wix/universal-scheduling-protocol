@@ -16,9 +16,17 @@
         "buyer",
         "party_size",
         "status",
-        "confirmation_mode",
         "created_at",
         "updated_at"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "enum": ["pending", "requires_action"] } },
+            "required": ["status"]
+          },
+          "then": { "required": ["confirmation_mode"] }
+        }
       ],
       "properties": {
         "id": {
@@ -98,11 +106,8 @@
         },
         "confirmation_mode": {
           "type": "string",
-          "enum": [
-            "auto",
-            "manual"
-          ],
-          "description": "Reflects the service's confirmation policy at booking time."
+          "enum": ["auto", "manual"],
+          "description": "The service's confirmation policy at the time the booking was created. REQUIRED while status is pending or requires_action, where it tells the buyer whether approval is outstanding. OPTIONAL once the booking has left those states. When present it MUST describe the policy in force at creation, not the service's current policy; a business that does not retain the original policy MUST omit the field rather than report the current one."
         },
         "payment": {
           "$ref": "#/$defs/BookingPayment",
@@ -325,7 +330,8 @@
           "description": "Mirrors the service's payment_timing value."
         },
         "amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Service fee in minor currency units, before tax. REQUIRED when timing is at_booking or deposit_required. Does not include tax_amount."
         },
         "currency": {
@@ -333,15 +339,18 @@
           "description": "ISO 4217 currency code. REQUIRED when amount is present."
         },
         "amount_due": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount due now in minor currency units. REQUIRED when timing is at_booking or deposit_required."
         },
         "deposit_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "The deposit amount in minor currency units. Present when timing is deposit_required."
         },
         "tax_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Tax amount in minor currency units. When present, the total charged to the buyer is amount + tax_amount. MUST use the same currency as amount."
         },
         "transaction_id": {
@@ -367,7 +376,8 @@
       ],
       "properties": {
         "amount_due": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount to collect in minor currency units."
         },
         "currency": {
@@ -393,7 +403,8 @@
                 "type": "string"
               },
               "amount": {
-                "type": "integer"
+                "type": ["integer", "string"],
+                "pattern": "^-?[0-9]+$"
               },
               "quantity": {
                 "type": "integer"
@@ -407,7 +418,8 @@
           "description": "Itemized breakdown for display and checkout integration."
         },
         "tax_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Tax portion of amount_due in minor currency units. When present, the checkout system SHOULD display the tax breakdown. Pre-tax subtotal is amount_due minus tax_amount when tax_amount is present."
         },
         "metadata": {
@@ -439,12 +451,11 @@
     "Action": {
       "type": "object",
       "title": "Action",
-      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry.",
+      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status and continue URL, and an expiry when the action has a deadline.",
       "required": [
         "type",
         "status",
-        "continue_url",
-        "expires_at"
+        "continue_url"
       ],
       "properties": {
         "type": {
@@ -468,7 +479,7 @@
         "expires_at": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 deadline for this action. Can be equal to or earlier than the booking expiry."
+          "description": "RFC 3339 deadline for this action. OPTIONAL. A business whose action does not expire MAY omit this field; a business that will expire the action MUST include it, since a platform cannot otherwise know the action has a deadline before it passes. Omitting it asserts only that this business sets no deadline - it does not relieve the business of Section 8.5.4's expiry obligations if it later does. Can be equal to or earlier than the booking expiry. Mirrors Booking.expires_at, which is likewise optional and for the same reason: a deadline that does not exist cannot be stated truthfully, and a fabricated one is acted on by agents."
         },
         "message": {
           "$ref": "#/$defs/Message",
@@ -542,11 +553,13 @@
           "description": "Who initiated the cancellation. buyer: the buyer or an agent acting for them. business: the business or its staff. system: an automated policy such as no-show, payment expiry, or checkout abandonment."
         },
         "fee": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Cancellation fee in minor currency units."
         },
         "refund_amount": {
-          "type": "integer",
+          "type": ["integer", "string"],
+          "pattern": "^-?[0-9]+$",
           "description": "Amount refunded in minor currency units."
         },
         "canceled_at": {
