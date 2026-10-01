@@ -112,6 +112,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [7.4 Paid Bookings Extension Schema](#74-paid-bookings-extension-schema)
     - [7.5 Checkout Flow and Atomicity Guarantee](#75-checkout-flow-and-atomicity-guarantee)
     - [7.5.1 Merchant Policy Parity and Eligibility (UCP Overlay)](#751-merchant-policy-parity-and-eligibility-ucp-overlay)
+    - [7.5.2 Agent Host Signal](#752-agent-host-signal)
     - [7.6 Free Services in UCP-Native Mode](#76-free-services-in-ucp-native-mode)
     - [7.7 End-to-End Flows](#77-end-to-end-flows)
 - [8. Standalone Mode](#8-standalone-mode)
@@ -2870,7 +2871,7 @@ at a specific time.
 | `booking_url`       | string          | No          | Stable URL where the buyer can view and manage this booking. Provided by the business. Used in confirmation emails, calendar events, and buyer portals.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `messages`          | Array\[Message\] | No         | Soft messages from the business providing context about the booking state (e.g., "Manual confirmation required — expect a response within 24 hours", "Free cancellation closes in 2 hours"). Informational only; do not block booking creation. Protocol errors are returned as HTTP error codes, not messages. See [Section 9.4](#94-error-code-mapping) for the distinction.                                                                                                                                                                                 |
 | `dispute`           | Dispute         | No          | Present when a payment dispute has been opened for this booking. Opening a dispute does **NOT** change `payment.status` — the payment remains `paid`. Status **MAY** change to `refunded` or `partially_refunded` if the dispute resolves in the buyer's favor. See [Section 5.5.2](#552-dispute-resolution).                                                                                                                                                                                                                                             |
-| `cancellation`      | object          | No          | `{reason, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `cancellation`      | object          | No          | `{reason, reason_code, canceled_by, fee, refund_amount, canceled_at}` - present when the booking has been canceled. `reason` is human-readable; `reason_code` is an open machine-readable vocabulary (well-known value: `checkout_abandoned`). See [Section 7.5](#75-checkout-flow-and-atomicity-guarantee) for the checkout-abandoned case.                                                                                                                                                                                                              |
 | `created_at`        | string          | **Yes**     | RFC 3339 timestamp of when the booking was created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `updated_at`        | string          | **Yes**     | RFC 3339 timestamp of the last status change or modification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `expires_at`        | string          | No          | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include `expires_at`. Advertising the field is a claim the business **MUST** honour (see Booking Expiry).                                                                                                                                                                                                                         |
@@ -5072,7 +5073,12 @@ because only the business can see both sides.
 > [`104-charge-without-booking`](tests/vectors/flow/104-charge-without-booking.json)
 > works the A2 case: the PSP charge succeeds and the booking write then fails,
 > which is the failure the old wording could not describe because there is no
-> single transaction to roll back. Each records the permitted resolutions, the
+> single transaction to roll back.
+> [`105-cancel-checkout-abandoned-booking`](tests/vectors/flow/105-cancel-checkout-abandoned-booking.json)
+> works the cancel-checkout invariant: after `cancel_checkout`, the USP-visible
+> booking is terminal with `reason_code: checkout_abandoned`, a subsequent
+> `confirm` is refused with `invalid_transition` at HTTP 200, and a later read
+> returns the same `canceled_at`. Each records the permitted resolutions, the
 > forbidden intermediate state, and the plausible wrong answers.
 
 **Checkout `expires_at` and holds:** The checkout session's `expires_at`
@@ -5205,6 +5211,53 @@ version (see [Section 11](#11-extensions) and the roadmap). Businesses that
 sell auto-renewing arrangements through other channels **MUST NOT** expose them
 through USP as ordinary one-shot services unless the business can honor the
 same terms on the agent path.
+
+#### 7.5.2 Agent Host Signal
+
+UCP checkout requests carry a `signals` object: environment data that the
+platform observes directly, never buyer assertions. UCP defines
+`dev.ucp.buyer_ip` (the buyer's client IP address) and `dev.ucp.user_agent`.
+An agent platform does not always run on the buyer's device. When it runs on a
+hosted machine, the public IP address it can observe is that machine's, and
+many buyers can share it. Sending that address as `dev.ucp.buyer_ip` would
+misstate the buyer's IP to the business's fraud checks and dispute evidence.
+
+USP defines one additional signal key, under its `dev.usp-protocol` namespace
+([Section 2.5](#25-namespace-governance)):
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `dev.usp-protocol.agent_host_ip` | string | Public IPv4 or IPv6 address of the machine the agent platform runs on, as observed by that platform. |
+
+The schema is `$defs/Signals` in
+[`schemas/paid_bookings.json`](schemas/paid_bookings.json), composed into the
+checkout extension.
+
+- Platforms **SHOULD** send `dev.usp-protocol.agent_host_ip` on every UCP
+  checkout create, update, and complete request for a USP booking.
+- Platforms **MUST** send `dev.ucp.buyer_ip` only when its value is the IP
+  address of the buyer's own device: the platform runs on that device, or the
+  surface the buyer uses relays that address to the platform. A platform
+  **MUST NOT** send its host's address as `dev.ucp.buyer_ip` otherwise. When the
+  platform runs on the buyer's device, it sends the same address in both keys.
+- Businesses **MUST NOT** treat `dev.usp-protocol.agent_host_ip` as the buyer's
+  IP address, in fraud scoring or in dispute evidence. Businesses **MAY** use it
+  to rate-limit or detect abuse from an agent host.
+- `dev.usp-protocol.agent_host_ip` carries the same personal-data handling as
+  the UCP signals: businesses **SHOULD NOT** persist it beyond the operational
+  needs of the transaction.
+
+Example `signals` object from an agent platform running on a hosted machine
+that has not received the buyer's device address:
+
+```json
+{
+  "signals": {
+    "dev.ucp.user_agent": "example-agent/1.4.0",
+    "dev.usp-protocol.agent_host_ip": "198.51.100.20"
+  }
+}
+```
 
 ### 7.6 Free Services in UCP-Native Mode
 
