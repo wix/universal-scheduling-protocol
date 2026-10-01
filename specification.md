@@ -112,6 +112,7 @@ the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
     - [7.4 Paid Bookings Extension Schema](#74-paid-bookings-extension-schema)
     - [7.5 Checkout Flow and Atomicity Guarantee](#75-checkout-flow-and-atomicity-guarantee)
     - [7.5.1 Merchant Policy Parity and Eligibility (UCP Overlay)](#751-merchant-policy-parity-and-eligibility-ucp-overlay)
+    - [7.5.2 Agent Host Signal](#752-agent-host-signal)
     - [7.6 Free Services in UCP-Native Mode](#76-free-services-in-ucp-native-mode)
     - [7.7 End-to-End Flows](#77-end-to-end-flows)
 - [8. Standalone Mode](#8-standalone-mode)
@@ -5135,6 +5136,53 @@ version (see [Section 11](#11-extensions) and the roadmap). Businesses that
 sell auto-renewing arrangements through other channels **MUST NOT** expose them
 through USP as ordinary one-shot services unless the business can honor the
 same terms on the agent path.
+
+#### 7.5.2 Agent Host Signal
+
+UCP checkout requests carry a `signals` object: environment data that the
+platform observes directly, never buyer assertions. UCP defines
+`dev.ucp.buyer_ip` (the buyer's client IP address) and `dev.ucp.user_agent`.
+An agent platform does not always run on the buyer's device. When it runs on a
+hosted machine, the public IP address it can observe is that machine's, and
+many buyers can share it. Sending that address as `dev.ucp.buyer_ip` would
+misstate the buyer's IP to the business's fraud checks and dispute evidence.
+
+USP defines one additional signal key, under its `dev.usp-protocol` namespace
+([Section 2.5](#25-namespace-governance)):
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `dev.usp-protocol.agent_host_ip` | string | Public IPv4 or IPv6 address of the machine the agent platform runs on, as observed by that platform. |
+
+The schema is `$defs/Signals` in
+[`schemas/paid_bookings.json`](schemas/paid_bookings.json), composed into the
+checkout extension.
+
+- Platforms **SHOULD** send `dev.usp-protocol.agent_host_ip` on every UCP
+  checkout create, update, and complete request for a USP booking.
+- Platforms **MUST** send `dev.ucp.buyer_ip` only when its value is the IP
+  address of the buyer's own device: the platform runs on that device, or the
+  surface the buyer uses relays that address to the platform. A platform
+  **MUST NOT** send its host's address as `dev.ucp.buyer_ip` otherwise. When the
+  platform runs on the buyer's device, it sends the same address in both keys.
+- Businesses **MUST NOT** treat `dev.usp-protocol.agent_host_ip` as the buyer's
+  IP address, in fraud scoring or in dispute evidence. Businesses **MAY** use it
+  to rate-limit or detect abuse from an agent host.
+- `dev.usp-protocol.agent_host_ip` carries the same personal-data handling as
+  the UCP signals: businesses **SHOULD NOT** persist it beyond the operational
+  needs of the transaction.
+
+Example `signals` object from an agent platform running on a hosted machine
+that has not received the buyer's device address:
+
+```json
+{
+  "signals": {
+    "dev.ucp.user_agent": "example-agent/1.4.0",
+    "dev.usp-protocol.agent_host_ip": "198.51.100.20"
+  }
+}
+```
 
 ### 7.6 Free Services in UCP-Native Mode
 

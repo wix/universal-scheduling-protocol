@@ -552,6 +552,44 @@ booking/checkout; use `locations[]` / `service_area` for geography. Platforms
 
 ---
 
+## Agent Host Signal
+
+UCP checkout requests carry a `signals` object of values the platform observes
+directly. UCP defines `dev.ucp.buyer_ip` and `dev.ucp.user_agent`. An agent
+platform running on a hosted machine only observes that machine's public IP,
+which many buyers can share, so USP adds a separate key:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `dev.usp-protocol.agent_host_ip` | string | Public IPv4 or IPv6 address of the machine the agent platform runs on, as observed by that platform. |
+
+- Platforms **SHOULD** send `dev.usp-protocol.agent_host_ip` on every checkout
+  create, update, and complete request for a USP booking.
+- Platforms **MUST** send `dev.ucp.buyer_ip` only when it is the IP address of
+  the buyer's own device (the platform runs on it, or the buyer's surface relays
+  it), and **MUST NOT** send the host's address there otherwise.
+- Businesses **MUST NOT** treat `dev.usp-protocol.agent_host_ip` as the buyer's
+  IP address in fraud scoring or dispute evidence; they **MAY** use it to
+  rate-limit or detect abuse from an agent host.
+- Businesses **SHOULD NOT** persist it beyond the transaction's operational needs.
+
+Example from a hosted agent platform that has not received the buyer's device
+address:
+
+```json
+{
+  "signals": {
+    "dev.ucp.user_agent": "example-agent/1.4.0",
+    "dev.usp-protocol.agent_host_ip": "198.51.100.20"
+  }
+}
+```
+
+Normative text: [Section 7.5.2](https://github.com/wix/universal-scheduling-protocol/blob/master/specification.md#752-agent-host-signal).
+Schema: `$defs/Signals` in `schemas/paid_bookings.json`.
+
+---
+
 ## Payment Timings Other Than `at_booking`
 
 All three payment timings are specified for UCP-Native Mode. Only `at_booking` is settled by base UCP checkout alone. The other two require additional capabilities, and a business **MUST** declare them before offering a service with that timing.

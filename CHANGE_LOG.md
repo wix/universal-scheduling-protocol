@@ -1,5 +1,13 @@
 # Change Log
 
+## 30/09/26 at 14:04:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added Section 7.5.2 (Agent Host Signal) and the `dev.usp-protocol.agent_host_ip` signal key, because an agent platform running on a hosted machine only observes that machine's public IP; sending it as `dev.ucp.buyer_ip` would misstate the buyer's IP to fraud checks and dispute evidence. The key stays in USP's `dev.usp-protocol` namespace, which UCP's reverse-domain key pattern accepts. The section limits `dev.ucp.buyer_ip` to the buyer's own device address and forbids businesses from treating the host IP as the buyer's
+- Defined the key once as `$defs/Signals` in `schemas/paid_bookings.json`, composed into the checkout extension's `signals` alongside UCP's own signal keys, so bindings and validators have a single source
+- Mirrored the section on the UCP-Native Mode site page so the published site matches the specification
+
+---
+
 ## 21/09/26 at 14:47:01 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Raised `schemas/paid_bookings.json` so `dev.ucp.shopping.checkout` and `dev.ucp.shopping.order` both require `>=2026-08-25`, because payment terms and order `accepted_term` do not exist on the old checkout pin

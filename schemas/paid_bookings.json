@@ -27,8 +27,28 @@
         "booking_scoped_credential": {
           "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/BookingScopedCredential",
           "description": "CONDITIONAL, response-only. Sender-constrained capability credential authorizing continuation operations on the booking this checkout created, returned when the business accepts the booking_scoped_credential mechanism. This is where the credential rides in UCP-Native Mode. It is a SIBLING of booking rather than a member of it: BookingContext is scheduling data that platforms persist and re-display, and a credential must never flow there. It is also declared here, inside USP's own registered dev.usp-protocol.services.paid_bookings extension, rather than being added as an invented member of the UCP checkout root - the same composition by which this extension already contributes booking. A platform MUST NOT send this on a request, and a business MUST ignore it if received. See specification.md Section 10.1.6."
+        },
+        "signals": {
+          "$ref": "#/$defs/Signals",
+          "description": "Request-side. USP-defined keys in the UCP signals object. Composed with UCP's own signals schema through allOf, so dev.ucp.buyer_ip and dev.ucp.user_agent keep their UCP definitions. See specification.md Section 7.5.2."
         }
       }
+    },
+    "Signals": {
+      "type": "object",
+      "title": "Signals",
+      "description": "USP-defined environment signals carried in the UCP signals object on UCP-Native checkout requests. Values are platform observations, never buyer assertions.",
+      "properties": {
+        "dev.usp-protocol.agent_host_ip": {
+          "type": "string",
+          "anyOf": [
+            { "format": "ipv4" },
+            { "format": "ipv6" }
+          ],
+          "description": "Public IPv4 or IPv6 address of the machine the agent platform runs on, as observed by that platform. It identifies the agent host, not the buyer: a business MUST NOT use it as the buyer's IP address. See specification.md Section 7.5.2."
+        }
+      },
+      "additionalProperties": true
     },
     "BookingContext": {
       "type": "object",
