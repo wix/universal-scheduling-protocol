@@ -536,6 +536,17 @@ The universal callback the platform calls after payment succeeds. This completes
 | `currency` | string | **Yes** | ISO 4217 currency code. |
 | `order_reference` | string | No | External order identifier for cross-system reconciliation. |
 
+!!! warning "Confirmations the business cannot complete"
+
+    The platform calls `confirm-payment` after it has collected the payment. Two conditions leave the buyer nothing to act on and no confirmed booking, so they are protocol errors, not business outcomes:
+
+    - [`payment_unverifiable`](../errors/payment-unverifiable.md): the business has no price to check the payment against, for example the booking's service no longer exists or a payable service states no price. This differs from `payment_amount_mismatch`, where the business has a price and the payment disagrees with it.
+    - [`confirmation_failed`](../errors/confirmation-failed.md): the business accepted the payment, but the booking did not reach its post-payment status.
+
+    For either condition the business **MUST** answer `409 Conflict` with the matching Problem Details response. It **MUST NOT** transition the booking to `confirmed`, and **MUST NOT** answer `200 OK` or `500`. A `200` would let a client that checks only the HTTP status treat a paid but unconfirmed booking as confirmed, and a `500` would invite a retry that cannot succeed. The Problem Details `detail` **SHOULD** state that the booking was not confirmed.
+
+    A platform that receives either code **MUST NOT** report the booking to the buyer as confirmed. It **SHOULD** reverse or refund the payment through the checkout system that collected it, and **SHOULD NOT** retry the same request unchanged.
+
 ---
 
 ## Webhooks

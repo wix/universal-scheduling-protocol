@@ -312,6 +312,8 @@ The `PaymentContext` is a **handoff object** nested inside a payment action in t
 
 The `POST /bookings/{booking_id}/confirm-payment` endpoint is called by the platform after successfully processing payment. The business validates the booking, amount, and currency, then completes the payment action. If no pending actions remain, the booking transitions to `confirmed`.
 
+A payment the business cannot verify against a price, and a confirmation it cannot complete after accepting the payment, are the `409 Conflict` protocol errors [`payment_unverifiable`](../errors/payment-unverifiable.md) and [`confirmation_failed`](../errors/confirmation-failed.md). They are never a `200 OK` business outcome or a `500`. The booking is not confirmed, and the platform **SHOULD** reverse or refund the payment. See [Confirm Payment](../specification/booking.md#confirm-payment-post-bookingsbooking_idconfirm-payment).
+
 !!! warning "Payment expiry"
 
     A payment action **MAY** omit `expires_at`, and an absent value means this business sets no deadline for the action — a platform **MUST NOT** infer one. A business that *will* expire the action **MUST** publish `expires_at`, because a deadline a platform cannot see is one it cannot act on, and the buyer learns of it only when the booking is already canceled.

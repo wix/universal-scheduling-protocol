@@ -501,6 +501,45 @@
           }
         }
       },
+      "ConfirmPaymentConflict": {
+        "description": "Protocol error at 409 Conflict on confirm-payment: idempotency_conflict, payment_unverifiable (no price to verify the payment against), or confirmation_failed (payment accepted, booking did not reach its post-payment status). For the last two the booking is not confirmed, the platform MUST NOT report it as confirmed, and SHOULD reverse or refund the payment. Clients branch on the Problem type. See specification.md Sections 5.3.7 and 9.4.3.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "idempotency_conflict": {
+                "summary": "Idempotency key reused with different parameters",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/idempotency-conflict",
+                  "title": "Conflict",
+                  "status": 409,
+                  "detail": "Idempotency key was previously used with different parameters"
+                }
+              },
+              "payment_unverifiable": {
+                "summary": "No price to verify the payment against",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/payment-unverifiable",
+                  "title": "Payment unverifiable",
+                  "status": 409,
+                  "detail": "The payment could not be verified against a price for this booking. The booking was not confirmed; reverse the payment."
+                }
+              },
+              "confirmation_failed": {
+                "summary": "Payment accepted, booking not confirmed",
+                "value": {
+                  "type": "https://usp-protocol.dev/errors/confirmation-failed",
+                  "title": "Confirmation failed",
+                  "status": 409,
+                  "detail": "The payment was accepted but the booking was not confirmed. Reverse the payment."
+                }
+              }
+            }
+          }
+        }
+      },
       "UnprocessableEntity": {
         "description": "Protocol error: the request was well-formed but failed validation (validation_error), or a referenced profile document failed schema validation (profile_malformed). See specification.md Section 9.4.3.",
         "content": {
@@ -3100,7 +3139,7 @@
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/ConfirmPaymentConflict"
           },
           "412": {
             "$ref": "#/components/responses/PreconditionFailed"
