@@ -17,6 +17,18 @@ Businesses **SHOULD** publish a service catalog feed for aggregators and indexin
 
 **Feed Endpoint:** `GET /services/feed`
 
+!!! note "Declining the feed"
+    A deployment that does not implement the feed **MUST** answer `GET /services/feed` with `501 Not Implemented` and an `about:blank` Problem Details body whose `detail` **SHOULD** point the caller to `POST /services/list`. It **MUST NOT** return `500` and **MUST NOT** route the request to `GET /services/{service_id}`. Over MCP, `usp_services_feed` is answered as an unknown tool (JSON-RPC `-32602` recommended, no `data.code`, never a transient code such as `-32603`).
+
+    ```json
+    {
+      "type": "about:blank",
+      "title": "Not Implemented",
+      "status": 501,
+      "detail": "This business does not implement GET /services/feed; use POST /services/list to read the catalog"
+    }
+    ```
+
 The feed returns a paginated, chronologically ordered list of service records, sorted by `modified_at` ascending. This design follows the Realtime Paged Data Exchange (RPDE) pattern used by OpenActive.
 
 === "Request"
@@ -709,6 +721,8 @@ All specified filters combine with AND logic. Within `categories`, values combin
 
 Returns the full service object for a single service.
 
+If no service with the requested `service_id` exists or is visible to the caller, the business **MUST** return `404 Not Found` with the [`service-not-found`](../errors/service-not-found.md) Problem Details response. Service identifiers are opaque, so this applies to any path segment the business does not recognize as one of its service identifiers, whatever its format. The business **MUST NOT** answer an unrecognized identifier with `400` or `500`.
+
 === "Request"
 
     ```
@@ -749,9 +763,22 @@ Returns the full service object for a single service.
     }
     ```
 
+=== "Response (not found)"
+
+    ```json
+    {
+      "type": "https://usp-protocol.dev/errors/service-not-found",
+      "title": "Not Found",
+      "status": 404,
+      "detail": "The requested service does not exist or is not visible to the caller"
+    }
+    ```
+
 ### Lookup Services -- `POST /services/lookup`
 
 Returns full service objects for a batch of service IDs in a single request. Designed for hydrating multiple service references at once.
+
+If some IDs cannot be resolved, the business **SHOULD** return the services it can resolve and add a `messages[]` warning with `code: "service_unresolved"` and a `path` to each unresolved ID. This is a business outcome, distinct from the `service_not_found` protocol error that `GET /services/{service_id}` returns for a missing identifier in the request path.
 
 !!! note "Batch Limits"
     Businesses **MUST** accept requests with at least 50 IDs. If the request exceeds the business's limit, return `422 Unprocessable Entity`. Duplicate IDs are silently ignored. The response array is **unordered**.
@@ -788,7 +815,7 @@ Returns full service objects for a batch of service IDs in a single request. Des
       "messages": [
         {
           "type": "warning",
-          "code": "service_not_found",
+          "code": "service_unresolved",
           "content": "Service ID 'svc_nonexistent_999' was not found.",
           "path": "$.ids[2]"
         }
@@ -821,6 +848,8 @@ A conforming implementation of `dev.usp-protocol.services.catalog` **MUST**:
 5. Conform to the validation rules for `requires_payment`, `payment_timing`, and `pricing.model` combinations.
 6. Ignore unrecognized `query`, `context`, and `filters` fields without returning an error (forward compatibility).
 7. Use opaque cursors for pagination across all catalog endpoints.
+8. Match the literal paths `/services/list`, `/services/lookup`, and `/services/feed` before `/services/{service_id}`. A request to one of them with a method the binding does not define (for example `GET /services/list`) returns `405 Method Not Allowed` with an `Allow` header and an `about:blank` Problem Details body.
+9. Answer an unimplemented `GET /services/feed` with `501 Not Implemented` (`about:blank`), never `500` (see [Declining the feed](#catalog-feed)).
 
 A conforming implementation **SHOULD**:
 

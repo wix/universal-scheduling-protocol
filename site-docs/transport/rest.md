@@ -60,11 +60,35 @@ Protocol errors use standard HTTP status codes with RFC 9457 Problem Details:
 | `400 Bad Request` | Malformed JSON, missing required fields, invalid profile URL |
 | `401 Unauthorized` | Authentication required or invalid credentials |
 | `403 Forbidden` | Platform profile not in business allowlist |
+| `404 Not Found` | The resource identified in the request path does not exist (`service-not-found`, `booking-not-found`, `entry-not-found`) |
+| `405 Method Not Allowed` | The path exists but the binding does not define the request method for it. **MUST** carry an `Allow` header. `type` is `about:blank` |
 | `422 Unprocessable Entity` | Syntactically valid but structurally invalid request |
 | `424 Failed Dependency` | Business profile unreachable |
 | `429 Too Many Requests` | Rate limited; retry after `Retry-After` header |
 | `500 Internal Server Error` | Unexpected server failure |
+| `501 Not Implemented` | An optional (SHOULD or MAY) operation this deployment does not implement, such as `GET /services/feed`. `type` is `about:blank`. Not retryable |
 | `503 Service Unavailable` | Business temporarily unable to handle requests |
+
+A `500` signals an unexpected, possibly transient failure, and clients may retry it. A business **MUST NOT** use `500` for a condition that will not change on retry, such as a missing resource, an unsupported method, or an unimplemented optional operation.
+
+### Problem `type` values
+
+A protocol error registered in specification Section 9.4.3 uses `type` `https://usp-protocol.dev/errors/{slug}` (see [Problem types](../errors/index.md)), and clients branch on that exact URI.
+
+USP does not mint a code for a condition HTTP already names that carries no USP-specific meaning beyond its status. Those responses (`405` and `501`) use the RFC 9457 default: `type` is `about:blank` and `title` is the HTTP reason phrase. When `type` is `about:blank`, clients branch on `status`.
+
+```http
+HTTP/1.1 405 Method Not Allowed
+Allow: POST
+Content-Type: application/problem+json
+
+{
+  "type": "about:blank",
+  "title": "Method Not Allowed",
+  "status": 405,
+  "detail": "GET is not supported on /services/list; use POST"
+}
+```
 
 ## Idempotency
 

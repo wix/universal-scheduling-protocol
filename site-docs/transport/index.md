@@ -69,8 +69,6 @@ These errors are returned via `messages[]` in the response body (HTTP 200 in RES
 |----------------|-------------|----------|
 | `slot_unavailable` | The requested slot is no longer available | `recoverable` |
 | `hold_expired` | The hold has expired | `recoverable` |
-| `booking_not_found` | The booking ID does not exist | `recoverable` |
-| `validation_error` | Request fields are invalid or violate constraints | `requires_buyer_input` |
 | `booking_window_violated` | Booking is outside the allowed advance window | `requires_buyer_input` |
 | `capacity_exceeded` | Not enough capacity for the requested party size | `recoverable` |
 | `reschedule_limit_reached` | Maximum number of reschedules exceeded | `requires_buyer_review` |
@@ -80,9 +78,9 @@ These errors are returned via `messages[]` in the response body (HTTP 200 in RES
 | `payment_amount_mismatch` | The `confirm-payment` amount does not match `amount_due` | `requires_buyer_input` |
 | `actions_pending` | Non-payment actions must be completed before payment can proceed | `requires_buyer_input` |
 | `price_mismatch` | Line item price does not match the service's current catalog price | `recoverable` |
+| `service_unresolved` | A service ID in the `POST /services/lookup` request body could not be resolved | `unrecoverable` |
 | `waitlist_full` | The waitlist has reached its maximum capacity | `recoverable` |
 | `offer_expired` | The offered slot's acceptance window has passed | `recoverable` |
-| `entry_not_found` | The waitlist entry ID does not exist | `recoverable` |
 | `offer_already_accepted` | The offer has already been accepted | `recoverable` |
 
 ### Protocol Errors
@@ -92,6 +90,10 @@ Protocol errors use transport-native error mechanisms. The mapping across transp
 | Protocol Error | Description | REST Status | JSON-RPC Code |
 |----------------|-------------|-------------|---------------|
 | `invalid_request` | Malformed JSON, missing required fields | `400 Bad Request` | `-32600` |
+| `validation_error` | Request fields are invalid or violate constraints | `422 Unprocessable Entity` | `-32602` |
+| `service_not_found` | The service in the request path does not exist | `404 Not Found` | `-32602` |
+| `booking_not_found` | The booking in the request path does not exist | `404 Not Found` | `-32602` |
+| `entry_not_found` | The waitlist entry in the request path does not exist | `404 Not Found` | `-32602` |
 | `invalid_profile_url` | Profile URL is malformed or unresolvable | `400 Bad Request` | `-32602` |
 | `profile_unreachable` | Profile fetch failed (timeout, DNS, non-2xx) | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request whose profile could not be fetched | `-32003` |
 | `profile_malformed` | Profile document fails schema validation | `422 Unprocessable Entity` | `-32004` |
@@ -102,6 +104,8 @@ Protocol errors use transport-native error mechanisms. The mapping across transp
 | `version_unsupported` | Requested USP version not supported | `400 Bad Request` | `-32008` |
 | `service_unavailable` | Business temporarily unable to handle requests | `503 Service Unavailable` | `-32009` |
 | `server_error` | Unexpected server failure | `500 Internal Server Error` | `-32603` |
+| (method not allowed) | The path exists but the method is not defined for it | `405 Method Not Allowed`, `about:blank` | n/a |
+| (not implemented) | An optional operation this deployment does not implement | `501 Not Implemented`, `about:blank` | `-32602` recommended, no `data.code` |
 
 !!! note "`capabilities_incompatible` is a business outcome"
 

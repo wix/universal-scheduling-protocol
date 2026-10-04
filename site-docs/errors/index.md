@@ -38,12 +38,23 @@ specification Section 9.4.3.
 - [`rate-limited`](rate-limited.md): The caller has exceeded the applicable request rate.
 - [`revision-mismatch`](revision-mismatch.md): The supplied resource revision does not match the current revision.
 - [`server-error`](server-error.md): The server encountered an unexpected failure.
+- [`service-not-found`](service-not-found.md): The service identified in the request path does not exist or is not visible to the caller.
 - [`service-unavailable`](service-unavailable.md): The business is temporarily unable to handle requests.
 - [`signature-expired`](signature-expired.md): The HTTP message signature is outside its accepted time window.
 - [`signature-invalid`](signature-invalid.md): The HTTP message signature could not be verified.
 - [`signature-missing`](signature-missing.md): A required HTTP message signature was not supplied.
 - [`validation-error`](validation-error.md): One or more request fields failed validation.
 - [`version-unsupported`](version-unsupported.md): The requested USP version is not supported.
+
+### HTTP-only conditions (`about:blank`)
+
+USP does not mint a Problem type for a condition HTTP already names that
+carries no USP-specific meaning beyond its status. `405 Method Not Allowed`
+(with a required `Allow` header) and `501 Not Implemented` use the RFC 9457
+default `type` `about:blank`, with `title` set to the HTTP reason phrase.
+Clients branch on `status` when `type` is `about:blank`. The MCP counterpart
+of `501` is the unknown-tool error: a JSON-RPC error with no `data.code`,
+recommended to be `-32602` as in MCP.
 
 ## Business outcome codes (not Problem types)
 
@@ -56,7 +67,7 @@ specification Section 9.4.2.
 `capacity_exceeded`, `reschedule_limit_reached`, `cancellation_not_allowed`,
 `invalid_transition`, `payment_required`, `payment_expired`,
 `payment_amount_mismatch`, `actions_pending`, `price_mismatch`,
-`capabilities_incompatible`.
+`service_unresolved`, `capabilities_incompatible`.
 
 The waitlist extension registers its own codes in specification Section 11.1.6.
 

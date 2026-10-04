@@ -1,5 +1,30 @@
 # Change Log
 
+## 04/10/26 at 14:35:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Relaxed the unknown-tool code in Section 9.2.1 from MUST to SHOULD `-32602` and moved it from the MCP MUST conformance list to the SHOULD list, because MCP shows `-32602` for an unknown tool only as an example and USP should be no stricter than the protocols it builds on without a good reason. Kept the MUST that the error carries no `data.code` and is never `-32603` or another transient code, because reporting a permanent condition as retryable is the failure these rules exist to prevent. Updated the OpenRPC `UnknownTool` and `usp_services_feed` descriptions and the MCP, transport, error-index and service-catalog site pages to match
+
+---
+
+## 04/10/26 at 14:30:00 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Registered `service_not_found` in Section 9.4.3 (404, slug `service-not-found`, JSON-RPC `-32602`) and required it in Section 3.12.3 for any `service_id` the business does not recognize, whatever its format, because a missing service in the request path had no protocol code and implementations were reporting it as a retryable `500`. Service identifiers stay opaque, so an unrecognized segment is a 404, never a 400
+- Renamed the `POST /services/lookup` per-ID warning from `service_not_found` to `service_unresolved` and registered it in Section 9.4.2, because Section 9.4.1 forbids one code from being both a business outcome and a protocol error. Updated the OpenAPI and OpenRPC lookup descriptions and the site-docs example to match
+- Allowed RFC 9457 `about:blank` in Section 9.4.3 for conditions HTTP already names that carry no USP meaning beyond the status, and added `404`, `405` (with a required `Allow` header) and `501` to the Section 9.1 status table, so USP reuses standard HTTP semantics instead of minting `not_implemented` or `method_not_allowed` codes. Section 9.1 now also forbids `500` for conditions that will not change on retry. Updated the `ProblemDetails` descriptions in `schemas/rest_common.json` to match
+- Required `501` `about:blank` for an unimplemented `GET /services/feed` in Section 3.13, and added conformance item 11 so the literal `/services/list`, `/services/lookup` and `/services/feed` paths win over `/services/{service_id}` and answer an undefined method with `405`. This stops non-GUID segments such as `feed` or `list` from being served as a lookup of a service with that ID
+- Specified in Section 9.2.1 and MCP conformance item 5 that `tools/call` for a USP tool the deployment does not implement returns JSON-RPC `-32602` with no `data.code`, following the MCP unknown-tool convention. Section 9.4.3 now names this as the one JSON-RPC error without `data.code`. Optional operations such as `usp_services_feed` are exempt from the full-method-set rule
+- Removed `booking_not_found` from the Section 8.5.3 confirm-payment business outcomes and from the Section 9.1 business-outcome examples, because Sections 9.4.1 and 9.4.3 make an unknown `booking_id` a 404 Problem Details response
+- Added `ServiceNotFound`, `MethodNotAllowed` and `NotImplemented` responses and an `Allow` header to `openapi/usp-rest.json`, pointed `GET /services/{service_id}`'s 404 at `service-not-found`, added 405 to `POST /services/list` and `POST /services/lookup`, and added 501 to `GET /services/feed`. Added `service_not_found` to the OpenRPC `USPProtocolError` enum and an `UnknownTool` error on `usp_services_feed`
+- Added `site-docs/errors/service-not-found.md` and updated the error index, `transport/rest.md`, `transport/mcp.md`, `transport/index.md` and `specification/service-catalog.md`. `transport/index.md` also stopped listing `booking_not_found`, `entry_not_found` and `validation_error` as business outcomes, which contradicted Section 9.4
+
+---
+
+## 01/10/26 at 13:45:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Ignored `site/` so the MkDocs build output is not offered as untracked source, because Pages rebuilds that directory from `site-docs/`, schemas, and bindings on every push to master
+
+---
+
 ## 30/09/26 at 14:04:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added Section 7.5.2 (Agent Host Signal) and the `dev.usp-protocol.agent_host_ip` signal key, because an agent platform running on a hosted machine only observes that machine's public IP; sending it as `dev.ucp.buyer_ip` would misstate the buyer's IP to fraud checks and dispute evidence. The key stays in USP's `dev.usp-protocol` namespace, which UCP's reverse-domain key pattern accepts. The section limits `dev.ucp.buyer_ip` to the buyer's own device address and forbids businesses from treating the host IP as the buyer's
@@ -12,6 +37,12 @@
 
 - Added `cancellation.late_cancellation_fee_percentage` (integer, 0-100) to Section 3.9 and `schemas/catalog.json`, because `late_cancellation_fee` is a fixed amount in minor units and a business whose late-cancellation fee is a percentage of the price had no field to state it in. Such a business either omitted the fee, which an agent reads as free cancellation, or would have had to put the percent into a minor-unit field, which misstates it. The pair mirrors `no_show.fee` and `no_show.fee_percentage`: at most one SHOULD be set, and a percentage MUST NOT be published as `late_cancellation_fee`
 - Mirrored the new field in `site-docs/specification/service-catalog.md`
+
+---
+
+## 21/09/26 at 16:57:01 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Removed `CODEOWNERS` from the public spec because it named `@wix-private/ot-ds-payments`, a team in another organization that GitHub cannot use as owners on `wix/universal-scheduling-protocol`, and because that internal team slug should not ship in the public tree
 
 ---
 
@@ -87,20 +118,6 @@
 - Prohibited publishing a USP policy on a UCP binding such as `dev.ucp.shopping`, and forbade a platform reading the absence of `config.authorization` on a UCP binding as "no authentication required", since the namespace rule that keeps USP declarations under `dev.usp-protocol.*` is exactly what makes that absence uninformative rather than permissive
 - Recorded why the rule is needed: Section 7.2 already says Section 10.1.6 applies to UCP-Native checkout and booking-extension operations, while a policy scoped to "the USP endpoint that binding declares" left those operations unauthorised by anything in the profile — so a fail-closed client had to either refuse a conformant business or send a proof it could not justify
 - Mirrored both rules in `site-docs/deployment-modes/ucp-native.md`
-## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
-
-- Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
-- Stated in Section 8.5.4 and in `site-docs/deployment-modes/standalone.md` that an absent `Action.expires_at` means the business sets no deadline and a platform **MUST NOT** infer one, and that a business which *will* expire the action **MUST** publish it, because the failure mode of a hidden deadline is that the platform cannot act on it and the buyer first learns of it when the booking is already canceled
-- Reworded the two places in Section 5 that enumerated an action's fields as `type`, `status`, `continue_url`, `expires_at`, since they read as a list of what is always present and are the sentences a reader checks before the schema
-
----
-
-## 13/09/26 at 08:40:00 by [Maor Yehuda](mailto:maorye@wix.com)
-
-- Permitted `401 Unauthorized` for `profile_unreachable` on a privileged request, alongside the existing `424 Failed Dependency`, because under Section 10.1.6 a fetchable profile is part of the agent header *being* an identity — a profile that cannot be retrieved leaves the request unauthenticated rather than merely blocked on a dependency, and the thing the caller must fix is their own published document
-- Named the practical cost of mandating `424` alone: it is unreachable from a gRPC-based stack, where HTTP statuses derive from gRPC's closed set of status codes and nothing maps to Failed Dependency, so an implementation there had to either repoint a status mapping shared with every other service on the platform or pick some third code — and picking arbitrarily is the interoperability failure the table exists to prevent
-- Mirrored the row in `site-docs/transport/index.md` so the published transport table does not keep the narrower mapping
-
 ## 13/09/26 at 08:15:00 by [Maor Yehuda](mailto:maorye@wix.com)
 
 - Made `Action.expires_at` OPTIONAL in `schemas/booking.json`, because it was the only REQUIRED field on `Action` that a conformant business can be unable to state truthfully: an action that has no deadline has no value to put there, and the schema forced one to be invented. `Booking.expires_at` already settled this the other way — it is optional precisely so a business that holds no slot capacity is not made to advertise an expiry it does not enforce — and an action is in the same position
