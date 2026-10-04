@@ -2032,7 +2032,7 @@
     {
       "name": "usp_bookings_confirm_payment",
       "summary": "Confirm Payment",
-      "description": "Callback after payment succeeds. Maps to POST /bookings/{booking_id}/confirm-payment. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
+      "description": "Callback after payment succeeds. Maps to POST /bookings/{booking_id}/confirm-payment. A payment the business cannot verify against a price is the protocol error payment_unverifiable, and a payment accepted without the booking reaching its post-payment status is confirmation_failed (both JSON-RPC -32002 with that data.code; Section 5.3.7). Neither is a business outcome: the booking is not confirmed, and the platform MUST NOT report it as confirmed and SHOULD reverse or refund the payment. Privileged operation on an existing resource (Section 10.1.6): MUST authenticate as for privileged_platform, and SHOULD prefer a retained booking_scoped_credential when the business accepts that mechanism (see _meta.usp.authorization). When that credential was issued carrying cnf it is sender-constrained: a platform_key_pop proof bound to cnf.jkt is MANDATORY, and the business MUST reject the credential presented without one rather than accept it as a bearer token, whatever mechanism the caller declares.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -3796,6 +3796,8 @@
                 "proof_nonce_required",
                 "revision_mismatch",
                 "idempotency_conflict",
+                "payment_unverifiable",
+                "confirmation_failed",
                 "cursor_expired",
                 "range_too_wide",
                 "rate_limited",

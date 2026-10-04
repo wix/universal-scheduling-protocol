@@ -95,6 +95,8 @@ Protocol errors use transport-native error mechanisms. The mapping across transp
 | `booking_not_found` | The booking in the request path does not exist | `404 Not Found` | `-32602` |
 | `entry_not_found` | The waitlist entry in the request path does not exist | `404 Not Found` | `-32602` |
 | `invalid_profile_url` | Profile URL is malformed or unresolvable | `400 Bad Request` | `-32602` |
+| `payment_unverifiable` | A confirm-payment cannot be verified because there is no price to check it against; the booking is not confirmed | `409 Conflict` | `-32002` |
+| `confirmation_failed` | A confirm-payment was accepted but the booking was not confirmed; the payment needs reversal | `409 Conflict` | `-32002` |
 | `profile_unreachable` | Profile fetch failed (timeout, DNS, non-2xx) | `424 Failed Dependency`, or `401 Unauthorized` on a privileged request whose profile could not be fetched | `-32003` |
 | `profile_malformed` | Profile document fails schema validation | `422 Unprocessable Entity` | `-32004` |
 | `capabilities_incompatible` | No shared capabilities between business and platform | `200 OK` | result (not error) |

@@ -3491,6 +3491,33 @@ If the booking has already been confirmed (idempotent call) or has expired, the
 business **MUST** return the current booking state. The **response** includes a
 `messages[]` entry indicating the condition.
 
+**Confirmations the business cannot complete.** The platform calls this
+operation after it has collected the payment. Two conditions leave the buyer
+nothing to act on and no confirmed booking to return, so they are protocol
+errors ([Section 9.4.1](#941-choosing-the-error-family)), not business outcomes:
+
+- `payment_unverifiable`: the business cannot verify `payment_result` because
+  it has no price to check it against. Examples: the booking's service no
+  longer exists, or a payable service states no price. This differs from
+  `payment_amount_mismatch` ([Section 9.4.2](#942-business-outcome-codes)),
+  where the business has a price and the payment disagrees with it.
+- `confirmation_failed`: the business accepted the payment, but the booking did
+  not reach the status [Section 5.1](#51-booking-status-lifecycle) requires once
+  the payment action completes.
+
+For either condition the business **MUST** answer `409 Conflict` with the
+matching Problem Details response ([Section 9.4.3](#943-protocol-errors)). It
+**MUST NOT** transition the booking to `confirmed`, and **MUST NOT** answer
+`200 OK` or `500`. A `200` would let a client that checks only the HTTP status
+treat a paid but unconfirmed booking as confirmed. A `500` would invite a retry
+that cannot succeed. The Problem Details `detail` **SHOULD** state that the
+booking was not confirmed.
+
+A platform that receives either code **MUST NOT** report the booking to the
+buyer as confirmed. It **SHOULD** reverse or refund the payment through the
+checkout system that collected it, and **SHOULD NOT** retry the same request
+unchanged.
+
 See [Section 7](#7-ucp-native-mode) (UCP-Native Mode)
 and [Section 8.5.6](#856-acp-booking-extension) (ACP Booking Extension) for
 checkout-specific payment flows.
@@ -6484,7 +6511,12 @@ status codes and Problem Details, not `messages[]`. An unknown `booking_id` is
 a protocol error: the business **MUST** return `404 Not Found` with the
 `booking_not_found` Problem Details response
 ([Section 9.4.1](#941-choosing-the-error-family),
-[Section 9.4.3](#943-protocol-errors)).
+[Section 9.4.3](#943-protocol-errors)). A payment the business cannot verify
+against a price, and a confirmation the business cannot complete after
+accepting the payment, are the `409 Conflict` protocol errors
+`payment_unverifiable` and `confirmation_failed`
+([Section 5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment)).
+Neither may be reported as a `200 OK` business outcome.
 
 > **Risk and fraud signals:** USP does **not** define a `signals` or risk object
 > on `confirm-payment` or `PaymentContext`. Fraud prevention and environment
@@ -7296,6 +7328,7 @@ Content-Type: application/json
 | `403 Forbidden`             | Protocol error: platform profile not in business allowlist                           |
 | `404 Not Found`             | Protocol error: the resource identified in the request path does not exist ([Section 9.4.1](#941-choosing-the-error-family)) |
 | `405 Method Not Allowed`    | Protocol error: the path exists but the binding does not define the request method for it. The response **MUST** carry an `Allow` header ([RFC 9110] Section 15.5.6) and uses `type` `about:blank` |
+| `409 Conflict`              | Protocol error: the request conflicts with the current state of the target resource ([RFC 9110] Section 15.5.10). Examples: an idempotency key reused with different parameters, or a `confirm-payment` the business cannot verify or complete. Not retryable unchanged; clients branch on the Problem `type` |
 | `422 Unprocessable Entity`  | Protocol error: request is syntactically valid but structurally invalid              |
 | `424 Failed Dependency`     | Protocol error: business profile unreachable                                         |
 | `429 Too Many Requests`     | Protocol error: rate limited; retry after `Retry-After` header                       |
@@ -8170,6 +8203,8 @@ fully allocated, so codes added after that allocation are distinguished by
 | `proof_nonce_required`   | The business requires a nonce; the response carries `data.nonce`.                                                           | `401 Unauthorized`          | `proof-nonce-required`   | `-32001` | `proof_nonce_required`   |
 | `revision_mismatch`      | Conditional-write precondition failed: the `If-Match` / `_meta.usp.if_match` revision is stale ([Section 5.6](#56-conditional-writes-and-concurrency)). | `412 Precondition Failed`   | `revision-mismatch`      | `-32002` | `revision_mismatch`      |
 | `idempotency_conflict`   | An idempotency key was reused with a different request payload ([Section 9.1.1](#911-idempotency)).                          | `409 Conflict`              | `idempotency-conflict`   | `-32602` | `idempotency_conflict`   |
+| `payment_unverifiable`   | A `confirm-payment` cannot be verified because the business has no price to check it against, for example the booking's service no longer exists or a payable service states no price. The booking is not confirmed ([Section 5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment)). | `409 Conflict`              | `payment-unverifiable`   | `-32002` | `payment_unverifiable`   |
+| `confirmation_failed`    | A `confirm-payment` was accepted, but the booking did not reach its post-payment status. The booking is not confirmed and the payment needs reversal ([Section 5.3.7](#537-confirm-payment---post-bookingsbooking_idconfirm-payment)). | `409 Conflict`              | `confirmation-failed`    | `-32002` | `confirmation_failed`    |
 | `cursor_expired`         | The supplied pagination cursor is no longer honored; restart from the first page ([Section 9.1.2](#912-pagination)).         | `400 Bad Request`           | `cursor-expired`         | `-32602` | `cursor_expired`         |
 | `range_too_wide`         | The requested availability range exceeds the business's supported limit ([Section 4.3.1](#431-query-availability---post-availabilityquery)). | `400 Bad Request`           | `range-too-wide`         | `-32602` | `range_too_wide`         |
 | `rate_limited`           | Too many requests.                                                                                                          | `429 Too Many Requests`     | `rate-limited`           | `-32007` | `rate_limited`           |

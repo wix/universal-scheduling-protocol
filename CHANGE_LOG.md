@@ -1,5 +1,15 @@
 # Change Log
 
+## 04/10/26 at 22:33:07 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Registered `payment_unverifiable` and `confirmation_failed` in Section 9.4.3 as `409 Conflict` protocol errors (slugs `payment-unverifiable` and `confirmation-failed`, JSON-RPC `-32002`). Section 5.3.7 now requires them when a `confirm-payment` cannot be verified against a price or the booking does not reach its post-payment status. Confirm-payment runs after the charge, and a `200 OK` with `messages[]` let a client that checks only the HTTP status treat a paid but unconfirmed booking as confirmed. A `500` invited retries that cannot succeed. `409` is the standard RFC 9110 status for a conflict with the target resource's state, and `-32002` is the existing state-precondition JSON-RPC code. `-32602` would tell an agent to fix its input
+- Required the business not to confirm the booking and not to answer `200` or `500` in those cases. Required the platform not to report the booking as confirmed, and recommended that it reverse or refund the payment and not retry the request unchanged, because the buyer has nothing to act on and the payment has already been collected. Referenced both codes from Section 8.5.3
+- Added `409 Conflict` to the Section 9.1 status table. It was missing even though `idempotency_conflict` already used it
+- Added a `ConfirmPaymentConflict` response to `openapi/usp-rest.json` with `idempotency_conflict`, `payment_unverifiable` and `confirmation_failed` examples, and pointed confirm-payment's `409` at it, so the shared `Conflict` response used by other operations does not advertise confirm-payment-only codes. Added both codes to the OpenRPC `USPProtocolError` enum and to the `usp_bookings_confirm_payment` description
+- Added `errors/payment-unverifiable.md` and `errors/confirmation-failed.md` and listed them in the error index. Updated the REST status table, the transport protocol-error table, the booking Confirm Payment section and the Standalone Confirm Payment section to match
+
+---
+
 ## 04/10/26 at 14:35:12 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Relaxed the unknown-tool code in Section 9.2.1 from MUST to SHOULD `-32602` and moved it from the MCP MUST conformance list to the SHOULD list, because MCP shows `-32602` for an unknown tool only as an example and USP should be no stricter than the protocols it builds on without a good reason. Kept the MUST that the error carries no `data.code` and is never `-32603` or another transient code, because reporting a permanent condition as retryable is the failure these rules exist to prevent. Updated the OpenRPC `UnknownTool` and `usp_services_feed` descriptions and the MCP, transport, error-index and service-catalog site pages to match

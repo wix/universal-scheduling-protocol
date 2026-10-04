@@ -17,6 +17,7 @@ specification Section 9.4.3.
 - [`algorithm-unsupported`](algorithm-unsupported.md): The requested signature or digest algorithm is not supported.
 - [`authentication-required`](authentication-required.md): The operation requires valid authentication.
 - [`booking-not-found`](booking-not-found.md): The requested booking does not exist or is not visible to the caller.
+- [`confirmation-failed`](confirmation-failed.md): A confirm-payment was accepted, but the booking was not confirmed. The payment needs reversal.
 - [`cursor-expired`](cursor-expired.md): The supplied pagination cursor is no longer honored.
 - [`digest-mismatch`](digest-mismatch.md): The supplied content digest does not match the request content.
 - [`entry-not-found`](entry-not-found.md): The waitlist entry does not exist. Requires the waitlist capability.
@@ -25,6 +26,7 @@ specification Section 9.4.3.
 - [`invalid-profile-url`](invalid-profile-url.md): The profile URL is malformed, non-HTTPS, or unresolvable.
 - [`invalid-request`](invalid-request.md): The request is malformed or violates protocol requirements.
 - [`key-not-found`](key-not-found.md): The verification key identified by the request could not be found.
+- [`payment-unverifiable`](payment-unverifiable.md): A confirm-payment cannot be verified because the business has no price to check it against.
 - [`pop-key-mismatch`](pop-key-mismatch.md): The proof-of-possession key does not match the bound key.
 - [`pop-proof-invalid`](pop-proof-invalid.md): The proof of possession failed to parse or verify.
 - [`pop-proof-missing`](pop-proof-missing.md): A required proof-of-possession proof was not supplied.

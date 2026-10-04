@@ -62,6 +62,7 @@ Protocol errors use standard HTTP status codes with RFC 9457 Problem Details:
 | `403 Forbidden` | Platform profile not in business allowlist |
 | `404 Not Found` | The resource identified in the request path does not exist (`service-not-found`, `booking-not-found`, `entry-not-found`) |
 | `405 Method Not Allowed` | The path exists but the binding does not define the request method for it. **MUST** carry an `Allow` header. `type` is `about:blank` |
+| `409 Conflict` | The request conflicts with the current state of the target resource (`idempotency-conflict`, or a confirm-payment the business cannot verify or complete: `payment-unverifiable`, `confirmation-failed`). Not retryable unchanged |
 | `422 Unprocessable Entity` | Syntactically valid but structurally invalid request |
 | `424 Failed Dependency` | Business profile unreachable |
 | `429 Too Many Requests` | Rate limited; retry after `Retry-After` header |
