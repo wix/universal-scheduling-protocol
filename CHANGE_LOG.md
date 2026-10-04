@@ -1,5 +1,30 @@
 # Change Log
 
+## 04/10/26 at 14:35:12 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Relaxed the unknown-tool code in Section 9.2.1 from MUST to SHOULD `-32602` and moved it from the MCP MUST conformance list to the SHOULD list, because MCP shows `-32602` for an unknown tool only as an example and USP should be no stricter than the protocols it builds on without a good reason. Kept the MUST that the error carries no `data.code` and is never `-32603` or another transient code, because reporting a permanent condition as retryable is the failure these rules exist to prevent. Updated the OpenRPC `UnknownTool` and `usp_services_feed` descriptions and the MCP, transport, error-index and service-catalog site pages to match
+
+---
+
+## 04/10/26 at 14:30:00 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Registered `service_not_found` in Section 9.4.3 (404, slug `service-not-found`, JSON-RPC `-32602`) and required it in Section 3.12.3 for any `service_id` the business does not recognize, whatever its format, because a missing service in the request path had no protocol code and implementations were reporting it as a retryable `500`. Service identifiers stay opaque, so an unrecognized segment is a 404, never a 400
+- Renamed the `POST /services/lookup` per-ID warning from `service_not_found` to `service_unresolved` and registered it in Section 9.4.2, because Section 9.4.1 forbids one code from being both a business outcome and a protocol error. Updated the OpenAPI and OpenRPC lookup descriptions and the site-docs example to match
+- Allowed RFC 9457 `about:blank` in Section 9.4.3 for conditions HTTP already names that carry no USP meaning beyond the status, and added `404`, `405` (with a required `Allow` header) and `501` to the Section 9.1 status table, so USP reuses standard HTTP semantics instead of minting `not_implemented` or `method_not_allowed` codes. Section 9.1 now also forbids `500` for conditions that will not change on retry. Updated the `ProblemDetails` descriptions in `schemas/rest_common.json` to match
+- Required `501` `about:blank` for an unimplemented `GET /services/feed` in Section 3.13, and added conformance item 11 so the literal `/services/list`, `/services/lookup` and `/services/feed` paths win over `/services/{service_id}` and answer an undefined method with `405`. This stops non-GUID segments such as `feed` or `list` from being served as a lookup of a service with that ID
+- Specified in Section 9.2.1 and MCP conformance item 5 that `tools/call` for a USP tool the deployment does not implement returns JSON-RPC `-32602` with no `data.code`, following the MCP unknown-tool convention. Section 9.4.3 now names this as the one JSON-RPC error without `data.code`. Optional operations such as `usp_services_feed` are exempt from the full-method-set rule
+- Removed `booking_not_found` from the Section 8.5.3 confirm-payment business outcomes and from the Section 9.1 business-outcome examples, because Sections 9.4.1 and 9.4.3 make an unknown `booking_id` a 404 Problem Details response
+- Added `ServiceNotFound`, `MethodNotAllowed` and `NotImplemented` responses and an `Allow` header to `openapi/usp-rest.json`, pointed `GET /services/{service_id}`'s 404 at `service-not-found`, added 405 to `POST /services/list` and `POST /services/lookup`, and added 501 to `GET /services/feed`. Added `service_not_found` to the OpenRPC `USPProtocolError` enum and an `UnknownTool` error on `usp_services_feed`
+- Added `site-docs/errors/service-not-found.md` and updated the error index, `transport/rest.md`, `transport/mcp.md`, `transport/index.md` and `specification/service-catalog.md`. `transport/index.md` also stopped listing `booking_not_found`, `entry_not_found` and `validation_error` as business outcomes, which contradicted Section 9.4
+
+---
+
+## 01/10/26 at 13:45:53 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Ignored `site/` so the MkDocs build output is not offered as untracked source, because Pages rebuilds that directory from `site-docs/`, schemas, and bindings on every push to master
+
+---
+
 ## 30/09/26 at 14:04:37 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added Section 7.5.2 (Agent Host Signal) and the `dev.usp-protocol.agent_host_ip` signal key, because an agent platform running on a hosted machine only observes that machine's public IP; sending it as `dev.ucp.buyer_ip` would misstate the buyer's IP to fraud checks and dispute evidence. The key stays in USP's `dev.usp-protocol` namespace, which UCP's reverse-domain key pattern accepts. The section limits `dev.ucp.buyer_ip` to the buyer's own device address and forbids businesses from treating the host IP as the buyer's

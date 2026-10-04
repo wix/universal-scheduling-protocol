@@ -80,6 +80,13 @@
       }
     },
     "headers": {
+      "Allow": {
+        "description": "RFC 9110 Section 10.2.1 list of the methods the target path supports. REQUIRED on every 405 response.",
+        "schema": {
+          "type": "string",
+          "example": "POST"
+        }
+      },
       "USPCorrelationId": {
         "description": "OPTIONAL non-normative money-path correlation join id echoed on error (and optionally success) responses per specification.md Section 9.7. Caller-safe reference; not a substitute for Problem Details type or code.",
         "schema": {
@@ -421,6 +428,59 @@
                   "detail": "The requested waitlist entry does not exist or is not visible to the caller"
                 }
               }
+            }
+          }
+        }
+      },
+      "ServiceNotFound": {
+        "description": "Protocol error service_not_found: the service identified in the request path does not exist or is not visible to the caller. Service identifiers are opaque, so this applies to any segment the business does not recognize as one of its service identifiers, whatever its format; it is never a 400 or a 500. See specification.md Sections 3.12.3 and 9.4.3.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "https://usp-protocol.dev/errors/service-not-found",
+              "title": "Not Found",
+              "status": 404,
+              "detail": "The requested service does not exist or is not visible to the caller"
+            }
+          }
+        }
+      },
+      "MethodNotAllowed": {
+        "description": "Protocol error: the path exists but the binding does not define the request method for it (for example GET /services/list). Uses the RFC 9457 about:blank type, so clients branch on status. The Allow header is REQUIRED. See specification.md Sections 3.13 and 9.1.",
+        "headers": {
+          "Allow": {
+            "$ref": "#/components/headers/Allow"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "about:blank",
+              "title": "Method Not Allowed",
+              "status": 405,
+              "detail": "GET is not supported on /services/list; use POST"
+            }
+          }
+        }
+      },
+      "NotImplemented": {
+        "description": "Protocol error: the operation is optional (SHOULD or MAY) in the specification and this deployment does not implement it. Not retryable. Uses the RFC 9457 about:blank type, so clients branch on status. See specification.md Sections 3.13 and 9.1.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "type": "about:blank",
+              "title": "Not Implemented",
+              "status": 501,
+              "detail": "This business does not implement GET /services/feed; use POST /services/list to read the catalog"
             }
           }
         }
@@ -811,6 +871,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
           },
@@ -893,7 +956,7 @@
             "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "$ref": "#/components/responses/NotFound"
+            "$ref": "#/components/responses/ServiceNotFound"
           },
           "424": {
             "$ref": "#/components/responses/FailedDependency"
@@ -1028,7 +1091,7 @@
                           "items": {
                             "$ref": "#/components/schemas/Message"
                           },
-                          "description": "Errors, warnings, or informational messages about the lookup (e.g., service_not_found for unresolved IDs)."
+                          "description": "Errors, warnings, or informational messages about the lookup (e.g., service_unresolved for unresolved IDs; see specification.md Section 3.12.4)."
                         }
                       }
                     }
@@ -1045,6 +1108,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
@@ -1220,6 +1286,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"

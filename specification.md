@@ -2080,6 +2080,15 @@ Businesses that support feed subscriptions **SHOULD** declare the
 Returns the full service object for a single service. The response **MAY**
 include an optional `messages[]` array with service-level notices.
 
+If no service with the requested `service_id` exists or is visible to the
+caller, the business **MUST** return `404 Not Found` with the
+`service_not_found` Problem Details response
+([Section 9.4.1](#941-choosing-the-error-family),
+[Section 9.4.3](#943-protocol-errors)). Service identifiers are opaque, so this
+applies to any path segment the business does not recognize as one of its
+service identifiers, whatever its format. The business **MUST NOT** answer an
+unrecognized identifier with `400` or `500`.
+
 Request:
 
 ```
@@ -2157,8 +2166,12 @@ when rendering a shortlist, or when resolving services from booking history).
 
 The response **MAY** include an optional `messages[]` array. If some IDs
 cannot be resolved, the business **SHOULD** return the services it can resolve
-and include `messages` entries with `code: "service_not_found"` and `path`
-pointing to the unresolved ID for each missing service.
+and include `messages` entries with `code: "service_unresolved"` and `path`
+pointing to the unresolved ID for each missing service. This is a business
+outcome ([Section 9.4.2](#942-business-outcome-codes)), distinct from the
+`service_not_found` protocol error that `GET /services/{service_id}` returns
+for a missing identifier in the request path
+([Section 9.4.1](#941-choosing-the-error-family)).
 
 **Batch limits:**
 
@@ -2229,7 +2242,7 @@ Response (partial success):
   "messages": [
     {
       "type": "warning",
-      "code": "service_not_found",
+      "code": "service_unresolved",
       "content": "Service ID 'svc_nonexistent_999' was not found.",
       "path": "$.ids[2]"
     }
@@ -2249,7 +2262,14 @@ A conforming implementation of the `dev.usp-protocol.services.catalog` capabilit
 3. **MUST** implement `POST /services/lookup` accepting at least 50 IDs and
    returning matching services with partial-success semantics.
 4. **SHOULD** implement `GET /services/feed` for incremental catalog
-   synchronization.
+   synchronization. A deployment that does not implement it **MUST** answer
+   `GET /services/feed` with `501 Not Implemented` and an `about:blank`
+   Problem Details body ([Section 9.1](#91-rest-binding),
+   [Section 9.4.3](#943-protocol-errors)), whose `detail` **SHOULD** direct
+   the caller to `POST /services/list`. It **MUST NOT** return `500` for this
+   request and **MUST NOT** route it to `GET /services/{service_id}`. Over MCP,
+   the deployment answers `usp_services_feed` as an unknown tool
+   ([Section 9.2.1](#921-method-mapping)).
 5. **MUST** include all required fields on each `Service` object: `id`,
    `business_id`, `name`, `type`, `duration`, `pricing`, `channel`, `policies`.
 6. **MUST** conform to the validation rules in [Section 3.11](#311-validation-rules)
@@ -2264,6 +2284,13 @@ A conforming implementation of the `dev.usp-protocol.services.catalog` capabilit
    rendering and agent-assisted discovery.
 10. **MUST** use opaque cursors for pagination across all catalog endpoints.
     Platforms **MUST NOT** construct or parse cursor values.
+11. **MUST** match the literal catalog paths `/services/list`,
+    `/services/lookup`, and `/services/feed` before `/services/{service_id}`.
+    A request to one of those paths with a method the binding does not define
+    for it (for example `GET /services/list`) **MUST** return
+    `405 Method Not Allowed` with an `Allow` header and an `about:blank`
+    Problem Details body ([Section 9.1](#91-rest-binding)), not a
+    `GET /services/{service_id}` result for that segment.
 
 ---
 
@@ -6452,9 +6479,12 @@ Business outcome errors for this operation use the response-level `messages[]`
 array ([Section 9.1](#91-rest-binding), [Section 9.4](#94-error-code-mapping)).
 Normative codes include: `payment_expired` (payment action or booking expired),
 `payment_amount_mismatch` (`amount_paid` does not match `amount_due`),
-`actions_pending` (non-payment actions still pending), `booking_not_found`
-(unknown `booking_id`). Protocol errors use HTTP status codes and Problem
-Details, not `messages[]`.
+`actions_pending` (non-payment actions still pending). Protocol errors use HTTP
+status codes and Problem Details, not `messages[]`. An unknown `booking_id` is
+a protocol error: the business **MUST** return `404 Not Found` with the
+`booking_not_found` Problem Details response
+([Section 9.4.1](#941-choosing-the-error-family),
+[Section 9.4.3](#943-protocol-errors)).
 
 > **Risk and fraud signals:** USP does **not** define a `signals` or risk object
 > on `confirm-payment` or `PaymentContext`. Fraud prevention and environment
@@ -7240,7 +7270,7 @@ Content-Type: application/json
   outcome errors**:
 
   **Business outcome errors** (e.g., slot unavailable, hold expired, capacity
-  exceeded, booking not found) return **HTTP 200** with a `messages[]` array on
+  exceeded) return **HTTP 200** with a `messages[]` array on
   the **response** object. The `messages[]` array is a response-level
   construct — it is not a field on the booking or service object. Each message
   has `type` (`error`, `warning`, `info`), `code`, `content`, optional
@@ -7264,11 +7294,19 @@ Content-Type: application/json
 | `400 Bad Request`           | Protocol error: malformed JSON, missing required fields, invalid profile URL         |
 | `401 Unauthorized`          | Protocol error: authentication required or invalid credentials                       |
 | `403 Forbidden`             | Protocol error: platform profile not in business allowlist                           |
+| `404 Not Found`             | Protocol error: the resource identified in the request path does not exist ([Section 9.4.1](#941-choosing-the-error-family)) |
+| `405 Method Not Allowed`    | Protocol error: the path exists but the binding does not define the request method for it. The response **MUST** carry an `Allow` header ([RFC 9110] Section 15.5.6) and uses `type` `about:blank` |
 | `422 Unprocessable Entity`  | Protocol error: request is syntactically valid but structurally invalid              |
 | `424 Failed Dependency`     | Protocol error: business profile unreachable                                         |
 | `429 Too Many Requests`     | Protocol error: rate limited; retry after `Retry-After` header                       |
 | `500 Internal Server Error` | Protocol error: unexpected server failure                                            |
+| `501 Not Implemented`       | Protocol error: the operation is defined by this specification at a SHOULD or MAY level and this deployment does not implement it. Uses `type` `about:blank`. Not retryable |
 | `503 Service Unavailable`   | Protocol error: business temporarily unable to handle requests; retry after `Retry-After` header |
+
+A `500` signals an unexpected, possibly transient failure, and clients may
+retry it. A business **MUST NOT** use `500` for a condition that will not
+change on retry, such as a missing resource, an unsupported method, or an
+unimplemented optional operation.
 
 #### 9.1.1 Idempotency
 
@@ -7489,7 +7527,22 @@ A capability advertised over one binding **MUST** be reachable over the other.
 A business that advertises MCP but implements only part of the method set is
 **not** conforming: it **MUST** either implement the whole set for the
 capabilities it advertises, or not advertise MCP in `transports` at all
-([Section 9.2.4](#924-mcp-binding-conformance)).
+([Section 9.2.4](#924-mcp-binding-conformance)). The exception is an operation
+this specification makes optional at a SHOULD or MAY level, such as
+`usp_services_feed` ([Section 3.13](#313-catalog-conformance-requirements)).
+A deployment that does not implement one omits it from `tools/list`.
+
+**Unknown tools.** MCP treats a `tools/call` for an unknown tool as a JSON-RPC
+protocol error. When `tools/call` names a USP tool the deployment does not
+implement, the business **SHOULD** return code `-32602` (Invalid params), the
+code MCP uses for an unknown tool, with a `message` naming the tool. Whatever
+code it uses, it **MUST NOT** return `-32603` or another code a client would
+treat as a transient failure, because the condition does not change on retry.
+This is the MCP counterpart of the REST `501 Not Implemented`
+([Section 9.1](#91-rest-binding)). Because the condition carries no USP meaning
+beyond the JSON-RPC code, the `error` object carries no `data.code`, and that
+absence is how clients tell it apart from the USP protocol errors that share
+`-32602` ([Section 9.4.3](#943-protocol-errors)).
 
 #### 9.2.2 Request/Response Format
 
@@ -7779,10 +7832,11 @@ A conforming MCP binding implementation **MUST:**
 2. Wrap results in the `structuredContent` / `content` dual-envelope pattern.
 3. Return business outcome errors in `result.structuredContent.messages[]`, not as JSON-RPC `error`.
 4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](#94-error-code-mapping)).
-5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
-6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
-7. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
-8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
+5. Answer `tools/call` for a USP tool the deployment does not implement with a JSON-RPC `error` that carries no `data.code` and is not `-32603` or another code a client would treat as transient ([Section 9.2.1](#921-method-mapping)).
+6. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](#1016-platform-authentication-for-privileged-operations).
+7. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
+8. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
+9. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
 
 A conforming MCP binding implementation **SHOULD:**
 
@@ -7791,6 +7845,7 @@ A conforming MCP binding implementation **SHOULD:**
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
 4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism. `usp_bookings_confirm` is `business_only` and **MUST NOT** be authorized that way.
 5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
+6. Use JSON-RPC `-32602`, the MCP unknown-tool code, for a `tools/call` naming a USP tool the deployment does not implement ([Section 9.2.1](#921-method-mapping)).
 
 > **Schema reference:** [`openrpc/usp-mcp.json`](openrpc/usp-mcp.json)
 
@@ -8019,7 +8074,7 @@ remaining inputs.
 
 | Operation shape | Example | Missing identifier yields |
 |-----------------|---------|---------------------------|
-| Path-addressed | `GET /bookings/{booking_id}`, `POST /bookings/{booking_id}/cancel`, `GET /waitlist/{entry_id}` | `404` Problem Details |
+| Path-addressed | `GET /services/{service_id}`, `GET /bookings/{booking_id}`, `POST /bookings/{booking_id}/cancel`, `GET /waitlist/{entry_id}` | `404` Problem Details |
 | Body-identified, partial success | `POST /services/lookup` with 50 IDs of which 3 are unknown | `200 OK`; unknown IDs reported in `messages[]` |
 
 Businesses **MUST NOT** return `200 OK` with a `messages[]` entry in place of a
@@ -8052,6 +8107,7 @@ Every row below is carried with HTTP `200 OK`.
 | `payment_amount_mismatch`  | The `confirm-payment` amount does not match `amount_due`.                                                                                                                       | `requires_buyer_input`  |
 | `actions_pending`          | Non-payment actions must be completed before payment can proceed. Returned when `confirm-payment` or `complete_checkout` is called while non-payment actions are still pending. | `requires_buyer_input`  |
 | `price_mismatch`           | Line item price does not match the service's current catalog price (e.g., at UCP `create_checkout` / `update_checkout`).                                                          | `recoverable`           |
+| `service_unresolved`       | A service ID in the `POST /services/lookup` request body could not be resolved; `path` points to that ID ([Section 3.12.4](#3124-lookup-services---post-serviceslookup)). Carried with `type: "warning"` alongside the services that did resolve. | `unrecoverable`         |
 | `capabilities_incompatible` | The capability intersection between the business and platform profiles is empty, with no shared capabilities. The request was valid, so this is an outcome rather than a protocol error. The platform **SHOULD** surface it to the operator as a configuration incompatibility. | `unrecoverable`         |
 
 Extension capabilities register their own business outcome codes in their own
@@ -8065,15 +8121,26 @@ they use an HTTP status with an [RFC 9457] Problem Details body whose `type` is
 the canonical URI below. In the MCP binding they use the JSON-RPC `error`
 object.
 
-**Problem `type` URIs.** Every REST `type` value is
-`https://usp-protocol.dev/errors/{slug}`, where `{slug}` is the kebab-case form
-of the USP error code. Clients **MUST** branch on the exact URI rather than on
-the human-readable `title`.
+**Problem `type` URIs.** Every REST `type` value for a code in the table below
+is `https://usp-protocol.dev/errors/{slug}`, where `{slug}` is the kebab-case
+form of the USP error code. Clients **MUST** branch on the exact URI rather than
+on the human-readable `title`.
+
+**`about:blank` for HTTP-only conditions.** USP does not mint a code for a
+condition that HTTP already names and that carries no USP-specific meaning
+beyond its status. Such a response uses the [RFC 9457] Section 4.2.1 default:
+`type` is `about:blank` and `title` is the HTTP reason phrase for the status
+(for example `"Method Not Allowed"`). This applies to `405 Method Not Allowed`
+and `501 Not Implemented` ([Section 9.1](#91-rest-binding)). When `type` is
+`about:blank`, clients **MUST** branch on `status`. A business **MUST NOT** use
+`about:blank` for a condition that has a row in the table below.
 
 **JSON-RPC codes and `data.code`.** The JSON-RPC number is a **coarse bucket**;
 `data.code` is the authoritative discriminator and **MUST** be present on every
-JSON-RPC `error` object, carrying exactly the USP error code from the first
-column. Several codes deliberately share a number: `-32001` through `-32009` are
+JSON-RPC `error` object that reports a code from the table below, carrying
+exactly the USP error code from the first column. The one JSON-RPC `error`
+without `data.code` is the unknown-tool response of
+[Section 9.2.1](#921-method-mapping), the MCP counterpart of `about:blank`. Several codes deliberately share a number: `-32001` through `-32009` are
 fully allocated, so codes added after that allocation are distinguished by
 `data.code` alone. Clients **MUST** branch on `data.code`, not on the number.
 
@@ -8086,6 +8153,7 @@ fully allocated, so codes added after that allocation are distinguished by
 | `profile_malformed`      | Profile document is not valid JSON or fails schema validation against [`schemas/profile.json`](schemas/profile.json).       | `422 Unprocessable Entity`  | `profile-malformed`      | `-32004` | `profile_malformed`      |
 | `profile_not_trusted`    | The platform profile URL is not in the business's pre-approved allowlist (when the business enforces an allowlist).         | `403 Forbidden`             | `profile-not-trusted`    | `-32005` | `profile_not_trusted`    |
 | `booking_not_found`      | The booking identified in the request path does not exist or is not visible to the caller ([Section 9.4.1](#941-choosing-the-error-family)). | `404 Not Found`             | `booking-not-found`      | `-32602` | `booking_not_found`      |
+| `service_not_found`      | The service identified in the request path does not exist or is not visible to the caller ([Section 3.12.3](#3123-get-service---get-servicesservice_id), [Section 9.4.1](#941-choosing-the-error-family)). | `404 Not Found`             | `service-not-found`      | `-32602` | `service_not_found`      |
 | `entry_not_found`        | The waitlist entry identified in the request path does not exist. Requires the `dev.usp-protocol.services.waitlist` capability ([Section 11.1.6](#1116-error-codes)). | `404 Not Found`             | `entry-not-found`        | `-32602` | `entry_not_found`        |
 | `authentication_required`| Authentication credentials are missing or invalid.                                                                          | `401 Unauthorized`          | `authentication-required`| `-32006` | `authentication_required`|
 | `signature_missing`      | Required `Signature` and `Signature-Input` headers are absent ([Section 10.1.1](#1011-webhook-security)).                    | `401 Unauthorized`          | `signature-missing`      | `-32006` | `signature_missing`      |

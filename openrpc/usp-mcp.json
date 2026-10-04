@@ -239,7 +239,7 @@
     {
       "name": "usp_services_get",
       "summary": "Get Service",
-      "description": "Returns the full service object for a single service. Maps to GET /services/{service_id}. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
+      "description": "Returns the full service object for a single service. Maps to GET /services/{service_id}. A service_id that does not exist or is not visible to the caller, whatever its format, is the protocol error service_not_found (JSON-RPC -32602, data.code service_not_found; Section 9.4.3), never a business outcome. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -441,7 +441,7 @@
                   "items": {
                     "$ref": "#/components/schemas/Message"
                   },
-                  "description": "Errors, warnings, or informational messages about the lookup (e.g., service_not_found for unresolved IDs)."
+                  "description": "Errors, warnings, or informational messages about the lookup (e.g., service_unresolved for unresolved IDs; see specification.md Section 3.12.4)."
                 }
               }
             },
@@ -478,7 +478,7 @@
     {
       "name": "usp_services_feed",
       "summary": "Service Feed",
-      "description": "Returns a paginated, chronologically ordered list of service records for incremental sync. Maps to GET /services/feed. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
+      "description": "Returns a paginated, chronologically ordered list of service records for incremental sync. Maps to GET /services/feed. Optional (SHOULD, Section 3.13): a deployment that does not implement it omits it from tools/list and answers tools/call for it with the UnknownTool error (SHOULD be JSON-RPC -32602, MUST carry no data.code and MUST NOT be a transient code such as -32603; Section 9.2.1), the counterpart of the REST 501. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -604,6 +604,9 @@
       "errors": [
         {
           "$ref": "#/components/errors/USPProtocolError"
+        },
+        {
+          "$ref": "#/components/errors/UnknownTool"
         }
       ],
       "x-usp-access": "public"
@@ -3776,6 +3779,7 @@
                 "profile_malformed",
                 "profile_not_trusted",
                 "booking_not_found",
+                "service_not_found",
                 "entry_not_found",
                 "authentication_required",
                 "signature_missing",
@@ -3815,6 +3819,10 @@
             }
           }
         }
+      },
+      "UnknownTool": {
+        "code": -32602,
+        "message": "Unknown tool. Returned for tools/call naming a USP tool the deployment does not implement. -32602 is the code MCP uses for an unknown tool and is RECOMMENDED; any code used MUST NOT be a transient one such as -32603. The message names the tool. Carries no data.code, which is how clients tell it apart from the USP protocol errors that share -32602. Not retryable. See §9.2.1."
       }
     },
     "x-usp-securitySchemes": {

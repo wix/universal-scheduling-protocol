@@ -55,7 +55,7 @@ Each USP REST operation maps to a JSON-RPC method name used as the tool name in 
 
     Every REST operation has exactly one MCP method, and every MCP method maps back to exactly one REST operation. The only REST path without a row is `GET /.well-known/usp`, which is profile discovery rather than an operation.
 
-    A capability advertised over one binding **MUST** be reachable over the other. A business that advertises MCP but implements only part of the method set is not conforming: implement the whole set for the capabilities you advertise, or do not list `mcp` in `transports`.
+    A capability advertised over one binding **MUST** be reachable over the other. A business that advertises MCP but implements only part of the method set is not conforming: implement the whole set for the capabilities you advertise, or do not list `mcp` in `transports`. The exception is an operation the specification makes optional (SHOULD or MAY), such as `usp_services_feed`; a deployment that does not implement one omits it from `tools/list`.
 
 ## Request/Response Format
 
@@ -223,6 +223,23 @@ Protocol errors (e.g., malformed requests, authentication failures) use the JSON
 
     Business outcome errors go in `result.structuredContent.messages[]`. Protocol errors go in the JSON-RPC `error` object. Never mix the two.
 
+### Unknown Tools
+
+MCP treats a `tools/call` for an unknown tool as a JSON-RPC protocol error. When `tools/call` names a USP tool the deployment does not implement (for example the optional `usp_services_feed`), the business **SHOULD** return code `-32602` (Invalid params), the code MCP uses for an unknown tool, with a `message` naming the tool. Whatever code it uses, it **MUST NOT** return `-32603` or another code a client would treat as transient, because the condition does not change on retry. This is the MCP counterpart of the REST `501 Not Implemented`.
+
+The `error` object carries no `data.code`. That absence is how clients tell it apart from the USP protocol errors that share `-32602` (such as `service_not_found`), which always carry `data.code`.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32602,
+    "message": "Unknown tool: usp_services_feed"
+  },
+  "id": 4
+}
+```
+
 ```mermaid
 flowchart TD
     A[Incoming Request] --> B{Valid request?}
@@ -322,10 +339,11 @@ A conforming MCP binding implementation **MUST:**
 2. Wrap results in the `structuredContent` / `content` dual-envelope pattern.
 3. Return business outcome errors in `result.structuredContent.messages[]`, not as JSON-RPC `error`.
 4. Use JSON-RPC `error` only for protocol errors ([Section 9.4](../../specification.md#94-error-code-mapping)).
-5. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](../../specification.md#1016-platform-authentication-for-privileged-operations).
-6. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
-7. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
-8. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](../../specification.md#1016-platform-authentication-for-privileged-operations)).
+5. Answer `tools/call` for a USP tool the deployment does not implement with a JSON-RPC `error` that carries no `data.code` and is not `-32603` or another transient code ([Unknown Tools](#unknown-tools)).
+6. Include `_meta.usp.profile` on every privileged method (`x-usp-access` of `privileged_platform` or `privileged_scoped`) and bind any presented credential to that profile per [Section 10.1.6](../../specification.md#1016-platform-authentication-for-privileged-operations).
+7. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
+8. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
+9. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](../../specification.md#1016-platform-authentication-for-privileged-operations)).
 
 ### SHOULD
 
@@ -336,3 +354,4 @@ A conforming MCP binding implementation **SHOULD:**
 3. Prefer HTTP-layer credentials (Authorization / Signature / mTLS) when MCP runs over HTTP, and use `_meta.usp.authorization` for stdio sessions and for `booking_scoped_credential`.
 4. Prefer a retained `booking_scoped_credential` on privileged_scoped get/cancel/reschedule/PII-bearing calls when the business accepts that mechanism. `usp_bookings_confirm` is `business_only` and **MUST NOT** be authorized that way.
 5. Compute the `usp_p` digest of a `platform_key_pop` proof over JCS-canonicalized params as specified in [Section 9.2.2](../../specification.md#922-requestresponse-format), and avoid non-integer JSON numbers in canonicalized params so that JCS number serialization is never ambiguous.
+6. Use JSON-RPC `-32602`, the MCP unknown-tool code, for a `tools/call` naming a USP tool the deployment does not implement ([Unknown Tools](#unknown-tools)).
