@@ -1,5 +1,31 @@
 # Change Log
 
+## 07/10/26 at 13:27:26 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Renamed the Section 4.3.1 `POST /availability/query` request field `timezone` to `date_bounds_timezone`, and the response field `timezone` to `applied_date_bounds_timezone`. Both were called `timezone` while meaning different things, and neither name said that the zone only governs how date-only `start_date` and `end_date` are read. That invited clients to treat the response value as the business's clock, which is what `business_timezone` is for. The `applied_` prefix ties the response field to the request field it echoes
+- Applied the rename across the "Query Timezones" subsection, its worked example, the request and response field tables and JSON examples, `openapi/usp-rest.json` and `openrpc/usp-mcp.json` (property, parameter, `required` lists and every description that referred to the old names), `site-docs/specification/availability.md`, `site-docs/llms-full.txt`, the MCP, A2A and home page examples, and both playground fixture and mock sets, so no published artefact still uses the old names for these fields
+
+---
+
+## 07/10/26 at 13:15:44 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added a required `business_timezone` to the Section 4.3.1 `POST /availability/query` response, equal to `business.timezone` on the USP profile whatever the request carried. The response `timezone` echoes the request `timezone` when one is sent, so a platform that asked in the buyer's zone got the buyer's zone back and still could not name the business's clock or compare it with the buyer's. `business_timezone` is now the field platforms use for display, the buyer comparison and `opening_hours`. The response `timezone` keeps its meaning as the zone applied to the range
+- Replaced the "Response Timezone" subsection with "Query Timezones": a table of what each of the three timezone fields represents and what to use it for, rules for resolving the range, what the business returns, what the platform does with the fields, and a worked New York and London example showing which slots each query returns and why the response `timezone` must not name the business's clock. The previous text told platforms to use the response `timezone` as the business's clock, which was wrong whenever the request carried a zone
+- Defined date-only bounds: a date-only `start_date` is 00:00 on that day in the query timezone, and a date-only `end_date` includes that whole day. Stated that the request `timezone` does not change date-time bounds, which already carry an offset. Neither rule was written down, so the request `timezone` read as if it could reinterpret exact instants, and whether `end_date` was inclusive was left to the existing 7-calendar-day guidance
+- Stated that `opening_hours` are local times in `business_timezone`, unaffected by the request `timezone`, and that platforms must not infer a timezone from a slot offset
+- Updated `openapi/usp-rest.json` and `openrpc/usp-mcp.json` (required `business_timezone`, fuller `timezone`, `start_date` and `end_date` descriptions, `opening_hours` wording) and mirrored everything in `site-docs/specification/availability.md`. Added `business_timezone` to the availability examples on the MCP, A2A and home pages and in both playground fixture and mock sets
+
+---
+
+## 07/10/26 at 12:58:23 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Required one top-level `timezone` on the Section 4.3.1 `POST /availability/query` response: the IANA zone the business used to interpret `start_date` and `end_date` (the request `timezone` when given, otherwise the business timezone). A slot offset is an instant, not a zone, so a client that opened a business without knowing its zone could not name the business clock, compare it with the buyer, or build the next local day across a DST change
+- Added a "Response Timezone" subsection stating that request `timezone` stays optional, that slot `start` and `end` stay offset-qualified RFC 3339 instants the response zone does not replace, that platforms should use the response zone for display, buyer comparison and later ranges, and that a response without a valid zone should fall back to slot offsets rather than abandon the query. Clarified the request `timezone` description to say it governs how the range is interpreted
+- Added the required `timezone` property to the availability response in `openapi/usp-rest.json` and `openrpc/usp-mcp.json`, and updated the request `timezone` descriptions to point at it
+- Mirrored the change in `site-docs/specification/availability.md` and added `timezone` to the availability response examples in `site-docs/transport/mcp.md`, `site-docs/transport/a2a.md`, `overrides/home.html`, both playground scenario fixtures and both playground mock sets, so no published example omits a now-required field
+
+---
+
 ## 04/10/26 at 22:33:07 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Registered `payment_unverifiable` and `confirmation_failed` in Section 9.4.3 as `409 Conflict` protocol errors (slugs `payment-unverifiable` and `confirmation-failed`, JSON-RPC `-32002`). Section 5.3.7 now requires them when a `confirm-payment` cannot be verified against a price or the booking does not reach its post-payment status. Confirm-payment runs after the charge, and a `200 OK` with `messages[]` let a client that checks only the HTTP status treat a paid but unconfirmed booking as confirmed. A `500` invited retries that cannot succeed. `409` is the standard RFC 9110 status for a conflict with the target resource's state, and `-32002` is the existing state-precondition JSON-RPC code. `-32602` would tell an agent to fix its input

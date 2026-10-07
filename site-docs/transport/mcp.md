@@ -144,6 +144,8 @@ Responses use the **`structuredContent` / `content` dual-envelope** pattern:
         }
       },
       "service_id": "svc_haircut_001",
+      "applied_date_bounds_timezone": "America/New_York",
+      "business_timezone": "America/New_York",
       "slots": [
         {
           "id": "slot_20260315_0900",

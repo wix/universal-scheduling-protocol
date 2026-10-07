@@ -150,6 +150,8 @@ USP data maps to A2A [DataPart](https://a2a-protocol.org/latest/#data-parts) obj
   },
   "data": {
     "service_id": "svc_haircut_001",
+    "applied_date_bounds_timezone": "America/New_York",
+    "business_timezone": "America/New_York",
     "slots": [
       {
         "id": "slot_20260315_0900",

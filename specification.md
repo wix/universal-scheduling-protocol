@@ -2492,9 +2492,9 @@ the date range before querying.
 | Field         | Type    | Required | Description                                                                                                                          |
 |---------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
 | `service_id`  | string  | **Yes**  | The service to query.                                                                                                                |
-| `start_date`  | string  | **Yes**  | Start of range (RFC 3339 date or datetime).                                                                                          |
-| `end_date`    | string  | **Yes**  | End of range (RFC 3339 date or datetime).                                                                                            |
-| `timezone`    | string  | No       | IANA timezone. Defaults to business timezone.                                                                                        |
+| `start_date`  | string  | **Yes**  | Start of range: an RFC 3339 full-date (`2026-03-15`) or date-time with offset (`2026-03-15T13:00:00Z`). A date means 00:00 on that day in the applied date-bounds timezone. See [Query Timezones](#query-timezones). |
+| `end_date`    | string  | **Yes**  | End of range, in the same forms as `start_date`. A date includes that whole day in the applied date-bounds timezone. See [Query Timezones](#query-timezones). |
+| `date_bounds_timezone` | string | No | IANA timezone whose calendar the business uses to turn date-only `start_date` and `end_date` into instants. Send it to ask for days as someone other than the business counts them (typically the buyer). Omit it to get the business's own days, including when the platform does not know the business timezone. Defaults to the business timezone. Has no effect on date-time bounds. See [Query Timezones](#query-timezones). |
 | `resource_id` | string  | No       | Preferred resource (e.g., specific staff member). If provided, only slots where this resource is available are returned.             |
 | `party_size`  | integer | No       | Number of participants. Default: 1. For `group` and `reservation` types, only slots with sufficient remaining capacity are returned. |
 | `location_id` | string  | No       | Location filter. When provided, only slots at the specified location are returned. Applies to multi-location businesses (see [Section 2.6](#26-multi-location-businesses)). |
@@ -2515,6 +2515,92 @@ the date range before querying.
 > correlate results client-side. A future multi-service availability extension
 > is under consideration.
 
+##### Query Timezones
+
+An availability query involves up to three zones, and a slot offset such as
+`-04:00` names none of them: an offset identifies an instant, not a clock, and
+it cannot be used to find the next local day across a daylight-saving
+transition. A platform may also reach this operation without having read the
+USP profile (for example, after UCP discovery), so it cannot rely on
+`business.timezone` from [Section 8.2.1](#821-business-profile-fields). The
+query therefore uses three fields, each named for its one meaning:
+
+| Field | Where | Required | What it represents | What to use it for |
+|---|---|---|---|---|
+| `date_bounds_timezone` | Request | No | The zone whose calendar the platform wants date-only bounds read in. | Ask for "March 15" as the buyer counts it, rather than as the business does. Omit it to get the business's own days. |
+| `applied_date_bounds_timezone` | Response | **Yes** | The zone the business actually applied to date-only bounds: the request `date_bounds_timezone` when sent, otherwise `business_timezone`. | Confirm how the range was read, and request the adjacent window in the same zone. |
+| `business_timezone` | Response | **Yes** | The business's own zone, whatever the request carried. Equal to `business.timezone` on the USP profile. | Show slot times on the business's clock, compare that clock with the buyer's, and read `opening_hours`. |
+
+All three are IANA Time Zone Database identifiers
+([Section 1.1](#11-conventions)).
+
+**Resolving the range.**
+
+- A date-only `start_date` resolves to 00:00 on that day in the applied
+  date-bounds timezone. A date-only `end_date` includes that whole day: the
+  range ends at 00:00 on the following day in that timezone. Days are resolved
+  on the local calendar, so a day containing a daylight-saving transition is 23
+  or 25 hours long.
+- A date-time bound carries an offset and is already an instant.
+  `date_bounds_timezone` **MUST NOT** change its meaning. When both bounds are
+  date-times, `date_bounds_timezone` has no effect on the range;
+  `applied_date_bounds_timezone` still reports the zone the business would have
+  applied to a date-only bound.
+- `date_bounds_timezone` is optional. A platform that does not know the
+  business timezone **SHOULD** omit it and send date-only bounds, so the
+  business reads the requested days in its own zone.
+
+**What the business returns.**
+
+- The response **MUST** carry `applied_date_bounds_timezone`: the request
+  `date_bounds_timezone` when the request carried one, otherwise the business
+  timezone.
+- The response **MUST** carry `business_timezone`: the business's own zone,
+  equal to `business.timezone` in its USP profile
+  ([Section 8.2.1](#821-business-profile-fields)). It does not change with
+  `date_bounds_timezone`. When the request omits `date_bounds_timezone`, the two
+  response fields are equal.
+- Slot `start` and `end` remain RFC 3339 instants that carry an offset
+  ([Section 4.1](#41-time-slot)). Neither response field replaces or corrects
+  that offset, and platforms **MUST NOT** infer a timezone from it.
+- `opening_hours` are local times in `business_timezone`, whatever the request
+  `date_bounds_timezone`.
+
+**What the platform does with them.**
+
+- To show a slot, convert its `start` and `end` instants into the zone being
+  shown: `business_timezone` for the business's clock, the buyer's own zone for
+  the buyer's clock. Platforms **SHOULD** use `business_timezone`, not
+  `applied_date_bounds_timezone`, to name the business's clock and to compare it
+  with the buyer's.
+- To fetch the next window, send the next date-only range with the same
+  `date_bounds_timezone` (or none). Do not add 24 hours to a slot offset.
+- A platform that receives a response without a valid `business_timezone`
+  **SHOULD** show slot times using each slot's own offset, **SHOULD** tell the
+  user that the business did not name its timezone, and **SHOULD NOT** abandon
+  the query on that basis alone.
+
+**Worked example.** A business in `America/New_York` offers virtual
+consultations. A buyer in `Europe/London` wants slots on 15 March 2026. On that
+date New York is on `-04:00` (daylight time started on 8 March) and London on
+`+00:00` (summer time starts on 29 March), four hours apart.
+
+| | Query A: request omits `date_bounds_timezone` | Query B: request sends `"date_bounds_timezone": "Europe/London"` |
+|---|---|---|
+| Request bounds | `start_date` and `end_date` both `2026-03-15` | `start_date` and `end_date` both `2026-03-15` |
+| Resolved range | `2026-03-15T00:00:00-04:00` to `2026-03-16T00:00:00-04:00` | `2026-03-15T00:00:00Z` to `2026-03-16T00:00:00Z`, which is `2026-03-14T20:00:00-04:00` to `2026-03-15T20:00:00-04:00` |
+| Response `applied_date_bounds_timezone` | `America/New_York` | `Europe/London` |
+| Response `business_timezone` | `America/New_York` | `America/New_York` |
+| Slot `2026-03-14T21:00:00-04:00` (01:00 on the 15th in London) | Not returned: the 14th in New York | Returned: the 15th in London |
+| Slot `2026-03-15T09:00:00-04:00` | Returned. Shown as 09:00 New York, 13:00 London | Returned. Shown the same way |
+| Slot `2026-03-15T21:00:00-04:00` (01:00 on the 16th in London) | Returned: the 15th in New York | Not returned: the 16th in London |
+| Next day | `start_date` and `end_date` `2026-03-16`, no `date_bounds_timezone` | `start_date` and `end_date` `2026-03-16`, `"date_bounds_timezone": "Europe/London"` |
+
+In both queries the platform names the business's clock from
+`business_timezone`. In query B, `applied_date_bounds_timezone` only confirms
+that the buyer's calendar was used. A platform that had relied on it to name the
+business's clock would have shown London as the business's zone.
+
 Request:
 
 ```json
@@ -2522,7 +2608,7 @@ Request:
   "service_id": "svc_haircut_001",
   "start_date": "2026-03-15",
   "end_date": "2026-03-21",
-  "timezone": "America/New_York",
+  "date_bounds_timezone": "America/New_York",
   "resource_id": "staff_jane",
   "location_id": "loc_main",
   "locale": "en-US"
@@ -2544,6 +2630,8 @@ Response:
     }
   },
   "service_id": "svc_haircut_001",
+  "applied_date_bounds_timezone": "America/New_York",
+  "business_timezone": "America/New_York",
   "slots": [
     {
       "id": "slot_20260315_0900",
@@ -2616,6 +2704,8 @@ Response:
 | Field                          | Type            | Required | Description                                                                                                                                                                                           |
 |--------------------------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `service_id`                   | string          | **Yes**  | Echoes the queried service identifier.                                                                                                                                                                |
+| `applied_date_bounds_timezone` | string          | **Yes**  | IANA timezone the business applied to date-only bounds: the request `date_bounds_timezone` when sent, otherwise `business_timezone`. Use it to confirm how date-only bounds were read and to request the adjacent window in the same zone. Do not use it to name the business's clock. See [Query Timezones](#query-timezones). |
+| `business_timezone`            | string          | **Yes**  | The business's own IANA timezone, equal to `business.timezone` on its USP profile ([Section 8.2.1](#821-business-profile-fields)), whatever the request carried. Use it to show slot times on the business's clock, to compare that clock with the buyer's, and to read `opening_hours`. See [Query Timezones](#query-timezones). |
 | `slots`                        | array           | **Yes**  | List of available time slots. See [Section 4.1](#41-time-slot) for the slot schema. Empty array when no slots match the query.                                                                        |
 | `opening_hours`                | array           | No       | Regular business hours for the queried period. See table below. Special closures are reflected by the absence of slots, not by this field.                                                            |
 | `messages`                     | array           | No       | Optional informational or warning messages about the result set (e.g., reduced availability due to staff absence, holiday hours in effect). See `messages[]` schema in [Section 9.1](#91-rest-binding). |
@@ -2626,8 +2716,8 @@ Response:
 | Field         | Type            | Required | Description                                                                                                                                     |
 |---------------|-----------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 | `day_of_week` | array\[string\] | **Yes**  | Days this entry applies to. Values are lowercase English day names: `"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"`. |
-| `opens`       | string          | **Yes**  | Opening time in `HH:MM` 24-hour format (local business time).                                                                                   |
-| `closes`      | string          | **Yes**  | Closing time in `HH:MM` 24-hour format (local business time). A value of `"00:00"` or `"24:00"` indicates midnight (end of day).                |
+| `opens`       | string          | **Yes**  | Opening time in `HH:MM` 24-hour format, local time in `business_timezone`.                                                                      |
+| `closes`      | string          | **Yes**  | Closing time in `HH:MM` 24-hour format, local time in `business_timezone`. A value of `"00:00"` or `"24:00"` indicates midnight (end of day).   |
 
 Slots are returned in ascending `start` order. For pagination behavior see [Section 9.1.2](#912-pagination).
 
