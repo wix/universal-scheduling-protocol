@@ -18,6 +18,8 @@
             "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
         "slots": [
           {
             "id": "slot_mass_0315_0900",
@@ -208,6 +210,8 @@
             "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
         "slots": [
           {
             "id": "slot_mass_0315_0900",
@@ -280,6 +284,8 @@
             "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
         "slots": [
           {
             "id": "slot_mass_0315_0900",
@@ -384,6 +390,8 @@
             "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
           }
         },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
         "slots": []
       }
     }

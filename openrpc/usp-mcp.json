@@ -1068,7 +1068,7 @@
           "required": true,
           "schema": {
             "type": "string",
-            "description": "Start of range (RFC 3339 date or datetime)."
+            "description": "Start of range: an RFC 3339 full-date (2026-03-15) or date-time with offset (2026-03-15T13:00:00Z). A date means 00:00 on that day in the applied date-bounds timezone (date_bounds_timezone, or the business timezone when omitted)."
           }
         },
         {
@@ -1076,15 +1076,15 @@
           "required": true,
           "schema": {
             "type": "string",
-            "description": "End of range (RFC 3339 date or datetime)."
+            "description": "End of range, in the same forms as start_date. A date includes that whole day in the applied date-bounds timezone."
           }
         },
         {
-          "name": "timezone",
+          "name": "date_bounds_timezone",
           "required": false,
           "schema": {
             "type": "string",
-            "description": "IANA timezone. Defaults to business timezone."
+            "description": "IANA timezone whose calendar the business uses to turn date-only start_date and end_date into instants (e.g., Europe/London to ask for 2026-03-15 as a London buyer counts it). Omit it to get the business's own days, including when the business timezone is unknown; the business then applies business_timezone. Has no effect on date-time bounds. The zone applied is echoed in the result applied_date_bounds_timezone. See Section 4.3.1 of the specification."
           }
         },
         {
@@ -1150,6 +1150,8 @@
               "required": [
                 "usp",
                 "service_id",
+                "applied_date_bounds_timezone",
+                "business_timezone",
                 "slots"
               ],
               "properties": {
@@ -1158,6 +1160,14 @@
                 },
                 "service_id": {
                   "type": "string"
+                },
+                "applied_date_bounds_timezone": {
+                  "type": "string",
+                  "description": "IANA timezone the business applied to date-only bounds: the request date_bounds_timezone when sent (e.g., Europe/London), otherwise business_timezone. Use it to confirm how date-only bounds were read and to request the adjacent window in the same zone. Do not use it to name the business's clock; use business_timezone. Slot start and end keep their own RFC 3339 offsets; this field does not replace them."
+                },
+                "business_timezone": {
+                  "type": "string",
+                  "description": "The business's own IANA timezone (e.g., America/New_York), equal to business.timezone on its USP profile, whatever the request carried. Use it to show slot times on the business's clock, to compare that clock with the buyer's, and to read opening_hours. Equal to applied_date_bounds_timezone when the request omitted date_bounds_timezone."
                 },
                 "slots": {
                   "type": "array",
@@ -1194,11 +1204,11 @@
                       },
                       "opens": {
                         "type": "string",
-                        "description": "Opening time in HH:MM 24-hour format (local business time)."
+                        "description": "Opening time in HH:MM 24-hour format, local time in business_timezone."
                       },
                       "closes": {
                         "type": "string",
-                        "description": "Closing time in HH:MM 24-hour format (local business time). 00:00 or 24:00 indicates midnight (end of day)."
+                        "description": "Closing time in HH:MM 24-hour format, local time in business_timezone. 00:00 or 24:00 indicates midnight (end of day)."
                       }
                     }
                   }

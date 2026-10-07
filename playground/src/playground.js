@@ -942,6 +942,8 @@ export class USPPlayground {
         available: {
           _status: 200,
           usp: { version: '2026-08-20', capabilities: { 'dev.usp-protocol.services.availability': [{ version: '2026-08-20' }] } },
+          applied_date_bounds_timezone: 'America/New_York',
+          business_timezone: 'America/New_York',
           slots: [
             { id: 'slot_0315_0900', start: '2026-03-15T09:00:00-04:00', end: '2026-03-15T10:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
             { id: 'slot_0315_1100', start: '2026-03-15T11:00:00-04:00', end: '2026-03-15T12:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Mike' }] },
@@ -955,6 +957,8 @@ export class USPPlayground {
         limited: {
           _status: 200,
           usp: { version: '2026-08-20', capabilities: { 'dev.usp-protocol.services.availability': [{ version: '2026-08-20' }] } },
+          applied_date_bounds_timezone: 'America/New_York',
+          business_timezone: 'America/New_York',
           slots: [
             { id: 'slot_0315_1800', start: '2026-03-15T18:00:00-04:00', end: '2026-03-15T19:15:00-04:00', capacity: { total: 20, remaining: 2 }, resources: [{ type: 'staff', name: 'Emma' }] },
           ],
@@ -963,6 +967,8 @@ export class USPPlayground {
         'resource-specific': {
           _status: 200,
           usp: { version: '2026-08-20', capabilities: { 'dev.usp-protocol.services.availability': [{ version: '2026-08-20' }] } },
+          applied_date_bounds_timezone: 'America/New_York',
+          business_timezone: 'America/New_York',
           slots: [
             { id: 'slot_0315_0900', start: '2026-03-15T09:00:00-04:00', end: '2026-03-15T10:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
             { id: 'slot_0316_1400', start: '2026-03-16T14:00:00-04:00', end: '2026-03-16T15:00:00-04:00', capacity: { total: 1, remaining: 1 }, resources: [{ type: 'staff', name: 'Sarah' }] },
@@ -971,6 +977,8 @@ export class USPPlayground {
         none: {
           _status: 200,
           usp: { version: '2026-08-20', capabilities: { 'dev.usp-protocol.services.availability': [{ version: '2026-08-20' }] } },
+          applied_date_bounds_timezone: 'America/New_York',
+          business_timezone: 'America/New_York',
           slots: [],
           messages: [{ type: 'info', content: 'No availability in the requested date range. Consider joining the waitlist.' }],
         },

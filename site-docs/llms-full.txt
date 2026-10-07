@@ -71,7 +71,8 @@ Query when services are available and hold slots.
 Operations:
 - POST /availability/query — Query available time slots
   - granularity: "slot" (full slot objects) or "day" (lightweight day summary)
-  - Filters: service_id, start_date, end_date, timezone, resource_id, party_size
+  - Filters: service_id, start_date, end_date, date_bounds_timezone, resource_id, party_size
+  - Response timezones: applied_date_bounds_timezone (zone used for date-only bounds), business_timezone (the business's own clock; use it for display)
 - POST /availability/holds — Hold a slot (prevents double-booking, TTL: 5-10 min)
 - DELETE /availability/holds/{hold_id} — Release a held slot
 
