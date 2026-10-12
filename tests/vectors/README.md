@@ -22,12 +22,13 @@ The same argument applies to concurrency and time. A spec can say "atomic" and
 differently under a lapsed hold or a daylight-saving transition. The `flow/`
 vectors write those cases down.
 
-## Two kinds of vector
+## Three kinds of vector
 
 | Directory | Asserts | Code field | Carried as |
 |---|---|---|---|
 | `pop/` | Protocol errors on the authentication path | `reject_code` | 4xx Problem Details / JSON-RPC `error` |
 | `flow/` | Business outcomes on the booking path | `outcome_code` | HTTP 200 with the code in `messages[]` |
+| `wire/` | On-the-wire shape rules a schema cannot express | none | A producer conformance failure, not an error code |
 
 The two fields are checked against different mirrors and a vector may not set
 both: a case is either a protocol error or a business outcome, never both. A
@@ -89,6 +90,29 @@ implement rather than checking that they already did.
 | `106-ucp-native-fixed-deposit` | UCP-Native `deposit_required` with a fixed deposit: full checkout total, one selected term, one immediate schedule, balance `due_at` equal to slot start, order `accepted_term`, no `split_payments`. |
 | `107-ucp-native-percentage-deposit` | Same shape with a percentage catalog deposit whose immediate amount is the business-computed integer 4000, not a platform-side 20 percent of total. |
 
+## Format: `wire/`
+
+One JSON object per file, under `wire/`. Each case is a concrete instance plus
+what the checker must compute for it.
+
+| Field | Meaning |
+|---|---|
+| `id` | Stable identifier. **Must be cited in `specification.md`**, same rule as `pop/`. |
+| `section` | The specification section the vector pins down. |
+| `requirement` | Short slug for the rule under test. |
+| `kind` | `wire`. |
+| `expect` | `accept` or `reject`. Must agree with the computed conformance. |
+| `schema` | The `$def` the instance is validated against, as `file.json#/$defs/Name` under `schemas/`. |
+| `instance` | The JSON a producer emitted. |
+| `then.schema_valid` | Whether `instance` validates against `schema`. Recomputed. |
+| `then.member_name_violations` | JSON Pointers of members that restyle a defined snake_case name (for example `serviceId`). Recomputed. |
+| `then.conforming` | Schema-valid and no member-name violations. Recomputed. |
+| `variants` / `wrong_answers` | As for `flow/`. Each variant carries its own `instance` and `then`. |
+
+| Vector | What it pins down |
+|---|---|
+| `201-camelcase-member-names` | A service search hit that keeps every required member in snake_case but camelCases optional ones. It is schema-valid, because the schema allows extra members, and still non-conforming under the §1.1 member-name rule. |
+
 ## The keys are deliberately published
 
 `key.private_key_d` is in the repository on purpose. These are test keys derived
@@ -109,6 +133,8 @@ secret and must never be used for anything.** `K1` is the legitimate platform;
   `cnf.jkt` — otherwise it would pass while testing nothing.
 - Every `reject_code` is reachable from both error-code mirrors.
 - Every `id` is cited in `specification.md`.
+- Every `wire/` case's schema validity, member-name violations, and conformance
+  match what the vector asserts.
 
 ## Adding a vector
 

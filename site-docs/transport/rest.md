@@ -290,6 +290,7 @@ A conforming REST binding implementation **MUST:**
 5. Support the `USP-Agent` header on all requests.
 6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
 7. When the implementation emits webhook payloads or advertises outbound webhook delivery, implement webhook signing per the security specification. Implementations that do neither satisfy this item without implementing webhook signing.
+8. Emit every JSON member name in request bodies, response bodies, and webhook payloads exactly as the schemas define it (snake_case), never a camelCase or otherwise restyled form ([Member Names](../specification/index.md#member-names)).
 
 ### SHOULD
 

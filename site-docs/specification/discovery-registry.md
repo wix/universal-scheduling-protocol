@@ -113,7 +113,7 @@ Search for USP-enabled businesses by location, vertical, category, or keyword.
 | `pagination` | object | No | Cursor-based pagination. |
 
 !!! warning "At Least One Filter Required"
-    The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). A request containing only `pagination` and/or `context` is invalid and **MUST** be rejected with `validation_error`.
+    The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). A request containing only `pagination` and/or `context` is invalid and **MUST** be rejected with a `validation_error` protocol error: HTTP `422 Unprocessable Entity` with Problem Details in REST, or a JSON-RPC `error` with `data.code: "validation_error"` in MCP. It **MUST NOT** be returned as a `messages[]` entry at HTTP 200, because the request was not processed. The same applies to every other `validation_error` on this page.
 
 Search operations matching no results **MUST** return HTTP 200 with an empty `businesses[]` array (not an error). Filter matching follows [Filter Matching Semantics](#filter-matching-semantics).
 
@@ -200,13 +200,13 @@ Search the registry for specific **services** offered by registered businesses. 
 | `query` | string | No | Free-text search across service names, descriptions, and categories. |
 | `price_range` | object | No | `{min, max, currency, match?}` -- amounts in minor currency units. See [Filter Matching Semantics](#filter-matching-semantics). |
 | `duration_range` | object | No | `{min_minutes, max_minutes, match?}`. See [Filter Matching Semantics](#filter-matching-semantics). |
-| `desired_service_time_ranges` | Array[object] | No | Buyer time preferences for **availability ranking only** (not a hard filter). See [Availability ranking](#availability-ranking). |
-| `prefer_sooner_availability_slots` | boolean | No | When true (default), earlier acceptable openings rank above later ones within the availability signal. When false, the registry default ordering does not apply soonness. See [Availability ranking](#availability-ranking). |
+| `desired_service_time_ranges` | Array[object] | No | Buyer time preferences for **availability ranking only** (not a hard filter). Registries **MAY** ignore it. See [Availability ranking](#availability-ranking). |
+| `prefer_sooner_availability_slots` | boolean | No | When true (default), earlier acceptable openings rank above later ones within the availability signal. When false, the registry default ordering does not apply soonness. Registries **MAY** ignore it. See [Availability ranking](#availability-ranking). |
 | `context` | object | No | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). |
 | `pagination` | object | No | Cursor-based pagination. |
 
 !!! warning "At Least One Filter Required"
-    The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` are ranking context only and do **not** satisfy this rule. A request containing only those fields plus `pagination` and/or `context` **MUST** be rejected with `validation_error`.
+    The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` are ranking context only and do **not** satisfy this rule. A `price_range` or `duration_range` that is present **MUST** carry at least one bound (`min` or `max`, `min_minutes` or `max_minutes`); a range with no bound, such as `"duration_range": {}`, is invalid and does not count as a search filter. A request with no search filter, or with a boundless range, **MUST** be rejected with a `validation_error` protocol error (HTTP 422 Problem Details in REST, JSON-RPC `error` in MCP), not a `messages[]` entry at HTTP 200.
 
 === "Request"
 
@@ -327,7 +327,7 @@ Search the registry for specific **services** offered by registered businesses. 
 
 Every service search result **MUST** include `category_ids`, projected from indexed catalog `categories[].id` values. The array **MAY** be empty when the service has no category IDs. Every emitted ID **MUST** be accepted by the service-search `categories[]` filter and match that service when all other filters are unchanged.
 
-When the registry applies availability ranking, or when the request carries time preferences, every `ServiceSearchResult` **MUST** include `rank_signals` so agents can inspect or re-order the returned page, including hits with no hint or a summary-only hint. See [Availability ranking](#availability-ranking).
+When the registry applies availability ranking, every `ServiceSearchResult` **MUST** include `rank_signals` so agents can inspect or re-order the returned page, including hits with no hint or a summary-only hint. Availability ranking is optional, so time preferences in the request do not by themselves require `rank_signals`. See [Availability ranking](#availability-ranking).
 
 ---
 
@@ -341,7 +341,10 @@ USP does not standardize how a registry derives an availability ranking key. Pro
 
 A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter and does **not** satisfy the at-least-one-filter rule.
 
-The request **MAY** include `prefer_sooner_availability_slots` (boolean, default `true`). When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
+!!! note "Availability ranking is optional"
+    A registry **MAY** ignore `desired_service_time_ranges` and `prefer_sooner_availability_slots`. A registry that ignores them **MUST** still accept the request, **MUST NOT** treat them as filters, and omits `rank_signals` from its results. A client **MUST NOT** assume that sending time preferences caused availability ranking; omitted `rank_signals` means none was applied.
+
+The request **MAY** include `prefer_sooner_availability_slots` (boolean, default `true`). When a registry applies availability ranking and the value is true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
 
 Each element **MUST** be exactly one of:
 
@@ -374,7 +377,7 @@ All bounds are instants (RFC 3339), and equal instants with different offsets **
 
 ### Rank signals on each result
 
-When a registry applies availability ranking, or when the request carries `desired_service_time_ranges` and/or `prefer_sooner_availability_slots`, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. When present, `rank_signals` **MUST** contain all five members:
+When a registry applies availability ranking, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. The presence of `desired_service_time_ranges` or `prefer_sooner_availability_slots` in the request does not by itself require `rank_signals`. When present, `rank_signals` **MUST** contain all five members:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -413,7 +416,7 @@ Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **M
 
 - Distinct filter fields combine with **AND**.
 - `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
-- Zero matches **MUST** return HTTP 200 with an empty result array. Requests with no real search filter **MUST** return `validation_error`.
+- Zero matches **MUST** return HTTP 200 with an empty result array. Requests with no real search filter **MUST** be rejected with a `validation_error` protocol error (HTTP 422 Problem Details in REST).
 
 **Category IDs (`categories`)**
 
@@ -438,7 +441,7 @@ Optional `match` compares service interval **S** to filter interval **F**:
 | `contains` | S ⊇ F | |
 | `equals` | S = F | |
 
-Omitted bounds on F are unbounded on that side. Point intervals (min = max) are valid.
+Omitted bounds on F are unbounded on that side, but at least one bound **MUST** be present. Point intervals (min = max) are valid.
 
 Worked duration example: service offered **30-90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` results in `overlap` yes, `contained` no, `contains` yes, `equals` no.
 

@@ -808,6 +808,98 @@ def spec_business_outcome_codes() -> set[str]:
     return set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
 
 
+def defined_member_names() -> set[str]:
+    """Every property name declared anywhere under schemas/."""
+    names: set[str] = set()
+    for path in sorted(SCHEMA_DIR.glob("*.json")):
+        for _pointer, node in walk(json.loads(path.read_text())):
+            if isinstance(node, dict) and isinstance(node.get("properties"), dict):
+                names.update(node["properties"])
+    return names
+
+
+def restyled_member_names(instance, defined: set[str], pointer: str = "") -> list[str]:
+    """JSON Pointers of members that restyle a defined snake_case name (§1.1).
+
+    A key counts when it is not itself defined but its snake_case form is, so
+    ``serviceId`` is flagged while extension keys and data-valued map keys are not.
+    """
+    found: list[str] = []
+    if isinstance(instance, dict):
+        for key, value in instance.items():
+            here = f"{pointer}/{key}"
+            if key not in defined:
+                snake = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key).lower()
+                if snake != key and snake in defined:
+                    found.append(here)
+            found.extend(restyled_member_names(value, defined, here))
+    elif isinstance(instance, list):
+        for i, item in enumerate(instance):
+            found.extend(restyled_member_names(item, defined, f"{pointer}/{i}"))
+    return sorted(found)
+
+
+def check_wire_vector(findings: Findings, vid: str, vector: dict) -> None:
+    """Wire vectors pin down on-the-wire shape rules that schemas cannot express.
+
+    Each case asserts whether its instance validates against the cited $def and
+    which members restyle a defined name; both are recomputed here so a vector
+    cannot claim "schema-valid but non-conforming" without it being true.
+    """
+    try:
+        from jsonschema import Draft202012Validator
+        from referencing import Registry, Resource
+    except ImportError as exc:
+        findings.fail(f"VECTOR:{vid}:dependency", f"jsonschema/referencing required: {exc}")
+        return
+
+    docs = [json.loads(p.read_text()) for p in sorted(SCHEMA_DIR.glob("*.json"))]
+    reg = Registry().with_resources(
+        (doc["$id"], Resource.from_contents(doc)) for doc in docs if "$id" in doc)
+    target = vector.get("schema", "")
+    file_name, _, fragment = target.partition("#")
+    base = next((d["$id"] for d in docs
+                 if d.get("$id", "").endswith(f"/{file_name}")), None)
+    if not base or not fragment:
+        findings.fail(f"VECTOR:{vid}:schema",
+                      f"wire vector schema {target!r} does not name a schemas/ $def")
+        return
+    validator = Draft202012Validator(
+        {"$schema": "https://json-schema.org/draft/2020-12/schema",
+         "$ref": f"{base}#{fragment}"},
+        registry=reg)
+    defined = defined_member_names()
+
+    cases = [("primary", vector)] + [
+        (variant.get("case", f"variant {i}"), variant)
+        for i, variant in enumerate(vector.get("variants", []))]
+    for label, case in cases:
+        then = case.get("then", {})
+        instance = case.get("instance")
+        if instance is None:
+            findings.fail(f"VECTOR:{vid}:instance", f"{label}: wire case has no instance")
+            continue
+        valid = not list(validator.iter_errors(instance))
+        if "schema_valid" in then and valid != then["schema_valid"]:
+            findings.fail(f"VECTOR:{vid}:schema-valid",
+                          f"{label}: vector asserts schema_valid={then['schema_valid']}, "
+                          f"computed {valid}")
+        violations = restyled_member_names(instance, defined)
+        if sorted(then.get("member_name_violations", [])) != violations:
+            findings.fail(f"VECTOR:{vid}:member-names",
+                          f"{label}: vector asserts {then.get('member_name_violations')}, "
+                          f"computed {violations}")
+        conforming = valid and not violations
+        if then.get("conforming") is not None and then["conforming"] != conforming:
+            findings.fail(f"VECTOR:{vid}:conforming",
+                          f"{label}: vector asserts conforming={then['conforming']}, "
+                          f"computed {conforming}")
+        if (case.get("expect") == "accept") != conforming:
+            findings.fail(f"VECTOR:{vid}:expect",
+                          f"{label}: expect={case.get('expect')!r} disagrees with the "
+                          "computed conformance")
+
+
 def check_vectors(findings: Findings) -> None:
     vector_dir = REPO / "tests" / "vectors"
     files = sorted(vector_dir.rglob("*.json")) if vector_dir.exists() else []
@@ -892,6 +984,9 @@ def check_vectors(findings: Findings) -> None:
                 findings.fail(f"VECTOR:{vid}:outcome-status",
                               f"business outcome asserts HTTP {status}; 9.4.2 "
                               "requires 200")
+
+        if vector.get("kind") == "wire":
+            check_wire_vector(findings, vid, vector)
 
         credential = vector.get("credential")
         if credential is not None and vector.get("credential_wellformed", True):
