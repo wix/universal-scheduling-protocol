@@ -86,6 +86,28 @@ keywords only carry their special meaning when they appear in all capitals.
 | **Durations** | [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) | `PT60M`, `PT24H`, `P90D` |
 | **Currency amounts** | Minor units / cents, as a JSON number or decimal string | `7500` or `"7500"` = $75.00 |
 | **Timezones** | [IANA Time Zone Database](https://www.iana.org/time-zones) | `America/New_York` |
+| **Member names** | Case-sensitive snake_case, exactly as the schemas define them | `service_id`, never `serviceId` |
+
+### Member Names
+
+JSON member names are case-sensitive and appear on the wire exactly as the defining schema names them. Every member USP defines is snake_case (for example `service_id`, `last_indexed_at`, `rank_signals`). Producers **MUST** emit those names unchanged in request bodies, response bodies, MCP `params.arguments` and `structuredContent`, webhook payloads, and profiles. This matches UCP, which is snake_case throughout.
+
+A member whose name differs from a defined name only in letter case or word separators (for example `serviceId` or `ServiceId` for `service_id`) is not that member. It is an unrecognized member, so it does not satisfy a `required` constraint and carries none of the defined member's semantics.
+
+The rule covers member names, not data. Keys that are values, such as capability and extension names (`dev.usp-protocol.services.catalog`), keep the form their own rules give them. Members defined by another specification keep that specification's names, for example MCP `structuredContent` and `isError`, JSON-RPC `jsonrpc`, and the RFC 9457 Problem Details members. HTTP header names are case-insensitive per HTTP and are outside this rule.
+
+Most schemas allow additional members for extensibility, so schema validation alone catches a renamed member only when the defined name is `required`. Test vector [`201-camelcase-member-names`](https://github.com/wix/universal-scheduling-protocol/blob/master/tests/vectors/wire/201-camelcase-member-names.json) is a schema-valid response that still does not conform.
+
+!!! example "Non-normative example (Protocol Buffers)"
+    The default Protocol Buffers JSON mapping converts field names to lowerCamelCase, so an implementation generated from a `.proto` IDL emits `serviceId` unless configured otherwise. Either keep the original field names when printing, or pin each field's JSON name:
+
+    ```java
+    JsonFormat.printer().preservingProtoFieldNames().print(message);
+    ```
+
+    ```protobuf
+    string service_id = 1 [json_name = "service_id"];
+    ```
 
 ### Integer Encoding
 

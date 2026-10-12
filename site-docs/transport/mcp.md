@@ -346,6 +346,7 @@ A conforming MCP binding implementation **MUST:**
 7. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
 8. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
 9. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](../../specification.md#1016-platform-authentication-for-privileged-operations)).
+10. Emit every USP-defined JSON member name in `params.arguments`, `structuredContent`, `_meta.usp`, and webhook notification params exactly as the schemas define it (snake_case), never a camelCase or otherwise restyled form. Members defined by MCP or JSON-RPC keep their own names ([Member Names](../specification/index.md#member-names)).
 
 ### SHOULD
 

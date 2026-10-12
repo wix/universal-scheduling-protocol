@@ -272,6 +272,8 @@ capitals, as shown here.
   a JSON number or a decimal string (see [Integer Encoding](#integer-encoding))
 - Timezones: [IANA Time Zone Database](https://www.iana.org/time-zones)
   identifiers (e.g., `America/New_York`)
+- Member names: case-sensitive snake_case, exactly as the schemas define them
+  (e.g., `service_id`, never `serviceId`; see [Member Names](#member-names))
 
 **Time arithmetic.** Every timestamp on the wire **MUST** carry an offset. All
 arithmetic on times **MUST** be performed on instants; local clock labels
@@ -282,6 +284,45 @@ offsets alike. Scheduling runs on local time, so daylight-saving transitions are
 routine rather than exceptional: see
 [`103-dst-spanning-slot`](tests/vectors/flow/103-dst-spanning-slot.json) for two
 worked cases where the wall-clock reading is wrong in opposite directions.
+
+#### Member Names
+
+JSON member names are case-sensitive and appear on the wire exactly as the
+defining schema names them. Every member USP defines is snake_case (for example
+`service_id`, `last_indexed_at`, `rank_signals`). Producers **MUST** emit those
+names unchanged in request bodies, response bodies, MCP `params.arguments` and
+`structuredContent`, webhook payloads, and profiles. This matches UCP, which is
+snake_case throughout.
+
+A member whose name differs from a defined name only in letter case or word
+separators (for example `serviceId` or `ServiceId` for `service_id`) is not that
+member. It is an unrecognized member, so it does not satisfy a `required`
+constraint and carries none of the defined member's semantics.
+
+The rule covers member names, not data. Keys that are values, such as capability
+and extension names (`dev.usp-protocol.services.catalog`), keep the form their
+own rules give them. Members defined by another specification keep that
+specification's names, for example MCP `structuredContent` and `isError`, JSON-RPC
+`jsonrpc`, and the [RFC 9457] Problem Details members. HTTP header names are
+case-insensitive per HTTP and are outside this rule.
+
+Most schemas allow additional members for extensibility, so schema validation
+alone catches a renamed member only when the defined name is `required`. Test
+vector [`201-camelcase-member-names`](tests/vectors/wire/201-camelcase-member-names.json)
+is a schema-valid response that still does not conform.
+
+> **Non-normative example (Protocol Buffers).** The default Protocol Buffers JSON
+> mapping converts field names to lowerCamelCase, so an implementation generated
+> from a `.proto` IDL emits `serviceId` unless configured otherwise. Either keep
+> the original field names when printing, or pin each field's JSON name:
+>
+> ```java
+> JsonFormat.printer().preservingProtoFieldNames().print(message);
+> ```
+>
+> ```protobuf
+> string service_id = 1 [json_name = "service_id"];
+> ```
 
 #### Integer Encoding
 
@@ -4041,7 +4082,9 @@ Request:
 | `locale`   | string | BCP 47 language tag (e.g., `en-US`). Influences result ranking and display. |
 | `currency` | string | ISO 4217 currency code (e.g., `USD`). Display/ranking hint; may supply the resolved match currency when `price_range.currency` is omitted on service search ([Section 6.3.1](#631-filter-matching-semantics)). |
 
-The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
+The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, or `deployment_mode`). A request containing only `pagination` and/or `context` is invalid.
+
+Registries **MUST** reject a request with no search filter as a `validation_error` protocol error ([Section 9.4.3](#943-protocol-errors)): HTTP `422 Unprocessable Entity` with an [RFC 9457] Problem Details body in the REST binding, or a JSON-RPC `error` with `data.code: "validation_error"` in the MCP binding. The rejection **MUST NOT** be returned as a `messages[]` entry on an HTTP 200 response, because the request was not processed. The same applies to every other `validation_error` that [Section 6](#6-discovery-registry-optional) requires.
 
 Search operations that match no results **MUST** return HTTP 200 with an empty `businesses[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
 
@@ -4177,12 +4220,14 @@ Request:
 | `query`          | string          | No       | Free-text search across service names, descriptions, and categories.            |
 | `price_range`    | object          | No       | Price filter: `{min, max, currency, match?}`. Amounts in minor currency units. See [Section 6.3.1](#631-filter-matching-semantics). |
 | `duration_range` | object          | No       | Duration filter: `{min_minutes, max_minutes, match?}`. See [Section 6.3.1](#631-filter-matching-semantics). |
-| `desired_service_time_ranges` | array | No | Ranking context only: buyer time preferences (`moment`, bounded `range`, or open `from`). Not a hard filter. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
-| `prefer_sooner_availability_slots` | boolean | No | Default `true`. When `false`, registry default ordering ignores soonness. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
+| `desired_service_time_ranges` | array | No | Ranking context only: buyer time preferences (`moment`, bounded `range`, or open `from`). Not a hard filter. Registries **MAY** ignore it. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
+| `prefer_sooner_availability_slots` | boolean | No | Default `true`. When `false`, registry default ordering ignores soonness. Registries **MAY** ignore it. See [Section 6.3.2](#632-availability-ranking-context-and-response-signals). |
 | `context`        | object          | No       | Localization hints: `locale` (BCP 47) and `currency` (ISO 4217). See [Section 6.2](#62-business-search---post-registrysearch_business). |
 | `pagination`     | object          | No       | Cursor-based pagination. See [Section 9.1.2](#912-pagination).                     |
 
-The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` do not satisfy this rule. Registries **MUST** reject requests with no search filters by returning a `validation_error` message ([Section 9.4](#94-error-code-mapping)). A request containing only `pagination` and/or `context` is invalid.
+The request **MUST** contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). `desired_service_time_ranges` and `prefer_sooner_availability_slots` do not satisfy this rule. A request containing only `pagination` and/or `context` is invalid. A `price_range` or `duration_range` that is present **MUST** carry at least one bound (`min` or `max`, `min_minutes` or `max_minutes`); a range with no bound, such as `"duration_range": {}`, is invalid and does not count as a search filter.
+
+Registries **MUST** reject a request with no search filter, or with a range filter that has no bound, as a `validation_error` protocol error: HTTP `422 Unprocessable Entity` with Problem Details in the REST binding, or a JSON-RPC `error` with `data.code: "validation_error"` in the MCP binding ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 9.4.3](#943-protocol-errors)). It **MUST NOT** be returned in `messages[]` at HTTP 200.
 
 Search operations that match no results **MUST** return HTTP 200 with an empty `services[]` array and no error messages. Invalid or malformed requests **MUST** use the error codes from [Section 9.4](#94-error-code-mapping).
 
@@ -4326,7 +4371,7 @@ Filters are hard constraints (yes/no). Ranking and free-text `query` scoring **M
 
 - Distinct filter fields combine with **AND**.
 - `verticals[]` and `categories[]` use **OR within the field** (match any listed value).
-- Zero matches **MUST** return HTTP 200 with an empty result array (never an error for "no hits"). Requests with no real search filter **MUST** return `validation_error` ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 6.3](#63-service-search---post-registrysearch_services)).
+- Zero matches **MUST** return HTTP 200 with an empty result array (never an error for "no hits"). Requests with no real search filter **MUST** be rejected with a `validation_error` protocol error (HTTP 422 Problem Details in REST) ([Section 6.2](#62-business-search---post-registrysearch_business), [Section 6.3](#63-service-search---post-registrysearch_services)).
 
 **Category IDs (`categories`)**
 
@@ -4351,7 +4396,7 @@ Optional `match` compares service interval **S** to filter interval **F**:
 | `contains` | S ⊇ F | |
 | `equals` | S = F | |
 
-Omitted bounds on F are unbounded on that side. Point intervals (min = max) are valid.
+Omitted bounds on F are unbounded on that side, but at least one bound **MUST** be present ([Section 6.3](#63-service-search---post-registrysearch_services)). Point intervals (min = max) are valid.
 
 Worked duration example: service offered **30–90 min**, filter `{ min_minutes: 60, max_minutes: 60 }` → `overlap` yes, `contained` no, `contains` yes, `equals` no.
 
@@ -4372,9 +4417,11 @@ Worked price example: service **$50–$150**, filter `{ min: 8000, max: 10000 }`
 
 #### 6.3.2 Availability Ranking Context and Response Signals
 
-A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter. It does **not** satisfy the requirement that a search request contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). A request that contains only `desired_service_time_ranges`, `prefer_sooner_availability_slots`, `pagination`, and/or `context` **MUST** be rejected with `validation_error`.
+A platform or agent **MAY** convert a buyer's preferred start time or time ranges into `desired_service_time_ranges` on `POST /registry/search_services`. This field is ranking context. It is **not** a hard filter. It does **not** satisfy the requirement that a search request contain at least one search filter (`location`, `verticals`, `categories`, `query`, `price_range`, or `duration_range`). A request that contains only `desired_service_time_ranges`, `prefer_sooner_availability_slots`, `pagination`, and/or `context` **MUST** be rejected with a `validation_error` protocol error ([Section 6.3](#63-service-search---post-registrysearch_services)).
 
-The request **MAY** include `prefer_sooner_availability_slots`, a boolean whose default is `true`. When true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
+**Availability ranking is optional.** A registry **MAY** ignore `desired_service_time_ranges` and `prefer_sooner_availability_slots`. A registry that ignores them **MUST** still accept the request, **MUST NOT** treat them as filters, and omits `rank_signals` from its results. A client **MUST NOT** assume that sending time preferences caused availability ranking; omitted `rank_signals` means none was applied.
+
+The request **MAY** include `prefer_sooner_availability_slots`, a boolean whose default is `true`. When a registry applies availability ranking and the value is true, earlier acceptable available starts rank above later acceptable starts within the availability signal. When false, time direction contributes no ranking preference. A preference for a future period **MUST** be expressed with `desired_service_time_ranges`, not by interpreting `false` as "later is better."
 
 **Request shapes.** Each element of `desired_service_time_ranges` **MUST** be exactly one of the following shapes. JSON has no infinity sentinel, and `null` as "this is a moment" is ambiguous, so the three cases are distinct objects:
 
@@ -4407,7 +4454,7 @@ All bounds are instants (RFC 3339). Equal instants with different offsets **MUST
 
 **Rank signals on each result (normative).** `rank_signals` reports what the registry concluded about a hit so an agent can inspect it, or re-order **the returned page** when its policy differs from the registry default. It is not a substitute for a new search with different `desired_service_time_ranges` or `prefer_sooner_availability_slots`.
 
-When a registry applies availability ranking, or when the request carries `desired_service_time_ranges` and/or `prefer_sooner_availability_slots`, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. When `rank_signals` is present it **MUST** contain all five members:
+When a registry applies availability ranking, every `ServiceSearchResult` in that response **MUST** include `rank_signals`, including hits with no hint and hits with a summary-only hint. The presence of `desired_service_time_ranges` or `prefer_sooner_availability_slots` in the request does not by itself require `rank_signals`. When `rank_signals` is present it **MUST** contain all five members:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -7579,6 +7626,7 @@ A conforming REST binding implementation **MUST:**
 5. Support the `USP-Agent` header on all requests ([Section 9.1.3](#913-discovery)).
 6. Return `201 Created` for resource creation operations (bookings, holds, registry entries, waitlist entries, feed subscriptions).
 7. When the implementation emits webhook payloads or advertises outbound webhook delivery, implement webhook signing per [Section 10.1.1](#1011-webhook-security). Implementations that do neither satisfy this item without implementing webhook signing.
+8. Emit every JSON member name in request bodies, response bodies, and webhook payloads exactly as the schemas define it (snake_case), never a camelCase or otherwise restyled form ([Member Names](#member-names)).
 
 A conforming REST binding implementation **SHOULD:**
 
@@ -7960,6 +8008,7 @@ A conforming MCP binding implementation **MUST:**
 7. Authenticate privileged methods with at least one mechanism declared in the business's `AuthorizationPolicy` (the same mechanism set as the REST binding); reject unauthenticated privileged calls when the business requires authentication.
 8. When the implementation emits webhook notifications or advertises outbound webhook delivery, deliver them as JSON-RPC notifications (no `id` field). Implementations that do neither satisfy this item without delivering webhook notifications.
 9. Reject a presented `booking_scoped_credential` whose issued form carried `cnf` unless it is accompanied by a valid `platform_key_pop` proof binding to that `cnf.jkt`. Such a credential presented without a proof **MUST** be treated as absent, not as a bearer token, whatever `mechanism` the caller declares ([Section 10.1.6](#1016-platform-authentication-for-privileged-operations)).
+10. Emit every USP-defined JSON member name in `params.arguments`, `structuredContent`, `_meta.usp`, and webhook notification params exactly as the schemas define it (snake_case), never a camelCase or otherwise restyled form. Members defined by MCP or JSON-RPC keep their own names ([Member Names](#member-names)).
 
 A conforming MCP binding implementation **SHOULD:**
 

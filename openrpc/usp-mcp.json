@@ -3098,7 +3098,7 @@
               "$ref": "#/components/schemas/DesiredServiceTimePreference"
             }
           },
-          "description": "Optional buyer time preferences for availability ranking. Ranking context only; not a hard filter."
+          "description": "Optional buyer time preferences for availability ranking. Ranking context only; not a hard filter. Registries MAY ignore it; results carry rank_signals only when availability ranking was applied."
         },
         {
           "name": "prefer_sooner_availability_slots",
@@ -3107,7 +3107,7 @@
             "type": "boolean",
             "default": true
           },
-          "description": "When false, registry default ordering ignores soonness within the availability signal."
+          "description": "When false, registry default ordering ignores soonness within the availability signal. Registries MAY ignore it."
         },
         {
           "name": "context",
