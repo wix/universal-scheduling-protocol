@@ -1545,16 +1545,15 @@ PLAYGROUND_STEP_FILES = {
     # The manage select draws from both files: playground-controller.js routes
     # any `booking_*` key to webhooks.json through manageOps.
     "manage": ("manage", "webhooks"),
+    "waitlist": ("waitlist",),
 }
 
 # Authored scenarios that no dropdown offers. Each entry would be debt, not a
 # design: the fixture exists and is served but cannot be run from the page.
-# This set is deliberately EMPTY. Add the matching <option> instead of adding
-# an entry here, because eight booking-questions scenarios shipped unreachable
+# This set is deliberately EMPTY, and every scenario file is now bound to a
+# step, so nothing is exempt. Add the matching <option> instead of adding an
+# entry here, because eight booking-questions scenarios shipped unreachable
 # for exactly this reason.
-#
-# waitlist.json is not covered: the template has no waitlist step at all, so
-# there is no select to add an option to. Adding that step is a UI change.
 PLAYGROUND_UNREACHABLE_SCENARIOS: set[tuple[str, str]] = set()
 
 

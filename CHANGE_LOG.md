@@ -1,5 +1,14 @@
 # Change Log
 
+## 31/10/26 at 13:16:25 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added a Waitlist step (step 9) to the playground, so the waitlist extension (Section 11.1, `dev.usp-protocol.services.waitlist`) can be exercised like every other capability. Its four fixtures had been authored, served and schema-valid since the playground was built, but no step existed to reach them: a published extension with a demo nobody could run
+- Brought `waitlist.json` under the reachability check and removed the exemption note. Every scenario file is now bound to a step, so `PLAYGROUND_UNREACHABLE_SCENARIOS` is empty with nothing outside its scope. Until now a new or renamed waitlist fixture would have gone unchecked - the same silence that let eight booking-questions scenarios ship unreachable
+- Taught `playground-controller.js` to render a fixture delivered as a webhook rather than a request/response pair. `offer_received` carries `webhook_payload` instead of `request`, so it would have fallen through to the `GET /` default and displayed its own description as the response body. It now reports `POST /webhooks (simulated)`, matching how the manage step presents booking webhooks, and shows the event payload
+- Moved the UCP-Native button to the left of the mode toggle. It became the default earlier, which left the active option on the right and read as though the left option were selected
+
+---
+
 ## 31/10/26 at 13:02:28 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Deleted the top-level `playground/` tree, leaving `site-docs/playground/` as the single source. Nothing built or served the duplicate: `mkdocs.yml` sets `docs_dir: site-docs`, the page is the `overrides/playground.html` theme override, and after the engine removal the copy had no entry point at all. It survived only as the source half of a byte-identical mirror check, which is why editing the wrong copy felt like editing the playground and let eight booking-questions scenarios ship unreachable
