@@ -1,5 +1,17 @@
 # Change Log
 
+## 31/10/26 at 16:02:51 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Fixed the playground's Partial Match negotiation scenario, which returned `404 Scenario not found`. The controller mapped `partial-match` to a platform profile named `full`, and `platform-profile.json` defines only `standard` and `advanced`, so the scenario had never run
+- Made the partial match actually partial. `partial-match` now pairs the full business profile with the waitlist-less platform profile, so the waitlist capability visibly drops out of the negotiated intersection. The old wiring relied on a `stripHolds` flag that deleted a `holds` member no platform profile carries, so even with the key resolved the two capability lists would have been identical - exactly the "this does not look like a partial match" the page showed
+- Relabelled the option from `Partial Match (No Holds)` to `Partial Match (No Waitlist)` and corrected the matching description in `docs/playground-spec.md`. Holds were never the capability in play; the label described a scenario the fixtures do not contain
+- Made `full-match` track the business profile, choosing the `advanced` platform profile when the business publishes waitlist. Picking `standard` unconditionally meant the Full Match scenario dropped a capability whenever Discovery was set to Full, contradicting its own label
+- Cleared the capability grid when a negotiation run fails. The grid kept the previous run's result on screen, so a failed run read as though it had produced the capabilities shown
+- Bound `platform-profile.json` to the reachability check. It was the one scenario file in no step's file list, so neither direction of the check looked at it - the reason a dropdown option pointing at a nonexistent profile reached the published page. A new `_check_playground_files_bound` now fails on any fixture file bound to no step, which is what the earlier claim that "every scenario file is bound to a step" actually required
+- Taught the reachability check about indirect steps, where `<option>` values are routing keys rather than fixture keys. It reads `negotiationPlatformKeys` out of `playground-controller.js` and fails when an option is unmapped, a mapping resolves to a profile that does not exist, or a profile no mapping reaches
+
+---
+
 ## 31/10/26 at 15:46:10 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Stacked the playground's configuration panel full width above the request and response panes instead of placing it beside the step title. Sitting next to the title left a wide empty band to its left on every step and still constrained its own width, so the panel was both tall and cramped while the space went unused
