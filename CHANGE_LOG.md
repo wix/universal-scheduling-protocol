@@ -1,5 +1,15 @@
 # Change Log
 
+## 31/10/26 at 15:29:30 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Moved the playground's configuration panel out of its own column and up beside the step title and description. It was taking a fixed 320px plus a gap off the top of every step, so the request and response panes split what was left and each ended up too narrow to show a request line or a JSON value without horizontal scrolling. On a 1440px viewport each pane went from roughly 473px to 650px
+- Made the request/response panes a `repeat(auto-fit, minmax(min(100%, 520px), 1fr))` grid instead of a hard `1fr 1fr`. Two columns survive only while each can still hold a readable line of JSON; below that the panes stack, request above response, which is what portrait tablets and phones need. The previous 768px breakpoint left a wide band of portrait widths showing two unreadably narrow columns
+- Replaced the `.pg-split` wrapper with `.pg-step-head` in all nine step sections and dropped the now-dead `.pg-split > .pg-panes` override, so one rule governs the panes at every width rather than two that could disagree
+- Gave `.pg-path` `min-width: 0` and `overflow-wrap: anywhere`. As a flex item it defaulted to `min-width: auto`, which let a long request path push the Copy button past the panel's clipped edge instead of wrapping, hiding the end of the path
+- Updated the layout diagram in `docs/playground-spec.md` to match, and corrected its mode toggle, which still showed Standalone as the selected mode after UCP-Native became the default
+
+---
+
 ## 31/10/26 at 13:16:25 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added a Waitlist step (step 9) to the playground, so the waitlist extension (Section 11.1, `dev.usp-protocol.services.waitlist`) can be exercised like every other capability. Its four fixtures had been authored, served and schema-valid since the playground was built, but no step existed to reach them: a published extension with a demo nobody could run

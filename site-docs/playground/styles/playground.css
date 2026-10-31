@@ -406,7 +406,9 @@
 
 .pg-panes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Two columns only while each can still hold a readable line of JSON;
+     otherwise the panes stack so neither is scrolled horizontally. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
   min-width: 0;
@@ -1701,37 +1703,28 @@
   animation: pg-fade-in 0.4s ease;
 }
 
-/* Split layout panes inside pg-split */
-.pg-split > .pg-panes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .pg-split > .pg-panes {
-    grid-template-columns: 1fr;
-  }
-}
-
 .pg-negotiation-grid:not(.pg-hidden) {
   display: grid;
   max-width: var(--pg-max-width);
   margin: 0 auto 1.5rem;
 }
 
-/* Split layout: config panel + code panel */
-.pg-split {
+/* Step head: title + description on the left, configuration on the right */
+.pg-step-head {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
   gap: 1.5rem;
+  align-items: start;
   margin-bottom: 1.5rem;
   min-width: 0;
 }
 
-@media (max-width: 768px) {
-  .pg-split {
+.pg-step-head__text {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .pg-step-head {
     grid-template-columns: 1fr;
   }
 }
@@ -1837,6 +1830,10 @@
   font-size: 0.8rem;
   color: var(--pg-text-muted);
   flex: 1;
+  /* A flex item defaults to min-width: auto, which lets a long path push the
+     Copy button past the panel's clipped edge instead of wrapping. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pg-label {
