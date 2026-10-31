@@ -67,7 +67,8 @@ var stepFiles = {
   hold: 'holds',
   book: 'bookings',
   payment: 'payment',
-  manage: 'manage'
+  manage: 'manage',
+  waitlist: 'waitlist'
 };
 
 var negotiationKeys = {
@@ -178,6 +179,10 @@ function stepConfigFromScenario(data, stepId, scenarioKey) {
       query: data.request.query
     };
   }
+  // A fixture delivered as a webhook has no request of its own.
+  if (data && data.webhook_payload) {
+    return { method: 'POST', path: '/webhooks (simulated)' };
+  }
   if (stepId === 'manage') {
     return manageOps[scenarioKey] || manageOps.view_booking;
   }
@@ -281,6 +286,10 @@ function runStep(stepId) {
           setStatus(stepId, status);
         } else if (data.payload) {
           display = data.payload;
+          showJson(responseEl.id, display);
+          setStatus(stepId, status);
+        } else if (data.webhook_payload) {
+          display = data.webhook_payload;
           showJson(responseEl.id, display);
           setStatus(stepId, status);
         } else {
@@ -413,7 +422,8 @@ if (discoverySelect) {
   });
 }
 
-['discovery', 'negotiation', 'browse', 'availability', 'hold', 'book', 'payment', 'manage'].forEach(function (stepId) {
+['discovery', 'negotiation', 'browse', 'availability', 'hold', 'book', 'payment', 'manage',
+  'waitlist'].forEach(function (stepId) {
   var btn = document.getElementById('pg-' + stepId + '-run');
   if (btn) btn.addEventListener('click', function () { runStep(stepId); });
 });
