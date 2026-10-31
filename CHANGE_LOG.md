@@ -1,5 +1,15 @@
 # Change Log
 
+## 31/10/26 at 12:51:02 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Deleted `playground.js` and `response-viewer.js` from both playground trees. `playground.js` was a second, unreferenced 49 KB engine: no HTML loaded it, no module imported it, and the published page loads only `playground-controller.js`. It still shipped to the site as dead weight, and because `usp_check.py` compared its protocol identifiers across the two trees, editing it felt like editing the playground. That is how eight booking-questions scenarios were registered in a file nothing renders. `response-viewer.js` was imported only by `playground.js` and went with it
+- Added a playground reachability check to `usp_check.py authority`: every key in `playground/scenarios/*.json` must be offered by the matching `pg-<step>-scenario` select in `overrides/playground.html`, and the template must not offer a key its fixture does not define. A fixture with no option deploys and is fetchable over HTTP while nothing in the UI can select it, which no other check in the suite could see. The failure message names the exact option to add. The negotiation step is exempt because `negotiationKeys` maps its option values onto different fixture keys, and the manage step's `booking_*` options are served from `webhooks.json` through `manageOps`
+- Recorded four pre-existing unreachable scenarios (`services:multi_taxonomy_categories`, `holds:release_hold`, `manage:cancel_with_fee`, `manage:reschedule_limit_reached`) in an explicit `PLAYGROUND_UNREACHABLE_SCENARIOS` allowance so the new check passes on today's tree while still failing for anything added from now on. The set is documented as debt to shrink, not a design to extend
+- Replaced the playground.js identifier comparison with a byte-exact mirror check over every file in `playground/src/`. The weaker check had missed that `transport-formatter.js` had drifted: the served `site-docs/` copy carried MCP mappings for `GET /.well-known/ucp` and `GET /services`, an A2A mapping, and query-string handling that the `playground/` copy lacked. Synced the stale copy from the served one
+- Rewrote the architecture diagram and file tree in `playground/SPEC.md`, which still described `playground.js` as the main engine and listed a `schema-validator.js` that was never written. It now describes the override template, the controller, and the static-markup constraint on scenario options
+
+---
+
 ## 31/10/26 at 12:42:46 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Made UCP-Native the playground's default mode instead of Standalone, so the page opens on the deployment mode the booking-questions and paid-checkout flows are written against. Moved `pg-toggle-active` to the UCP-Native button, changed `currentMode` in `playground-controller.js`, and updated the discovery step's static `/.well-known/usp` path to `/.well-known/ucp` so the markup matches the default before the controller's first render

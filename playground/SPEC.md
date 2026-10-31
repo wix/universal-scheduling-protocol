@@ -17,22 +17,31 @@ The USP Playground is a browser-based interactive simulator that walks users thr
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│  MkDocs Page (playground.md)                    │
-│  ┌───────────────────────────────────────────┐  │
-│  │  playground.js  (client-side engine)       │  │
-│  │  ┌─────────┐ ┌──────────┐ ┌────────────┐ │  │
-│  │  │ Stepper │ │  Mock    │ │  Schema    │ │  │
-│  │  │   UI    │ │  Engine  │ │  Validator │ │  │
-│  │  └─────────┘ └──────────┘ └────────────┘ │  │
-│  │  ┌─────────────────┐ ┌─────────────────┐ │  │
-│  │  │ Payload Editor  │ │ Response Viewer │ │  │
-│  │  └─────────────────┘ └─────────────────┘ │  │
-│  └───────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────┐  │
-│  │  scenarios/*.json  (mock data per step)    │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  overrides/playground.html  (MkDocs theme override) │
+│  selected by `template: playground.html` in         │
+│  site-docs/playground/index.md                      │
+│                                                     │
+│  Step panes and the scenario <select> elements are  │
+│  STATIC MARKUP in this template. A scenario with no │
+│  <option> here cannot be reached, however complete  │
+│  its fixture is.                                    │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  playground-controller.js  (client engine)    │  │
+│  │    stepFiles: step -> scenarios/<file>.json   │  │
+│  │    loadScenario(): fetch + look up the key    │  │
+│  │  ┌─────────────────┐ ┌─────────────────────┐  │  │
+│  │  │ code-editor.js  │ │transport-formatter. │  │  │
+│  │  │ (highlighting)  │ │js (REST->MCP/A2A..) │  │  │
+│  │  └─────────────────┘ └─────────────────────┘  │  │
+│  └───────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  scenarios/*.json  (mock data per step)       │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+
+`tools/usp_check.py authority` enforces that every scenario key is offered by
+the matching select, so a fixture can no longer ship unreachable.
 ```
 
 ### Components
@@ -372,14 +381,15 @@ playground/
 │   ├── webhooks.json                   # Step 8e: Webhook event payloads
 │   └── waitlist.json                   # Bonus: Waitlist extension responses
 ├── src/
-│   ├── playground.js                   # Main engine: stepper, state machine, mock routing
-│   ├── schema-validator.js             # Ajv wrapper loading USP schemas
 │   ├── transport-formatter.js          # Converts REST payloads to MCP/A2A/ESP formats
-│   ├── code-editor.js                  # Editable request pane (Prism.js or Monaco)
-│   └── response-viewer.js             # Response display with status badge
-├── styles/
-│   └── playground.css                  # Playground-specific styles
-└── index.md                            # MkDocs page entry point
+│   └── code-editor.js                  # JSON highlighting for the request/response panes
+└── styles/
+    └── playground.css                  # Playground-specific styles
+
+The served copies live under site-docs/playground/, which additionally holds
+playground-controller.js (the engine the page loads). usp_check.py keeps the
+two trees byte-identical. The page itself is overrides/playground.html, not an
+index.md in this directory.
 ```
 
 ### Mock Business: "Downtown Wellness Spa"

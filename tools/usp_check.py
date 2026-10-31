@@ -1528,6 +1528,78 @@ def published_path(uri: str) -> Path:
     return SITE / path.lstrip("/")
 
 
+# Steps whose <option> values are scenario keys in their own file. The
+# negotiation step is excluded on purpose: its option values ("full-match",
+# "partial-match", "incompatible") are mapped to platform-profile keys by
+# `negotiationKeys` in playground-controller.js, so they never match directly.
+PLAYGROUND_STEP_FILES = {
+    "discovery": "business-profile",
+    "browse": "services",
+    "availability": "availability",
+    "hold": "holds",
+    "book": "bookings",
+    "payment": "payment",
+    "manage": "manage",
+}
+
+# Authored scenarios that no dropdown currently offers. Each entry is debt, not
+# a design: the fixture exists and is served but cannot be run from the page.
+# Shrink this set by adding the matching <option>; never grow it to silence the
+# check, which exists because eight booking-questions scenarios shipped
+# unreachable for exactly this reason.
+PLAYGROUND_UNREACHABLE_SCENARIOS = {
+    ("services", "multi_taxonomy_categories"),
+    ("holds", "release_hold"),
+    ("manage", "cancel_with_fee"),
+    ("manage", "reschedule_limit_reached"),
+}
+
+
+def check_playground_reachability(findings: Findings) -> None:
+    """Every scenario fixture must be selectable on the published page.
+
+    The published playground is `overrides/playground.html`, whose <option>
+    elements are static markup; `playground-controller.js` fetches
+    scenarios/<file>.json and looks up the selected key. A fixture with no
+    option deploys and is fetchable over HTTP while nothing in the UI can
+    reach it, which is invisible to every other check in this suite.
+    """
+    template = REPO / "overrides" / "playground.html"
+    if not template.is_file():
+        findings.fail("PLAYGROUND:template", "overrides/playground.html is missing")
+        return
+    markup = template.read_text()
+    selects = dict(re.findall(
+        r'id="pg-([a-z]+)-scenario"(.*?)</select>', markup, re.S))
+    for step, file_name in sorted(PLAYGROUND_STEP_FILES.items()):
+        block = selects.get(step)
+        if block is None:
+            findings.fail(f"PLAYGROUND:{step}",
+                          f"no pg-{step}-scenario select in the template")
+            continue
+        offered = set(re.findall(r'<option value="([^"]+)"', block))
+        fixture = REPO / "playground" / "scenarios" / f"{file_name}.json"
+        try:
+            keys = set(json.loads(fixture.read_text()))
+        except (OSError, json.JSONDecodeError) as exc:
+            findings.fail(f"PLAYGROUND:{step}", f"cannot read {rel(fixture)}: {exc}")
+            continue
+        for key in sorted(keys - offered):
+            if (file_name, key) in PLAYGROUND_UNREACHABLE_SCENARIOS:
+                continue
+            findings.fail(
+                f"PLAYGROUND:{file_name}:{key}",
+                f"scenario is not selectable: add <option value=\"{key}\"> to "
+                f"the pg-{step}-scenario select in overrides/playground.html")
+        for key in sorted(offered - keys):
+            # The manage step also serves webhook fixtures through manageOps.
+            if file_name == "manage" and key.startswith("booking_"):
+                continue
+            findings.fail(
+                f"PLAYGROUND:{file_name}:{key}",
+                f"template offers a scenario {rel(fixture)} does not define")
+
+
 def check_authority(findings: Findings) -> None:
     canonical_fragments = {
         "3-service-catalog",
@@ -1684,15 +1756,11 @@ def check_authority(findings: Findings) -> None:
         mirror = REPO / "site-docs" / "playground" / "scenarios" / source.name
         if not mirror.is_file() or source.read_bytes() != mirror.read_bytes():
             findings.fail(f"MIRROR:{rel(source)}", "site-docs scenario mirror differs")
-    source_js = REPO / "playground" / "src" / "playground.js"
-    mirror_js = REPO / "site-docs" / "playground" / "src" / "playground.js"
-    identifier_pattern = re.compile(
-        r"(?:https://usp-protocol\.dev/[a-z0-9_./#-]+|dev\.usp-protocol\.[a-z0-9_.-]+)")
-    source_identifiers = set(identifier_pattern.findall(source_js.read_text()))
-    mirror_identifiers = set(identifier_pattern.findall(mirror_js.read_text()))
-    if source_identifiers != mirror_identifiers:
-        findings.fail("MIRROR:playground.js",
-                      "site-docs runtime advertises different protocol identifiers")
+    for source in sorted((REPO / "playground" / "src").glob("*.js")):
+        mirror = REPO / "site-docs" / "playground" / "src" / source.name
+        if not mirror.is_file() or source.read_bytes() != mirror.read_bytes():
+            findings.fail(f"MIRROR:{rel(source)}", "site-docs runtime mirror differs")
+    check_playground_reachability(findings)
 
     registry = (REPO / "site-docs" / "namespace.md").read_text()
     for name in sorted(RESERVED_NAMESPACE_NAMES):
