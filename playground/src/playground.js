@@ -67,8 +67,8 @@ const STEP_CONFIGS = {
     method: 'POST',
     path: '/services/list',
     hasRequestBody: true,
-    scenarios: ['happy_path', 'filtered_wellness', 'search_massage', 'empty_results'],
-    scenarioLabels: { happy_path: 'Happy Path', filtered_wellness: 'Filtered by Category', search_massage: 'Free-text Search', empty_results: 'Empty Results' },
+    scenarios: ['happy_path', 'filtered_wellness', 'search_massage', 'empty_results', 'bq_question_sets'],
+    scenarioLabels: { happy_path: 'Happy Path', filtered_wellness: 'Filtered by Category', search_massage: 'Free-text Search', empty_results: 'Empty Results', bq_question_sets: 'Questions: Published Sets' },
     scenarioFile: 'services',
     defaultRequest: {
       filters: { category: 'wellness' },
@@ -80,13 +80,16 @@ const STEP_CONFIGS = {
     method: 'POST',
     path: '/availability/query',
     hasRequestBody: true,
-    scenarios: ['available_slots', 'limited_availability', 'resource_specific', 'no_availability', 'range_too_wide'],
+    scenarios: ['available_slots', 'limited_availability', 'resource_specific', 'no_availability', 'range_too_wide',
+      'bq_configuration_duration', 'bq_configuration_no_token'],
     scenarioLabels: {
       available_slots: 'Available Slots',
       limited_availability: 'Limited Availability',
       resource_specific: 'Resource-specific',
       no_availability: 'No Availability',
       range_too_wide: 'Range Too Wide (Error)',
+      bq_configuration_duration: 'Questions: Configured Duration',
+      bq_configuration_no_token: 'Questions: Unconfigured Duration',
     },
     scenarioFile: 'availability',
     defaultRequest: {

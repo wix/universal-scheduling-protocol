@@ -90,7 +90,7 @@ These rules apply only when the booking questions extension (USP §11.4) is nego
 
 | Rule | Condition | Derived Field | Source |
 |------|-----------|---------------|--------|
-| **Q0** | A set with `completion_timing: preflight` applies | Preflight form, shown **before** D0 | Items of every applicable `eligibility` and `configuration` set. Submit with `usp_check_eligibility`; render slots only after the business returns `eligible`, and pass the returned token on the availability query and on create. |
+| **Q0** | A set with `completion_timing: preflight` applies | Preflight form, shown **before** D0 | Items of every applicable `eligibility` and `configuration` set. Submit with `usp_booking_questions_check_eligibility`; render slots only after the business returns `eligible`, and pass the returned token on the availability query and on create. |
 | **Q1** | A set with `completion_timing: before_confirmation` applies | One field group per set | Items in set order and item order. A `section` item becomes a titled group; a `notice` item becomes read-only text. |
 | **Q2** | Item is a `question` with `collection` `in_band` or `platform_surface` | One field per question | Component chosen by answer type (§4.2); `label.plain` and option `title` quoted exactly. |
 | **Q3** | Item is an `external_task`, or a question with `collection: business_surface` | Link to the business surface | Opens the session-specific `continue_url` the business returns; never a file, signature, or drawing control in the form. |
@@ -166,7 +166,7 @@ The submit button **MUST** use the `Button` component with:
 
 #### 4.3.3 Preflight Eligibility Action
 
-- **Action name:** `usp_check_eligibility`
+- **Action name:** `usp_booking_questions_check_eligibility`
 - **Action context:** `{ "questions": "<path>/booking/questions" }`
 - **Agent behavior:** Call `POST /services/{service_id}/eligibility-checks` with the preflight answers. On `eligible`, keep the assessment token and continue to D0. On `requires_input`, re-render only the indicated sets. On `ineligible`, show the business's message and alternatives and stop; never change an answer to retry.
 

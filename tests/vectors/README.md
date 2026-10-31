@@ -116,12 +116,13 @@ what the checker must compute for it.
 |---|---|
 | `201-camelcase-member-names` | A service search hit that keeps every required member in snake_case but camelCases optional ones. It is schema-valid, because the schema allows extra members, and still non-conforming under the §1.1 member-name rule. |
 
-Booking-questions wire vectors (`bq-schema-*`, §11.4.3) add two fields:
+Booking-questions wire vectors (`bq-schema-*`, §11.4.3) add three fields:
 
 | Field | Meaning |
 |---|---|
 | `then.semantic_errors` | Cross-item definition rules JSON Schema cannot express, as `rule:item_id` (for example `forward_reference:q2`, `duplicate_option_const:hair_length`, `empty_section:about_you`, `multiple_maps_to_notes:more`). Recomputed; a non-empty list makes the case non-conforming. |
 | `answer_cases` | Answers checked against the case's question: `{value, valid, errors?, request_date?, question?}`, or `{absent: true, valid}` for an unanswered required question. `request_date` fixes the date that relative date bounds (`P0D`, `-P18Y`) resolve against; `question` selects a question inside a set. Recomputed. |
+| `localization_cases` | Text a renderer resolves for one language: `{language, case?, resolved}`, where `resolved` maps a dotted text path (`set.title`, `items.<id>.label`, `items.<id>.options.<const>.title`, `items.<id>.content`) to the expected string. A language the set never declares falls back to the default text (§3.5). Recomputed. |
 
 ## Format: `eval/`
 

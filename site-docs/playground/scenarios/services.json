@@ -840,5 +840,269 @@
         }
       }
     }
+  },
+  "bq_question_sets": {
+    "description": "Booking questions: the catalog publishes the definitions before anything is created. svc_color_001 carries a recipient-scoped preflight eligibility set (sensitive allergy questions with a conditional follow-up and a none-of-the-above option), a configuration set that drives slot duration, a before-service patch-test set with a 6-month validity and a business-surface upload, and a service-level required_buyer_fields",
+    "request": {
+      "method": "POST",
+      "path": "/services/list",
+      "body": {
+        "business_id": "biz_downtown_spa",
+        "service_ids": [
+          "svc_color_001"
+        ]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-08-20",
+          "capabilities": {
+            "dev.usp-protocol.services.catalog": [
+              {
+                "version": "2026-08-20"
+              }
+            ],
+            "dev.usp-protocol.services.booking_questions": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
+          }
+        },
+        "services": [
+          {
+            "id": "svc_color_001",
+            "business_id": "biz_downtown_spa",
+            "provider": {
+              "name": "Downtown Wellness Spa",
+              "url": "https://www.downtownwellnessspa.com"
+            },
+            "name": "Full Colour",
+            "description": {
+              "plain": "A full-head colour service. Duration and price depend on hair length, confirmed before you pick a time."
+            },
+            "type": "appointment",
+            "categories": [
+              {
+                "taxonomy": "merchant",
+                "id": "cat_hair",
+                "name": "Hair"
+              }
+            ],
+            "duration": {
+              "range": {
+                "min": "PT2H",
+                "max": "PT3H30M",
+                "step": "PT30M"
+              }
+            },
+            "pricing": {
+              "model": "variable",
+              "currency": "USD",
+              "price_range": {
+                "min": 9000,
+                "max": 18000
+              }
+            },
+            "locations": [
+              {
+                "id": "loc_main_001",
+                "name": "Downtown Studio"
+              }
+            ],
+            "channel": {
+              "type": "at_business_location",
+              "instructions": "Please arrive 10 minutes early for your consultation."
+            },
+            "policies": {
+              "cancellation": {
+                "allowed": true,
+                "free_cancellation_until": "PT24H",
+                "no_cancellation_after": "PT2H"
+              },
+              "rescheduling": {
+                "allowed": true,
+                "free_reschedule_until": "PT24H",
+                "max_reschedules": 2,
+                "fee": 0
+              },
+              "no_show": {
+                "fee": 5000,
+                "grace_period": "PT15M"
+              },
+              "booking_window": {
+                "min_advance": "PT48H",
+                "max_advance": "P60D",
+                "slot_interval": "PT30M"
+              },
+              "confirmation_mode": "auto",
+              "requires_payment": true,
+              "payment_timing": "at_service"
+            },
+            "required_buyer_fields": [
+              "phone_number"
+            ],
+            "booking_question_sets": [
+              {
+                "id": "color_eligibility",
+                "revision": "r2",
+                "title": {
+                  "plain": "Before we colour"
+                },
+                "purpose": "eligibility",
+                "completion_timing": "preflight",
+                "frequency": "every_booking",
+                "subject": "recipient",
+                "items": [
+                  {
+                    "kind": "question",
+                    "id": "participant_birth_date",
+                    "label": {
+                      "plain": "Date of birth of the person being coloured"
+                    },
+                    "description": {
+                      "plain": "Colour services are for guests aged 16 and over. The business decides the minimum age."
+                    },
+                    "schema": {
+                      "type": "string",
+                      "format": "date",
+                      "not_after": "P0D"
+                    },
+                    "required": true
+                  },
+                  {
+                    "kind": "question",
+                    "id": "allergies",
+                    "label": {
+                      "plain": "Any known allergies to hair colour?"
+                    },
+                    "sensitive": true,
+                    "schema": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "minItems": 1,
+                      "items": {
+                        "anyOf": [
+                          {
+                            "const": "none",
+                            "title": "None of the above"
+                          },
+                          {
+                            "const": "ppd",
+                            "title": "PPD / paraphenylenediamine"
+                          },
+                          {
+                            "const": "ammonia",
+                            "title": "Ammonia"
+                          },
+                          {
+                            "const": "other",
+                            "title": "Other"
+                          }
+                        ]
+                      }
+                    },
+                    "required": true
+                  },
+                  {
+                    "kind": "question",
+                    "id": "allergy_detail",
+                    "label": {
+                      "plain": "Tell us about the allergy"
+                    },
+                    "sensitive": true,
+                    "when": {
+                      "question": "allergies",
+                      "op": "contains",
+                      "value": "other"
+                    },
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "id": "color_config",
+                "revision": "r2",
+                "title": {
+                  "plain": "Your hair today"
+                },
+                "description": {
+                  "plain": "Longer hair takes longer and costs more; the final price is quoted at the appointment."
+                },
+                "purpose": "configuration",
+                "completion_timing": "preflight",
+                "frequency": "every_booking",
+                "items": [
+                  {
+                    "kind": "question",
+                    "id": "hair_length",
+                    "label": {
+                      "plain": "Hair length"
+                    },
+                    "rendering": "radio",
+                    "schema": {
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "const": "short",
+                          "title": "Short"
+                        },
+                        {
+                          "const": "medium",
+                          "title": "Medium"
+                        },
+                        {
+                          "const": "long",
+                          "title": "Long"
+                        }
+                      ]
+                    },
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "id": "color_intake",
+                "revision": "r1",
+                "title": {
+                  "plain": "Patch test record"
+                },
+                "purpose": "intake",
+                "completion_timing": "before_service",
+                "completion_requirement": "required",
+                "frequency": "once_per_buyer_per_service",
+                "validity": "P6M",
+                "due_at": "2026-03-15T09:00:00-05:00",
+                "items": [
+                  {
+                    "kind": "notice",
+                    "id": "patch_test_notice",
+                    "content": {
+                      "plain": "A patch test is required at least 48 hours before your appointment."
+                    }
+                  },
+                  {
+                    "kind": "external_task",
+                    "id": "patch_test_photo",
+                    "label": {
+                      "plain": "Upload a photo of your patch test"
+                    },
+                    "task_type": "file",
+                    "required": true,
+                    "collection": "business_surface"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   }
 }

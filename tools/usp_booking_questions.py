@@ -340,6 +340,56 @@ def answer_errors(question: dict, value, request_date: date | None = None) -> li
 
 
 # --------------------------------------------------------------------------
+# localization (Section 3.5 fallback, Section 11.4.3 `localized`)
+# --------------------------------------------------------------------------
+
+def _plain(value):
+    """Localizable text is a Description object; an option `title` is a string."""
+    if isinstance(value, dict):
+        return value.get("plain")
+    return value
+
+
+def _localized_member(node: dict, member: str, language: str):
+    """Resolve one text member, falling back to the default when no override."""
+    override = (node.get("localized") or {}).get(language) or {}
+    if member in override:
+        return _plain(override[member])
+    return _plain(node.get(member))
+
+
+def resolve_localized(qset: dict, language: str) -> dict[str, str]:
+    """Flatten every buyer-facing text member of a set, resolved for `language`.
+
+    Keys are stable dotted paths so a vector can pin the resolved text without
+    restating the whole set. A missing locale or a missing member falls back to
+    the default text, so asking for a language the set never declares yields the
+    default strings unchanged.
+    """
+    resolved: dict[str, str] = {}
+    for member in ("title", "description"):
+        if member in qset:
+            resolved[f"set.{member}"] = _localized_member(qset, member, language)
+    for item in qset.get("items", []):
+        iid = item.get("id")
+        kind = item.get("kind")
+        members = {
+            "section": ("title", "description"),
+            "notice": ("content",),
+            "question": ("label", "description", "placeholder"),
+            "external_task": ("label",),
+        }.get(kind, ())
+        for member in members:
+            if member in item:
+                resolved[f"items.{iid}.{member}"] = _localized_member(item, member, language)
+        for option in options_of(item.get("schema", {}) or {}):
+            const = option.get("const")
+            resolved[f"items.{iid}.options.{const}.title"] = _localized_member(
+                option, "title", language)
+    return resolved
+
+
+# --------------------------------------------------------------------------
 # conditions
 # --------------------------------------------------------------------------
 

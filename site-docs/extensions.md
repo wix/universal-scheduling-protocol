@@ -245,6 +245,13 @@ characters), `required` (boolean or condition), optional `when`, `collection`
 `maps_to: notes`, `consent_purpose: marketing` with `consent_channel`, and a
 restricted answer `schema`:
 
+`collection` says where the item is answered. `in_band` is a typed answer collected in
+chat or a platform control. `platform_surface` is content the platform renders itself:
+outside a negotiated Action contract it is an audit claim only and **MUST NOT** be treated
+as evidence the buyer saw or accepted anything, while within the buyer-input Action
+contract it **MAY** collect input or an acknowledgment under that contract's rules.
+`business_surface` is completed on a business-hosted page behind a `continue_url`.
+
 | Answer type | Shape |
 |---|---|
 | Text | `{"type": "string", "maxLength": n}`, `maxLength` at most 5000 and required without a `format` |
@@ -266,7 +273,8 @@ message. Every set, section, question, option, notice, and task may carry a
 
 **Conditions** are a leaf `{question, op, value?}` (`equals`, `in`, `contains`,
 `answered`, `gt`, `gte`, `lt`, `lte`) or `all`/`any`/`not`, nested at most 3
-deep. A condition names only an earlier question in the same set; an unanswered
+deep. A condition names only an earlier question in the same set - a business
+**MUST NOT** publish a forward, self, or cross-set reference - and an unanswered
 or inapplicable reference makes `answered` false and everything else false.
 
 ### Preflight eligibility

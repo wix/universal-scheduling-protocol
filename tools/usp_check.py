@@ -911,6 +911,9 @@ def check_wire_vector(findings: Findings, vid: str, vector: dict) -> None:
         for i, answer_case in enumerate(case.get("answer_cases", [])):
             check_answer_case(findings, vid, f"{label} answer {i}", instance,
                               answer_case, valid and not semantic)
+        for lcase in case.get("localization_cases", []):
+            check_localization_case(findings, vid, label, instance, lcase,
+                                    valid and not semantic)
         conforming = valid and not violations and not semantic
         if then.get("conforming") is not None and then["conforming"] != conforming:
             findings.fail(f"VECTOR:{vid}:conforming",
@@ -950,6 +953,34 @@ def check_answer_case(findings: Findings, vid: str, label: str, instance,
     if "errors" in answer_case and sorted(answer_case["errors"]) != sorted(errors):
         findings.fail(f"VECTOR:{vid}:answer-errors",
                       f"{label}: vector asserts {answer_case['errors']}, computed {errors}")
+
+
+def check_localization_case(findings: Findings, vid: str, label: str, instance,
+                            lcase: dict, definition_ok: bool) -> None:
+    """Recompute the text a renderer resolves for one language (Section 3.5).
+
+    The resolved map is derived from the set, so a vector cannot claim a
+    fallback the rules do not produce.
+    """
+    if not definition_ok:
+        findings.fail(f"VECTOR:{vid}:localization",
+                      f"{label}: localization cases need a valid definition")
+        return
+    language = lcase.get("language")
+    if not language:
+        findings.fail(f"VECTOR:{vid}:localization", f"{label}: case has no language")
+        return
+    computed = bq.resolve_localized(instance, language)
+    expected = lcase.get("resolved", {})
+    for key, want in expected.items():
+        if computed.get(key) != want:
+            findings.fail(f"VECTOR:{vid}:localization",
+                          f"{label} [{language}]: vector asserts {key}={want!r}, "
+                          f"computed {computed.get(key)!r}")
+    unknown = sorted(set(expected) - set(computed))
+    if unknown:
+        findings.fail(f"VECTOR:{vid}:localization",
+                      f"{label} [{language}]: vector names unresolvable text {unknown}")
 
 
 def check_eval_vector(findings: Findings, vid: str, vector: dict) -> None:

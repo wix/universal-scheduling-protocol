@@ -71,7 +71,7 @@ The cells implementations diverge on:
 - **`reschedule` from `requires_action`** is `MAY`, because an outstanding payment action may be priced against the original slot. A business that allows it **MUST** apply the reschedule price-change rules.
 - **`confirm` from `pending`** is `Yes` only when `confirmation_mode` is `manual`. For an `auto`-mode booking the operation does not apply: a business **MUST** return the current booking unchanged when it is already `confirmed` (idempotent), and **MUST** reject with `invalid_transition` otherwise.
 - **`confirm` from `confirmed`** is idempotent: it **MUST** return the current booking, so a retried confirmation is safe.
-- **`update` on terminal statuses** is `No`. The booking is a historical record; contact and address edits **MUST NOT** be accepted on `completed`, `no_show`, or `canceled` bookings.
+- **`update` on terminal statuses** is `No`. The booking is a historical record; contact and address edits **MUST NOT** be accepted on `completed`, `no_show`, or `canceled` bookings. When the booking questions extension is negotiated, this call-level `invalid_transition` governs and `booking_question_update_not_allowed` is not also returned.
 
 Transitions to `in_progress`, `completed`, and `no_show` are business-initiated and have no platform-facing operation. They surface via `GET /bookings/{booking_id}` and the `booking.updated` webhook.
 
@@ -378,7 +378,8 @@ When the booking questions extension is negotiated, update permission for `booki
 |----------------|------------------------------|
 | `pending`, `requires_action` | The business **MUST** accept otherwise-valid submissions for any applicable set. |
 | `confirmed` | The business **MUST** accept submissions for `before_service` sets and **MAY** reject edits to completed `before_confirmation` sets with `booking_question_update_not_allowed`. |
-| `in_progress`, `completed`, `no_show`, `canceled` | The business **MUST** reject any submission with `booking_question_update_not_allowed`. |
+| `in_progress` | The business **MUST** accept the Update Booking call and **MUST** reject the submission with `booking_question_update_not_allowed`. |
+| `completed`, `no_show`, `canceled` | The Update Booking call itself is rejected with `invalid_transition`; that call-level outcome governs and `booking_question_update_not_allowed` is **NOT** returned. |
 
 ```json
 {

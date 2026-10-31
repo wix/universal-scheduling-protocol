@@ -88,6 +88,30 @@
     "schema_valid": true,
     "member_name_violations": []
   },
+  "localization_cases": [
+    {
+      "language": "es",
+      "case": "a declared locale overrides every text member that declares one",
+      "resolved": {
+        "set.title": "Antes de su visita",
+        "items.welcome.content": "Bienvenido a Downtown Studio.",
+        "items.hair_length.label": "Largo del cabello",
+        "items.hair_length.options.short.title": "Corto",
+        "items.hair_length.options.long.title": "Largo"
+      }
+    },
+    {
+      "language": "fr",
+      "case": "a locale the set never declares falls back to the default text",
+      "resolved": {
+        "set.title": "Before your visit",
+        "items.welcome.content": "Welcome to Downtown Studio.",
+        "items.hair_length.label": "Hair length",
+        "items.hair_length.options.short.title": "Short",
+        "items.hair_length.options.long.title": "Long"
+      }
+    }
+  ],
   "variants": [
     {
       "case": "override changes a question id",

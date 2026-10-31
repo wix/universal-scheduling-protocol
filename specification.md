@@ -246,8 +246,9 @@ variants also available. Free services skip payment entirely in both modes.
 *Human escalation via actions* ([Section 5.2](#52-booking-schema)). When an
 agent cannot complete a step autonomously, for example, when a business requires
 a signed consent form or intake questionnaire before confirming, the booking
-enters `requires_action` status. Each action carries a `continue_url` the agent
-can hand to a human for out-of-band completion. Once resolved, the booking flow
+enters `requires_action` status. A handoff action carries a `continue_url` the
+agent can hand to a human for out-of-band completion; a negotiated extension
+action may instead be processed in a contract-conforming platform surface. Once resolved, the booking flow
 resumes programmatically.
 
 **Protocol structure.** USP defines the scheduling domain, service catalog,
@@ -370,7 +371,7 @@ The following terms are used throughout this document:
 | **BuyerFreeBusy**   | Aggregated free/busy data for a buyer, containing an array of `BusyBlock` entries merged across connected calendar providers. Used by platforms to filter business availability. See [Section 11.2](#112-buyer-calendar-freebusy-extension).                                                                                                                      |
 | **Capability**         | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp-protocol.services.catalog`). Each capability has a version, schema, and specification URL.                                                                                                                                                                                    |
 | **Catalog Discovery**  | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Section 6](#6-discovery-registry-optional)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
-| **Action**             | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
+| **Action**             | A pending task the buyer must complete before a booking can be confirmed. Each action has a type and status, an optional expiry, and either a continue URL (handoff) or an `id` and `config` (negotiated extension action). Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. The business determines which actions are required and their completion order. See [Section 5.2](#52-booking-schema). |
 | **Checkout System**    | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. See [Section 7](#7-ucp-native-mode) (UCP-Native Mode) or [Section 8.5](#85-payment-integration) (Standalone Mode payment integration).                                                                           |
 | **Extension**       | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability.                                                                                                                                                                                                                       |
 | **Hold**            | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry.                                                                                                                                                                                                    |
@@ -2952,7 +2953,7 @@ and the `confirm-payment` operation for payment confirmation.
 | Status            | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pending`         | Booking has been created and is awaiting confirmation. For `auto` confirmation mode, this state is transient - the booking moves to `confirmed` immediately (or to `requires_action` if payment is needed). For `manual` mode, the booking remains in `pending` until the business explicitly confirms it.                                                                                                                             |
-| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type`, `status` and `continue_url`, plus an `expires_at` when the action has a deadline. The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
+| `requires_action` | One or more actions in the `actions` array have `status: pending`. Inspect `actions[]` for required tasks (e.g., payment, waiver signing). Each action has a `type` and a `status`, plus an `expires_at` when the action has a deadline. A handoff action also carries a `continue_url`; a negotiated extension action carries an `id` and `config` instead, with `continue_url` an optional fallback ([Section 5.2](#52-booking-schema)). The booking **MUST** have this status if and only if `actions[]` contains at least one pending action. When the last pending action completes, the business **MUST** transition the booking out of `requires_action`. |
 | `confirmed`       | The booking is confirmed and the service will proceed at the scheduled time. This is reached after auto-confirmation, manual business approval, or successful payment completion (via `confirm-payment` or webhook).                                                                                                                                                                                                                   |
 | `in_progress`     | The service is currently being delivered. Transitioned by the business when the appointment/session begins.                                                                                                                                                                                                                                                                                                                            |
 | `completed`       | The service has been delivered. Terminal state.                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -2999,7 +3000,11 @@ on today:
   booking rather than an error, so a retried confirmation is safe.
 - **`update` on terminal statuses** is `No` because the booking is a historical
   record at that point. Businesses **MUST NOT** accept contact or address edits
-  on `completed`, `no_show`, or `canceled` bookings.
+  on `completed`, `no_show`, or `canceled` bookings. When the booking questions
+  extension is negotiated, this call-level `invalid_transition` governs: the
+  business **MUST NOT** also return `booking_question_update_not_allowed`, which
+  applies only where the Update Booking call is itself accepted
+  ([Section 11.4.5](#1145-request-submission)).
 
 **Status changes the business drives.** Transitions to `in_progress`,
 `completed`, and `no_show` are business-initiated and have no platform-facing
@@ -3438,7 +3443,8 @@ When the booking questions extension is negotiated, update permission for
 |----------------|------------------------------|
 | `pending`, `requires_action` | The business **MUST** accept otherwise-valid submissions for any applicable set. |
 | `confirmed` | The business **MUST** accept submissions for `before_service` sets and **MAY** reject edits to completed `before_confirmation` sets with `booking_question_update_not_allowed`. |
-| `in_progress`, `completed`, `no_show`, `canceled` | The business **MUST** reject any submission with `booking_question_update_not_allowed`. |
+| `in_progress` | The business **MUST** accept the Update Booking call ([Section 5.1.1](#511-permitted-transitions-by-operation)) and **MUST** reject the submission with `booking_question_update_not_allowed`. |
+| `completed`, `no_show`, `canceled` | The Update Booking call itself is rejected with `invalid_transition` ([Section 5.1.1](#511-permitted-transitions-by-operation)); that call-level outcome governs and `booking_question_update_not_allowed` is **NOT** returned. |
 
 The rows are pinned by
 [`bq-flow-update-states`](tests/vectors/flow/bq-flow-update-states.json) and
@@ -6690,7 +6696,7 @@ itself. USP does not prescribe which party provides it.
 This requirement is waived only when the platform and business have negotiated an
 authorization mechanism that carries cryptographic proof of the buyer's
 authorization for that specific transaction, equivalent to [UCP]'s AP2 Mandates
-extension (`dev.ucp.shopping.ap2_mandate`). This version of USP defines no such
+extension (`dev.ucp.common.payment.ap2_mandate`). This version of USP defines no such
 mechanism for Standalone Mode, so in practice a Standalone deployment satisfies
 this requirement with a surface.
 
@@ -10711,6 +10717,23 @@ separately request core `notes` or expect the business to merge the two
 ([`bq-schema-maps-to-notes`](tests/vectors/wire/bq-schema-maps-to-notes.json),
 [`bq-flow-maps-to-notes-no-duplicate`](tests/vectors/flow/bq-flow-maps-to-notes-no-duplicate.json)).
 
+**Collection channels.** `collection` says where an applicable item is answered,
+and each channel carries its own evidentiary weight:
+
+- `in_band` (the default): the platform collects a typed answer through chat or
+  a platform-native control and submits it on the request.
+- `platform_surface`: fixed content the platform renders itself. Outside a
+  negotiated Action contract this is an audit claim only and **MUST NOT** be
+  treated as evidence that the buyer saw or accepted anything. Within the
+  buyer-input Action contract ([Section 11.4.8](#1148-buyer-input-action)) it
+  **MAY** collect buyer input or an acknowledgment, under that contract's
+  display, response, submission, and fallback rules.
+- `business_surface`: the buyer completes the item on a business-hosted page
+  reached through a session-specific `continue_url`.
+
+A business **MUST NOT** publish `collection: platform_surface` on an item whose
+effect depends on acceptance unless the buyer-input Action contract governs it.
+
 ##### Answer Schema
 
 `schema` is a restricted JSON Schema subset. Every variant forbids keywords it
@@ -10771,9 +10794,9 @@ A Condition is a leaf `{question, op, value?}` or a combinator `{all: [...]}`,
 `{any: [...]}`, or `{not: ...}`. Leaf operations are `equals`, `in`,
 `contains`, `answered`, `gt`, `gte`, `lt`, and `lte`.
 
-1. A reference names only an **earlier question in the same set**. Forward,
-   self, and cross-set references are invalid; a business whose source form
-   has such a rule reorders it or withholds the service
+1. A reference names only an **earlier question in the same set**. A business
+   **MUST NOT** publish a forward, self, or cross-set reference; a business
+   whose source form has such a rule reorders it or withholds the service
    ([`bq-cond-forward-reference`](tests/vectors/eval/bq-cond-forward-reference.json)).
 2. Combinator nesting depth is at most 3, and `all` and `any` contain at least
    one condition ([`bq-cond-depth`](tests/vectors/eval/bq-cond-depth.json),
