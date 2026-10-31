@@ -154,6 +154,18 @@
               "type": "string"
             }
           }
+        },
+        "booking_question_submissions": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionSubmissions",
+          "description": "Request-side. Booking questions extension answers. Because UCP Update Checkout replaces the whole checkout body, the platform MUST resend every still-applicable submission on every update. See specification.md Section 11.4."
+        },
+        "booking_question_assessment_token": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionAssessmentToken",
+          "description": "Request-side. Assessment token from an eligible preflight check. REQUIRED when the service has an applicable required preflight set (Section 11.4)."
+        },
+        "booking_question_state": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionStates",
+          "description": "Response-only. Booking questions extension set state for this checkout, including the non-sensitive answer echo (Section 11.4)."
         }
       }
     },

@@ -420,6 +420,9 @@ The extension schema uses `allOf` composition with `$defs` keyed by `dev.ucp.sho
 | `booking_status`    | string          | **Yes** (response only, when `booking` is present) | Checkout-scoped status: `pending`, `confirmed`, or `canceled`. Derived from UCP checkout status. Not the same as the full `Booking.status` lifecycle. Required when the checkout response includes the `booking` object; the business **MAY** omit `booking` entirely after `cancel_checkout`. |
 | `actions`           | Array\[Action\] | No                      | Non-payment actions (e.g., waiver). **MAY** appear when `create_checkout` requires buyer steps before payment. |
 | `notes`             | string          | No                      | Buyer-provided special requests.                                                       |
+| `booking_question_submissions` | Array\[BookingQuestionSubmission\] | No | Request-side. [Booking questions extension](../extensions.md#booking-questions-extension) answers. Resent in full on every Update Checkout, because Update replaces the whole checkout body. |
+| `booking_question_assessment_token` | string | Conditional | Request-side. Token from an `eligible` preflight check; **REQUIRED** when the service has an applicable required preflight set. |
+| `booking_question_state` | Array\[BookingQuestionState\] | No | Response-only. Booking questions extension set state for this checkout, including the non-sensitive answer echo. |
 
 !!! warning "Price consistency"
 
@@ -524,8 +527,13 @@ When a business requires policy display, mandatory notices, or affirmative
 acceptance before confirmation, UCP-Native deployments **SHOULD** use
 [UCP checkout](https://ucp.dev/latest/specification/shopping/checkout/) and
 [UCP overview](https://ucp.dev/latest/specification/overview/) mechanisms rather
-than parallel USP fields. USP does not define merchant-mandated checkboxes,
-minimum age, audience tiers, or recurring enrollment in this version.
+than parallel USP fields. Core USP defines no catalog field for
+merchant-mandated checkboxes, minimum age, audience tiers, or recurring
+enrollment. Business-defined questions, acknowledgments, and eligibility checks
+are carried by the optional
+[booking questions extension](../extensions.md#booking-questions-extension), which composes
+with the mechanisms below and follows the UCP `2026-08-25` Action contract
+exactly.
 
 **Mandatory acceptance (paid path):**
 
@@ -536,17 +544,31 @@ minimum age, audience tiers, or recurring enrollment in this version.
    `ready_for_complete`; use `requires_escalation` with
    `requires_buyer_review` or `requires_buyer_input` plus `continue_url`, or an
    outstanding checkout `actions` entry. Platforms **MUST NOT** accept on the
-   buyer's behalf.
-5. Fail closed: reject create/complete if acceptance was skipped; no trusted
-   in-band `"accepted": true` flag.
+   buyer's behalf. With `requires_escalation`, `continue_url` is **REQUIRED**
+   and there is no in-band bypass.
+5. Fail closed: reject create/complete if acceptance was skipped. A bare
+   `"accepted": true` outside a negotiated Action contract has no acceptance
+   semantics. An active extension **MAY** define an Action type whose contract
+   lets the platform process buyer input in a contract-conforming surface (the
+   booking questions buyer-input Action); the buyer supplies the response, the
+   platform submits it bound to the Action `id`, and the business's later
+   response is authoritative.
+6. Complete Checkout remains a manual buyer action through a trusted
+   deterministic UI unless `dev.ucp.common.payment.ap2_mandate` applies,
+   independently of where any preceding Action was processed.
 
-**Standalone / free paths:** use booking `requires_action` and
-`actions[].continue_url` per the [booking schema](../specification/booking.md).
+**Standalone / free paths:** use booking `requires_action` with a handoff
+Action (`continue_url`) or a negotiated extension Action, per
+[Negotiated Extension Actions](../specification/booking.md#negotiated-extension-actions).
 
 **Not Buyer Consent:** privacy categories only; not merchant checkboxes or waivers.
 See [Security](../security.md) for privacy consent transmission.
 
-**Eligibility:** no `min_age` or audience catalog fields. Enforce at
+**Eligibility:** core USP has no `min_age` or audience catalog fields. When the
+booking questions extension is negotiated, a business **SHOULD** publish
+eligibility rules as `purpose: eligibility` sets with
+`completion_timing: preflight` and decide them through the preflight
+eligibility check before the buyer selects a slot. Otherwise enforce at
 booking/checkout; use `locations[]` / `service_area` for geography. Platforms
 **MUST NOT** fabricate eligibility.
 

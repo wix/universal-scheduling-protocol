@@ -44,6 +44,7 @@ Each USP REST operation maps to a JSON-RPC method name used as the tool name in 
 | `DELETE /waitlist/{entry_id}` | `usp_waitlist_leave` | Leave waitlist |
 | `POST /waitlist/{entry_id}/accept` | `usp_waitlist_accept` | Accept a waitlist offer |
 | `POST /waitlist/{entry_id}/decline` | `usp_waitlist_decline` | Decline a waitlist offer |
+| `POST /services/{service_id}/eligibility-checks` | `usp_booking_questions_check_eligibility` | Preflight eligibility check (booking questions extension) |
 | `POST /registry/businesses` | `usp_registry_register` | Register business (discovery registry) |
 | `POST /registry/search_business` | `usp_registry_search_business` | Search businesses (discovery registry) |
 | `POST /registry/search_services` | `usp_registry_search_services` | Search services (discovery registry) |

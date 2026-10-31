@@ -192,7 +192,7 @@ sequenceDiagram
 1. **Platform advertises its profile URI** on every request via `USP-Agent` header (REST) or `_meta.usp.profile` field (MCP).
 2. **Business fetches and caches** the platform profile lazily on first contact, then refreshes per `Cache-Control` TTL (minimum 60 seconds).
 3. **Business computes the intersection**: capability keys present in both profiles. For each shared key, the highest mutually supported version is selected.
-4. **Business responds using only intersection capabilities.** Orphaned extensions are pruned.
+4. **Business responds using only intersection capabilities.** Orphaned extensions are pruned. A multi-parent extension (one whose `extends` names several parents, such as booking questions) stays active while **at least one** parent is shared; each field it contributes is valid only on a surface whose own parent is active, and is otherwise omitted by the business and ignored by the platform.
 5. **Every response includes a `usp` object** declaring the active version and negotiated capabilities.
 6. **If the intersection is empty**, the business returns a `capabilities_incompatible` error.
 
@@ -311,6 +311,8 @@ The `PaymentContext` is a **handoff object** nested inside a payment action in t
 ### Confirm Payment
 
 The `POST /bookings/{booking_id}/confirm-payment` endpoint is called by the platform after successfully processing payment. The business validates the booking, amount, and currency, then completes the payment action. If no pending actions remain, the booking transitions to `confirmed`.
+
+Non-payment Actions, including [booking questions](../extensions.md#booking-questions-extension) buyer-input Actions and handoff Actions for uploads, signatures, and image markup, precede the payment action in `actions[]`. While any `before_confirmation` Action or required `before_confirmation` set remains unresolved, the business **MUST** answer `confirm-payment` with `actions_pending` and **MUST NOT** accept payment. A business that defers creating the booking upstream until such a task completes **MUST** keep persistent pending state for the USP booking, honour its `expires_at` with cleanup, cancel cleanly, and correlate it to the eventual upstream booking.
 
 A payment the business cannot verify against a price, and a confirmation it cannot complete after accepting the payment, are the `409 Conflict` protocol errors [`payment_unverifiable`](../errors/payment-unverifiable.md) and [`confirmation_failed`](../errors/confirmation-failed.md). They are never a `200 OK` business outcome or a `500`. The booking is not confirmed, and the platform **SHOULD** reverse or refund the payment. See [Confirm Payment](../specification/booking.md#confirm-payment-post-bookingsbooking_idconfirm-payment).
 

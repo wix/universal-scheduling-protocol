@@ -120,6 +120,10 @@
           },
           "description": "Ordered array of pending tasks the buyer must complete. MUST be present and non-empty when status is requires_action; MUST be absent or empty otherwise. The booking has status requires_action if and only if this array contains at least one action with status pending."
         },
+        "booking_question_state": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionStates",
+          "description": "OPTIONAL. Booking questions extension. Extension-owned state of each applicable question set, including before_service intake on a confirmed booking (which never appears in actions). Carries only the non-sensitive answer echo. See specification.md Section 11.4."
+        },
         "notes": {
           "type": "string",
           "description": "Buyer-provided special requests or notes."
@@ -451,16 +455,34 @@
     "Action": {
       "type": "object",
       "title": "Action",
-      "description": "A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status and continue URL, and an expiry when the action has a deadline.",
+      "description": "A pending task the buyer must complete before a booking can be confirmed. A legacy or unnegotiated handoff Action carries a type, status, and continue_url, and an expiry when the action has a deadline. An Action whose type is a reverse-domain Action type declared by an extension active in the negotiated intersection carries id and extension-owned config, and continue_url becomes the optional fallback that the extension defines (specification.md Section 5.2).",
       "required": [
         "type",
-        "status",
-        "continue_url"
+        "status"
+      ],
+      "allOf": [
+        {
+          "if": { "required": ["config"] },
+          "then": {
+            "required": ["id"],
+            "properties": { "type": { "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9_-]+){2,}$" } }
+          },
+          "else": { "required": ["continue_url"] }
+        }
       ],
       "properties": {
         "type": {
           "type": "string",
-          "description": "Action type identifier (e.g., payment, waiver)."
+          "description": "Action type identifier (e.g., payment, waiver), or a reverse-domain Action type declared by an active extension (e.g., dev.usp-protocol.services.booking_questions.buyer_input)."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Action instance identifier. REQUIRED when config is present. Stable while the same work remains outstanding on this booking and never reused for different work."
+        },
+        "config": {
+          "type": "object",
+          "description": "Extension-owned processing configuration for a reverse-domain Action type. Its shape and meaning are defined by the declaring extension (for dev.usp-protocol.services.booking_questions.buyer_input, booking_questions.json $defs/BuyerInputActionConfig). A platform MUST NOT treat any other field as an instruction."
         },
         "status": {
           "type": "string",
@@ -474,7 +496,7 @@
         "continue_url": {
           "type": "string",
           "format": "uri",
-          "description": "Business-hosted HTTPS URL for completing this specific action. MUST use the https:// scheme; platforms MUST reject non-HTTPS values. Valid only until expires_at; MUST reference server-side session state, not sensitive data in the query string."
+          "description": "Business-hosted HTTPS URL for completing this specific action. REQUIRED unless the Action carries extension-owned config, in which case it is the optional fallback the declaring extension defines. MUST use the https:// scheme; platforms MUST reject non-HTTPS values. Valid only until expires_at; MUST reference server-side session state, not sensitive data in the query string."
         },
         "expires_at": {
           "type": "string",
@@ -529,7 +551,7 @@
         },
         "path": {
           "type": "string",
-          "description": "Optional JSON Pointer to the relevant field."
+          "description": "Optional RFC 9535 JSONPath expression, relative to the root of the containing request or response object, selecting the field or Action occurrence the message concerns (for example $.booking_question_submissions[?@.set_id=='intake'].answers['allergies'])."
         }
       }
     },

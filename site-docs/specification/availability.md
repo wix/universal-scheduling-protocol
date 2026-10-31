@@ -140,6 +140,10 @@ Returns available time slots for a service within a date range. Use the [Availab
 | `location_id` | string | No | Location filter for multi-location businesses. |
 | `locale` | string | No | BCP 47 language tag for localized content. |
 | `cursor` | string | No | Opaque pagination cursor from a previous response. |
+| `booking_question_assessment_token` | string | No | [Booking questions extension](../extensions.md#booking-questions-extension). Token from an `eligible` preflight check. When the service has an applicable `purpose: configuration` set, each `TimeSlot.duration` is already adjusted for the recorded configuration. |
+
+!!! note "Preflight eligibility"
+    Availability queries remain public. When the booking questions extension is negotiated and the service has an applicable required `preflight` set, a conforming platform **MUST NOT** present buyer-selectable slots, select a slot, or create a hold until the business has returned an `eligible` decision for that buyer. The eligibility check reserves no capacity, so an `ineligible` or `requires_input` decision leaves no hold behind. A business **MAY** continue to expose raw availability to unassessed callers.
 
 !!! tip "Date Range Guidance"
     Platforms **SHOULD** query at most 7 calendar days per request. Businesses **MAY** reject queries spanning more than their configured maximum by returning HTTP 422 with error code `range_too_wide`.
@@ -295,6 +299,8 @@ Slots are returned in ascending `start` order.
     Platforms **MUST NOT** call this endpoint unless the business profile advertises `"holds": true`.
 
 Creates a temporary hold on a time slot to prevent double-booking while the buyer completes the [booking](booking.md) flow.
+
+When the [booking questions extension](../extensions.md#booking-questions-extension) is negotiated and the service has an applicable required preflight set, the request **MUST** carry `booking_question_assessment_token` from an `eligible` decision. The business **MUST** revalidate the token's scope, expiry, and set revisions before reserving capacity, and **MUST** reject a missing token with `booking_eligibility_required` and an expired or stale one with `booking_eligibility_expired`, creating no hold.
 
 === "Request"
 

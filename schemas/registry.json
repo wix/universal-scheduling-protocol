@@ -446,6 +446,10 @@
           "$ref": "catalog.json#/$defs/AvailabilityHint",
           "description": "Approximate availability summary from the business catalog, when present at index time. Non-authoritative; platforms MUST NOT treat as a substitute for live availability queries (Section 3.6)."
         },
+        "booking_questions": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionsSummary",
+          "description": "OPTIONAL. Booking questions extension summary projected from the indexed catalog service, for compatibility assessment only. No search filter is defined over it (Section 11.4)."
+        },
         "rank_signals": {
           "$ref": "#/$defs/RankSignals",
           "description": "Availability and relevance ranking ingredients. Required on every hit of a response to which the registry applied availability ranking. Availability ranking is optional: a registry MAY ignore desired_service_time_ranges and prefer_sooner_availability_slots, and then omits rank_signals. Omitted means no availability ranking was applied."

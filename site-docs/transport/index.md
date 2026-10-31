@@ -82,6 +82,15 @@ These errors are returned via `messages[]` in the response body (HTTP 200 in RES
 | `waitlist_full` | The waitlist has reached its maximum capacity | `recoverable` |
 | `offer_expired` | The offered slot's acceptance window has passed | `recoverable` |
 | `offer_already_accepted` | The offer has already been accepted | `recoverable` |
+| `booking_question_answer_missing` | A required booking-question answer or `required_buyer_fields` member is absent | `recoverable` |
+| `booking_question_answer_invalid` | An answer fails its schema, an exclusive option rule, a date bound, or a documented format | `recoverable` |
+| `booking_question_unknown` | A submission names a question the set does not define | `recoverable` |
+| `booking_questions_changed` | A stale set revision, or a new revision invalidated a prior completion | `recoverable` |
+| `booking_question_update_not_allowed` | The booking's status does not permit this submission | `recoverable` |
+| `booking_eligibility_required` | A required preflight set applies and no assessment token was supplied | `recoverable` |
+| `booking_eligibility_expired` | The assessment token is expired, stale, or scoped elsewhere | `recoverable` |
+
+The `booking_question*` and `booking_eligibility*` codes belong to the [booking questions extension](../extensions.md#booking-questions-extension) and are emitted only when it is negotiated. `path` on every message is a bracket-form RFC 9535 JSONPath, for example `$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`.
 
 ### Protocol Errors
 

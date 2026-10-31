@@ -102,7 +102,8 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `status` | string | **Yes** | Current booking status. See [Status Lifecycle](#booking-status-lifecycle). |
 | `confirmation_mode` | string | Conditional | `auto` or `manual`. The service's confirmation policy at the time the booking was created. **MUST** be present while `status` is `pending` or `requires_action`; **MAY** be omitted afterwards. When present it **MUST** describe the policy in force at creation, not the service's current policy (see Confirmation Mode and Booking History). |
 | `payment` | BookingPayment | Conditional | Payment state. **MUST** be present when `requires_payment` is `true` and `payment_timing` is `at_booking` or `deposit_required`. **MUST** be omitted when `requires_payment` is `false`. |
-| `actions` | Array[Action] | Conditional | Ordered array of pending tasks. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. |
+| `actions` | Array[Action] | Conditional | Ordered array of pending tasks. **MUST** be present and non-empty when `status` is `requires_action`; **MUST** be absent or empty otherwise. See [Negotiated Extension Actions](#negotiated-extension-actions). |
+| `booking_question_state` | Array[BookingQuestionState] | No | [Booking questions extension](../extensions.md#booking-questions-extension) state for each applicable set. `before_service` sets live here, never in `actions`. Carries only the non-sensitive answer echo. |
 | `notes` | string | No | Buyer-provided special requests or notes. |
 | `booking_url` | string | No | Stable URL where the buyer can view and manage this booking. |
 | `messages` | Array[Message] | No | Soft messages from the business providing context about the booking state. |
@@ -111,6 +112,15 @@ The booking object represents a scheduled service instance for a specific buyer 
 | `created_at` | string | **Yes** | RFC 3339 timestamp of creation. |
 | `updated_at` | string | **Yes** | RFC 3339 timestamp of last modification. |
 | `expires_at` | string | No | RFC 3339 expiration deadline. A business that does not hold slot capacity for a `pending` or `requires_action` booking **MAY** omit `expires_at`. A business that holds slot capacity for an unconfirmed booking **MUST** include it. Advertising the field is a claim the business **MUST** honour (see Booking Expiry). |
+
+### Negotiated Extension Actions
+
+An entry in `actions[]` is one of two kinds, distinguished by whether it carries `config`:
+
+- **Handoff Action** (no `config`): a payment action or any action whose extension is not active in the negotiated intersection. `continue_url` is **REQUIRED**, and the buyer completes the work on the business surface.
+- **Negotiated extension Action** (`config` present): `type` is a reverse-domain Action type declared by an extension active in the negotiated intersection, `id` is **REQUIRED**, and `config` carries the extension-owned processing configuration. `continue_url` is **OPTIONAL** and, when present, is the fallback the declaring extension defines.
+
+These semantics are aligned with UCP's common Action contract. A business **MUST** emit a negotiated extension Action only when its declaring extension is active for the requesting platform, and **MUST** keep the same `type` and `id` while the same work remains outstanding. A platform **MUST NOT** assume the gated effect succeeded because an Action surface closed or a submission returned transport success; the business's later response is authoritative. A platform that cannot satisfy the declaring extension's complete contract uses `continue_url` when present and otherwise leaves the Action unresolved. The booking questions buyer-input Action is described in [Extensions](../extensions.md#booking-questions-extension).
 
 ### Confirmation Mode and Booking History
 
@@ -162,6 +172,8 @@ Creates a new booking for a service at a specific time slot. Resource selection 
 | `party_size` | integer | No | Number of participants. Default: 1. |
 | `notes` | string | No | Free-text notes for the business. |
 | `post_payment_return_request` | object | No | Platform's return instruction for redirect-based checkout flows. |
+| `booking_question_submissions` | Array[BookingQuestionSubmission] | Conditional | [Booking questions extension](../extensions.md#booking-questions-extension) answers for each applicable in-band set at its live revision. |
+| `booking_question_assessment_token` | string | Conditional | Token from an `eligible` preflight check. **REQUIRED** when the service has an applicable required preflight set. |
 
 !!! tip "Idempotency"
     - **With a hold:** The business **SHOULD** treat `hold_id` as a natural idempotency key. A second `POST /bookings` with the same `hold_id` **MUST** return the existing booking.
@@ -351,13 +363,22 @@ Returns the current state of a booking. Same structure as the booking object abo
 
 ### Update Booking -- `PUT /bookings/{booking_id}`
 
-Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are mutable after creation. Omitted fields are left unchanged (partial update semantics).
+Updates mutable fields on a booking. Only `buyer`, `recipient`, and `notes` are mutable after creation, plus `booking_question_submissions` when the booking questions extension is negotiated. Omitted fields are left unchanged (partial update semantics).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `buyer` | object | No | Updated buyer contact information. |
 | `recipient` | object | No | Updated recipient information. |
 | `notes` | string | No | Updated special requests or notes. |
+| `booking_question_submissions` | Array[BookingQuestionSubmission] | No | Booking questions extension answers. Include `action_id` when processing an outstanding buyer-input Action. |
+
+When the booking questions extension is negotiated, update permission for `booking_question_submissions` depends on `status`:
+
+| Booking status | Booking-question submissions |
+|----------------|------------------------------|
+| `pending`, `requires_action` | The business **MUST** accept otherwise-valid submissions for any applicable set. |
+| `confirmed` | The business **MUST** accept submissions for `before_service` sets and **MAY** reject edits to completed `before_confirmation` sets with `booking_question_update_not_allowed`. |
+| `in_progress`, `completed`, `no_show`, `canceled` | The business **MUST** reject any submission with `booking_question_update_not_allowed`. |
 
 ```json
 {

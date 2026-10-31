@@ -73,6 +73,14 @@
           "$ref": "#/$defs/ServicePolicies",
           "description": "Booking, cancellation, rescheduling, and payment policies."
         },
+        "booking_question_sets": {
+          "$ref": "booking_questions.json#/$defs/BookingQuestionSets",
+          "description": "OPTIONAL. Booking questions extension (dev.usp-protocol.services.booking_questions). Every active business-defined question set for this service, published before create so a platform can ask and recap before the commit. Carries semantics only when the extension is negotiated. See specification.md Section 11.4."
+        },
+        "required_buyer_fields": {
+          "$ref": "booking_questions.json#/$defs/RequiredBuyerFields",
+          "description": "OPTIONAL. Booking questions extension. Core Buyer members this service requires even though they are not booking questions (e.g. phone_number). Valid with or without booking_question_sets. See specification.md Section 11.4."
+        },
         "capacity": {
           "type": "object",
           "description": "REQUIRED for group and reservation types. min: minimum party size. max: maximum participants per slot. waitlist: whether waitlist is enabled when slots are full.",

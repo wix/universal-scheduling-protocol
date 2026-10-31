@@ -13,6 +13,7 @@ this namespace must use `https://usp-protocol.dev` for their `spec` and
 - `dev.usp-protocol.services.bookings`
 - `dev.usp-protocol.services.paid_bookings`
 - `dev.usp-protocol.services.waitlist`
+- `dev.usp-protocol.services.booking_questions`
 - `dev.usp-protocol.discovery.registry`
 - `dev.usp-protocol.platform.calendar_freebusy`
 

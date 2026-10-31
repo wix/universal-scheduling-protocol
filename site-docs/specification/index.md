@@ -67,6 +67,10 @@ See [Waitlist](../extensions.md#waitlist-extension).
 
 See [Pay at Service](../extensions.md#pay-at-service-settlement-extension).
 
+### Booking Questions Extension {#booking-questions-extension}
+
+See [Booking Questions](../extensions.md#booking-questions-extension).
+
 ### ACP Booking Extension {#856-acp-booking-extension}
 
 See the

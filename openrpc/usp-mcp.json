@@ -324,6 +324,116 @@
       "x-usp-access": "public"
     },
     {
+      "name": "usp_booking_questions_check_eligibility",
+      "summary": "Check Booking Eligibility",
+      "description": "Booking questions extension (dev.usp-protocol.services.booking_questions, Section 11.4.4). Evaluates every applicable eligibility and configuration set for the service, together with business-known buyer prerequisites, without creating a hold, booking, checkout, or any other capacity-consuming resource. Returns an explicit decision; an eligible decision carries a short-lived opaque assessment token required on later hold, booking, and checkout creation when a required preflight set applies. A decision is a business result, not a protocol error. Maps to POST /services/{service_id}/eligibility-checks. Privileged operation (Section 10.1.6, platform-level): MUST authenticate with a mechanism from the business AuthorizationPolicy and MUST include _meta.usp.profile bound to that credential.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "_meta",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "usp": {
+                "$ref": "#/components/schemas/McpUspMetaPrivilegedPlatformNoIdempotency"
+              }
+            }
+          },
+          "description": "MCP metadata for a privileged platform-level operation. _meta.usp.profile is REQUIRED. Authenticate per Section 10.1.6 / business AuthorizationPolicy (HTTP Authorization / Signature / mTLS on MCP-over-HTTP, and/or _meta.usp.authorization, which is also where a platform_key_pop proof rides on both MCP transports)."
+        },
+        {
+          "name": "service_id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "buyer",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/Buyer"
+          }
+        },
+        {
+          "name": "recipient",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/Buyer"
+          },
+          "description": "The person receiving the service, when different from the buyer. When absent, the buyer is the recipient."
+        },
+        {
+          "name": "booking_question_submissions",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionSubmissions"
+          },
+          "description": "Submissions for the applicable preflight sets the platform knows about. Only the business decides whether a prior completion is still valid."
+        }
+      ],
+      "result": {
+        "name": "CheckBookingEligibilityResult",
+        "schema": {
+          "type": "object",
+          "required": [
+            "structuredContent"
+          ],
+          "properties": {
+            "structuredContent": {
+              "type": "object",
+              "required": [
+                "usp",
+                "eligibility"
+              ],
+              "properties": {
+                "usp": {
+                  "$ref": "#/components/schemas/USPMeta"
+                },
+                "eligibility": {
+                  "$ref": "#/components/schemas/BookingEligibilityCheckResult"
+                },
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  },
+                  "description": "Buyer-safe reasons, corrections, and alternatives. Never echo sensitive answers."
+                }
+              }
+            },
+            "content": {
+              "type": "array",
+              "description": "Human-readable text summary for MCP clients that render text.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/USPProtocolError"
+        }
+      ],
+      "x-usp-access": "privileged_platform"
+    },
+    {
       "name": "usp_services_lookup",
       "summary": "Lookup Services",
       "description": "Returns full service objects for a batch of service IDs. Analogous to UCP catalog_lookup. Maps to POST /services/lookup. Public operation (Section 10.1.6): authentication optional; anonymous browse allowed.",
@@ -1135,6 +1245,14 @@
             "type": "integer",
             "description": "Requested page size. Businesses MAY apply a lower or upper cap."
           }
+        },
+        {
+          "name": "booking_question_assessment_token",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+          },
+          "description": "Booking questions extension (Section 11.4). Assessment token from an eligible preflight check. When the service has an applicable configuration set, the business returns each TimeSlot.duration already adjusted for the configuration the token records."
         }
       ],
       "result": {
@@ -1295,6 +1413,14 @@
             "type": "integer",
             "default": 1
           }
+        },
+        {
+          "name": "booking_question_assessment_token",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+          },
+          "description": "Booking questions extension (Section 11.4). REQUIRED when the service has an applicable required preflight set. The business revalidates its scope, expiry, and set revisions before reserving capacity."
         }
       ],
       "result": {
@@ -1531,6 +1657,22 @@
             "$ref": "#/components/schemas/PostPaymentReturnRequest"
           },
           "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation/abandonment. If present, the business MUST redirect the buyer's browser (via GET) to the specified URL with the specified query parameters appended after payment completes, is cancelled, or is abandoned."
+        },
+        {
+          "name": "booking_question_submissions",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionSubmissions"
+          },
+          "description": "Booking questions extension (Section 11.4). Answers for each applicable set at its live revision."
+        },
+        {
+          "name": "booking_question_assessment_token",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+          },
+          "description": "Booking questions extension (Section 11.4). REQUIRED when the service has an applicable required preflight set."
         }
       ],
       "result": {
@@ -1723,6 +1865,14 @@
           "schema": {
             "type": "string"
           }
+        },
+        {
+          "name": "booking_question_submissions",
+          "required": false,
+          "schema": {
+            "$ref": "#/components/schemas/BookingQuestionSubmissions"
+          },
+          "description": "Booking questions extension (Section 11.4). Submissions accepted per the update-permission rules: any otherwise-valid set while pending or requires_action; before_service sets while confirmed; none once in_progress, completed, no_show, or canceled (booking_question_update_not_allowed). Include action_id when processing an outstanding buyer-input Action."
         }
       ],
       "result": {
@@ -3765,6 +3915,30 @@
       },
       "AuthorizationMechanism": {
         "$ref": "https://usp-protocol.dev/schemas/profile.json#/$defs/AuthorizationMechanism"
+      },
+      "BookingQuestionSet": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionSet"
+      },
+      "BookingQuestionSubmissions": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionSubmissions"
+      },
+      "BookingQuestionState": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionState"
+      },
+      "BookingQuestionAssessmentToken": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionAssessmentToken"
+      },
+      "BookingEligibilityCheckRequest": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingEligibilityCheckRequest"
+      },
+      "BookingEligibilityCheckResult": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingEligibilityCheckResult"
+      },
+      "BookingQuestionsSummary": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionsSummary"
+      },
+      "BuyerInputActionConfig": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BuyerInputActionConfig"
       }
     },
     "errors": {
