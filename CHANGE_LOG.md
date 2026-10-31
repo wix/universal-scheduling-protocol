@@ -1,5 +1,11 @@
 # Change Log
 
+## 31/10/26 at 12:41:17 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added the eight booking-questions scenarios to the scenario dropdowns in `overrides/playground.html`, so they are reachable from the published playground at all. The published page is rendered from this MkDocs theme override (`template: playground.html`) driven by `playground-controller.js`, and its `<option>` elements are static markup. The booking-questions change registered its scenarios in `playground/src/playground.js` instead, which builds its options dynamically but is not the implementation the site serves, so the scenario JSON was deployed and fetchable while nothing in the UI could select it. Five scenarios shipped unreachable in the original extension commit and three more in its follow-up. No controller change was needed: `loadScenario` fetches `scenarios/<step file>.json` and looks up the selected key, so adding the options is sufficient
+
+---
+
 ## 31/10/26 at 12:25:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Resolved a contradiction between the Section 5.1.1 transition table and the new Section 5.3.3 booking-question update table. Both mandated a different outcome code for an Update Booking call on `completed`, `no_show`, or `canceled`: the transition table said `invalid_transition`, the question table said `booking_question_update_not_allowed`. The question table now splits `in_progress` (call accepted, submission rejected) from the three terminal statuses (the call-level `invalid_transition` governs and the question code is not also returned), and the 5.1.1 note states the precedence. Left unresolved, a business had two MUSTs and no way to satisfy both
