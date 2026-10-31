@@ -84,6 +84,10 @@
 
 .pg-header {
   display: flex;
+  /* Between the 768px and 1024px rules the mode toggle, the nowrap title and
+     the four transport buttons do not fit on one line and overflowed the page
+     horizontally; let the row wrap instead. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 1rem 0;
@@ -1709,12 +1713,12 @@
   margin: 0 auto 1.5rem;
 }
 
-/* Step head: title + description on the left, configuration on the right */
+/* Step head: title and description, then a full-width configuration bar,
+   stacked above the request and response panes. */
 .pg-step-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-  gap: 1.5rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1.5rem;
   min-width: 0;
 }
@@ -1723,17 +1727,51 @@
   min-width: 0;
 }
 
-@media (max-width: 860px) {
-  .pg-step-head {
-    grid-template-columns: 1fr;
-  }
-}
-
+/* Configuration bar: the controls run across the row so a full-width panel
+   costs a single line of height rather than a column of the step. */
 .pg-config-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1.25rem;
   background: var(--pg-bg-0);
   border: 1px solid var(--pg-border);
   border-radius: var(--pg-radius);
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.pg-config-panel h3 {
+  flex: 0 0 100%;
+  margin: 0 !important;
+}
+
+.pg-config-field {
+  flex: 0 1 auto;
+  min-width: 15rem;
+  max-width: 26rem;
+}
+
+.pg-config-field .pg-select {
+  margin-bottom: 0;
+}
+
+/* Pushes the run button to the trailing edge, with or without a description
+   between it and the control. */
+.pg-config-panel .pg-btn-run {
+  width: auto;
+  margin: 0 0 0 auto;
+}
+
+@media (max-width: 560px) {
+  .pg-config-field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .pg-config-panel .pg-btn-run {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
 }
 
 .pg-config-panel label {
@@ -1745,9 +1783,10 @@
 }
 
 .pg-config-desc {
+  flex: 1 1 12rem;
   font-size: 0.85rem !important;
   color: var(--pg-text-dim) !important;
-  margin: 0.75rem 0 1rem !important;
+  margin: 0 !important;
 }
 
 .pg-select {
