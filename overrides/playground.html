@@ -65,12 +65,14 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Business Profile</label>
-        <select class="pg-select" id="pg-discovery-scenario">
-          <option value="standard" selected>Standard (Core Only)</option>
-          <option value="full">Full (All Extensions)</option>
-          <option value="minimal">Minimal (Appointments Only)</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Business Profile</label>
+          <select class="pg-select" id="pg-discovery-scenario">
+            <option value="standard" selected>Standard (Core Only)</option>
+            <option value="full">Full (All Extensions)</option>
+            <option value="minimal">Minimal (Appointments Only)</option>
+          </select>
+        </div>
         <p class="pg-config-desc" id="pg-discovery-desc">Supports core Catalog, Availability, and Bookings capabilities.</p>
         <button class="pg-btn pg-btn-run" id="pg-discovery-run">
           <span class="pg-btn-text">Fetch Profile</span>
@@ -113,12 +115,14 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-negotiation-scenario">
-          <option value="full-match" selected>Full Match</option>
-          <option value="partial-match">Partial Match (No Holds)</option>
-          <option value="incompatible">Incompatible (Error)</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-negotiation-scenario">
+            <option value="full-match" selected>Full Match</option>
+            <option value="partial-match">Partial Match (No Holds)</option>
+            <option value="incompatible">Incompatible (Error)</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-negotiation-run">
           <span class="pg-btn-text">Run Negotiation</span>
         </button>
@@ -171,15 +175,17 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-browse-scenario">
-          <option value="happy_path" selected>All Services (4)</option>
-          <option value="filtered_wellness">Filtered: Massage Only</option>
-          <option value="search_massage">Search: "massage"</option>
-          <option value="empty_results">Empty Results</option>
-          <option value="bq_question_sets">Questions: Published Sets</option>
-          <option value="multi_taxonomy_categories">Multi-Taxonomy Categories</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-browse-scenario">
+            <option value="happy_path" selected>All Services (4)</option>
+            <option value="filtered_wellness">Filtered: Massage Only</option>
+            <option value="search_massage">Search: "massage"</option>
+            <option value="empty_results">Empty Results</option>
+            <option value="bq_question_sets">Questions: Published Sets</option>
+            <option value="multi_taxonomy_categories">Multi-Taxonomy Categories</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-browse-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -220,16 +226,18 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-availability-scenario">
-          <option value="available_slots" selected>Available Slots</option>
-          <option value="limited_availability">Limited Availability</option>
-          <option value="resource_specific">Resource-Specific (Sarah)</option>
-          <option value="no_availability">No Availability</option>
-          <option value="range_too_wide">Error: Range Too Wide</option>
-          <option value="bq_configuration_duration">Questions: Configured Duration</option>
-          <option value="bq_configuration_no_token">Questions: Unconfigured Duration</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-availability-scenario">
+            <option value="available_slots" selected>Available Slots</option>
+            <option value="limited_availability">Limited Availability</option>
+            <option value="resource_specific">Resource-Specific (Sarah)</option>
+            <option value="no_availability">No Availability</option>
+            <option value="range_too_wide">Error: Range Too Wide</option>
+            <option value="bq_configuration_duration">Questions: Configured Duration</option>
+            <option value="bq_configuration_no_token">Questions: Unconfigured Duration</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-availability-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -270,13 +278,15 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-hold-scenario">
-          <option value="hold_granted" selected>Hold Granted</option>
-          <option value="slot_unavailable">Slot Unavailable (409)</option>
-          <option value="hold_limit_exceeded">Hold Limit Exceeded (429)</option>
-          <option value="release_hold">Release Hold</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-hold-scenario">
+            <option value="hold_granted" selected>Hold Granted</option>
+            <option value="slot_unavailable">Slot Unavailable (409)</option>
+            <option value="hold_limit_exceeded">Hold Limit Exceeded (429)</option>
+            <option value="release_hold">Release Hold</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-hold-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -317,19 +327,21 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-book-scenario">
-          <option value="instant_confirmation" selected>Instant Confirmation</option>
-          <option value="payment_required">Payment Required</option>
-          <option value="manual_confirmation">Manual Confirmation</option>
-          <option value="validation_error">Validation Error (422)</option>
-          <option value="slot_expired">Slot Expired (409)</option>
-          <option value="bq_eligibility_ineligible">Questions: Preflight Ineligible</option>
-          <option value="bq_configuration_eligible">Questions: Configuration Token</option>
-          <option value="bq_answer_invalid">Questions: Invalid Answers</option>
-          <option value="bq_acknowledge_action">Questions: Acknowledgment Action</option>
-          <option value="bq_before_service_pending">Questions: Before-Service Form</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-book-scenario">
+            <option value="instant_confirmation" selected>Instant Confirmation</option>
+            <option value="payment_required">Payment Required</option>
+            <option value="manual_confirmation">Manual Confirmation</option>
+            <option value="validation_error">Validation Error (422)</option>
+            <option value="slot_expired">Slot Expired (409)</option>
+            <option value="bq_eligibility_ineligible">Questions: Preflight Ineligible</option>
+            <option value="bq_configuration_eligible">Questions: Configuration Token</option>
+            <option value="bq_answer_invalid">Questions: Invalid Answers</option>
+            <option value="bq_acknowledge_action">Questions: Acknowledgment Action</option>
+            <option value="bq_before_service_pending">Questions: Before-Service Form</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-book-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -370,12 +382,14 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-payment-scenario">
-          <option value="payment_success" selected>Payment Success</option>
-          <option value="payment_failed">Payment Failed (402)</option>
-          <option value="deposit_flow">Deposit Flow</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-payment-scenario">
+            <option value="payment_success" selected>Payment Success</option>
+            <option value="payment_failed">Payment Failed (402)</option>
+            <option value="deposit_flow">Deposit Flow</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-payment-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -416,20 +430,22 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Operation</label>
-        <select class="pg-select" id="pg-manage-scenario">
-          <option value="view_booking" selected>View Booking</option>
-          <option value="update_booking">Update Booking</option>
-          <option value="cancel_booking">Cancel Booking</option>
-          <option value="reschedule_booking">Reschedule</option>
-          <option value="booking_confirmed">Webhook: booking.confirmed</option>
-          <option value="cancel_with_fee">Cancel with Late Fee</option>
-          <option value="reschedule_limit_reached">Reschedule Limit Reached</option>
-          <option value="booking_canceled">Webhook: booking.canceled</option>
-          <option value="booking_rescheduled">Webhook: booking.rescheduled</option>
-          <option value="booking_completed">Webhook: booking.completed</option>
-          <option value="booking_reminder">Webhook: booking.reminder</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Operation</label>
+          <select class="pg-select" id="pg-manage-scenario">
+            <option value="view_booking" selected>View Booking</option>
+            <option value="update_booking">Update Booking</option>
+            <option value="cancel_booking">Cancel Booking</option>
+            <option value="reschedule_booking">Reschedule</option>
+            <option value="booking_confirmed">Webhook: booking.confirmed</option>
+            <option value="cancel_with_fee">Cancel with Late Fee</option>
+            <option value="reschedule_limit_reached">Reschedule Limit Reached</option>
+            <option value="booking_canceled">Webhook: booking.canceled</option>
+            <option value="booking_rescheduled">Webhook: booking.rescheduled</option>
+            <option value="booking_completed">Webhook: booking.completed</option>
+            <option value="booking_reminder">Webhook: booking.reminder</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-manage-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
@@ -472,13 +488,15 @@
       </div>
       <div class="pg-config-panel">
         <h3>Configuration</h3>
-        <label>Scenario</label>
-        <select class="pg-select" id="pg-waitlist-scenario">
-          <option value="join_waitlist" selected>Join Waitlist</option>
-          <option value="offer_received">Webhook: waitlist.spot_offered</option>
-          <option value="accept_offer">Accept Offer</option>
-          <option value="decline_offer">Decline Offer</option>
-        </select>
+        <div class="pg-config-field">
+          <label>Scenario</label>
+          <select class="pg-select" id="pg-waitlist-scenario">
+            <option value="join_waitlist" selected>Join Waitlist</option>
+            <option value="offer_received">Webhook: waitlist.spot_offered</option>
+            <option value="accept_offer">Accept Offer</option>
+            <option value="decline_offer">Decline Offer</option>
+          </select>
+        </div>
         <button class="pg-btn pg-btn-run" id="pg-waitlist-run">
           <span class="pg-btn-text">Run Request</span>
         </button>
