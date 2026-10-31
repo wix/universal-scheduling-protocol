@@ -423,9 +423,9 @@ not published as a site page.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  ┌─ Mode ──┐  ┌─ Transport ─┐                           │
-│  │Standalone│  │ REST ▾      │       USP Playground      │
-│  └─────────┘  └─────────────┘                           │
+│  ┌─ Mode ───┐  ┌─ Transport ─┐                          │
+│  │UCP-Native│  │ REST ▾      │       USP Playground      │
+│  └──────────┘  └─────────────┘                          │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  ① Discovery  ② Negotiate  ③ Browse  ④ Availability     │
@@ -434,39 +434,25 @@ not published as a site page.
 │                                                          │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
-│  Step 3: Browse Services                                 │
-│  Query the catalog to find bookable services.            │
+│  3. Browse Services            ┌─ Configuration ──────┐ │
+│  Query the catalog to find     │ Scenario             │ │
+│  bookable services.            │ [ Happy Path      ▾] │ │
+│                                │ [   Run Request    ] │ │
+│                                └──────────────────────┘ │
 │                                                          │
-│  Scenario: [Happy Path ▾]                                │
-│                                                          │
-│  ┌─ Request ─────────────────────────────────────────┐  │
-│  │ POST /services/list                                │  │
-│  │                                                    │  │
-│  │ {                                                  │  │
-│  │   "filters": {                                     │  │
-│  │     "category": "wellness"                         │  │
-│  │   },                                               │  │
-│  │   "context": {                                     │  │
-│  │     "language": "en",                              │  │
-│  │     "currency": "USD"                              │  │
-│  │   },                                               │  │
-│  │   "pagination": { "limit": 10 }                    │  │
-│  │ }                                                  │  │
-│  │                                           [Edit]   │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-│  [ ◀ Back ]                    [ Run Request ▶ ]         │
-│                                                          │
-│  ┌─ Response ────────────────────────────────────────┐  │
-│  │ 200 OK  ·  142ms                                  │  │
-│  │                                                    │  │
-│  │ {                                                  │  │
-│  │   "usp": { "version": "2026-08-20", ... },        │  │
-│  │   "services": [ ... ],                             │  │
-│  │   "pagination": { "has_more": false }              │  │
-│  │ }                                                  │  │
-│  │                                     [Copy] [Expand]│  │
-│  └────────────────────────────────────────────────────┘  │
+│  ┌─ POST /services/list ───┐  ┌─ Response ────────────┐ │
+│  │ POST /services/list      │  │ 200 OK               │ │
+│  │ Host: api.business.ex…   │  │                      │ │
+│  │                          │  │ {                    │ │
+│  │ {                        │  │   "usp": { … },      │ │
+│  │   "filters": {           │  │   "services": [ … ], │ │
+│  │     "category":          │  │   "pagination": {    │ │
+│  │       "wellness"         │  │     "has_more": false│ │
+│  │   },                     │  │   }                  │ │
+│  │   "pagination": {        │  │ }                    │ │
+│  │     "limit": 10 }        │  │                      │ │
+│  │ }                [Copy]  │  │               [Copy] │ │
+│  └──────────────────────────┘  └──────────────────────┘ │
 │                                                          │
 │  ┌─ Schema Validation ───────────────────────────────┐  │
 │  │  ✓ Request valid against ServiceListRequest       │  │
@@ -479,6 +465,12 @@ not published as a site page.
 └──────────────────────────────────────────────────────────┘
 ```
 
+The configuration panel sits beside the step title and description rather than
+in a column of its own, so the request and response panes get the full step
+width. The panes are a `repeat(auto-fit, minmax(min(100%, 520px), 1fr))` grid:
+they sit side by side while each column can still hold a readable line of JSON,
+and stack — request above response — on portrait tablets and phones.
+
 ### Color & Style
 
 - Inherits the USP teal palette from `extra.css`
@@ -486,7 +478,7 @@ not published as a site page.
 - Response pane: Slightly lighter dark background, green badge for 2xx, red for 4xx/5xx
 - Stepper: Teal active dot, muted gray for unvisited, checkmark for completed
 - Transport toggle: Pill-style buttons matching the homepage badge style
-- Mode toggle: Two-option switch (Standalone / UCP-Native)
+- Mode toggle: Two-option switch (UCP-Native / Standalone), UCP-Native active by default
 
 ---
 
