@@ -19,7 +19,11 @@ Five subcommands, each useful on its own:
 
   vectors   Validate tests/vectors/ against the schemas, recompute every
             published JCS digest, and assert each vector's reject_code and id
-            are actually reachable from the normative text.
+            are actually reachable from the normative text. Booking-questions
+            wire, eval, flow, and compose vectors are recomputed by
+            usp_booking_questions.py, which also validates fixtures and the
+            docs/requirement-evidence/ registries. --expand <id> prints the
+            expanded cases of one compose vector.
 
   authority Enforce the owned origin and capability namespace, canonical URL
             layout, published artifact coverage, playground mirrors, problem
@@ -45,8 +49,11 @@ import hashlib
 import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from urllib.parse import urljoin
+
+import usp_booking_questions as bq
 
 REPO = Path(__file__).resolve().parent.parent
 KNOWN_ISSUES = Path(__file__).resolve().parent / "known-issues.txt"
@@ -66,6 +73,7 @@ PARSE_GLOBS = [
     "openapi/*.json",
     "openrpc/*.json",
     "docs/*.json",
+    "docs/requirement-evidence/*.json",
     "playground/scenarios/*.json",
     "site-docs/playground/scenarios/*.json",
 ]
@@ -108,6 +116,7 @@ RESERVED_NAMESPACE_NAMES = {
     "dev.usp-protocol.services.bookings",
     "dev.usp-protocol.services.paid_bookings",
     "dev.usp-protocol.services.waitlist",
+    "dev.usp-protocol.services.booking_questions",
     "dev.usp-protocol.discovery.registry",
     "dev.usp-protocol.platform.calendar_freebusy",
 }
@@ -793,19 +802,24 @@ def spec_error_codes() -> set[str]:
 
 
 def spec_business_outcome_codes() -> set[str]:
-    """Codes documented in the 9.4.2 business-outcome table.
+    """Codes documented in the 9.4.2 business-outcome table and in extension
+    business-outcome tables that 9.4.2 points to (11.4.9).
 
     Flow vectors assert outcomes carried in ``messages[]`` with HTTP 200, so
     they cannot be checked against the protocol-error mirrors: a business
     outcome deliberately has no Problem type and no JSON-RPC error code.
     """
     text = SPEC.read_text()
-    start = text.find("#### 9.4.2")
-    if start == -1:
-        return set()
-    end = text.find("#### 9.4.3", start)
-    window = text[start:end if end != -1 else start + 6000]
-    return set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
+    codes: set[str] = set()
+    for start_marker, end_marker in (("#### 9.4.2", "#### 9.4.3"),
+                                     ("#### 11.4.9", "#### 11.4.10")):
+        start = text.find(start_marker)
+        if start == -1:
+            continue
+        end = text.find(end_marker, start)
+        window = text[start:end if end != -1 else start + 6000]
+        codes |= set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
+    return codes
 
 
 def defined_member_names() -> set[str]:
@@ -889,7 +903,18 @@ def check_wire_vector(findings: Findings, vid: str, vector: dict) -> None:
             findings.fail(f"VECTOR:{vid}:member-names",
                           f"{label}: vector asserts {then.get('member_name_violations')}, "
                           f"computed {violations}")
-        conforming = valid and not violations
+        semantic = bq.semantic_errors_for(target, instance)
+        if sorted(then.get("semantic_errors", [])) != sorted(semantic):
+            findings.fail(f"VECTOR:{vid}:semantic",
+                          f"{label}: vector asserts semantic_errors "
+                          f"{then.get('semantic_errors', [])}, computed {semantic}")
+        for i, answer_case in enumerate(case.get("answer_cases", [])):
+            check_answer_case(findings, vid, f"{label} answer {i}", instance,
+                              answer_case, valid and not semantic)
+        for lcase in case.get("localization_cases", []):
+            check_localization_case(findings, vid, label, instance, lcase,
+                                    valid and not semantic)
+        conforming = valid and not violations and not semantic
         if then.get("conforming") is not None and then["conforming"] != conforming:
             findings.fail(f"VECTOR:{vid}:conforming",
                           f"{label}: vector asserts conforming={then['conforming']}, "
@@ -900,8 +925,110 @@ def check_wire_vector(findings: Findings, vid: str, vector: dict) -> None:
                           "computed conformance")
 
 
-def check_vectors(findings: Findings) -> None:
+def check_answer_case(findings: Findings, vid: str, label: str, instance,
+                      answer_case: dict, definition_ok: bool) -> None:
+    """Recompute one answer against the question it targets (Section 11.4.3)."""
+    if not definition_ok:
+        findings.fail(f"VECTOR:{vid}:answer-case",
+                      f"{label}: answer cases need a valid definition to answer")
+        return
+    question = instance
+    qid = answer_case.get("question")
+    if qid is not None:
+        items = instance.get("items", []) if isinstance(instance, dict) else []
+        question = next((i for i in items if i.get("id") == qid), None)
+        if question is None:
+            findings.fail(f"VECTOR:{vid}:answer-case", f"{label}: no question {qid!r}")
+            return
+    request_date = answer_case.get("request_date")
+    day = date.fromisoformat(request_date) if request_date else None
+    if answer_case.get("absent"):
+        errors = ["required"] if question.get("required") is True else []
+    else:
+        errors = bq.answer_errors(question, answer_case.get("value"), day)
+    if (not errors) != answer_case.get("valid"):
+        findings.fail(f"VECTOR:{vid}:answer-valid",
+                      f"{label}: vector asserts valid={answer_case.get('valid')}, "
+                      f"computed errors {errors}")
+    if "errors" in answer_case and sorted(answer_case["errors"]) != sorted(errors):
+        findings.fail(f"VECTOR:{vid}:answer-errors",
+                      f"{label}: vector asserts {answer_case['errors']}, computed {errors}")
+
+
+def check_localization_case(findings: Findings, vid: str, label: str, instance,
+                            lcase: dict, definition_ok: bool) -> None:
+    """Recompute the text a renderer resolves for one language (Section 3.5).
+
+    The resolved map is derived from the set, so a vector cannot claim a
+    fallback the rules do not produce.
+    """
+    if not definition_ok:
+        findings.fail(f"VECTOR:{vid}:localization",
+                      f"{label}: localization cases need a valid definition")
+        return
+    language = lcase.get("language")
+    if not language:
+        findings.fail(f"VECTOR:{vid}:localization", f"{label}: case has no language")
+        return
+    computed = bq.resolve_localized(instance, language)
+    expected = lcase.get("resolved", {})
+    for key, want in expected.items():
+        if computed.get(key) != want:
+            findings.fail(f"VECTOR:{vid}:localization",
+                          f"{label} [{language}]: vector asserts {key}={want!r}, "
+                          f"computed {computed.get(key)!r}")
+    unknown = sorted(set(expected) - set(computed))
+    if unknown:
+        findings.fail(f"VECTOR:{vid}:localization",
+                      f"{label} [{language}]: vector names unresolvable text {unknown}")
+
+
+def check_eval_vector(findings: Findings, vid: str, vector: dict) -> None:
+    """Recompute definition validity and applicability for every eval case."""
+    target = "booking_questions.json#/$defs/BookingQuestionSet"
+    for i, case in enumerate(vector.get("cases", [])):
+        label = case.get("case", f"case {i}")
+        qset = case.get("set", vector.get("given", {}).get("set"))
+        then = case.get("then", {})
+        semantic = bq.semantic_set_errors(qset) if isinstance(qset, dict) else ["not_a_set"]
+        valid = not bq.schema_problems(target, qset) and not semantic
+        if then.get("definition_valid") != valid:
+            findings.fail(f"VECTOR:{vid}:definition-valid",
+                          f"{label}: vector asserts definition_valid="
+                          f"{then.get('definition_valid')}, computed {valid} "
+                          f"(schema: {bq.schema_problems(target, qset)[:1]}, semantic: {semantic})")
+        if sorted(then.get("semantic_errors", [])) != sorted(semantic):
+            findings.fail(f"VECTOR:{vid}:semantic",
+                          f"{label}: vector asserts semantic_errors "
+                          f"{then.get('semantic_errors', [])}, computed {semantic}")
+        if not valid or "answers" not in case:
+            continue
+        result = bq.evaluate_set(qset, case["answers"])
+        for member in ("applicable", "required_unanswered", "pruned", "unknown"):
+            if member in then and then[member] != result[member]:
+                findings.fail(f"VECTOR:{vid}:{member}",
+                              f"{label}: vector asserts {member}={then[member]}, "
+                              f"computed {result[member]}")
+
+
+def check_bq_flow_case(findings: Findings, vid: str, case: dict, outcome_codes: set[str]) -> None:
+    for key, message in bq.flow_case_problems(case, outcome_codes):
+        findings.fail(f"VECTOR:{vid}:{key}", message)
+
+
+def check_compose_vector(findings: Findings, vid: str, vector: dict, fixtures: dict,
+                         vectors: dict, outcome_codes: set[str]) -> list[dict]:
+    cases, problems = bq.expand_compose(vector, fixtures, vectors)
+    for problem in problems:
+        findings.fail(f"VECTOR:{vid}:compose", problem)
+    for case in cases:
+        check_bq_flow_case(findings, case["id"], case, outcome_codes)
+    return cases
+
+
+def check_vectors(findings: Findings, expand: str | None = None) -> None:
     vector_dir = REPO / "tests" / "vectors"
+    fixture_dir = vector_dir / "fixtures"
     files = sorted(vector_dir.rglob("*.json")) if vector_dir.exists() else []
     if not files:
         print("  no vectors present yet")
@@ -939,8 +1066,31 @@ def check_vectors(findings: Findings) -> None:
         json.loads(OPENRPC.read_text()),
         "/components/errors/USPProtocolError/data/properties/code/enum"))
     spec_text = SPEC.read_text()
+    message_codes = outcome_codes | bq.INFO_CODES
+
+    # Fixtures are building blocks for composed vectors, not requirements, so
+    # they are validated on their own and never need a specification citation.
+    fixtures = bq.load_fixtures()
+    vectors_by_id = bq.load_vectors_by_id()
+    for fid, fixture in sorted(fixtures.items()):
+        for problem in bq.fixture_problems(fixture, fixtures, vectors_by_id):
+            findings.fail(f"FIXTURE:{fid}", problem)
+    for key, message in bq.evidence_problems():
+        findings.fail(f"EVIDENCE:{key}", message)
+
+    if expand is not None:
+        vector = vectors_by_id.get(expand)
+        if vector is None or vector.get("kind") != "compose":
+            findings.fail(f"EXPAND:{expand}", "no compose vector with this id")
+            return
+        cases = check_compose_vector(findings, expand, vector, fixtures,
+                                     vectors_by_id, message_codes)
+        print(json.dumps(cases, indent=2, ensure_ascii=False))
+        return
 
     for path in files:
+        if fixture_dir in path.parents:
+            continue
         vector = json.loads(path.read_text())
         vid = vector.get("id", rel(path))
 
@@ -985,8 +1135,20 @@ def check_vectors(findings: Findings) -> None:
                               f"business outcome asserts HTTP {status}; 9.4.2 "
                               "requires 200")
 
-        if vector.get("kind") == "wire":
+        kind = vector.get("kind")
+        if kind == "wire":
             check_wire_vector(findings, vid, vector)
+        elif kind == "eval":
+            check_eval_vector(findings, vid, vector)
+        elif kind == "compose":
+            check_compose_vector(findings, vid, vector, fixtures, vectors_by_id, message_codes)
+        elif kind == "flow" and vid.startswith("bq-"):
+            check_bq_flow_case(findings, vid, vector, message_codes)
+            for i, variant in enumerate(vector.get("variants", [])):
+                if "given" in variant or "when" in variant:
+                    merged = {**vector, **variant}
+                    check_bq_flow_case(findings, f"{vid}[{variant.get('case', i)}]",
+                                       merged, message_codes)
 
         credential = vector.get("credential")
         if credential is not None and vector.get("credential_wellformed", True):
@@ -1374,6 +1536,7 @@ def check_authority(findings: Findings) -> None:
         "7-ucp-native-mode",
         "waitlist-extension",
         "pay-at-service-settlement-extension",
+        "booking-questions-extension",
         "856-acp-booking-extension",
     }
     historical: set[Path] = set()
@@ -1767,7 +1930,7 @@ def check_binding_error_codes(findings: Findings) -> None:
         window = text[start:text.find("\n#### 9.5", start)]
         matrix |= set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", window, re.M))
     # Extension codes are registered in their own sections by design.
-    for marker in ("#### 11.1.6",):
+    for marker in ("#### 11.1.6", "#### 11.4.9"):
         s = text.find(marker)
         if s != -1:
             matrix |= set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|",
@@ -1812,14 +1975,21 @@ CHECKS = {
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("check", choices=[*CHECKS, "all"])
+    parser.add_argument("--expand", metavar="ID",
+                        help="with vectors: print the expanded cases of one compose vector")
     args = parser.parse_args()
+    if args.expand and args.check != "vectors":
+        parser.error("--expand requires the vectors check")
 
     names = list(CHECKS) if args.check == "all" else [args.check]
     status = 0
     for name in names:
         print(f"== {name}")
         findings = Findings()
-        CHECKS[name](findings)
+        if name == "vectors":
+            check_vectors(findings, args.expand)
+        else:
+            CHECKS[name](findings)
         status |= findings.report(name)
     return status
 

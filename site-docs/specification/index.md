@@ -67,6 +67,10 @@ See [Waitlist](../extensions.md#waitlist-extension).
 
 See [Pay at Service](../extensions.md#pay-at-service-settlement-extension).
 
+### Booking Questions Extension {#booking-questions-extension}
+
+See [Booking Questions](../extensions.md#booking-questions-extension).
+
 ### ACP Booking Extension {#856-acp-booking-extension}
 
 See the
@@ -133,7 +137,7 @@ Fields with a bounded domain — counts, capacities, party sizes, percentages, p
 | **Buyer** | The person making and paying for the booking. Represented by a `buyer` object containing identity fields (name, email, phone). When no separate `recipient` is specified, the buyer is also the person receiving the service. |
 | **Capability** | A standalone feature a business supports, identified by a namespaced string (e.g., `dev.usp-protocol.services.catalog`). Each capability has a version, schema, and specification URL. |
 | **Catalog Discovery** | The process by which a platform, acting with buyer intent, finds which businesses and services to book. Typical artifacts include registry search ([Discovery Registry](discovery-registry.md)), aggregated catalogs, and `availability_hint`. Catalog discovery is a directory and search activity; it does **not** exchange credentials or establish a platform-business commercial relationship. |
-| **Action** | A pending task the buyer must complete before a booking can be confirmed. Each action has a type, status, continue URL, and expiry. Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. |
+| **Action** | A pending task the buyer must complete before a booking can be confirmed. Each action has a type and status, an optional expiry, and either a continue URL (handoff) or an `id` and `config` (negotiated extension action). Actions are returned in the ordered `actions` array on the booking when `status` is `requires_action`. |
 | **Checkout System** | Any external commerce protocol or payment mechanism used to process payment for a booking. USP does not prescribe which checkout system to use. |
 | **Extension** | An optional module that augments a capability via the `extends` field. Extensions add functionality without modifying the base capability. |
 | **Hold** | A temporary reservation of a time slot that prevents double-booking during the booking flow. Holds have a short TTL and are automatically released on expiry. |

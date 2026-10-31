@@ -1,0 +1,233 @@
+{
+  "topic": "booking-questions",
+  "claim_scope": "requirement_evidence_only",
+  "disclaimer": "Sources document the origin or rationale of provider-neutral requirements. They do not claim adapter availability, implementation compatibility, certification, or provider conformance.",
+  "capabilities": [
+    {
+      "capability_id": "preflight-eligibility-before-slot-selection",
+      "requirement": "A Business can decide whether a buyer or recipient may book a service before the buyer chooses or holds a slot, so ineligible buyers do not spend time or capacity on a booking that will fail.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "What are prerequisites?",
+          "source_url": "https://support.mindbodyonline.com/s/article/204798418-What-are-prerequisites?language=en_US",
+          "provider": "Mindbody",
+          "product_area": "Class and appointment prerequisites",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "Booking can be restricted to clients who meet a prerequisite, which must be known before the client books.",
+          "evidence_status": "current"
+        },
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Requiring approval for appointment bookings",
+          "source_url": "https://support.wix.com/en/article/wix-bookings-requiring-approval-for-appointment-bookings",
+          "provider": "Wix",
+          "product_area": "Bookings approval flow",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "When a Business must review a request, the buyer otherwise fills the form only after choosing a time, showing the cost of learning about ineligibility late.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["4.2", "4.3.2", "11.4.4"],
+        "vectors": [
+          "tests/vectors/flow/bq-flow-eligible-token.json",
+          "tests/vectors/flow/bq-flow-ineligible-no-hold.json",
+          "tests/vectors/flow/bq-flow-requires-input-loop.json",
+          "tests/vectors/flow/bq-flow-no-side-effects.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "recipient-age-eligibility",
+      "requirement": "Eligibility can depend on the age of the person receiving the service, which may differ from the buyer.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Set an age restriction for a service",
+          "source_url": "https://help.wellnessliving.com/en/articles/11138200-set-an-age-restriction-for-a-service",
+          "provider": "WellnessLiving",
+          "product_area": "Service age restrictions",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "Services can be limited to clients within an age range, enforced when booking.",
+          "evidence_status": "current"
+        },
+        {
+          "source_type": "operational_evidence",
+          "source_name": "Jalan Spa FAQ",
+          "source_url": "https://www.jalanspa.com/faq",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "A spa publishes age and health-related constraints that apply to the guest receiving a treatment.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.4"],
+        "vectors": [
+          "tests/vectors/flow/bq-flow-recipient-eligibility.json",
+          "tests/vectors/flow/bq-flow-kids-class-recipient-age-gate.json",
+          "tests/vectors/eval/bq-cond-age-threshold.json",
+          "tests/vectors/wire/bq-schema-date-not-after-today.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "prior-service-prerequisite",
+      "requirement": "A service can require that the buyer completed a different service first, and a satisfied prerequisite should not be asked again.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Prerequisite services",
+          "source_url": "https://help.mytime.com/support/solutions/articles/31000175115-prerequisite-services",
+          "provider": "MyTime",
+          "product_area": "Prerequisite services",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "A service can be bookable only after a prerequisite service, such as a consultation, has been completed.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.3", "11.4.4"],
+        "vectors": [
+          "tests/vectors/flow/bq-flow-once-per-buyer-satisfied.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "service-area-eligibility",
+      "requirement": "Services performed at the customer's location can be limited to a service area, which must be checked before capacity is offered.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Service areas in online booking",
+          "source_url": "https://help.housecallpro.com/en/articles/9037360-service-areas-in-online-booking",
+          "provider": "Housecall Pro",
+          "product_area": "Online booking service areas",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "Online booking checks the customer's location against configured service areas before booking proceeds.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.4"],
+        "vectors": [
+          "tests/vectors/flow/bq-flow-service-area.json",
+          "tests/vectors/flow/bq-flow-home-cleaning-configuration.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "service-specific-conditional-questions",
+      "requirement": "Each service can ask its own typed questions, show or require follow-up questions only when earlier answers make them relevant, and present notices and sections in order.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Creating and setting up your booking forms",
+          "source_url": "https://support.wix.com/en/article/wix-bookings-creating-and-setting-up-your-booking-forms",
+          "provider": "Wix",
+          "product_area": "Bookings custom booking forms",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "Booking forms are assigned per service and combine typed fields, rich text, and conditional logic.",
+          "evidence_status": "current"
+        },
+        {
+          "source_type": "interoperability_specification",
+          "source_name": "Model Context Protocol: Elicitation",
+          "source_url": "https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation",
+          "observed_on": "2026-10-30",
+          "last_verified_on": "2026-10-30",
+          "evidence_summary": "Agent clients collect structured user input with a restricted, flat JSON Schema subset and a URL mode for input that must not pass through the client.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.3"],
+        "vectors": [
+          "tests/vectors/eval/bq-cond-allergy-tree.json",
+          "tests/vectors/eval/bq-cond-combinators.json",
+          "tests/vectors/flow/bq-flow-hair-salon-allergy-branch.json",
+          "tests/vectors/wire/bq-schema-section-pages.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "external-document-and-signature-tasks",
+      "requirement": "Some booking requirements (file uploads, signatures) are completed on a Business-hosted surface and are never carried as answers.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Setting up a waiver",
+          "source_url": "https://support.wix.com/en/article/wix-bookings-setting-up-a-waiver-new",
+          "provider": "Wix",
+          "product_area": "Bookings waivers",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "Waivers and signed forms are collected as separate documents tied to the booking.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.3"],
+        "vectors": [
+          "tests/vectors/wire/bq-schema-external-file.json",
+          "tests/vectors/wire/bq-schema-external-signature.json",
+          "tests/vectors/flow/bq-flow-external-task-never-an-answer.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "intake-validity-and-revision",
+      "requirement": "Intake answers can stay valid across bookings for a period, and a later revision of the questions can require fresh answers.",
+      "evidence": [
+        {
+          "source_type": "provider_documentation",
+          "source_name": "Setting up a waiver",
+          "source_url": "https://support.wix.com/en/article/wix-bookings-setting-up-a-waiver-new",
+          "provider": "Wix",
+          "product_area": "Bookings intake and waiver forms",
+          "observed_on": "2026-10-25",
+          "last_verified_on": "2026-10-25",
+          "evidence_summary": "A signed intake or waiver can be reused for later bookings until it expires or the form changes.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.6", "11.4.7"],
+        "vectors": [
+          "tests/vectors/flow/bq-flow-intake-validity.json",
+          "tests/vectors/flow/bq-flow-revision-invalidates-intake.json",
+          "tests/vectors/flow/bq-flow-yoga-health-intake-validity.json"
+        ]
+      }
+    },
+    {
+      "capability_id": "international-phone-answers",
+      "requirement": "Phone answers use one unambiguous international format so any Business can dial or validate them.",
+      "evidence": [
+        {
+          "source_type": "standard",
+          "source_name": "ITU-T E.164: The international public telecommunication numbering plan",
+          "source_url": "https://www.itu.int/rec/T-REC-E.164",
+          "observed_on": "2026-10-30",
+          "last_verified_on": "2026-10-30",
+          "evidence_summary": "Defines the international number format with a country calling code and a maximum of fifteen digits.",
+          "evidence_status": "current"
+        }
+      ],
+      "coverage": {
+        "specification_sections": ["11.4.3"],
+        "vectors": [
+          "tests/vectors/wire/bq-schema-phone.json",
+          "tests/vectors/flow/bq-flow-phone-only-requirement.json"
+        ]
+      }
+    }
+  ]
+}

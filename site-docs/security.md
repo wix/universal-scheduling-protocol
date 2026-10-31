@@ -190,6 +190,7 @@ A platform or agent is a processor of the same data and, unlike the business, of
 | **Cache bounds** | Personal data **MUST NOT** be cached beyond the booking flow that required it. Retain it while managing an active booking; discard it when the booking reaches a terminal status or the buyer's session ends, whichever is later. |
 | **No secondary use** | Personal data from a USP booking **MUST NOT** be used for anything but completing and managing that booking, absent separate buyer consent. |
 | **Onward transfer** | A platform forwarding data to a further party (such as a sub-agent completing the booking) **MUST** limit the forwarded fields to what the receiving operation requires. |
+| **Booking-question answers** | Answers under the [booking questions extension](extensions.md#booking-questions-extension) are personal data under every rule above. Platforms **MUST** redact all answers from logs and **MUST** delete answers to `sensitive` questions as soon as the immediate flow no longer needs them. Businesses **MUST NOT** echo a sensitive answer in `booking_question_state[]`, `messages[]`, eligibility reasons, or diagnostics, nor echo files, signatures, markup, or credentials at all. |
 
 !!! tip "Why redaction matters more than it looks"
 

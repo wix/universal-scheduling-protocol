@@ -168,6 +168,8 @@ The service object represents a bookable offering from a business. Each service 
 | `availability_hint` | AvailabilityHint | No | Approximate availability summary for agent-assisted discovery. |
 | `links` | Array[Link] | No | Typed links to policy and information pages specific to this service. |
 | `localized` | LocalizedFields | No | Per-locale overrides for human-readable text fields. `category_name` overrides the primary `categories[]` entry's `name`. |
+| `booking_question_sets` | Array[BookingQuestionSet] | No | [Booking questions extension](../extensions.md#booking-questions-extension). Every active business-defined question set, at most 20, published before create. Carries semantics only when the extension is negotiated. |
+| `required_buyer_fields` | Array[string] | No | [Booking questions extension](../extensions.md#booking-questions-extension). Core `Buyer` members the service requires although they are not booking questions (for example `phone_number`). |
 
 ### Category rules
 

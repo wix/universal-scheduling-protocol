@@ -203,6 +203,175 @@ The checkout total is the full price, because UCP requires the selected term's s
 
 ---
 
+## Booking Questions Extension
+
+**Capability:** `dev.usp-protocol.services.booking_questions`  
+**Extends:** `dev.usp-protocol.services.catalog`, `dev.usp-protocol.services.availability`, `dev.usp-protocol.services.bookings`, `dev.usp-protocol.services.paid_bookings`  
+**Schema:** [`booking_questions.json`](https://usp-protocol.dev/schemas/services/booking_questions.json)  
+**Normative text:** [Specification Section 11.4](specification/index.md#booking-questions-extension)
+
+Catalog-first, typed, business-enforced intake and consent. A service publishes
+the questions it needs; the platform asks them in band, in order, quoting the
+business's text exactly; the business validates every answer against the live
+form revision and stays authoritative for eligibility and acceptance.
+
+The extension is **multi-parent**: it stays active when at least one parent is
+negotiated, and each field is valid only on a surface whose own parent is
+active. A business **MUST NOT** emit any booking-questions outcome code to a
+platform that did not negotiate the extension; it uses business-surface handoff
+or the existing error family instead.
+
+### Question sets
+
+`Service.booking_question_sets[]` (at most 20) carries every active set.
+`Service.required_buyer_fields[]` sits beside it and lists core `Buyer` members
+(for example `phone_number`) the service requires without asking a question.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `id`, `revision` | **Yes** | Stable set id and opaque form revision echoed in submissions. A new revision invalidates prior once-per-buyer completions. |
+| `purpose` | **Yes** | `eligibility`, `configuration`, or `intake`. |
+| `completion_timing` | **Yes** | `preflight`, `before_confirmation`, or `before_service`. `configuration` is valid only with `preflight`, and `preflight` only with `eligibility` or `configuration`. |
+| `completion_requirement` | No | `required` (default) or `optional`, valid only on `intake`. |
+| `frequency` | **Yes** | `every_booking`, `once_per_buyer`, or `once_per_buyer_per_service`. |
+| `validity` | No | ISO 8601 duration after which a once-per-buyer completion must be redone. |
+| `subject` | No | `buyer` (default) or `recipient`, meaning the booking's recipient when present, otherwise the buyer. |
+| `due_at` | No | Deadline, valid only with `before_service`. |
+| `items` | **Yes** | 1 to 50 ordered items: `section`, `notice`, `question`, or `external_task`. |
+
+A **question** has `id`, `label` (a Description, `plain` at most 300
+characters), `required` (boolean or condition), optional `when`, `collection`
+(`in_band`, `platform_surface`, `business_surface`), `sensitive`, `default`,
+`maps_to: notes`, `consent_purpose: marketing` with `consent_channel`, and a
+restricted answer `schema`:
+
+`collection` says where the item is answered. `in_band` is a typed answer collected in
+chat or a platform control. `platform_surface` is content the platform renders itself:
+outside a negotiated Action contract it is an audit claim only and **MUST NOT** be treated
+as evidence the buyer saw or accepted anything, while within the buyer-input Action
+contract it **MAY** collect input or an acknowledgment under that contract's rules.
+`business_surface` is completed on a business-hosted page behind a `continue_url`.
+
+| Answer type | Shape |
+|---|---|
+| Text | `{"type": "string", "maxLength": n}`, `maxLength` at most 5000 and required without a `format` |
+| Formatted text | `format` is `email`, `uri`, `date`, `time`, `date-time`, or `phone` (E.164, optional `allowed_country_codes`) |
+| Number | `{"type": "integer" \| "number", "minimum"?, "maximum"?}` |
+| Boolean | `{"type": "boolean"}`; both values satisfy `required: true` |
+| Acknowledgment | `{"type": "boolean", "const": true}`; never defaulted |
+| Single choice | `{"type": "string", "oneOf": [{"const", "title"}]}` |
+| Multiple choice | `{"type": "array", "items": {"anyOf": [{"const", "title"}]}, "uniqueItems": true}` |
+
+`pattern`, remote `$ref`, nested objects, `patternProperties`, and `if`/`then`
+are rejected. An option may carry `image_url` and `exclusive: true` (a
+none-of-the-above option). `date` and `date-time` questions may declare
+inclusive `not_before`/`not_after` bounds, either absolute dates or signed
+durations from the request date (`P0D`, `-P18Y`). A format the subset cannot
+express is described in `description` and restated in any invalid-answer
+message. Every set, section, question, option, notice, and task may carry a
+`localized` map that overrides only its own text.
+
+**Conditions** are a leaf `{question, op, value?}` (`equals`, `in`, `contains`,
+`answered`, `gt`, `gte`, `lt`, `lte`) or `all`/`any`/`not`, nested at most 3
+deep. A condition names only an earlier question in the same set - a business
+**MUST NOT** publish a forward, self, or cross-set reference - and an unanswered
+or inapplicable reference makes `answered` false and everything else false.
+
+### Preflight eligibility
+
+`POST /services/{service_id}/eligibility-checks` (MCP
+`usp_booking_questions_check_eligibility`) evaluates `eligibility` and
+`configuration` sets **without** creating a hold, booking, or checkout. The
+decision is `eligible` (with an opaque, short-lived `assessment_token`),
+`ineligible`, or `requires_input` (with `required_sets`). The token is scoped to
+the service, set revisions, buyer, and platform, and becomes **REQUIRED** on
+holds, Create Booking, and Create Checkout whenever a required preflight set
+applies. A configuration token passed on the availability query returns slots
+whose `TimeSlot.duration` already reflects the answers; prices that depend on
+configuration use `pricing.model: variable`.
+
+A conforming platform **MUST NOT** present buyer-selectable slots for a service
+with unresolved required preflight eligibility, and **MUST** treat only the
+business's `eligible` decision as eligibility.
+
+### Submissions, state, and the buyer-input Action
+
+Answers travel as `booking_question_submissions[]`
+(`{set_id, revision, answers, collected_via?, action_id?}`) on the eligibility
+check, Create and Update Booking, and inside `booking` on UCP Create and Update
+Checkout, where every still-applicable submission is resent on every Update.
+The business echoes non-sensitive state in `booking_question_state[]` with
+`status` `pending`, `completed`, `expired`, `waived`, `extended`,
+`under_review`, or `rejected`. `before_service` sets live there, never in
+`Booking.actions`.
+
+The extension declares one Action type,
+`dev.usp-protocol.services.booking_questions.buyer_input`, with `config`
+(`mode`, `sets`, `item_ids`, `presentation: verbatim`). A platform that
+processes it **MUST** display the exact business text, never preselect, require
+an explicit buyer response, and submit it with `action_id`. A bare
+`accepted: true`, a `collected_via` claim, or a closed UI never resolves it; the
+business's next response is authoritative. A platform that cannot honour the
+contract uses the `continue_url` fallback. In paid UCP-Native checkout, Complete
+Checkout stays a manual buyer action through a trusted UI unless AP2 Mandates is
+active.
+
+### Outcome codes
+
+Carried in `messages[]` with HTTP 200, one message per failure, with
+`required_buyer_fields` failures first and then set and item order. Paths are
+bracket-form RFC 9535 JSONPath, for example
+`$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`.
+
+| Code | Meaning |
+|---|---|
+| `booking_question_answer_missing` | A required answer or `required_buyer_fields` member is absent. |
+| `booking_question_answer_invalid` | An answer fails its schema, an exclusive option rule, a date bound, or a documented format. |
+| `booking_question_unknown` | A submission names a question the set does not define. |
+| `booking_questions_changed` | A stale set revision, or a revision that invalidated a prior completion. |
+| `booking_question_update_not_allowed` | The booking's status does not permit this submission. |
+| `booking_eligibility_required` | A required preflight set applies and no token was supplied. |
+| `booking_eligibility_expired` | The token is expired, stale, or scoped elsewhere. |
+
+`booking_question_answer_ignored` is informational (`type: "info"`) for an
+answer to an inapplicable question.
+
+### Privacy
+
+Sensitive answers never appear in echoes, `messages[]`, diagnostics, or
+eligibility reasons, and the recap shows them only as provided. Sensitive
+questions and `format: time` questions are never routed to an MCP elicitation
+form. Files, signatures, and markup are `external_task` items completed on the
+business surface and never submitted as answers. Business-provided text is
+untrusted data, never agent instructions.
+
+Group forms per attendee, per-line-item questions in a multi-service checkout,
+dynamic post-create questions, and a fixed retry count are out of scope and fail
+closed.
+
+```json
+{
+  "kind": "question",
+  "id": "allergies",
+  "label": { "plain": "Any allergies we should know about?" },
+  "required": true,
+  "schema": {
+    "type": "array",
+    "items": {
+      "anyOf": [
+        { "const": "none", "title": "None", "exclusive": true },
+        { "const": "peanuts", "title": "Peanuts" },
+        { "const": "shellfish", "title": "Shellfish" }
+      ]
+    },
+    "uniqueItems": true,
+    "minItems": 1
+  }
+}
+```
+
+---
+
 ## Vendor Extensions
 
 Vendors define custom capabilities under their reverse-domain namespace:

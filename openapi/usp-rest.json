@@ -38,6 +38,10 @@
     {
       "name": "Registry",
       "description": "Discovery registry operations (optional)"
+    },
+    {
+      "name": "Booking Questions",
+      "description": "Booking questions extension operations (dev.usp-protocol.services.booking_questions, Section 11.4)."
     }
   ],
   "components": {
@@ -203,6 +207,30 @@
       },
       "RegistrationRequest": {
         "$ref": "https://usp-protocol.dev/schemas/services/registry.json#/$defs/RegistrationRequest"
+      },
+      "BookingQuestionSet": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionSet"
+      },
+      "BookingQuestionSubmissions": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionSubmissions"
+      },
+      "BookingQuestionState": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionState"
+      },
+      "BookingQuestionAssessmentToken": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionAssessmentToken"
+      },
+      "BookingEligibilityCheckRequest": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingEligibilityCheckRequest"
+      },
+      "BookingEligibilityCheckResult": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingEligibilityCheckResult"
+      },
+      "BookingQuestionsSummary": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BookingQuestionsSummary"
+      },
+      "BuyerInputActionConfig": {
+        "$ref": "https://usp-protocol.dev/schemas/services/booking_questions.json#/$defs/BuyerInputActionConfig"
       }
     },
     "responses": {
@@ -1011,6 +1039,113 @@
           }
         },
         "security": []
+      }
+    },
+    "/services/{service_id}/eligibility-checks": {
+      "post": {
+        "tags": [
+          "Booking Questions"
+        ],
+        "summary": "Check Booking Eligibility",
+        "description": "Booking questions extension (dev.usp-protocol.services.booking_questions, Section 11.4.4). Evaluates every applicable eligibility and configuration set for the addressed service, together with business-known buyer prerequisites, without creating a hold, booking, checkout, or any other capacity-consuming resource. Returns an explicit decision; an eligible decision carries a short-lived opaque assessment token required on later hold, booking, and checkout creation when a required preflight set applies. A decision is a business result carried with HTTP 200, not a protocol error. Privileged operation (Section 10.1.6, platform-level).",
+        "operationId": "checkBookingEligibility",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/USP-Agent"
+          },
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingEligibilityCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Eligibility decision. Buyer-safe reasons, corrections, and alternatives travel in messages[] and never echo sensitive answers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/USPEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "eligibility"
+                      ],
+                      "properties": {
+                        "eligibility": {
+                          "$ref": "#/components/schemas/BookingEligibilityCheckResult"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Message"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/ServiceNotFound"
+          },
+          "424": {
+            "$ref": "#/components/responses/FailedDependency"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "HttpMessageSignature": []
+          },
+          {
+            "PlatformKeyPop": []
+          },
+          {
+            "OAuth2Bearer": []
+          },
+          {
+            "ApiKey": []
+          },
+          {
+            "MutualTLS": []
+          }
+        ]
       }
     },
     "/services/lookup": {
@@ -1916,6 +2051,14 @@
                   "limit": {
                     "type": "integer",
                     "description": "Requested page size. Businesses MAY apply a lower or upper cap."
+                  },
+                  "booking_question_assessment_token": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+                      }
+                    ],
+                    "description": "Booking questions extension (Section 11.4). Assessment token from an eligible preflight check. When the service has an applicable configuration set, the business returns each TimeSlot.duration already adjusted for the configuration the token records."
                   }
                 }
               }
@@ -2080,6 +2223,14 @@
                     "type": "integer",
                     "default": 1,
                     "description": "Number of spots to hold. For group/reservation types."
+                  },
+                  "booking_question_assessment_token": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+                      }
+                    ],
+                    "description": "Booking questions extension (Section 11.4). REQUIRED when the service has an applicable required preflight set. The business revalidates its scope, expiry, and set revisions before reserving capacity."
                   }
                 }
               }
@@ -2345,6 +2496,22 @@
                       }
                     ],
                     "description": "Applicable when checkout_systems: redirect is in use. The platform SHOULD always include this field on the redirect checkout path — without it, the platform has no way to predict where the buyer will land after payment or cancellation."
+                  },
+                  "booking_question_submissions": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/BookingQuestionSubmissions"
+                      }
+                    ],
+                    "description": "Booking questions extension (Section 11.4). Answers for each applicable set at its live revision."
+                  },
+                  "booking_question_assessment_token": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/BookingQuestionAssessmentToken"
+                      }
+                    ],
+                    "description": "Booking questions extension (Section 11.4). REQUIRED when the service has an applicable required preflight set."
                   }
                 }
               }
@@ -2575,6 +2742,14 @@
                   },
                   "notes": {
                     "type": "string"
+                  },
+                  "booking_question_submissions": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/BookingQuestionSubmissions"
+                      }
+                    ],
+                    "description": "Booking questions extension (Section 11.4). Submissions accepted per the update-permission rules: any otherwise-valid set while pending or requires_action; before_service sets while confirmed; none once in_progress, completed, no_show, or canceled (booking_question_update_not_allowed). Include action_id when processing an outstanding buyer-input Action."
                   }
                 }
               }

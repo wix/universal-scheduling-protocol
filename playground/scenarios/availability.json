@@ -15,7 +15,11 @@
         "usp": {
           "version": "2026-08-20",
           "capabilities": {
-            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
           }
         },
         "applied_date_bounds_timezone": "America/Chicago",
@@ -29,10 +33,21 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              },
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -46,9 +61,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -62,9 +84,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -78,10 +107,21 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              },
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -95,9 +135,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -111,10 +158,21 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              },
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 14000,
               "currency": "USD",
@@ -129,9 +187,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 14000,
               "currency": "USD",
@@ -146,9 +211,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -162,10 +234,21 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" },
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              },
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -179,9 +262,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -207,7 +297,11 @@
         "usp": {
           "version": "2026-08-20",
           "capabilities": {
-            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
           }
         },
         "applied_date_bounds_timezone": "America/Chicago",
@@ -221,9 +315,16 @@
             "duration": "PT60M",
             "state": "limited",
             "resources": [
-              { "id": "staff_mike_002", "type": "staff", "name": "Mike Chen" }
+              {
+                "id": "staff_mike_002",
+                "type": "staff",
+                "name": "Mike Chen"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -237,9 +338,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -253,7 +361,10 @@
             "duration": "PT60M",
             "state": "waitlist",
             "resources": [],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 14000,
               "currency": "USD",
@@ -281,7 +392,11 @@
         "usp": {
           "version": "2026-08-20",
           "capabilities": {
-            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
           }
         },
         "applied_date_bounds_timezone": "America/Chicago",
@@ -295,9 +410,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -311,9 +433,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -327,9 +456,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -343,9 +479,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -359,9 +502,16 @@
             "duration": "PT60M",
             "state": "available",
             "resources": [
-              { "id": "staff_sarah_001", "type": "staff", "name": "Sarah Johnson" }
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
             ],
-            "location": { "id": "loc_main_001", "name": "Downtown Studio" },
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
             "pricing": {
               "amount": 12000,
               "currency": "USD"
@@ -387,7 +537,11 @@
         "usp": {
           "version": "2026-08-20",
           "capabilities": {
-            "dev.usp-protocol.services.availability": [{ "version": "2026-08-20" }]
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
           }
         },
         "applied_date_bounds_timezone": "America/Chicago",
@@ -417,6 +571,182 @@
           {
             "field": "end_date",
             "message": "Date range must not exceed 31 days. Requested range: 92 days."
+          }
+        ]
+      }
+    }
+  },
+  "bq_configuration_duration": {
+    "description": "Booking questions: the configuration assessment token from the eligibility check changes the slot durations the business returns. Hair length \"long\" makes the colour appointment PT3H30M instead of the PT2H baseline, and the price stays model: variable because the final amount depends on the same answer",
+    "request": {
+      "method": "POST",
+      "path": "/availability/query",
+      "body": {
+        "service_id": "svc_color_001",
+        "start_date": "2026-03-16",
+        "end_date": "2026-03-16",
+        "party_size": 1,
+        "booking_question_assessment_token": "bqat_7Hc2kQ"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-08-20",
+          "capabilities": {
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ],
+            "dev.usp-protocol.services.booking_questions": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
+          }
+        },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
+        "slots": [
+          {
+            "id": "slot_color_0316_0900",
+            "service_id": "svc_color_001",
+            "start": "2026-03-16T09:00:00-05:00",
+            "end": "2026-03-16T12:30:00-05:00",
+            "duration": "PT3H30M",
+            "state": "available",
+            "resources": [
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
+            ],
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
+            "pricing": {
+              "model": "variable",
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_color_0316_1300",
+            "service_id": "svc_color_001",
+            "start": "2026-03-16T13:00:00-05:00",
+            "end": "2026-03-16T16:30:00-05:00",
+            "duration": "PT3H30M",
+            "state": "available",
+            "resources": [
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
+            ],
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
+            "pricing": {
+              "model": "variable",
+              "currency": "USD"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "bq_configuration_no_token": {
+    "description": "Booking questions: the same availability query without the assessment token. The business returns its unconfigured PT2H baseline and marks the slots not buyer-selectable, because a service with a required preflight set may not be booked until the business returns eligible",
+    "request": {
+      "method": "POST",
+      "path": "/availability/query",
+      "body": {
+        "service_id": "svc_color_001",
+        "start_date": "2026-03-16",
+        "end_date": "2026-03-16",
+        "party_size": 1
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "usp": {
+          "version": "2026-08-20",
+          "capabilities": {
+            "dev.usp-protocol.services.availability": [
+              {
+                "version": "2026-08-20"
+              }
+            ],
+            "dev.usp-protocol.services.booking_questions": [
+              {
+                "version": "2026-08-20"
+              }
+            ]
+          }
+        },
+        "applied_date_bounds_timezone": "America/Chicago",
+        "business_timezone": "America/Chicago",
+        "slots": [
+          {
+            "id": "slot_color_0316_0900",
+            "service_id": "svc_color_001",
+            "start": "2026-03-16T09:00:00-05:00",
+            "end": "2026-03-16T11:00:00-05:00",
+            "duration": "PT2H",
+            "state": "available",
+            "resources": [
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
+            ],
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
+            "pricing": {
+              "model": "variable",
+              "currency": "USD"
+            }
+          },
+          {
+            "id": "slot_color_0316_1300",
+            "service_id": "svc_color_001",
+            "start": "2026-03-16T13:00:00-05:00",
+            "end": "2026-03-16T15:00:00-05:00",
+            "duration": "PT2H",
+            "state": "available",
+            "resources": [
+              {
+                "id": "staff_sarah_001",
+                "type": "staff",
+                "name": "Sarah Johnson"
+              }
+            ],
+            "location": {
+              "id": "loc_main_001",
+              "name": "Downtown Studio"
+            },
+            "pricing": {
+              "model": "variable",
+              "currency": "USD"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "type": "info",
+            "code": "booking_eligibility_required",
+            "content": "Answer the colour consultation questions before choosing a time; durations shown are unconfigured.",
+            "severity": "recoverable",
+            "path": "$.booking_question_assessment_token"
           }
         ]
       }
