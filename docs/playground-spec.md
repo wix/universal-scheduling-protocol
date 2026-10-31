@@ -434,11 +434,13 @@ not published as a site page.
 │                                                          │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
-│  3. Browse Services            ┌─ Configuration ──────┐ │
-│  Query the catalog to find     │ Scenario             │ │
-│  bookable services.            │ [ Happy Path      ▾] │ │
-│                                │ [   Run Request    ] │ │
-│                                └──────────────────────┘ │
+│  3. Browse Services                                      │
+│  Query the catalog to find bookable services.            │
+│                                                          │
+│  ┌─ Configuration ─────────────────────────────────────┐ │
+│  │ Scenario                                            │ │
+│  │ [ Happy Path          ▾]           [ Run Request ]  │ │
+│  └─────────────────────────────────────────────────────┘ │
 │                                                          │
 │  ┌─ POST /services/list ───┐  ┌─ Response ────────────┐ │
 │  │ POST /services/list      │  │ 200 OK               │ │
@@ -465,11 +467,14 @@ not published as a site page.
 └──────────────────────────────────────────────────────────┘
 ```
 
-The configuration panel sits beside the step title and description rather than
-in a column of its own, so the request and response panes get the full step
-width. The panes are a `repeat(auto-fit, minmax(min(100%, 520px), 1fr))` grid:
-they sit side by side while each column can still hold a readable line of JSON,
-and stack — request above response — on portrait tablets and phones.
+Each step stacks: title and description, then a full-width configuration bar,
+then the request and response panes. The configuration panel never takes a
+column away from the panes — its controls run across the bar instead, so it
+costs one row of height rather than a third of the step's width.
+
+The panes are a `repeat(auto-fit, minmax(min(100%, 520px), 1fr))` grid: they sit
+side by side while each column can still hold a readable line of JSON, and stack
+— request above response — on portrait tablets and phones.
 
 ### Color & Style
 

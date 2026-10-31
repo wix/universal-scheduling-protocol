@@ -1,5 +1,14 @@
 # Change Log
 
+## 31/10/26 at 15:46:10 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Stacked the playground's configuration panel full width above the request and response panes instead of placing it beside the step title. Sitting next to the title left a wide empty band to its left on every step and still constrained its own width, so the panel was both tall and cramped while the space went unused
+- Laid the configuration controls out across the bar - `h3` on its own row, then field, description and run button in a line - and wrapped each `label` + `select` pair in `.pg-config-field`. A full-width panel with stacked controls would have cost a column of height for no gain; the row costs one. Below 560px the field and the button go full width again, which is what a phone needs
+- Let `.pg-header` wrap. Between the 768px and 1024px rules the mode toggle, the `white-space: nowrap` title and the four transport buttons did not fit on one line, so the page overflowed horizontally - 829px of content in an 820px viewport. Pre-existing, found while checking the new layout at portrait widths
+- Updated the layout diagram and the accompanying note in `docs/playground-spec.md` to match the stacked arrangement
+
+---
+
 ## 31/10/26 at 15:29:30 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Moved the playground's configuration panel out of its own column and up beside the step title and description. It was taking a fixed 320px plus a gap off the top of every step, so the request and response panes split what was left and each ended up too narrow to show a request line or a JSON value without horizontal scrolling. On a 1440px viewport each pane went from roughly 473px to 650px
