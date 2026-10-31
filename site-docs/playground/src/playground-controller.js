@@ -56,7 +56,7 @@ function loadScenario(file, key, cb) {
 }
 
 var currentStep = 'discovery';
-var currentMode = 'standalone';
+var currentMode = 'ucp-native';
 var currentTransport = 'rest';
 
 var stepFiles = {

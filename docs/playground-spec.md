@@ -17,22 +17,31 @@ The USP Playground is a browser-based interactive simulator that walks users thr
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│  MkDocs Page (playground.md)                    │
-│  ┌───────────────────────────────────────────┐  │
-│  │  playground.js  (client-side engine)       │  │
-│  │  ┌─────────┐ ┌──────────┐ ┌────────────┐ │  │
-│  │  │ Stepper │ │  Mock    │ │  Schema    │ │  │
-│  │  │   UI    │ │  Engine  │ │  Validator │ │  │
-│  │  └─────────┘ └──────────┘ └────────────┘ │  │
-│  │  ┌─────────────────┐ ┌─────────────────┐ │  │
-│  │  │ Payload Editor  │ │ Response Viewer │ │  │
-│  │  └─────────────────┘ └─────────────────┘ │  │
-│  └───────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────┐  │
-│  │  scenarios/*.json  (mock data per step)    │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  overrides/playground.html  (MkDocs theme override) │
+│  selected by `template: playground.html` in         │
+│  site-docs/playground/index.md                      │
+│                                                     │
+│  Step panes and the scenario <select> elements are  │
+│  STATIC MARKUP in this template. A scenario with no │
+│  <option> here cannot be reached, however complete  │
+│  its fixture is.                                    │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  playground-controller.js  (client engine)    │  │
+│  │    stepFiles: step -> scenarios/<file>.json   │  │
+│  │    loadScenario(): fetch + look up the key    │  │
+│  │  ┌─────────────────┐ ┌─────────────────────┐  │  │
+│  │  │ code-editor.js  │ │transport-formatter. │  │  │
+│  │  │ (highlighting)  │ │js (REST->MCP/A2A..) │  │  │
+│  │  └─────────────────┘ └─────────────────────┘  │  │
+│  └───────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  scenarios/*.json  (mock data per step)       │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+
+`tools/usp_check.py authority` enforces that every scenario key is offered by
+the matching select, so a fixture can no longer ship unreachable.
 ```
 
 ### Components
@@ -353,13 +362,13 @@ Shows an iframe embed code and a simulated embedded scheduling widget preview.
 
 ## Mock Business Data
 
-All mock data lives in `playground/scenarios/` as JSON files.
+All mock data lives in `site-docs/playground/scenarios/` as JSON files.
 
 ### Directory Structure
 
 ```
-playground/
-├── SPEC.md                    # This file
+site-docs/playground/
+├── index.md                            # Page stub; `template: playground.html` selects the override
 ├── scenarios/
 │   ├── business-profile.json           # Step 1: Business profiles (standard, full, minimal)
 │   ├── platform-profile.json           # Step 2: Platform profiles
@@ -372,15 +381,20 @@ playground/
 │   ├── webhooks.json                   # Step 8e: Webhook event payloads
 │   └── waitlist.json                   # Bonus: Waitlist extension responses
 ├── src/
-│   ├── playground.js                   # Main engine: stepper, state machine, mock routing
-│   ├── schema-validator.js             # Ajv wrapper loading USP schemas
+│   ├── playground-controller.js        # The engine the page loads
 │   ├── transport-formatter.js          # Converts REST payloads to MCP/A2A/ESP formats
-│   ├── code-editor.js                  # Editable request pane (Prism.js or Monaco)
-│   └── response-viewer.js             # Response display with status badge
-├── styles/
-│   └── playground.css                  # Playground-specific styles
-└── index.md                            # MkDocs page entry point
+│   └── code-editor.js                  # JSON highlighting for the request/response panes
+└── styles/
+    └── playground.css                  # Playground-specific styles
 ```
+
+This is the only playground tree. A top-level `playground/` directory used to
+hold a second copy of the scenarios, styles and `src/`, kept byte-identical by
+`usp_check.py`; nothing built or served it, and editing that copy is how eight
+booking-questions scenarios came to be registered in a file nothing renders.
+The page itself is `overrides/playground.html`, not an `index.md` here. This
+spec lives under `docs/` because `docs/` is not the MkDocs `docs_dir`, so it is
+not published as a site page.
 
 ### Mock Business: "Downtown Wellness Spa"
 
@@ -511,11 +525,11 @@ The playground is a single MkDocs page at `/playground/` with:
 ```yaml
 # mkdocs.yml addition
 nav:
-  - Playground: playground/index.md
+  - Playground: playground/index.md   # relative to docs_dir: site-docs
 ```
 
 ```markdown
-# playground/index.md
+# site-docs/playground/index.md
 ---
 template: playground.html
 title: Playground

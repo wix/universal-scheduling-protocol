@@ -1,5 +1,38 @@
 # Change Log
 
+## 31/10/26 at 13:02:28 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Deleted the top-level `playground/` tree, leaving `site-docs/playground/` as the single source. Nothing built or served the duplicate: `mkdocs.yml` sets `docs_dir: site-docs`, the page is the `overrides/playground.html` theme override, and after the engine removal the copy had no entry point at all. It survived only as the source half of a byte-identical mirror check, which is why editing the wrong copy felt like editing the playground and let eight booking-questions scenarios ship unreachable
+- Moved the playground design spec to `docs/playground-spec.md`. `docs/` is not the MkDocs `docs_dir`, so the spec cannot publish as a stray site page; keeping it under `site-docs/` would have required an `exclude_docs` rule that a later edit could silently drop. Updated its paths, which still described the deleted tree
+- Retargeted every checker consumer of the deleted tree: dropped the two mirror loops and the `playground/scenarios/*.json` parse glob, and repointed the reachability check and the `availability_hint` fixture check at `site-docs/`. The `availability_hint` check was guarded by `if playground.is_file()`, so removing the tree would have silently disabled it; it now fails loudly when the fixture is missing, because a check that quietly stops checking is worse than no check
+- Made every remaining unreachable scenario selectable and emptied `PLAYGROUND_UNREACHABLE_SCENARIOS`. Added options for `multi_taxonomy_categories`, `release_hold`, `cancel_with_fee`, `reschedule_limit_reached`, and the three unoffered webhook fixtures (`booking_rescheduled`, `booking_completed`, `booking_reminder`). All four non-webhook cases carry their own `request` block, which `stepConfigFromScenario` prefers over the manage fallback, and any `booking_*` key routes to `webhooks.json` through `manageOps`, so no controller change was needed
+- Taught the reachability check that the manage select draws from two fixtures (`manage.json` and `webhooks.json`) rather than exempting its `booking_*` options from the reverse direction. The reverse check now catches a typo'd or stale `<option>` that no fixture defines, which the exemption had masked. Verified both directions by mutation
+- `waitlist.json` stays unreachable and is documented as such: the template has no waitlist step, so there is no select to add an option to. Surfacing it is a UI change, not a one-line fix
+
+---
+
+## 31/10/26 at 12:51:02 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Deleted `playground.js` and `response-viewer.js` from both playground trees. `playground.js` was a second, unreferenced 49 KB engine: no HTML loaded it, no module imported it, and the published page loads only `playground-controller.js`. It still shipped to the site as dead weight, and because `usp_check.py` compared its protocol identifiers across the two trees, editing it felt like editing the playground. That is how eight booking-questions scenarios were registered in a file nothing renders. `response-viewer.js` was imported only by `playground.js` and went with it
+- Added a playground reachability check to `usp_check.py authority`: every key in `playground/scenarios/*.json` must be offered by the matching `pg-<step>-scenario` select in `overrides/playground.html`, and the template must not offer a key its fixture does not define. A fixture with no option deploys and is fetchable over HTTP while nothing in the UI can select it, which no other check in the suite could see. The failure message names the exact option to add. The negotiation step is exempt because `negotiationKeys` maps its option values onto different fixture keys, and the manage step's `booking_*` options are served from `webhooks.json` through `manageOps`
+- Recorded four pre-existing unreachable scenarios (`services:multi_taxonomy_categories`, `holds:release_hold`, `manage:cancel_with_fee`, `manage:reschedule_limit_reached`) in an explicit `PLAYGROUND_UNREACHABLE_SCENARIOS` allowance so the new check passes on today's tree while still failing for anything added from now on. The set is documented as debt to shrink, not a design to extend
+- Replaced the playground.js identifier comparison with a byte-exact mirror check over every file in `playground/src/`. The weaker check had missed that `transport-formatter.js` had drifted: the served `site-docs/` copy carried MCP mappings for `GET /.well-known/ucp` and `GET /services`, an A2A mapping, and query-string handling that the `playground/` copy lacked. Synced the stale copy from the served one
+- Rewrote the architecture diagram and file tree in `playground/SPEC.md`, which still described `playground.js` as the main engine and listed a `schema-validator.js` that was never written. It now describes the override template, the controller, and the static-markup constraint on scenario options
+
+---
+
+## 31/10/26 at 12:42:46 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made UCP-Native the playground's default mode instead of Standalone, so the page opens on the deployment mode the booking-questions and paid-checkout flows are written against. Moved `pg-toggle-active` to the UCP-Native button, changed `currentMode` in `playground-controller.js`, and updated the discovery step's static `/.well-known/usp` path to `/.well-known/ucp` so the markup matches the default before the controller's first render
+
+---
+
+## 31/10/26 at 12:41:17 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Added the eight booking-questions scenarios to the scenario dropdowns in `overrides/playground.html`, so they are reachable from the published playground at all. The published page is rendered from this MkDocs theme override (`template: playground.html`) driven by `playground-controller.js`, and its `<option>` elements are static markup. The booking-questions change registered its scenarios in `playground/src/playground.js` instead, which builds its options dynamically but is not the implementation the site serves, so the scenario JSON was deployed and fetchable while nothing in the UI could select it. Five scenarios shipped unreachable in the original extension commit and three more in its follow-up. No controller change was needed: `loadScenario` fetches `scenarios/<step file>.json` and looks up the selected key, so adding the options is sufficient
+
+---
+
 ## 31/10/26 at 12:25:09 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Resolved a contradiction between the Section 5.1.1 transition table and the new Section 5.3.3 booking-question update table. Both mandated a different outcome code for an Update Booking call on `completed`, `no_show`, or `canceled`: the transition table said `invalid_transition`, the question table said `booking_question_update_not_allowed`. The question table now splits `in_progress` (call accepted, submission rejected) from the three terminal statuses (the call-level `invalid_transition` governs and the question code is not also returned), and the 5.1.1 note states the precedence. Left unresolved, a business had two MUSTs and no way to satisfy both
