@@ -1,5 +1,16 @@
 # Change Log
 
+## 31/10/26 at 13:02:28 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Deleted the top-level `playground/` tree, leaving `site-docs/playground/` as the single source. Nothing built or served the duplicate: `mkdocs.yml` sets `docs_dir: site-docs`, the page is the `overrides/playground.html` theme override, and after the engine removal the copy had no entry point at all. It survived only as the source half of a byte-identical mirror check, which is why editing the wrong copy felt like editing the playground and let eight booking-questions scenarios ship unreachable
+- Moved the playground design spec to `docs/playground-spec.md`. `docs/` is not the MkDocs `docs_dir`, so the spec cannot publish as a stray site page; keeping it under `site-docs/` would have required an `exclude_docs` rule that a later edit could silently drop. Updated its paths, which still described the deleted tree
+- Retargeted every checker consumer of the deleted tree: dropped the two mirror loops and the `playground/scenarios/*.json` parse glob, and repointed the reachability check and the `availability_hint` fixture check at `site-docs/`. The `availability_hint` check was guarded by `if playground.is_file()`, so removing the tree would have silently disabled it; it now fails loudly when the fixture is missing, because a check that quietly stops checking is worse than no check
+- Made every remaining unreachable scenario selectable and emptied `PLAYGROUND_UNREACHABLE_SCENARIOS`. Added options for `multi_taxonomy_categories`, `release_hold`, `cancel_with_fee`, `reschedule_limit_reached`, and the three unoffered webhook fixtures (`booking_rescheduled`, `booking_completed`, `booking_reminder`). All four non-webhook cases carry their own `request` block, which `stepConfigFromScenario` prefers over the manage fallback, and any `booking_*` key routes to `webhooks.json` through `manageOps`, so no controller change was needed
+- Taught the reachability check that the manage select draws from two fixtures (`manage.json` and `webhooks.json`) rather than exempting its `booking_*` options from the reverse direction. The reverse check now catches a typo'd or stale `<option>` that no fixture defines, which the exemption had masked. Verified both directions by mutation
+- `waitlist.json` stays unreachable and is documented as such: the template has no waitlist step, so there is no select to add an option to. Surfacing it is a UI change, not a one-line fix
+
+---
+
 ## 31/10/26 at 12:51:02 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Deleted `playground.js` and `response-viewer.js` from both playground trees. `playground.js` was a second, unreferenced 49 KB engine: no HTML loaded it, no module imported it, and the published page loads only `playground-controller.js`. It still shipped to the site as dead weight, and because `usp_check.py` compared its protocol identifiers across the two trees, editing it felt like editing the playground. That is how eight booking-questions scenarios were registered in a file nothing renders. `response-viewer.js` was imported only by `playground.js` and went with it

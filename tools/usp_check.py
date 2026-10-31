@@ -26,7 +26,8 @@ Five subcommands, each useful on its own:
             expanded cases of one compose vector.
 
   authority Enforce the owned origin and capability namespace, canonical URL
-            layout, published artifact coverage, playground mirrors, problem
+            layout, published artifact coverage, playground scenario
+            reachability, problem
             pages, and stale-identifier absence.
 
   coherence Catch the three drifts that read as healthy prose: a field table
@@ -74,7 +75,6 @@ PARSE_GLOBS = [
     "openrpc/*.json",
     "docs/*.json",
     "docs/requirement-evidence/*.json",
-    "playground/scenarios/*.json",
     "site-docs/playground/scenarios/*.json",
 ]
 
@@ -1432,8 +1432,11 @@ def check_availability_ranking(findings: Findings) -> None:
     except ValueError:
         pass
 
-    playground = REPO / "playground" / "scenarios" / "services.json"
-    if playground.is_file():
+    playground = (REPO / "site-docs" / "playground" / "scenarios"
+                  / "services.json")
+    if not playground.is_file():
+        findings.fail("AVAIL:playground", f"{rel(playground)} is missing")
+    else:
         services = json.loads(playground.read_text())["happy_path"]["response"]["body"]["services"]
         hints = 0
         for svc in services:
@@ -1533,26 +1536,26 @@ def published_path(uri: str) -> Path:
 # "partial-match", "incompatible") are mapped to platform-profile keys by
 # `negotiationKeys` in playground-controller.js, so they never match directly.
 PLAYGROUND_STEP_FILES = {
-    "discovery": "business-profile",
-    "browse": "services",
-    "availability": "availability",
-    "hold": "holds",
-    "book": "bookings",
-    "payment": "payment",
-    "manage": "manage",
+    "discovery": ("business-profile",),
+    "browse": ("services",),
+    "availability": ("availability",),
+    "hold": ("holds",),
+    "book": ("bookings",),
+    "payment": ("payment",),
+    # The manage select draws from both files: playground-controller.js routes
+    # any `booking_*` key to webhooks.json through manageOps.
+    "manage": ("manage", "webhooks"),
 }
 
-# Authored scenarios that no dropdown currently offers. Each entry is debt, not
-# a design: the fixture exists and is served but cannot be run from the page.
-# Shrink this set by adding the matching <option>; never grow it to silence the
-# check, which exists because eight booking-questions scenarios shipped
-# unreachable for exactly this reason.
-PLAYGROUND_UNREACHABLE_SCENARIOS = {
-    ("services", "multi_taxonomy_categories"),
-    ("holds", "release_hold"),
-    ("manage", "cancel_with_fee"),
-    ("manage", "reschedule_limit_reached"),
-}
+# Authored scenarios that no dropdown offers. Each entry would be debt, not a
+# design: the fixture exists and is served but cannot be run from the page.
+# This set is deliberately EMPTY. Add the matching <option> instead of adding
+# an entry here, because eight booking-questions scenarios shipped unreachable
+# for exactly this reason.
+#
+# waitlist.json is not covered: the template has no waitlist step at all, so
+# there is no select to add an option to. Adding that step is a UI change.
+PLAYGROUND_UNREACHABLE_SCENARIOS: set[tuple[str, str]] = set()
 
 
 def check_playground_reachability(findings: Findings) -> None:
@@ -1571,33 +1574,36 @@ def check_playground_reachability(findings: Findings) -> None:
     markup = template.read_text()
     selects = dict(re.findall(
         r'id="pg-([a-z]+)-scenario"(.*?)</select>', markup, re.S))
-    for step, file_name in sorted(PLAYGROUND_STEP_FILES.items()):
+    for step, file_names in sorted(PLAYGROUND_STEP_FILES.items()):
         block = selects.get(step)
         if block is None:
             findings.fail(f"PLAYGROUND:{step}",
                           f"no pg-{step}-scenario select in the template")
             continue
         offered = set(re.findall(r'<option value="([^"]+)"', block))
-        fixture = REPO / "playground" / "scenarios" / f"{file_name}.json"
-        try:
-            keys = set(json.loads(fixture.read_text()))
-        except (OSError, json.JSONDecodeError) as exc:
-            findings.fail(f"PLAYGROUND:{step}", f"cannot read {rel(fixture)}: {exc}")
-            continue
-        for key in sorted(keys - offered):
-            if (file_name, key) in PLAYGROUND_UNREACHABLE_SCENARIOS:
+        defined: set[str] = set()
+        for file_name in file_names:
+            fixture = (REPO / "site-docs" / "playground" / "scenarios"
+                       / f"{file_name}.json")
+            try:
+                keys = set(json.loads(fixture.read_text()))
+            except (OSError, json.JSONDecodeError) as exc:
+                findings.fail(f"PLAYGROUND:{step}",
+                              f"cannot read {rel(fixture)}: {exc}")
                 continue
+            defined |= keys
+            for key in sorted(keys - offered):
+                if (file_name, key) in PLAYGROUND_UNREACHABLE_SCENARIOS:
+                    continue
+                findings.fail(
+                    f"PLAYGROUND:{file_name}:{key}",
+                    f"scenario is not selectable: add <option value=\"{key}\"> "
+                    f"to the pg-{step}-scenario select in "
+                    "overrides/playground.html")
+        for key in sorted(offered - defined):
             findings.fail(
-                f"PLAYGROUND:{file_name}:{key}",
-                f"scenario is not selectable: add <option value=\"{key}\"> to "
-                f"the pg-{step}-scenario select in overrides/playground.html")
-        for key in sorted(offered - keys):
-            # The manage step also serves webhook fixtures through manageOps.
-            if file_name == "manage" and key.startswith("booking_"):
-                continue
-            findings.fail(
-                f"PLAYGROUND:{file_name}:{key}",
-                f"template offers a scenario {rel(fixture)} does not define")
+                f"PLAYGROUND:{step}:{key}",
+                f"template offers {key!r}, which no fixture for this step defines")
 
 
 def check_authority(findings: Findings) -> None:
@@ -1752,14 +1758,6 @@ def check_authority(findings: Findings) -> None:
         if not (SITE / "errors" / slug / "index.html").is_file():
             findings.fail(f"PROBLEM:{uri}", "built site has no canonical problem page")
 
-    for source in sorted((REPO / "playground" / "scenarios").glob("*.json")):
-        mirror = REPO / "site-docs" / "playground" / "scenarios" / source.name
-        if not mirror.is_file() or source.read_bytes() != mirror.read_bytes():
-            findings.fail(f"MIRROR:{rel(source)}", "site-docs scenario mirror differs")
-    for source in sorted((REPO / "playground" / "src").glob("*.js")):
-        mirror = REPO / "site-docs" / "playground" / "src" / source.name
-        if not mirror.is_file() or source.read_bytes() != mirror.read_bytes():
-            findings.fail(f"MIRROR:{rel(source)}", "site-docs runtime mirror differs")
     check_playground_reachability(findings)
 
     registry = (REPO / "site-docs" / "namespace.md").read_text()
