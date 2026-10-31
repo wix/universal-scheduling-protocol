@@ -1,5 +1,11 @@
 # Change Log
 
+## 31/10/26 at 12:42:46 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Made UCP-Native the playground's default mode instead of Standalone, so the page opens on the deployment mode the booking-questions and paid-checkout flows are written against. Moved `pg-toggle-active` to the UCP-Native button, changed `currentMode` in `playground-controller.js`, and updated the discovery step's static `/.well-known/usp` path to `/.well-known/ucp` so the markup matches the default before the controller's first render
+
+---
+
 ## 31/10/26 at 12:41:17 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Added the eight booking-questions scenarios to the scenario dropdowns in `overrides/playground.html`, so they are reachable from the published playground at all. The published page is rendered from this MkDocs theme override (`template: playground.html`) driven by `playground-controller.js`, and its `<option>` elements are static markup. The booking-questions change registered its scenarios in `playground/src/playground.js` instead, which builds its options dynamically but is not the implementation the site serves, so the scenario JSON was deployed and fetchable while nothing in the UI could select it. Five scenarios shipped unreachable in the original extension commit and three more in its follow-up. No controller change was needed: `loadScenario` fetches `scenarios/<step file>.json` and looks up the selected key, so adding the options is sufficient
