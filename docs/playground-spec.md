@@ -105,13 +105,14 @@ The playground presents **8 steps** that mirror the complete USP scheduling life
 **What the user learns**: The negotiation algorithm — intersection, version selection, extension pruning.
 
 **Display**:
-- Side-by-side: Platform capabilities vs Business capabilities
-- Result: Intersection with annotations showing what was pruned and why
+- Side-by-side: Business capabilities vs the negotiated intersection, so a
+  capability the platform does not support visibly drops out
 - Highlight: Orphaned extensions (e.g., waitlist without bookings)
 
 **Scenarios**:
 - **Full match** — Platform and business support identical capabilities
-- **Partial match** — Business lacks holds; negotiation removes hold-dependent flows
+- **Partial match** — The business publishes the waitlist extension and the
+  platform does not, so waitlist drops out of the intersection
 - **Version mismatch** — Business supports older version; negotiation selects compatible version
 - **Incompatible** — Empty intersection triggers `capabilities_incompatible` error
 

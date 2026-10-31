@@ -71,11 +71,24 @@ var stepFiles = {
   waitlist: 'waitlist'
 };
 
-var negotiationKeys = {
-  'full-match': 'standard',
-  'partial-match': 'full',
-  'incompatible': 'standard'
+// Platform profile fetched for each negotiation scenario, keyed by the
+// business profile in play. 'full-match' tracks the business profile so the
+// intersection really is complete; 'partial-match' pairs the full business
+// profile with the waitlist-less platform so one capability visibly drops out
+// of the intersection. Every value here must be a key in
+// scenarios/platform-profile.json - usp_check.py's playground check enforces
+// that, in both directions.
+var negotiationPlatformKeys = {
+  'full-match':    { standard: 'standard', full: 'advanced', minimal: 'standard' },
+  'partial-match': { standard: 'standard', full: 'standard', minimal: 'standard' },
+  'incompatible':  { standard: 'standard', full: 'standard', minimal: 'standard' }
 };
+
+function negotiationPlatformKey(scenarioKey, businessKey) {
+  var byBusiness = negotiationPlatformKeys[scenarioKey];
+  if (!byBusiness) return 'standard';
+  return byBusiness[businessKey] || 'standard';
+}
 
 var manageOps = {
   view_booking: { method: 'GET', path: '/services/svc_massage_001/bookings/bkg_7f3a2b1c8d9e' },
@@ -93,8 +106,7 @@ function businessProfileKey(scenarioKey, negotiationScenario) {
   return 'standard';
 }
 
-function intersectProfiles(businessBody, platformBody, options) {
-  options = options || {};
+function intersectProfiles(businessBody, platformBody) {
   var result = JSON.parse(JSON.stringify(platformBody));
   var bizCaps = (businessBody.usp && businessBody.usp.capabilities) || {};
   var platCaps = (platformBody.usp && platformBody.usp.capabilities) || {};
@@ -104,11 +116,6 @@ function intersectProfiles(businessBody, platformBody, options) {
       negotiated[key] = JSON.parse(JSON.stringify(platCaps[key]));
     }
   });
-  if (options.stripHolds && negotiated['dev.usp-protocol.services.availability']) {
-    negotiated['dev.usp-protocol.services.availability'].forEach(function (entry) {
-      delete entry.holds;
-    });
-  }
   result.usp.capabilities = negotiated;
   return result;
 }
@@ -236,7 +243,9 @@ function runStep(stepId) {
     actualFile = 'webhooks';
   }
   if (stepId === 'negotiation') {
-    actualKey = negotiationKeys[scenarioKey] || 'standard';
+    var negDiscoveryKey = stepState.discovery ? stepState.discovery.scenarioKey : 'standard';
+    actualKey = negotiationPlatformKey(
+      scenarioKey, businessProfileKey(negDiscoveryKey, scenarioKey));
   }
 
   loadScenario(actualFile, actualKey, function (data) {
@@ -264,11 +273,7 @@ function runStep(stepId) {
             loadScenario('business-profile', bizKey, function (bizData) {
               var bizBody = bizData && bizData.response ? bizData.response : bizData;
               var platBody = negotiationProfilePayload(data);
-              display = intersectProfiles(
-                bizBody,
-                platBody,
-                scenarioKey === 'partial-match' ? { stripHolds: true } : {}
-              );
+              display = intersectProfiles(bizBody, platBody);
               showJson(responseEl.id, display);
               setStatus(stepId, 200);
               renderNegotiationGrid(capabilityNames(bizBody), capabilityNames(display));
@@ -300,6 +305,10 @@ function runStep(stepId) {
       } else {
         showJson(responseEl.id, { error: 'Scenario not found', scenario: scenarioKey });
         setStatus(stepId, 404);
+        if (stepId === 'negotiation') {
+          var staleGrid = document.getElementById('pg-negotiation-grid');
+          if (staleGrid) staleGrid.classList.add('pg-hidden');
+        }
       }
 
       if (runBtn) {

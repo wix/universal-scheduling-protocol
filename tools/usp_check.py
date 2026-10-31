@@ -1548,6 +1548,13 @@ PLAYGROUND_STEP_FILES = {
     "waitlist": ("waitlist",),
 }
 
+# Steps whose <option> values are not fixture keys but routing keys that
+# playground-controller.js maps to one. The map is read out of the controller
+# so a drifting mapping fails here rather than at 404 time in the browser.
+PLAYGROUND_INDIRECT_STEPS = {
+    "negotiation": ("platform-profile", "negotiationPlatformKeys"),
+}
+
 # Authored scenarios that no dropdown offers. Each entry would be debt, not a
 # design: the fixture exists and is served but cannot be run from the page.
 # This set is deliberately EMPTY, and every scenario file is now bound to a
@@ -1603,6 +1610,89 @@ def check_playground_reachability(findings: Findings) -> None:
             findings.fail(
                 f"PLAYGROUND:{step}:{key}",
                 f"template offers {key!r}, which no fixture for this step defines")
+
+    _check_playground_indirect_steps(findings, selects)
+    _check_playground_files_bound(findings)
+
+
+def _js_key_table(source: str, name: str) -> dict[str, dict[str, str]]:
+    """Read `var <name> = { 'opt': { biz: 'key', ... }, ... };` out of the JS."""
+    match = re.search(rf"var {name} = \{{(.*?)\n\}};", source, re.S)
+    if match is None:
+        return {}
+    return {
+        option: dict(re.findall(r"(\w+):\s*'([^']+)'", body))
+        for option, body in re.findall(r"'([^']+)':\s*\{([^}]*)\}", match.group(1))
+    }
+
+
+def _check_playground_indirect_steps(findings: Findings,
+                                     selects: dict[str, str]) -> None:
+    controller = (REPO / "site-docs" / "playground" / "src"
+                  / "playground-controller.js")
+    try:
+        source = controller.read_text()
+    except OSError as exc:
+        findings.fail("PLAYGROUND:controller",
+                      f"cannot read {rel(controller)}: {exc}")
+        return
+    for step, (file_name, table_name) in sorted(PLAYGROUND_INDIRECT_STEPS.items()):
+        block = selects.get(step)
+        if block is None:
+            findings.fail(f"PLAYGROUND:{step}",
+                          f"no pg-{step}-scenario select in the template")
+            continue
+        offered = set(re.findall(r'<option value="([^"]+)"', block))
+        table = _js_key_table(source, table_name)
+        if not table:
+            findings.fail(f"PLAYGROUND:{step}",
+                          f"cannot read {table_name} from {rel(controller)}")
+            continue
+        fixture = (REPO / "site-docs" / "playground" / "scenarios"
+                   / f"{file_name}.json")
+        try:
+            defined = set(json.loads(fixture.read_text()))
+        except (OSError, json.JSONDecodeError) as exc:
+            findings.fail(f"PLAYGROUND:{step}",
+                          f"cannot read {rel(fixture)}: {exc}")
+            continue
+        for key in sorted(offered - set(table)):
+            findings.fail(
+                f"PLAYGROUND:{step}:{key}",
+                f"template offers {key!r}, which {table_name} does not map")
+        for key in sorted(set(table) - offered):
+            findings.fail(
+                f"PLAYGROUND:{step}:{key}",
+                f"{table_name} maps {key!r}, which no <option> offers")
+        targets = {target for row in table.values() for target in row.values()}
+        for target in sorted(targets - defined):
+            findings.fail(
+                f"PLAYGROUND:{step}:{target}",
+                f"{table_name} resolves to {target!r}, which "
+                f"{file_name}.json does not define")
+        for key in sorted(defined - targets):
+            findings.fail(
+                f"PLAYGROUND:{file_name}:{key}",
+                f"scenario is not reachable: no {table_name} entry resolves "
+                f"to it")
+
+
+def _check_playground_files_bound(findings: Findings) -> None:
+    """No scenario file may sit outside the reachability check's scope.
+
+    An unbound file is checked in neither direction, which is how a negotiation
+    option that resolved to a nonexistent platform profile reached the
+    published page.
+    """
+    bound = {name for names in PLAYGROUND_STEP_FILES.values() for name in names}
+    bound |= {file_name for file_name, _ in PLAYGROUND_INDIRECT_STEPS.values()}
+    folder = REPO / "site-docs" / "playground" / "scenarios"
+    for fixture in sorted(folder.glob("*.json")):
+        if fixture.stem not in bound:
+            findings.fail(
+                f"PLAYGROUND:{fixture.stem}",
+                f"{rel(fixture)} is bound to no step: add it to "
+                "PLAYGROUND_STEP_FILES or PLAYGROUND_INDIRECT_STEPS")
 
 
 def check_authority(findings: Findings) -> None:
