@@ -237,9 +237,9 @@ or the existing error family instead.
 | `validity` | No | ISO 8601 duration after which a once-per-buyer completion must be redone. |
 | `subject` | No | `buyer` (default) or `recipient`, meaning the booking's recipient when present, otherwise the buyer. |
 | `due_at` | No | Deadline, valid only with `before_service`. |
-| `items` | **Yes** | 1 to 50 ordered items: `section`, `notice`, `question`, or `external_task`. |
+| `items` | **Yes** | 1 to 500 ordered items: `section`, `notice`, `question`, or `external_task`. |
 
-A **question** has `id`, `label` (a Description, `plain` at most 300
+A **question** has `id`, `label` (a Description; `plain` **MAY** be empty and is at most 350
 characters), `required` (boolean or condition), optional `when`, `collection`
 (`in_band`, `platform_surface`, `business_surface`), `sensitive`, `default`,
 `maps_to: notes`, `consent_purpose: marketing` with `consent_channel`, and a
@@ -254,13 +254,15 @@ contract it **MAY** collect input or an acknowledgment under that contract's rul
 
 | Answer type | Shape |
 |---|---|
-| Text | `{"type": "string", "maxLength": n}`, `maxLength` at most 5000 and required without a `format` |
+| Text | `{"type": "string", "maxLength": n}`, `maxLength` at most 20000. It **MAY** be omitted when no `format` is given; an omitted `maxLength` still caps the answer at 20000 characters |
 | Formatted text | `format` is `email`, `uri`, `date`, `time`, `date-time`, or `phone` (E.164, optional `allowed_country_codes`) |
 | Number | `{"type": "integer" \| "number", "minimum"?, "maximum"?}` |
 | Boolean | `{"type": "boolean"}`; both values satisfy `required: true` |
 | Acknowledgment | `{"type": "boolean", "const": true}`; never defaulted |
-| Single choice | `{"type": "string", "oneOf": [{"const", "title"}]}` |
+| Single choice | `{"type": "string", "oneOf": [{"const", "title"}]}`, 1 to 400 options. `const` is any string of at most 20000 characters. `title` **MAY** be empty and is at most 400 characters |
 | Multiple choice | `{"type": "array", "items": {"anyOf": [{"const", "title"}]}, "uniqueItems": true}` |
+
+Question and set `description.plain` **MAY** be empty, with no maximum length.
 
 `pattern`, remote `$ref`, nested objects, `patternProperties`, and `if`/`then`
 are rejected. An option may carry `image_url` and `exclusive: true` (a

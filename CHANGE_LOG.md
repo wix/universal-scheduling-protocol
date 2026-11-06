@@ -1,5 +1,14 @@
 # Change Log
 
+## 06/11/26 at 17:01:51 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Raised booking-question length ceilings to the lengths a Wix form can already store, in the schema, Section 11.4, and the extensions page. Question `label.plain` is 350 characters, and set, section, and external-task labels share that cap through `BookingQuestionLabel`. Option `title` is 400 characters, a question has at most 400 options, a set has at most 500 items, an option `const` is any string of at most 20000 characters, and a plain-text answer is at most 20000. The previous ceilings would have rejected a form Wix already accepts
+- Stopped requiring `maxLength` on a plain text question. Wix does not require a declared maximum, and an omitted `maxLength` still caps the answer at 20000 so every platform budgets the same bound
+- Removed the 2000-character cap on `description.plain`. Help text has no maximum length; markdown and html on the same Description object were already uncapped
+- Removed `minLength: 1` from label plain, option title, and description plain, so those strings may be empty, including a field whose label is blank
+
+---
+
 ## 31/10/26 at 16:02:51 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Fixed the playground's Partial Match negotiation scenario, which returned `404 Scenario not found`. The controller mapped `partial-match` to a platform profile named `full`, and `platform-profile.json` defines only `standard` and `advanced`, so the scenario had never run

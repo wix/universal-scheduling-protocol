@@ -63,6 +63,8 @@ VALIDITY_RE = re.compile(
     r"^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
 
 ORDERED_OPS = {"gt", "gte", "lt", "lte"}
+# A plain text question may omit maxLength. The answer is still bounded.
+PLAIN_TEXT_ANSWER_MAX = 20000
 MAX_USE_DEPTH = 8
 DEFAULT_MAX_CASES = 64
 
@@ -310,7 +312,10 @@ def answer_errors(question: dict, value, request_date: date | None = None) -> li
     errors = []
     if "minLength" in schema and len(value) < schema["minLength"]:
         errors.append("min_length")
-    if "maxLength" in schema and len(value) > schema["maxLength"]:
+    cap = schema.get("maxLength")
+    if cap is None and "format" not in schema:
+        cap = PLAIN_TEXT_ANSWER_MAX
+    if cap is not None and len(value) > cap:
         errors.append("max_length")
     fmt = schema.get("format")
     if fmt == "email" and not EMAIL_RE.match(value):

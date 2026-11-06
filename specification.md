@@ -10631,8 +10631,8 @@ most 20. `Service.required_buyer_fields[]` sits beside it at the service level.
 |--------------------------|-----------------------------|----------|-------------|
 | `id`                     | string                      | **Yes**  | Stable opaque set identifier. |
 | `revision`               | string                      | **Yes**  | Opaque form revision echoed in submissions. A changed revision invalidates every prior `once_per_buyer` and `once_per_buyer_per_service` submission for this set id. |
-| `title`                  | Description                 | No       | Form title. `plain` at most 300 characters. |
-| `description`            | Description                 | No       | Form description ([Section 3.3.2](#332-description-schema)). `plain` at most 2000 characters. |
+| `title`                  | Description                 | No       | Form title. `plain` **MAY** be empty and is at most 350 characters. |
+| `description`            | Description                 | No       | Form description ([Section 3.3.2](#332-description-schema)). `plain` **MAY** be empty and has no maximum length. |
 | `language`               | string                      | No       | BCP 47 language tag of the default text. |
 | `localized`              | object                      | No       | Map from BCP 47 tag to overrides of this set's own `title` and `description`. |
 | `purpose`                | string                      | **Yes**  | `eligibility`, `configuration`, or `intake`. Why the information is collected. |
@@ -10642,7 +10642,7 @@ most 20. `Service.required_buyer_fields[]` sits beside it at the service level.
 | `validity`               | string                      | No       | ISO 8601 duration from completion after which a once-per-buyer submission must be redone. |
 | `subject`                | string                      | No       | `buyer` (default) or `recipient`. `recipient` means the effective recipient: `Booking.recipient` when present, otherwise the buyer. |
 | `due_at`                 | string                      | No       | RFC 3339 deadline. Valid only with `completion_timing: before_service`. |
-| `items`                  | Array\[BookingQuestionItem\] | **Yes**  | Ordered form items, 1 to 50. |
+| `items`                  | Array\[BookingQuestionItem\] | **Yes**  | Ordered form items, 1 to 500. |
 
 `configuration` is valid only with `completion_timing: preflight`, and
 `preflight` only with `eligibility` or `configuration`
@@ -10684,8 +10684,8 @@ different set ([`bq-schema-ids`](tests/vectors/wire/bq-schema-ids.json)).
 |-------------------|---------------------------|----------|-------------|
 | `kind`            | string                    | **Yes**  | `question`. |
 | `id`              | string                    | **Yes**  | Question identifier, unique within the set. |
-| `label`           | Description               | **Yes**  | `plain` at most 300 characters; quoted verbatim by the platform. `markdown` is an optional richer rendering, for example a policy link ([`bq-schema-rich-label-checkbox`](tests/vectors/wire/bq-schema-rich-label-checkbox.json)). |
-| `description`     | Description               | No       | Help text; `plain` at most 2000 characters. |
+| `label`           | Description               | **Yes**  | `plain` **MAY** be empty and is at most 350 characters; quoted verbatim by the platform. `markdown` is an optional richer rendering, for example a policy link ([`bq-schema-rich-label-checkbox`](tests/vectors/wire/bq-schema-rich-label-checkbox.json)). |
+| `description`     | Description               | No       | Help text. `plain` **MAY** be empty and has no maximum length. |
 | `placeholder`     | string                    | No       | Input placeholder. |
 | `rendering`       | string                    | No       | Presentation hint (`text`, `textarea`, `rating`, `radio`, `dropdown`, `checkbox`, `tags`, `image_choice`). Never changes validation. |
 | `required`        | boolean or Condition      | **Yes**  | Whether an applicable question must be answered. |
@@ -10743,18 +10743,19 @@ does not list, so `pattern`, remote `$ref`, nested `object`,
 
 | Answer type | Shape | Notes |
 |---|---|---|
-| Text | `{"type": "string", "maxLength": n}` | `maxLength` at most 5000 and **REQUIRED** when no `format` is given ([`bq-schema-short-text`](tests/vectors/wire/bq-schema-short-text.json), [`bq-schema-long-text`](tests/vectors/wire/bq-schema-long-text.json)). |
+| Text | `{"type": "string", "maxLength": n}` | `maxLength` at most 20000. It **MAY** be omitted when no `format` is given; an omitted `maxLength` still caps the answer at 20000 characters ([`bq-schema-short-text`](tests/vectors/wire/bq-schema-short-text.json), [`bq-schema-long-text`](tests/vectors/wire/bq-schema-long-text.json)). |
 | Formatted text | `{"type": "string", "format": f}` | `f` is `email`, `uri`, `date`, `time`, `date-time`, or `phone`. `phone` is E.164 with an optional `allowed_country_codes` hint ([`bq-schema-email`](tests/vectors/wire/bq-schema-email.json), [`bq-schema-uri`](tests/vectors/wire/bq-schema-uri.json), [`bq-schema-phone`](tests/vectors/wire/bq-schema-phone.json), [`bq-schema-date`](tests/vectors/wire/bq-schema-date.json), [`bq-schema-time`](tests/vectors/wire/bq-schema-time.json), [`bq-schema-date-time`](tests/vectors/wire/bq-schema-date-time.json)). |
 | Number | `{"type": "integer" \| "number", "minimum"?, "maximum"?}` | A string `"5"` is not a number ([`bq-schema-number`](tests/vectors/wire/bq-schema-number.json)); a rating is an integer with `rendering: rating` ([`bq-schema-rating`](tests/vectors/wire/bq-schema-rating.json)). |
 | Boolean | `{"type": "boolean"}` | Both values satisfy `required: true`. |
 | Acknowledgment | `{"type": "boolean", "const": true}` | Satisfies a requirement only through the buyer-input Action contract ([Section 11.4.8](#1148-buyer-input-action)). |
-| Single choice | `{"type": "string", "oneOf": [{"const", "title"}]}` | 1 to 50 options, unique `const` values ([`bq-schema-single-choice`](tests/vectors/wire/bq-schema-single-choice.json), [`bq-schema-dropdown`](tests/vectors/wire/bq-schema-dropdown.json)). |
-| Multiple choice | `{"type": "array", "items": {"anyOf": [{"const", "title"}]}, "uniqueItems": true}` | Optional `minItems`/`maxItems`. A bare array of option identifiers is not conforming ([`bq-schema-multi-choice`](tests/vectors/wire/bq-schema-multi-choice.json), [`bq-schema-tags`](tests/vectors/wire/bq-schema-tags.json)). |
+| Single choice | `{"type": "string", "oneOf": [{"const", "title"}]}` | 1 to 400 options, unique `const` values ([`bq-schema-single-choice`](tests/vectors/wire/bq-schema-single-choice.json), [`bq-schema-dropdown`](tests/vectors/wire/bq-schema-dropdown.json)). |
+| Multiple choice | `{"type": "array", "items": {"anyOf": [{"const", "title"}]}, "uniqueItems": true}` | Optional `minItems`/`maxItems`. A bare array of option values is not conforming ([`bq-schema-multi-choice`](tests/vectors/wire/bq-schema-multi-choice.json), [`bq-schema-tags`](tests/vectors/wire/bq-schema-tags.json)). |
 
-An option carries `const` (the identifier the platform submits) and `title` (the
-plain text the platform quotes). `title` stays a JSON Schema string so the
-answer schema remains a valid MCP elicitation primitive; richer explanation
-belongs in the question `description`. An option **MAY** carry `image_url`; a
+An option carries `const` (the value the platform submits) and `title` (the
+plain text the platform quotes). `const` is any string of at most 20000
+characters. `title` **MAY** be empty and is at most 400 characters. `title` stays
+a JSON Schema string so the answer schema remains a valid MCP elicitation
+primitive; richer explanation belongs in the question `description`. An option **MAY** carry `image_url`; a
 business whose option meaning depends entirely on an image it cannot title keeps
 that question on business-surface handoff
 ([`bq-schema-image-choice`](tests/vectors/wire/bq-schema-image-choice.json)). An
@@ -10826,10 +10827,14 @@ and [`bq-cond-age-threshold`](tests/vectors/eval/bq-cond-age-threshold.json).
 
 ##### Limits and Localization
 
-At most 20 sets per service, 50 items per set, 50 options per question, a
-`label.plain` of 300 characters, a `description.plain` of 2000 characters, and
-a text `maxLength` of 5000. These are schema-enforced maximums; a business with
-a larger legitimate need keeps the excess on business-surface handoff
+At most 20 sets per service and 500 items per set. A question has at most 400
+options. `label.plain` is at most 350 characters and **MAY** be empty. An option
+`title` is at most 400 characters and **MAY** be empty. `description.plain` **MAY** be
+empty and has no maximum length. An option `const` is any string of at most
+20000 characters. A plain text answer is at most 20000 characters. A declared
+`maxLength` **MUST** be at most 20000, and when `maxLength` is omitted the
+answer is still at most 20000 characters. A business with a larger legitimate
+need keeps the excess on business-surface handoff
 ([`bq-schema-limits`](tests/vectors/wire/bq-schema-limits.json)).
 
 Core `Service.localized` ([Section 3.5](#35-localization)) reaches only a fixed
