@@ -508,6 +508,23 @@ def _question_path(prefix: str, set_id: str, qid: str) -> str:
     return f"{_set_path(prefix, set_id)}.answers['{qid}']"
 
 
+def submitted_values(sub: dict) -> dict:
+    """Question id to typed value, unwrapped from a submission's answer entries.
+
+    Raises ValueError when an answer is a bare value or an entry without
+    ``value``. Reading that as a missing answer would hide a bad submission.
+    """
+    answers = sub.get("answers") or {}
+    if not isinstance(answers, dict):
+        raise ValueError("submission answers is not an object of question id to answer entry")
+    values = {}
+    for qid, entry in answers.items():
+        if not isinstance(entry, dict) or "value" not in entry:
+            raise ValueError(f"answer {qid!r} must be an entry with value")
+        values[qid] = entry["value"]
+    return values
+
+
 def derive_messages(service: dict, step: dict, history: list[dict] | None = None) -> list[tuple[str, str]]:
     """``(code, path)`` pairs a conforming business returns for one request.
 
@@ -557,7 +574,7 @@ def derive_messages(service: dict, step: dict, history: list[dict] | None = None
                     continue
             answers = {}
         else:
-            answers = dict(sub.get("answers", {}))
+            answers = submitted_values(sub)
 
         acting = sub is not None and "action_id" in sub
         by_id = {i.get("id"): i for i in qset.get("items", [])}
@@ -715,9 +732,16 @@ def flow_case_problems(case: dict, outcome_codes: set[str]) -> list[tuple[str, s
             if item.get("kind") == "question" and item.get("sensitive"):
                 sensitive.add(item["id"])
     secrets = set()
+    shape_error = False
     for step in _steps(case):
         for sub in step.get("with", {}).get("booking_question_submissions", []) or []:
-            for qid, value in (sub.get("answers") or {}).items():
+            try:
+                values = submitted_values(sub)
+            except ValueError as exc:
+                problems.append(("submission-shape", str(exc)))
+                shape_error = True
+                continue
+            for qid, value in values.items():
                 if qid in sensitive:
                     secrets.update(s for s in _strings(value) if len(s) >= 3)
     outputs = [case.get("then")] + [s.get("result") for s in _steps(case)]
@@ -732,6 +756,9 @@ def flow_case_problems(case: dict, outcome_codes: set[str]) -> list[tuple[str, s
             if key == "code" and value in EXTENSION_CODES:
                 problems.append(("unnegotiated-code", f"{pointer}: {value} emitted to a platform "
                                  "that did not negotiate the extension"))
+        return problems
+
+    if shape_error:
         return problems
 
     if service.get("booking_question_sets") or service.get("required_buyer_fields"):
@@ -1025,9 +1052,12 @@ def _invariant_problems(name: str, case: dict, derived: dict) -> str | None:
             return "a bare acknowledgement without an Action id resolved the Action"
     elif name == "messages_never_echo_answer_values":
         values = set()
-        for step in steps:
-            for sub in step.get("with", {}).get("booking_question_submissions", []) or []:
-                values.update(s for s in _strings(sub.get("answers", {})) if len(s) >= 3)
+        try:
+            for step in steps:
+                for sub in step.get("with", {}).get("booking_question_submissions", []) or []:
+                    values.update(s for s in _strings(submitted_values(sub)) if len(s) >= 3)
+        except ValueError as exc:
+            return str(exc)
         rendered = json.dumps(derived.get("rejections", []), ensure_ascii=False)
         if any(v in rendered for v in values):
             return "a message echoes a submitted answer value"

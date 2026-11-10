@@ -299,13 +299,36 @@ business's `eligible` decision as eligibility.
 ### Submissions, state, and the buyer-input Action
 
 Answers travel as `booking_question_submissions[]`
-(`{set_id, revision, answers, collected_via?, action_id?}`) on the eligibility
-check, Create and Update Booking, and inside `booking` on UCP Create and Update
-Checkout, where every still-applicable submission is resent on every Update.
+(`{set_id, revision, answers, action_id?}`) on the eligibility check, Create and
+Update Booking, and inside `booking` on UCP Create and Update Checkout, where
+every still-applicable submission is resent on every Update. `answers` maps each
+question id, at most once, to one entry `{value, collected_via?}`: the typed
+value, and `conversation` or `platform_surface` as a provenance claim that never
+proves the buyer saw or accepted anything.
+
+```json
+{
+  "set_id": "intake",
+  "revision": "r1",
+  "answers": {
+    "hair_length": { "value": "long", "collected_via": "conversation" },
+    "no_show_fee": { "value": true, "collected_via": "platform_surface" }
+  },
+  "action_id": "act_bq_1"
+}
+```
+
+An entry may omit `collected_via`. A bare value, a submission-level
+`collected_via` map, an entry without `value`, or any other `collected_via`
+value fails the schema. The business rejects that request as a
+`validation_error`. Question-level outcome codes apply only after the
+submission matches this shape.
+
 The business echoes non-sensitive state in `booking_question_state[]` with
 `status` `pending`, `completed`, `expired`, `waived`, `extended`,
-`under_review`, or `rejected`. `before_service` sets live there, never in
-`Booking.actions`.
+`under_review`, or `rejected`. The echo's `answers` maps each question id to
+the accepted bare value, without the submission's entry wrapper.
+`before_service` sets live there, never in `Booking.actions`.
 
 The extension declares one Action type,
 `dev.usp-protocol.services.booking_questions.buyer_input`, with `config`
@@ -323,7 +346,8 @@ active.
 Carried in `messages[]` with HTTP 200, one message per failure, with
 `required_buyer_fields` failures first and then set and item order. Paths are
 bracket-form RFC 9535 JSONPath, for example
-`$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`.
+`$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`,
+which selects that question's answer entry.
 
 | Code | Meaning |
 |---|---|

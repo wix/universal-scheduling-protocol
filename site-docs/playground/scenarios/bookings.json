@@ -340,7 +340,7 @@
             "set_id": "kids_eligibility",
             "revision": "r1",
             "answers": {
-              "participant_birth_date": "2023-06-01"
+              "participant_birth_date": { "value": "2023-06-01" }
             }
           }
         ]
@@ -394,7 +394,7 @@
             "set_id": "color_config",
             "revision": "r2",
             "answers": {
-              "hair_length": "long"
+              "hair_length": { "value": "long" }
             }
           }
         ]
@@ -446,11 +446,8 @@
             "set_id": "massage_intake",
             "revision": "r3",
             "answers": {
-              "allergies": [
-                "none",
-                "other"
-              ],
-              "no_show_fee": true
+              "allergies": { "value": ["none", "other"] },
+              "no_show_fee": { "value": true }
             }
           }
         ]
@@ -513,10 +510,8 @@
             "set_id": "massage_intake",
             "revision": "r3",
             "answers": {
-              "allergies": [
-                "lavender"
-              ],
-              "medical_conditions": "provided"
+              "allergies": { "value": ["lavender"] },
+              "medical_conditions": { "value": "provided" }
             }
           }
         ]
@@ -630,10 +625,8 @@
             "set_id": "massage_intake",
             "revision": "r3",
             "answers": {
-              "allergies": [
-                "none"
-              ],
-              "no_show_fee": true
+              "allergies": { "value": ["none"] },
+              "no_show_fee": { "value": true }
             },
             "action_id": "act_bq_1"
           }

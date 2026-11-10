@@ -1,5 +1,39 @@
 # Change Log
 
+## 10/11/26 at 14:19:37 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Stated in Section 11.4.5 and on the extensions page that a submission which fails the answer-entry schema is a `validation_error`, and that question-level outcome codes apply only after the submission matches that schema. A bare value would otherwise be easy to report as `booking_question_answer_missing`
+- Restored the earlier change-log entries that this branch had rewritten, so the log keeps the original proposal and the later decision to stay on `2026-08-20`
+
+---
+
+## 10/11/26 at 14:07:33 by [Ran Yahalom](mailto:ranya@wix.com)
+
+- Kept `dev.usp-protocol.services.booking_questions` at `2026-08-20` and removed the `2026-11-10` capability bump, the Section 11.4.2 break note, and Appendix C. The extension was published days ago and has no implementers, so the one-entry submission shape is the current capability version
+- Made the reference validator reject a submission answer that is not an entry with `value`, so a bare value fails the booking-question check instead of being read as an unanswered question
+
+---
+
+## 10/11/26 at 11:47:59 by [adihab872](mailto:adihab@wix.com)
+
+- Stated in Section 11.4.6 and the `BookingQuestionState.answers` schema description that the state echo maps each question id to the accepted bare value, without the submission's answer entry wrapper. Submission and echo both name the field `answers` but now differ in shape, and the old wording left implementers to guess which one the echo follows
+- Added Appendix C, which defines the `2026-08-20` booking-question submission shape and how it maps to `2026-11-10` entries, and linked it from the Section 11.4.2 versioning note. Without it, the note told a business to keep serving `2026-08-20` while the only canonical schema described the new shape
+- Added the `bq-schema-submission-answers` wire vector. It accepts entries with and without `collected_via`, and rejects bare values, a submission-level `collected_via` map, an entry without `value`, and an unknown provenance, so the schema checks that were run by hand become regression coverage
+- Mirrored the echo shape and the `2026-08-20` summary on the extensions page
+
+---
+
+## 10/11/26 at 11:25:05 by [adihab872](mailto:adihab@wix.com)
+
+- Proposed merging a booking-question submission's two parallel maps, `answers` (question id to value) and `collected_via` (question id to provenance), into one `answers` object whose entries are `{value, collected_via?}`. Each question id now appears once, so a value and its provenance cannot drift apart or name different questions. Added `$defs/BookingQuestionAnswer` in `schemas/booking_questions.json` and the matching table and example in Section 11.4.5; the REST and MCP bindings already reference the submission `$def` and did not change
+- Kept `answers` keyed by question id rather than switching to a list of `{question_id, value, collected_via}`, so the Section 11.4.9 question-level paths (`.answers['<id>']`) stay valid and "one answer per question" still follows from the object shape instead of needing a separate uniqueness rule. Section 11.4.9 now says such a path selects the answer entry
+- Bumped the booking questions capability version to `2026-11-10` and stated in Section 11.4.2 that it breaks `2026-08-20`, because changing a field's type is a breaking change under Section 8.4. The protocol version is unchanged
+- Converted every submission in the booking-question flow vectors and the submit-action fixture to the new entry shape, and dropped that fixture's separate `collected_via` parameter. Evaluator `cases[].answers` inputs and the `booking_question_state` answer echo keep their plain value maps because they are not submissions
+- Taught the reference validator (`tools/usp_booking_questions.py`) to read values out of answer entries, so derived messages, the sensitive-leak scan, and the echo invariant keep checking answer values rather than provenance strings
+- Updated the extensions page and the playground booking scenarios to the new submission shape and capability version
+
+---
+
 ## 06/11/26 at 17:01:51 by [Ran Yahalom](mailto:ranya@wix.com)
 
 - Raised booking-question length ceilings to the lengths a Wix form can already store, in the schema, Section 11.4, and the extensions page. Question `label.plain` is 350 characters, and set, section, and external-task labels share that cap through `BookingQuestionLabel`. Option `title` is 400 characters, a question has at most 400 options, a set has at most 500 items, an option `const` is any string of at most 20000 characters, and a plain-text answer is at most 20000. The previous ceilings would have rejected a form Wix already accepts

@@ -1220,10 +1220,32 @@
         ]
       }
     },
+    "BookingQuestionAnswer": {
+      "type": "object",
+      "title": "BookingQuestionAnswer",
+      "description": "One question's answer in a submission: the typed value and where the platform collected it.",
+      "additionalProperties": false,
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/BookingQuestionAnswerValue"
+        },
+        "collected_via": {
+          "type": "string",
+          "enum": [
+            "conversation",
+            "platform_surface"
+          ],
+          "description": "Where the platform collected the value. A provenance claim only, never independently sufficient evidence that the buyer saw or accepted anything."
+        }
+      }
+    },
     "BookingQuestionSubmission": {
       "type": "object",
       "title": "BookingQuestionSubmission",
-      "description": "Answers for one set and revision. collected_via is a platform provenance claim only and is never independently sufficient evidence that the buyer saw or accepted anything.",
+      "description": "Answers for one set and revision, at most one entry per question id. Each entry carries the typed value and the platform's optional collected_via provenance claim, which is never independently sufficient evidence that the buyer saw or accepted anything.",
       "additionalProperties": false,
       "required": [
         "set_id",
@@ -1245,22 +1267,9 @@
             "pattern": "^[A-Za-z0-9_.-]{1,64}$"
           },
           "additionalProperties": {
-            "$ref": "#/$defs/BookingQuestionAnswerValue"
+            "$ref": "#/$defs/BookingQuestionAnswer"
           },
-          "description": "Map of question id to typed value. External tasks never appear here."
-        },
-        "collected_via": {
-          "type": "object",
-          "propertyNames": {
-            "pattern": "^[A-Za-z0-9_.-]{1,64}$"
-          },
-          "additionalProperties": {
-            "type": "string",
-            "enum": [
-              "conversation",
-              "platform_surface"
-            ]
-          }
+          "description": "Map of question id to that question's answer entry. External tasks never appear here."
         },
         "action_id": {
           "type": "string",
@@ -1375,7 +1384,7 @@
           "additionalProperties": {
             "$ref": "#/$defs/BookingQuestionAnswerValue"
           },
-          "description": "Non-sensitive accepted answer echo."
+          "description": "Non-sensitive accepted answer echo: map of question id to the accepted typed value, without the submission's answer entry wrapper."
         }
       },
       "allOf": [

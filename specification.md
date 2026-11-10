@@ -10968,9 +10968,42 @@ with unresolved required preflight eligibility.
 |-----------------|--------|-------------|-------------|
 | `set_id`        | string | **Yes**     | The set being answered. |
 | `revision`      | string | **Yes**     | The revision the answers were collected against. |
-| `answers`       | object | **Yes**     | Map of question id to typed value (string, number, boolean, or array of option ids). External tasks never appear here. |
-| `collected_via` | object | No          | Map of question id to `conversation` or `platform_surface`. A provenance claim only, never independently sufficient evidence that the buyer saw or accepted anything. |
+| `answers`       | object | **Yes**     | Map of question id to that question's BookingQuestionAnswer entry. Each question id appears at most once. External tasks never appear here. |
 | `action_id`     | string | Conditional | **REQUIRED** when the submission processes an outstanding buyer-input Action. |
+
+> **JSON Schema:** [/$defs/BookingQuestionAnswer](schemas/booking_questions.json)
+
+| Field           | Type   | Required | Description |
+|-----------------|--------|----------|-------------|
+| `value`         | string \| number \| boolean \| Array\[string\] | **Yes** | The typed answer: a string, number, boolean, or array of option values. The business validates it against the question's `schema`. |
+| `collected_via` | string | No       | `conversation` or `platform_surface`: where the platform collected the value. A provenance claim only, never independently sufficient evidence that the buyer saw or accepted anything. |
+
+```json
+{
+  "booking_question_submissions": [
+    {
+      "set_id": "intake",
+      "revision": "r1",
+      "answers": {
+        "hair_length": { "value": "long", "collected_via": "conversation" },
+        "allergies": { "value": ["none"], "collected_via": "conversation" },
+        "no_show_fee": { "value": true, "collected_via": "platform_surface" }
+      },
+      "action_id": "act_bq_1"
+    }
+  ]
+}
+```
+
+An entry without `collected_via` is valid. A bare value in place of an entry, a
+submission-level `collected_via` map, an entry without `value`, or any other
+`collected_via` value fails the schema
+([`bq-schema-submission-answers`](tests/vectors/wire/bq-schema-submission-answers.json)).
+A business **MUST** reject that request as a `validation_error` protocol error
+([Section 9.4.3](#943-protocol-errors)). The question-level outcome codes in
+[Section 11.4.9](#1149-error-codes), including
+`booking_question_answer_missing`, apply only after the submission matches this
+schema.
 
 `booking_question_submissions[]` travels on the eligibility check, Create and
 Update Booking, and (inside `booking`) UCP Create and Update Checkout
@@ -11009,7 +11042,7 @@ checkout
 | `valid_until`       | string | No          | Present when the set declares `validity` and `status` is `completed` or `extended`. |
 | `message`           | string | Conditional | Buyer-safe reason. **REQUIRED** when `status` is `rejected`. |
 | `continue_url`      | string | No          | Session-specific HTTPS URL for pending business-surface work. |
-| `answers`           | object | No          | Non-sensitive accepted answer echo. |
+| `answers`           | object | No          | Non-sensitive accepted answer echo: map of question id to the accepted typed value, without the submission's answer entry wrapper ([Section 11.4.5](#1145-request-submission)). |
 
 **Gating.** On a set with `completion_requirement: required`, `pending`,
 `expired`, `under_review`, and `rejected` are unresolved and block the
@@ -11186,7 +11219,9 @@ request.
 
 **Paths.** `path` is bracket-form RFC 9535 JSONPath naming both set and question,
 for example
-`$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`.
+`$.booking_question_submissions[?@.set_id=='intake'].answers['allergies']`. A
+question-level path selects that question's answer entry
+([Section 11.4.5](#1145-request-submission)), not its `value` member.
 A business **MAY** use a set-level path
 (`$.booking_question_submissions[?@.set_id=='intake']`) only when it cannot
 attribute a failure to one question; a business that can identify the question
@@ -11330,7 +11365,7 @@ business outcomes, and the composed vector expands into ordinary flow cases
 |---|---|
 | Question types (wire) | `bq-schema-short-text`, `bq-schema-long-text`, `bq-schema-number`, `bq-schema-rating`, `bq-schema-email`, `bq-schema-uri`, `bq-schema-phone`, `bq-schema-date`, `bq-schema-date-not-after-today`, `bq-schema-date-within-window`, `bq-schema-time`, `bq-schema-date-time`, `bq-schema-boolean-not-ack`, `bq-schema-acknowledgement`, `bq-schema-single-choice`, `bq-schema-dropdown`, `bq-schema-multi-choice`, `bq-schema-tags`, `bq-schema-image-choice`, `bq-schema-exclusive-none`, `bq-schema-other-free-text`, `bq-schema-address-flattened`, `bq-schema-compound-measurement`, `bq-schema-notice-markdown`, `bq-schema-rich-label-checkbox`, `bq-schema-section-pages`, `bq-schema-external-file`, `bq-schema-external-signature`, `bq-schema-external-markup`, `bq-schema-forbidden-keywords`, `bq-schema-ids`, `bq-schema-limits`, `bq-schema-required-buyer-fields`, `bq-schema-maps-to-notes`, `bq-schema-completion-requirement`, `bq-schema-configuration-purpose`, `bq-schema-localized-nested` |
 | Conditions (eval) | `bq-cond-operators`, `bq-cond-type-mismatch`, `bq-cond-combinators`, `bq-cond-depth`, `bq-cond-forward-reference`, `bq-cond-unanswered-reference`, `bq-cond-inapplicable-chain`, `bq-cond-required-toggle`, `bq-cond-pruning`, `bq-cond-allergy-tree`, `bq-cond-other-free-text`, `bq-cond-contact-preference`, `bq-cond-age-threshold` |
-| Submission and errors | `bq-flow-answer-missing`, `bq-flow-multiple-failures`, `bq-flow-set-level-path`, `bq-flow-unknown-question`, `bq-flow-stale-revision`, `bq-flow-update-not-allowed`, `bq-flow-update-states`, `bq-flow-retry-preserves-hold`, `bq-flow-unnegotiated-client`, `bq-flow-negotiated-no-answers`, `bq-flow-required-buyer-field-missing`, `bq-flow-maps-to-notes-no-duplicate`, `bq-flow-exclusive-option-rejected`, `bq-flow-pattern-description-echoed`, `bq-flow-uri-scheme-policy` |
+| Submission and errors | `bq-schema-submission-answers`, `bq-flow-answer-missing`, `bq-flow-multiple-failures`, `bq-flow-set-level-path`, `bq-flow-unknown-question`, `bq-flow-stale-revision`, `bq-flow-update-not-allowed`, `bq-flow-update-states`, `bq-flow-retry-preserves-hold`, `bq-flow-unnegotiated-client`, `bq-flow-negotiated-no-answers`, `bq-flow-required-buyer-field-missing`, `bq-flow-maps-to-notes-no-duplicate`, `bq-flow-exclusive-option-rejected`, `bq-flow-pattern-description-echoed`, `bq-flow-uri-scheme-policy` |
 | Preflight eligibility | `bq-flow-eligible-token`, `bq-flow-ineligible-no-hold`, `bq-flow-requires-input-loop`, `bq-flow-token-wrong-scope`, `bq-flow-token-expired-missing`, `bq-flow-no-side-effects`, `bq-flow-once-per-buyer-satisfied`, `bq-flow-configuration-duration`, `bq-flow-configuration-variable-price`, `bq-flow-recipient-eligibility`, `bq-flow-service-area` |
 | Timing and lifecycle | `bq-flow-before-confirmation-recap`, `bq-flow-before-confirmation-external-task`, `bq-flow-before-service-required`, `bq-flow-before-service-optional`, `bq-flow-intake-validity`, `bq-flow-revision-invalidates-intake`, `bq-flow-waived-state`, `bq-flow-under-review-then-rejected` |
 | Buyer-input Action and UCP-Native | `bq-flow-action-platform-processing`, `bq-flow-action-unsupported-fallback`, `bq-flow-ucp-create-carries-answers`, `bq-flow-ucp-update-resend-required`, `bq-flow-ucp-incomplete-not-escalation`, `bq-flow-ucp-action-authoritative`, `bq-flow-ucp-external-task-escalation`, `bq-flow-ucp-trusted-ui-finalization`, `bq-flow-ucp-ap2-mandate-exception`, `bq-flow-ucp-order-echo-persists`, `bq-flow-ucp-multi-parent-pruning`, `bq-flow-ucp-multi-service-deferred` |
